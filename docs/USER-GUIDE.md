@@ -225,7 +225,8 @@ Ask for help: a software problem, a hardware fault, an Admin request. Tickets ap
   - or **Reopen ticket** with a reason. The same task opens again straight away in the assignee's Tasks, and the coordinators are told (they can reassign it).
 
   If you don't answer, you're reminded after 2 and 3 working days, and the ticket closes by itself after 4 complete working days ("Closed – auto closed"). Weekly offs and company holidays don't count.
-- **My tickets** lists the tickets you raised, and those assigned to you.
+- **My tickets** lists the tickets you raised, and those assigned to you; on **Assigned to me**, **Open task** takes you straight to the task to start or complete it.
+- **Ticket and task in step:** the ticket shows the task's comments and activity, and the task shows the ticket's remarks, files and timeline, so both tell the whole story.
 - **Remarks:** anyone on the ticket can add a remark or files. Coordinators and the assignee may mark a remark **Internal**; you don't see those.
 - **Assigned a ticket?** Its task is in your Tasks, titled with the ticket number. **Start** it, add remarks and documents, and **Complete** it with **completion remarks** (the requester reads them). Completing asks the requester to confirm; it doesn't close the ticket. Reassigning and reopening are done on the ticket, not the task.
 - **Coordinators:**

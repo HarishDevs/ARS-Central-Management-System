@@ -51,7 +51,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
       {items.length === 0 ? (
         <EmptyState title="No tickets here" body={view === "mine" ? "Tickets you raise appear here." : "Tickets assigned to you appear here."} />
       ) : (
-        <TicketTable items={items} caption={VIEWS[view]} />
+        <TicketTable items={items} caption={VIEWS[view]} withTask={view === "assigned"} />
       )}
       {pages > 1 && (
         <nav aria-label="Pages" className="mt-4 flex items-center justify-between text-label">

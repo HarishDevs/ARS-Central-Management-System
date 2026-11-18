@@ -19,6 +19,10 @@ import { listRecordFiles } from "@/server/modules/files";
 import { indiaDateTimeText } from "@/server/modules/settings";
 import { isOverdue, TICKET_STATUS_LABEL, type TicketStatus } from "@/server/tickets/rules";
 import { personLabel } from "@/lib/people/label";
+import { TICKET_EVENT_TEXT } from "@/features/tickets/event-text";
+import { TASK_EVENT_TEXT } from "@/features/work/TaskDetail";
+import { listComments as listTaskComments } from "@/lib/db/repositories/work.repository";
+import { listTaskEvents } from "@/lib/db/repositories/tasks.repository";
 
 export const metadata: Metadata = { title: "Ticket" };
 export const dynamic = "force-dynamic";
@@ -26,20 +30,6 @@ export const dynamic = "force-dynamic";
 // v1.55.0 (owner's ticketing brief §5-7, §12): one ticket. Coordinators assign
 // (making the linked task) and add remarks; the assignee works in the task;
 // the requester confirms or reopens once the work is done.
-const EVENT_TEXT: Record<string, string> = {
-  RAISED: "Raised",
-  ASSIGNED: "Assigned",
-  REASSIGNED: "Reassigned",
-  REASSIGNED_AFTER_REOPEN: "Assigned again after reopening",
-  WORK_STARTED: "Work started",
-  WORK_COMPLETED: "Work completed",
-  CONFIRM_REMINDER: "Reminder sent to confirm",
-  CONFIRMED: "Confirmed and closed",
-  REOPENED: "Reopened",
-  AUTO_CLOSED: "Closed automatically",
-  REMARK: "Remark",
-  FILES_ADDED: "Files added",
-};
 const day = (value: string | null) => (value ? new Date(`${value}T00:00:00Z`).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }) : "—");
 
 export default async function Page({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ raised?: string }> }) {
@@ -60,6 +50,17 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   ]);
   const query = await searchParams;
   const names = new Map(people.map((person) => [person.id, person.name]));
+  // v1.57.2 (D-339, owner: "all the comments and attachments and activities should be
+  // reflected in both ticket and task"): the task's comments and activity show here too.
+  const [taskComments, taskEvents] = ticket.taskId ? await Promise.all([listTaskComments(ticket.taskId, user.id), listTaskEvents(ticket.taskId)]) : [[], []];
+  const remarks = [
+    ...comments.map((comment) => ({ key: `r${comment.id}`, authorName: comment.authorName, createdAt: comment.createdAt, body: comment.body, internal: comment.internal, fromTask: false })),
+    ...taskComments.filter((comment) => !comment.deletedAt).map((comment) => ({ key: `t${comment.id}`, authorName: comment.authorName, createdAt: comment.createdAt, body: comment.body, internal: false, fromTask: true })),
+  ].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  const timeline = [
+    ...events.map((event) => ({ kind: "ticket" as const, at: event.createdAt, event })),
+    ...taskEvents.map((event) => ({ kind: "task" as const, at: event.createdAt, event })),
+  ].sort((a, b) => a.at.getTime() - b.at.getTime());
   // v1.57.0 (D-335): Item list fields, ticked as provided by the coordinators and the assignee.
   const checklists = await checklistsFor("TICKET", ticket.id, form, ticket.formData);
   const canTickItems = checklists.length > 0 && (await mayTickTicket(ticket.id, user));
@@ -157,15 +158,16 @@ export default async function Page({ params, searchParams }: { params: Promise<{
             <h2 id="remarks-heading" className="mb-3 font-semibold">
               Remarks
             </h2>
-            {comments.length === 0 ? (
+            {remarks.length === 0 ? (
               <p className="mb-3 text-label text-ink-muted">No remarks yet.</p>
             ) : (
               <ul className="mb-4 space-y-3" data-testid="ticket-comments">
-                {comments.map((comment) => (
-                  <li key={comment.id} className={`rounded-md px-3 py-2 ${comment.internal ? "bg-warning-50" : "bg-surface-muted"}`}>
+                {remarks.map((comment) => (
+                  <li key={comment.key} className={`rounded-md px-3 py-2 ${comment.internal ? "bg-warning-50" : "bg-surface-muted"}`}>
                     <p className="text-caption text-ink-muted">
                       {comment.authorName} · {indiaDateTimeText(comment.createdAt)}
                       {comment.internal ? " · Internal" : ""}
+                      {comment.fromTask ? ` · on task ${ticket.taskNo ?? ""}` : ""}
                     </p>
                     <RichText text={comment.body} />
                   </li>
@@ -211,25 +213,44 @@ export default async function Page({ params, searchParams }: { params: Promise<{
               Timeline
             </h2>
             <ol className="space-y-2 text-label" data-testid="ticket-timeline">
-              {events.map((event) => (
-                <li key={event.id}>
-                  <p className="font-medium">
-                    {EVENT_TEXT[event.action] ?? event.action}
-                    {/* The new status, unless the words already say it (e.g. "Assigned"). */}
-                    {event.toStatus && event.action !== "RAISED" && event.toStatus !== event.fromStatus && !(EVENT_TEXT[event.action] ?? "").toLowerCase().startsWith((TICKET_STATUS_LABEL[event.toStatus as TicketStatus] ?? "").toLowerCase()) ? ` → ${TICKET_STATUS_LABEL[event.toStatus as TicketStatus] ?? event.toStatus}` : ""}
-                  </p>
-                  <p className="text-caption text-ink-muted">
-                    {event.actorName ?? "ARS CMS"} · {indiaDateTimeText(event.createdAt)}
-                  </p>
-                  {typeof event.detail?.assigneeName === "string" && <p className="text-caption">To {event.detail.assigneeName}, target {day(typeof event.detail.targetDate === "string" ? event.detail.targetDate : null)}</p>}
-                  {typeof event.detail?.reason === "string" && <p className="text-caption">{event.detail.reason}</p>}
-                  {typeof event.detail?.remarks === "string" && event.detail.remarks && <p className="text-caption">{event.detail.remarks}</p>}
-                </li>
-              ))}
+              {timeline.map((item) =>
+                item.kind === "task" ? (
+                  <li key={`t${item.event.id}`} data-testid="ticket-timeline-task">
+                    <p className="font-medium">
+                      Task {ticket.taskNo}: {TASK_EVENT_TEXT[item.event.eventType] ?? item.event.eventType}
+                    </p>
+                    <p className="text-caption text-ink-muted">
+                      {item.event.actorName} · {indiaDateTimeText(item.event.createdAt)}
+                    </p>
+                    {item.event.body && <p className="text-caption">{item.event.body.replace(/@\[([^\]\n]{1,80})\]\(user:\d{1,10}\)/g, "@$1")}</p>}
+                  </li>
+                ) : (
+                  <TicketEventRow key={`k${item.event.id}`} event={item.event} />
+                ),
+              )}
             </ol>
           </section>
         </aside>
       </div>
     </>
+  );
+}
+
+// One line of the ticket's own timeline.
+function TicketEventRow({ event }: { event: Awaited<ReturnType<typeof listTicketEvents>>[number] }) {
+  return (
+    <li>
+      <p className="font-medium">
+        {TICKET_EVENT_TEXT[event.action] ?? event.action}
+        {/* The new status, unless the words already say it (e.g. "Assigned"). */}
+        {event.toStatus && event.action !== "RAISED" && event.toStatus !== event.fromStatus && !(TICKET_EVENT_TEXT[event.action] ?? "").toLowerCase().startsWith((TICKET_STATUS_LABEL[event.toStatus as TicketStatus] ?? "").toLowerCase()) ? ` → ${TICKET_STATUS_LABEL[event.toStatus as TicketStatus] ?? event.toStatus}` : ""}
+      </p>
+      <p className="text-caption text-ink-muted">
+        {event.actorName ?? "ARS CMS"} · {indiaDateTimeText(event.createdAt)}
+      </p>
+      {typeof event.detail?.assigneeName === "string" && <p className="text-caption">To {event.detail.assigneeName}, target {day(typeof event.detail.targetDate === "string" ? event.detail.targetDate : null)}</p>}
+      {typeof event.detail?.reason === "string" && <p className="text-caption">{event.detail.reason}</p>}
+      {typeof event.detail?.remarks === "string" && event.detail.remarks && <p className="text-caption">{event.detail.remarks}</p>}
+    </li>
   );
 }

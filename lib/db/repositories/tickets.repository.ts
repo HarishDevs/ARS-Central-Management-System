@@ -347,6 +347,10 @@ export interface TicketListItem {
   closeKind: string | null;
   submittedAt: Date;
   dueAt: Date | null;
+  // v1.57.2 (D-340): the linked task, so the assignee can open it from the list.
+  taskId?: number | null;
+  taskNo?: string | null;
+  taskStatus?: string | null;
 }
 export const TICKET_PAGE_SIZE = 25;
 // Who is looking: isAdmin = sees every ticket; categoryIds = also sees these categories (D-338).
@@ -413,7 +417,9 @@ export async function listTickets(filter: TicketListFilter, viewer: TicketScopeV
   const { clause, params } = ticketWhere(filter, viewer);
   const [[count]] = await db.query<Row[]>(`SELECT COUNT(*) AS n ${LIST_FROM} ${clause}`, params);
   const [rows] = await db.query<Row[]>(
-    `SELECT k.id, k.ticket_no, k.title, c.name AS category_name, t.name AS type_name, r.name AS requester_name, d.name AS department_name, a.name AS assignee_name, k.priority, k.status, k.close_kind, k.submitted_at, k.due_at ${LIST_FROM} ${clause} ORDER BY k.id DESC LIMIT ? OFFSET ?`,
+    `SELECT k.id, k.ticket_no, k.title, c.name AS category_name, t.name AS type_name, r.name AS requester_name, d.name AS department_name, a.name AS assignee_name, k.priority, k.status, k.close_kind, k.submitted_at, k.due_at,
+            k.task_id, (SELECT tk.task_no FROM tasks tk WHERE tk.id = k.task_id) AS task_no, (SELECT tk.status FROM tasks tk WHERE tk.id = k.task_id) AS task_status
+       ${LIST_FROM} ${clause} ORDER BY k.id DESC LIMIT ? OFFSET ?`,
     [...params, TICKET_PAGE_SIZE, (Math.max(1, filter.page) - 1) * TICKET_PAGE_SIZE],
   );
   return {
@@ -432,6 +438,9 @@ export async function listTickets(filter: TicketListFilter, viewer: TicketScopeV
       closeKind: row.close_kind ? String(row.close_kind) : null,
       submittedAt: new Date(row.submitted_at as string),
       dueAt: date(row.due_at),
+      taskId: row.task_id === null || row.task_id === undefined ? null : num(row.task_id),
+      taskNo: row.task_no ? String(row.task_no) : null,
+      taskStatus: row.task_status ? String(row.task_status) : null,
     })),
   };
 }

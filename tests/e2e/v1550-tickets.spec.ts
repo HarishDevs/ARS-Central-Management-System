@@ -112,9 +112,12 @@ test("the coordinator assigns it: a linked task in the assignee's Tasks", async 
 
 test("the assignee starts and completes the task with remarks; the ticket awaits confirmation", async ({ page, context }) => {
   await as(context, "E2E_STAFF");
-  await page.goto(ticketPath);
-  await page.getByRole("link", { name: /^TSK-/ }).click();
+  // v1.57.2 (D-340): from My tickets → Assigned to me, straight to the task.
+  await page.goto("/users/tickets?view=assigned");
+  await page.getByTestId("ticket-table").locator("tr", { hasText: subject }).getByTestId("open-task").click();
   await expect(page).toHaveURL(/\/users\/tasks\/\d+/);
+  // v1.57.2 (D-339): the ticket's remarks and files show on the task too.
+  await expect(page.getByTestId("task-ticket-remarks")).toContainText("Check the disk first");
   await page.getByRole("button", { name: "Start", exact: true }).click();
   await expect(page.getByText(/Done: /).first()).toBeVisible();
   await page.getByRole("textbox", { name: "Remarks" }).fill("Replaced the SSD and reinstalled Windows");
@@ -129,6 +132,8 @@ test("the requester confirms with a rating; the ticket closes", async ({ page, c
   await page.goto(ticketPath);
   const confirm = page.getByTestId("confirm-ticket");
   await expect(page.getByRole("region", { name: /please confirm/ })).toContainText("Replaced the SSD and reinstalled Windows");
+  // v1.57.2 (D-339): the task's activity shows in the ticket's timeline.
+  await expect(page.getByTestId("ticket-timeline-task").first()).toContainText(/Task TSK-/);
   await confirm.getByRole("radio", { name: "5 out of 5" }).click();
   await confirm.getByRole("button", { name: "Confirm and close" }).click();
   await expect(confirm.getByText("Thank you. The ticket is closed.")).toBeVisible();

@@ -19,7 +19,9 @@ const day = (value: Date | null) => (value ? value.toLocaleDateString("en-IN", {
 
 // The ticket table (owner's columns): number, subject, requestor, department,
 // priority, assigned employee, created, target date, status.
-export function TicketTable({ items, caption, testId = "ticket-table" }: { items: readonly TicketListItem[]; caption: string; testId?: string }) {
+// v1.57.2 (D-340, owner: "an option to navigate to the tasks from tickets assigned to
+// me so that the assignee can complete directly"): withTask adds a Task column.
+export function TicketTable({ items, caption, testId = "ticket-table", withTask = false }: { items: readonly TicketListItem[]; caption: string; testId?: string; withTask?: boolean }) {
   const now = new Date();
   return (
     <div className="card overflow-x-auto">
@@ -36,6 +38,7 @@ export function TicketTable({ items, caption, testId = "ticket-table" }: { items
             <th scope="col">Created</th>
             <th scope="col">Target date</th>
             <th scope="col">Status</th>
+            {withTask && <th scope="col">Task</th>}
           </tr>
         </thead>
         <tbody>
@@ -70,6 +73,17 @@ export function TicketTable({ items, caption, testId = "ticket-table" }: { items
                 <td>
                   <TicketStatusBadge status={item.status} closeKind={item.closeKind} />
                 </td>
+                {withTask && (
+                  <td className="whitespace-nowrap">
+                    {item.taskId ? (
+                      <Link href={`/users/tasks/${item.taskId}`} className="btn-secondary btn-compact" data-testid="open-task" title={item.taskNo ? `Open task ${item.taskNo}` : "Open the task"}>
+                        {item.taskStatus === "COMPLETED" || item.taskStatus === "CANCELLED" ? "View task" : "Open task"}
+                      </Link>
+                    ) : (
+                      <span className="text-caption text-ink-muted">—</span>
+                    )}
+                  </td>
+                )}
               </tr>
             );
           })}

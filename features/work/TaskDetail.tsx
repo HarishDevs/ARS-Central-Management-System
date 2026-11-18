@@ -31,11 +31,14 @@ import { CopyLinkButton } from "@/features/work/client";
 import { initials } from "@/features/ui/Display";
 
 import { TaskActivity } from "@/features/work/TaskActivity";
+import { loadTicketFor } from "@/server/tickets/service";
+import { listTicketComments, listTicketEvents } from "@/lib/db/repositories/tickets.repository";
+import { TICKET_EVENT_TEXT } from "@/features/tickets/event-text";
 import { personLabel } from "@/lib/people/label";
 import { recurrenceLabel } from "@/server/work/more-rules";
 import type { AuthenticatedUser } from "@/types/auth";
 
-const EVENT_TEXT: Record<string, string> = {
+export const TASK_EVENT_TEXT: Record<string, string> = {
   CREATED: "Created",
   START: "Started",
   BLOCK: "Marked blocked",
@@ -89,6 +92,13 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
     personFacts(user.id),
     task.relatedRequestId ? relatedRequestVisible(task.relatedRequestId, user) : Promise.resolve(false),
   ]);
+  // v1.57.2 (D-339, owner: "all the comments and attachments and activities should
+  // be reflected in both ticket and task"): a ticket's task shows the ticket's
+  // remarks, files and timeline (internal remarks only for those who see them).
+  const ticketSide = task.ticketId ? await loadTicketFor(task.ticketId, user).catch(() => null) : null;
+  const [ticketRemarks, ticketEvents, ticketFiles] = ticketSide
+    ? await Promise.all([listTicketComments(ticketSide.ticket.id, ticketSide.internal), listTicketEvents(ticketSide.ticket.id, ticketSide.internal), listRecordFiles("TICKET", ticketSide.ticket.id)])
+    : [[], [], []];
   // v1.51.0 (D-300): the meeting an action-item task came from (like projects).
   const fromMeeting = await meetingOfTask(task.id).catch(() => null);
   // D-273: the parent request's journey, small, for anyone who may see that request (its own check).
@@ -117,7 +127,7 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
     what:
       event.eventType === "REASSIGN" && event.payload
         ? `Reassigned from ${names.get(Number(event.payload.from)) ?? "someone"} to ${names.get(Number(event.payload.to)) ?? "someone"}`
-        : (EVENT_TEXT[event.eventType] ?? event.eventType),
+        : (TASK_EVENT_TEXT[event.eventType] ?? event.eventType),
     // D-215: mentions read as @Name.
     detail: event.body?.replace(/@\[([^\]\n]{1,80})\]\(user:\d{1,10}\)/g, "@$1") ?? null,
   }));
@@ -315,6 +325,7 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
               Attachments
             </h2>
             {files.length ? <FileLinks files={files} label="" /> : <p className="text-label text-ink-muted">No files yet.</p>}
+            {ticketSide && ticketFiles.length > 0 && <FileLinks files={ticketFiles} label={`From ticket ${ticketSide.ticket.ticketNo}`} />}
             {actions.has("COMMENT") && <AttachFilesForm taskId={task.id} />}
           </section>
           {group.length > 0 && (
@@ -334,16 +345,52 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
           <TaskWorkPanel data={panel} />
           {/* v1.52.1 (owner, Asana): Comments and All activity as two tabs. */}
           <TaskActivity
-            comments={<CommentThread taskId={task.id} meId={user.id} canComment={rights.comment && !task.deletedAt} canPin={rights.edit} isAdmin={viewer.isAdmin} people={panel.people} comments={view.comments} docked={mobile && !popup} />}
-            commentCount={view.comments.filter((comment) => !comment.deleted).length}
-            activity={history.map((entry, index) => ({
-              id: entry.id,
-              when: entry.when.toISOString(),
-              who: entry.who,
-              what: entry.what,
-              detail: entry.detail ?? null,
-              kind: activityKind(events[index]?.eventType ?? ""),
-            }))}
+            comments={
+              <>
+                <CommentThread taskId={task.id} meId={user.id} canComment={rights.comment && !task.deletedAt} canPin={rights.edit} isAdmin={viewer.isAdmin} people={panel.people} comments={view.comments} docked={mobile && !popup} />
+                {ticketSide && ticketRemarks.length > 0 && (
+                  <section className="card mt-4 px-5 py-4" aria-labelledby="ticket-remarks" data-testid="task-ticket-remarks">
+                    <h2 id="ticket-remarks" className="mb-3 font-semibold">
+                      Remarks on ticket{" "}
+                      <Link href={`/users/tickets/${ticketSide.ticket.id}`} className="link font-mono">
+                        {ticketSide.ticket.ticketNo}
+                      </Link>
+                    </h2>
+                    <ul className="space-y-3">
+                      {ticketRemarks.map((remark) => (
+                        <li key={remark.id} className={`rounded-md px-3 py-2 ${remark.internal ? "bg-warning-50" : "bg-surface-muted"}`}>
+                          <p className="text-caption text-ink-muted">
+                            {remark.authorName} · {indiaDateTimeText(remark.createdAt)}
+                            {remark.internal ? " · Internal" : ""}
+                          </p>
+                          <RichText text={remark.body} />
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
+              </>
+            }
+            commentCount={view.comments.filter((comment) => !comment.deleted).length + ticketRemarks.length}
+            activity={[
+              ...history.map((entry, index) => ({
+                id: entry.id,
+                when: entry.when.toISOString(),
+                who: entry.who,
+                what: entry.what,
+                detail: entry.detail ?? null,
+                kind: activityKind(events[index]?.eventType ?? ""),
+              })),
+              // The ticket's own timeline, marked as such (ids kept apart from the task's).
+              ...ticketEvents.map((event) => ({
+                id: 1_000_000_000 + event.id,
+                when: event.createdAt.toISOString(),
+                who: event.actorName ?? "ARS CMS",
+                what: `Ticket ${ticketSide?.ticket.ticketNo ?? ""}: ${TICKET_EVENT_TEXT[event.action] ?? event.action}`,
+                detail: (typeof event.detail?.reason === "string" ? event.detail.reason : typeof event.detail?.remarks === "string" ? event.detail.remarks : null) || null,
+                kind: activityKind(event.action === "REMARK" ? "COMMENT" : ""),
+              })),
+            ]}
           />
         </div>
         <aside className="space-y-4" aria-label="Task actions">

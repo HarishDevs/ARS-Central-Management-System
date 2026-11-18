@@ -1,5 +1,10 @@
 # Release notes
 
+## v1.57.2 (18 Nov 2026): Ticket and task show each other's remarks, files and activity; Open task (owner)
+- **Ticket and its task in step:** the ticket page's **Remarks** also show the task's comments (marked "on task TSK-…"), its **Timeline** also shows the task's activity ("Task TSK-…: Started / Completed / …"), and its attachments include the task's files (as before). The task page shows the ticket's remarks under its comments (**Remarks on ticket …**), the ticket's files under Attachments, and the ticket's timeline in **All activity**. Nothing is copied: each is kept once and shown in both places. Internal ticket remarks stay hidden from the requester.
+- **My tickets → Assigned to me** has a **Task** column with **Open task**, so the assignee goes straight to the task to start or complete it.
+- **Owner steps:** no migration; publish v1.57.2.
+
 ## v1.57.1 (18 Nov 2026): Coordinator board as a table; tickets seen by category (owner)
 - **Tickets → Coordinator board is a table**, like My tickets: Ticket, Subject (category · form), Requestor, Department, Priority, Assigned to (task number), In this status, Target date (red when overdue), Needed by, Notes (auto-close day, reopened). Rows are grouped by status in the order a ticket moves (New, Reopened, Assigned, In progress, Awaiting confirmation, Closed in the last 7 days), each group with its count.
 - A **chip per status with its count** above the table (All, New, Reopened, …) shows just that status. Category, search and Only overdue work as before.
