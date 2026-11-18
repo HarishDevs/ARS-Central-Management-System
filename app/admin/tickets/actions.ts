@@ -94,15 +94,17 @@ export async function saveTicketViewersAction(_previous: ActionResult | null, fo
   const ids = (name: string) => [...new Set(formData.getAll(name).filter((value): value is string => typeof value === "string" && /^\d{1,10}$/.test(value)).map(Number))].slice(0, 200);
   const departmentIds = ids("viewerDepartments");
   const userIds = ids("viewerPeople");
+  // v1.57.1 (D-338): the categories they see (none ticked = every category).
+  const categoryIds = ids("viewerCategories");
   try {
     await withTransaction(async (connection) => {
-      await replaceTicketViewers(departmentIds, userIds, actor.id, connection);
-      await recordAudit({ actorUserId: actor.id, action: "TICKET_VIEWERS_SAVED", entityType: "TICKET_SETTINGS", entityId: "viewers", sessionId: actor.sessionId, ipAddress: actor.ipAddress ?? null, metadata: { departmentIds, userIds } }, connection);
+      await replaceTicketViewers(departmentIds, userIds, actor.id, connection, categoryIds);
+      await recordAudit({ actorUserId: actor.id, action: "TICKET_VIEWERS_SAVED", entityType: "TICKET_SETTINGS", entityId: "viewers", sessionId: actor.sessionId, ipAddress: actor.ipAddress ?? null, metadata: { departmentIds, userIds, categoryIds } }, connection);
     });
   } catch (error) {
     logError("saveTicketViewersAction failed", error);
     return { ok: false, message: "Couldn't save. Please try again." };
   }
   revalidatePath("/admin/ticket-categories");
-  return { ok: true, message: `Saved: ${departmentIds.length} department${departmentIds.length === 1 ? "" : "s"} and ${userIds.length} ${userIds.length === 1 ? "person" : "people"} see every ticket.` };
+  return { ok: true, message: `Saved: ${departmentIds.length} department${departmentIds.length === 1 ? "" : "s"} and ${userIds.length} ${userIds.length === 1 ? "person" : "people"} see ${categoryIds.length ? `${categoryIds.length} categor${categoryIds.length === 1 ? "y" : "ies"}` : "every category"}.` };
 }

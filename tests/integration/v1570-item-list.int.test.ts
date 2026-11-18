@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { getDbPool } from "@/lib/db/client";
 import { createModuleType, publishTypeDraft, saveTypeDraft } from "@/server/modules/config";
-import { listTickets, replaceTicketViewers, saveTicketFormSetup, seesAllTickets } from "@/lib/db/repositories/tickets.repository";
+import { coordinatedCategories, listTickets, replaceTicketViewers, saveTicketFormSetup, seesAllTickets, viewerCategories } from "@/lib/db/repositories/tickets.repository";
 import { loadTicketFor, raiseTicket } from "@/server/tickets/service";
 import { checklistsFor, setItemProvided } from "@/server/records/item-checks";
 import type { TaskActor } from "@/server/modules/tasks";
@@ -19,10 +19,11 @@ const actor = (id: number, name: string, roles: string[] = ["USER"]) => ({ id, n
 const q = async <T,>(sql: string, params: unknown[] = []) => (await getDbPool().query<(RowDataPacket & T)[]>(sql, params))[0];
 const tomorrow = () => new Date(Date.now() + 330 * 60_000 + 86_400_000).toISOString().slice(0, 10);
 
-async function viewers(departmentIds: number[]) {
+let formCategoryId = 0;
+async function viewers(departmentIds: number[], categoryIds: number[] = []) {
   const connection = await getDbPool().getConnection();
   try {
-    await replaceTicketViewers(departmentIds, [], people.admin!.id, connection);
+    await replaceTicketViewers(departmentIds, [], people.admin!.id, connection, categoryIds);
   } finally {
     connection.release();
   }
@@ -46,6 +47,7 @@ beforeAll(async () => {
   const published = await publishTypeDraft("TICKET", typeId, people.admin);
   if (!published.ok) throw new Error(published.message);
   const [category] = await q<{ id: number }>("SELECT id FROM ticket_categories ORDER BY id LIMIT 1");
+  formCategoryId = category!.id;
   const connection = await getDbPool().getConnection();
   try {
     await saveTicketFormSetup(typeId, category!.id, [people.coordinator.id], adminId, connection);
@@ -107,6 +109,34 @@ describe("who else sees every ticket", () => {
       expect((await listTickets({ scope: "all", categoryId: null, status: null, q: "", page: 1 }, { id: people.itStaff!.id, isAdmin: true })).items.some((item) => item.id === id)).toBe(true);
       // Ticking items stays with the coordinators and the assignee.
       expect((await setItemProvided({ entityType: "TICKET", entityId: id, fieldKey: "items", lineNo: 0, provided: true }, people.itStaff!)).ok).toBe(false);
+    } finally {
+      await viewers([]);
+    }
+  });
+});
+
+// v1.57.1 (D-338): coordinators see only their forms' categories; named viewers
+// can be limited to some categories.
+describe("ticket visibility by category", () => {
+  it("a coordinator's categories are those of the forms they coordinate", async () => {
+    expect(await coordinatedCategories(people.coordinator!.id)).toEqual([formCategoryId]);
+    expect(await coordinatedCategories(people.stranger!.id)).toEqual([]);
+  });
+
+  it("a department named for another category does not see this form's tickets; named for this one, it does", async () => {
+    const raised = await raiseWith(JSON.stringify([{ description: "Marker", quantity: "3" }]));
+    const id = raised.ok ? raised.value.id : 0;
+    const [other] = await q<{ id: number }>("SELECT id FROM ticket_categories WHERE id <> ? ORDER BY id LIMIT 1", [formCategoryId]);
+    await viewers([departmentId], [other!.id]);
+    try {
+      expect(await viewerCategories(people.itStaff!.id)).toEqual([other!.id]);
+      expect(await seesAllTickets(people.itStaff!.id)).toBe(false);
+      expect(await loadTicketFor(id, people.itStaff!)).toBeNull();
+      const visible = async () => (await listTickets({ scope: "all", categoryId: null, status: null, q: "", page: 1 }, { id: people.itStaff!.id, isAdmin: false, categoryIds: await viewerCategories(people.itStaff!.id).then((named) => (named === "ALL" ? [] : named)) })).items.some((item) => item.id === id);
+      expect(await visible()).toBe(false);
+      await viewers([departmentId], [formCategoryId]);
+      expect(await loadTicketFor(id, people.itStaff!)).not.toBeNull();
+      expect(await visible()).toBe(true);
     } finally {
       await viewers([]);
     }

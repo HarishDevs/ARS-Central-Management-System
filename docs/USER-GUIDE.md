@@ -231,7 +231,7 @@ Ask for help: a software problem, a hardware fault, an Admin request. Tickets ap
 - **Coordinators:**
   - open a new ticket, choose **Assign to**, a **Target date** and remarks, then **Assign** (this makes the task);
   - **Reassign** the same way;
-  - **Coordinator board** (Tickets → Coordinator board; coordinators and IT only) shows where every ticket is now: one column per status (New, Reopened, Assigned, In progress, Awaiting confirmation, Closed in the last 7 days). Each card shows the ticket number, subject, priority, requester, who has it (and the task number), how long it has been in that status, the target date (red when overdue), the needed-by date and, while it awaits confirmation, when it auto-closes. Filter by category, search, or show only overdue tickets; click a card to open the ticket.
+  - **Coordinator board** (Tickets → Coordinator board; coordinators and IT only) shows where every ticket is now, as a table grouped by status (New, Reopened, Assigned, In progress, Awaiting confirmation, Closed in the last 7 days), with a chip per status and its count that shows just that status. Each row shows the ticket number, subject, priority, requester, who has it (and the task number), how long it has been in that status, the target date (red when overdue), the needed-by date and, while it awaits confirmation, when it auto-closes. Filter by category, search, or show only overdue tickets; click a ticket to open it.
   - **Analytics → Ticket analytics** (everyone with Ticketing) works by access: choose the scope at the top. Whole organisation (IT) counts every ticket; My requests, My team or My departments count the tickets raised by or assigned to those people, plus every ticket of the forms you coordinate.
   - **Ticket dashboards** (only for coordinators of ticket forms, and IT) show each category's totals (total, new, assigned, in progress, awaiting confirmation, closed, overdue) and the ticket table, with filters for date, department, priority, status and assigned employee. Every number opens the matching tickets.
 
@@ -335,7 +335,7 @@ Some approval and ticket forms have an **Item list** (for example stationery): a
 
 ### Ticketing set-up (IT)
 - **Admin → Ticket categories:** IT Software, IT Hardware and Admin are ready. Add more, rename them, set each one's number prefix (e.g. `IT-SW`) and digits, or switch one off.
-- **Admin → Ticket categories → Who else sees every ticket:** choose departments (e.g. the IT department) and people who see the Ticket dashboards, the Coordinator board, Ticket analytics and every ticket (read and add remarks; assigning stays with the coordinators).
+- **Admin → Ticket categories → Who else sees tickets:** choose departments (e.g. the IT department) and people, and the **categories they see** (none ticked = every category). They see those categories on the Ticket dashboards, the Coordinator board and Ticket analytics, and can open those tickets (read and add remarks; assigning stays with the coordinators). Coordinators see only the categories of the forms they coordinate.
 - **Admin → Ticket forms:** the same Form Builder as approval forms. For each form (request type):
   - choose its **Category**, and its **Coordinators** (the people who assign its tickets; any one of them can);
   - choose **who may raise it** (everyone by default) and the default **priority**;

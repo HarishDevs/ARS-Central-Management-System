@@ -5,7 +5,7 @@ import { LayoutDashboard } from "lucide-react";
 import { PageHeader } from "@/features/shell/PageHeader";
 import { EmptyState } from "@/features/ui/Display";
 import { ticketsPage } from "@/server/tickets/page-context";
-import { coordinatesAny, listTicketCategories, ticketCounts } from "@/lib/db/repositories/tickets.repository";
+import { listTicketCategories, ticketCounts } from "@/lib/db/repositories/tickets.repository";
 
 export const metadata: Metadata = { title: "Ticket dashboards" };
 export const dynamic = "force-dynamic";
@@ -13,11 +13,12 @@ export const dynamic = "force-dynamic";
 // v1.55.0 (owner's ticketing brief §10): one dashboard per category (IT
 // Software, IT Hardware, Admin…). Coordinators see their forms' tickets; IT sees all.
 export default async function Page() {
-  const { user, isAdmin } = await ticketsPage();
+  const { user, isAdmin, viewerCategoryIds, categoryIds } = await ticketsPage();
   // v1.55.3 (D-331, owner): coordinators (and IT) only; anyone else gets "not found".
-  if (!isAdmin && !(await coordinatesAny(user.id))) notFound();
-  const categories = await listTicketCategories(true);
-  const counts = await Promise.all(categories.map((category) => ticketCounts({ scope: "all", categoryId: category.id, status: null, q: "", page: 1 }, { id: user.id, isAdmin })));
+  // v1.57.1 (D-338): only the categories this person coordinates (or was named for); IT sees all.
+  if (!isAdmin && !categoryIds?.length) notFound();
+  const categories = (await listTicketCategories(true)).filter((category) => isAdmin || categoryIds!.includes(category.id));
+  const counts = await Promise.all(categories.map((category) => ticketCounts({ scope: "all", categoryId: category.id, status: null, q: "", page: 1 }, { id: user.id, isAdmin, categoryIds: viewerCategoryIds })));
   return (
     <>
       <PageHeader title="Ticket dashboards" icon={LayoutDashboard} description={isAdmin ? "Every category's tickets." : "The tickets of the forms you coordinate."} />

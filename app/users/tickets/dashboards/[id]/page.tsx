@@ -6,7 +6,7 @@ import { PageHeader } from "@/features/shell/PageHeader";
 import { Breadcrumbs, EmptyState } from "@/features/ui/Display";
 import { TicketTable } from "@/features/tickets/TicketParts";
 import { ticketsPage } from "@/server/tickets/page-context";
-import { coordinatesAny, findTicketCategory, listTickets, ticketCounts, TICKET_PAGE_SIZE, type TicketListFilter } from "@/lib/db/repositories/tickets.repository";
+import { findTicketCategory, listTickets, ticketCounts, TICKET_PAGE_SIZE, type TicketListFilter } from "@/lib/db/repositories/tickets.repository";
 import { listDepartments } from "@/lib/db/repositories/organisation.repository";
 import { listPeopleFacts } from "@/lib/db/repositories/tasks.repository";
 import { TICKET_PRIORITIES, TICKET_PRIORITY_LABEL, type TicketPriority } from "@/server/modules/settings";
@@ -24,11 +24,12 @@ const STATUS_FILTER_LABEL: Record<string, string> = { open: "All open", overdue:
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 
 export default async function Page({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | undefined>> }) {
-  const { user, isAdmin } = await ticketsPage();
+  const { user, isAdmin, viewerCategoryIds, categoryIds } = await ticketsPage();
   const { id } = await params;
   if (!/^\d{1,10}$/.test(id)) notFound();
   const category = await findTicketCategory(Number(id));
-  if (!category || !(isAdmin || (await coordinatesAny(user.id)))) notFound();
+  // v1.57.1 (D-338): a category this person coordinates (or was named for); IT sees all.
+  if (!category || !(isAdmin || categoryIds?.includes(category.id))) notFound();
   const query = await searchParams;
   const status = (STATUS_FILTERS as readonly string[]).includes(query.status ?? "") ? (query.status as TicketListFilter["status"]) : null;
   const filter: TicketListFilter = {
@@ -43,7 +44,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
     priority: (TICKET_PRIORITIES as readonly string[]).includes(query.priority ?? "") ? (query.priority as TicketPriority) : null,
     assigneeId: /^\d{1,10}$/.test(query.assignee ?? "") ? Number(query.assignee) : null,
   };
-  const viewer = { id: user.id, isAdmin };
+  const viewer = { id: user.id, isAdmin, categoryIds: viewerCategoryIds };
   const [counts, list, departments, people] = await Promise.all([ticketCounts(filter, viewer), listTickets(filter, viewer), listDepartments(), listPeopleFacts()]);
   const base = `/users/tickets/dashboards/${category.id}`;
   const keep = { from: filter.from, to: filter.to, dept: filter.departmentId, priority: filter.priority, assignee: filter.assigneeId, status: filter.status };

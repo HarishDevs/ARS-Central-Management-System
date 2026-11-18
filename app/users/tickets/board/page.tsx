@@ -6,7 +6,7 @@ import { PageHeader } from "@/features/shell/PageHeader";
 import { EmptyState } from "@/features/ui/Display";
 import { TicketPriorityBadge } from "@/features/tickets/TicketParts";
 import { ticketsPage } from "@/server/tickets/page-context";
-import { coordinatesAny, listTicketCategories, ticketBoard, type TicketBoardItem } from "@/lib/db/repositories/tickets.repository";
+import { listTicketCategories, ticketBoard, type TicketBoardItem } from "@/lib/db/repositories/tickets.repository";
 import { TICKET_STATUS_LABEL, isOverdue, type TicketStatus } from "@/server/tickets/rules";
 
 export const metadata: Metadata = { title: "Coordinator board" };
@@ -14,10 +14,12 @@ export const dynamic = "force-dynamic";
 
 // v1.56.0 (D-332, owner: "one more separate page for Coordinators that will
 // show the status wise so that the coordinators can know where the ticket is
-// now"). One column per status, in the order a ticket moves; each card says
-// who has it, since when, and the dates that matter at that stage. Closed
-// shows the last 7 days. Coordinators see their forms' tickets; IT sees all.
-const COLUMNS: { status: TicketStatus; hint: string }[] = [
+// now"). v1.57.1 (D-337, owner: "want this in a table format"): one table,
+// grouped by status in the order a ticket moves, with a count chip per status
+// that filters it. Each row says who has the ticket, since when, and the dates
+// that matter at that stage. Closed shows the last 7 days. Coordinators see
+// their forms' tickets; IT (and the people named in Admin) see all.
+const STATUSES: { status: TicketStatus; hint: string }[] = [
   { status: "NEW", hint: "Waiting for a coordinator to assign" },
   { status: "REOPENED", hint: "The requester reopened it: reassign or let the assignee carry on" },
   { status: "ASSIGNED", hint: "Assigned; work not started yet" },
@@ -26,13 +28,14 @@ const COLUMNS: { status: TicketStatus; hint: string }[] = [
   { status: "CLOSED", hint: "Closed in the last 7 days" },
 ];
 const ACCENT: Record<TicketStatus, string> = {
-  NEW: "border-t-primary-600",
-  REOPENED: "border-t-danger-600",
-  ASSIGNED: "border-t-info-600",
-  IN_PROGRESS: "border-t-warning-600",
-  AWAITING_CONFIRMATION: "border-t-line-strong",
-  CLOSED: "border-t-success-600",
+  NEW: "border-l-primary-600",
+  REOPENED: "border-l-danger-600",
+  ASSIGNED: "border-l-info-600",
+  IN_PROGRESS: "border-l-warning-600",
+  AWAITING_CONFIRMATION: "border-l-line-strong",
+  CLOSED: "border-l-success-600",
 };
+const COLUMN_COUNT = 10;
 
 const dayText = (value: Date) => value.toLocaleDateString("en-IN", { day: "2-digit", month: "short", timeZone: "Asia/Kolkata" });
 const isoDayText = (value: string) => new Date(`${value}T00:00:00Z`).toLocaleDateString("en-IN", { day: "2-digit", month: "short", timeZone: "UTC" });
@@ -44,21 +47,34 @@ function ago(since: Date, now: Date): string {
   const days = Math.round(hours / 24);
   return `${days} day${days === 1 ? "" : "s"}`;
 }
+const chip = (on: boolean) => `rounded-full border px-3 py-1 text-label ${on ? "border-primary-600 bg-primary-50 font-semibold text-primary-700" : "border-line text-ink-muted hover:text-ink"}`;
 
 export default async function Page({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const { user, isAdmin } = await ticketsPage();
-  if (!isAdmin && !(await coordinatesAny(user.id))) notFound();
+  const { user, isAdmin, viewerCategoryIds, categoryIds } = await ticketsPage();
+  // v1.57.1 (D-338): only the categories this person coordinates (or was named for); IT sees all.
+  if (!isAdmin && !categoryIds?.length) notFound();
   const query = await searchParams;
-  const categories = await listTicketCategories(true);
+  const categories = (await listTicketCategories(true)).filter((category) => isAdmin || categoryIds!.includes(category.id));
   const categoryId = categories.some((category) => String(category.id) === query.category) ? Number(query.category) : null;
   const q = (query.q ?? "").trim().slice(0, 100);
   const overdueOnly = query.overdue === "1";
-  const items = await ticketBoard({ categoryId, q, overdueOnly }, { id: user.id, isAdmin });
+  const statusFilter = STATUSES.some((item) => item.status === query.status) ? (query.status as TicketStatus) : null;
+  const items = await ticketBoard({ categoryId, q, overdueOnly }, { id: user.id, isAdmin, categoryIds: viewerCategoryIds });
   const now = new Date();
   const byStatus = new Map<TicketStatus, TicketBoardItem[]>();
   for (const item of items) byStatus.set(item.status, [...(byStatus.get(item.status) ?? []), item]);
   const overdueCount = items.filter((item) => isOverdue(item, now)).length;
   const filtered = Boolean(categoryId || q || overdueOnly);
+  const hrefWith = (status: TicketStatus | null) => {
+    const params = new URLSearchParams();
+    if (categoryId) params.set("category", String(categoryId));
+    if (q) params.set("q", q);
+    if (overdueOnly) params.set("overdue", "1");
+    if (status) params.set("status", status);
+    const text = params.toString();
+    return `/users/tickets/board${text ? `?${text}` : ""}`;
+  };
+  const shown = STATUSES.filter((item) => !statusFilter || item.status === statusFilter);
 
   return (
     <>
@@ -90,10 +106,11 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
         <label className="flex min-h-9 items-center gap-2 text-label">
           <input type="checkbox" name="overdue" value="1" defaultChecked={overdueOnly} /> Only overdue
         </label>
+        {statusFilter && <input type="hidden" name="status" value={statusFilter} />}
         <button type="submit" className="btn-secondary btn-compact">
           Apply
         </button>
-        {filtered && (
+        {(filtered || statusFilter) && (
           <Link href="/users/tickets/board" className="link text-label">
             Clear
           </Link>
@@ -103,69 +120,99 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
         </p>
       </form>
 
+      <nav aria-label="Status" className="mb-3 flex flex-wrap gap-2" data-testid="board-status-chips">
+        <Link href={hrefWith(null)} aria-current={!statusFilter ? "page" : undefined} className={chip(!statusFilter)}>
+          All ({items.length})
+        </Link>
+        {STATUSES.map(({ status }) => (
+          <Link key={status} href={hrefWith(status)} aria-current={statusFilter === status ? "page" : undefined} className={chip(statusFilter === status)}>
+            {TICKET_STATUS_LABEL[status]} ({(byStatus.get(status) ?? []).length})
+          </Link>
+        ))}
+      </nav>
+
       {items.length === 0 ? (
         <EmptyState title={filtered ? "No tickets match" : "No tickets yet"} body={filtered ? "Change or clear the filters." : "Tickets of the forms you coordinate show here as soon as they are raised."} />
       ) : (
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6" data-testid="ticket-board">
-          {COLUMNS.map(({ status, hint }) => {
-            const cards = byStatus.get(status) ?? [];
-            const label = TICKET_STATUS_LABEL[status];
-            return (
-              <section key={status} aria-label={`${label}: ${cards.length}`} className={`card min-w-0 border-t-4 ${ACCENT[status]}`} data-testid={`board-column-${status}`}>
-                <header className="border-b border-line px-3 py-2">
-                  <h2 className="flex items-center justify-between gap-2 text-label font-semibold">
-                    {label}
-                    <span className="rounded-full bg-surface-muted px-2 text-caption tabular-nums">{cards.length}</span>
-                  </h2>
-                  <p className="text-caption text-ink-muted">{hint}</p>
-                </header>
-                {cards.length === 0 ? (
-                  <p className="px-3 py-4 text-caption text-ink-muted">None</p>
-                ) : (
-                  <ul className="max-h-[70vh] space-y-2 overflow-y-auto p-2">
-                    {cards.map((item) => {
+        <div className="card overflow-x-auto">
+          <table className="data-table" data-testid="ticket-board">
+            <caption className="sr-only">Tickets by status</caption>
+            <thead>
+              <tr>
+                <th scope="col">Ticket</th>
+                <th scope="col">Subject</th>
+                <th scope="col">Requestor</th>
+                <th scope="col">Department</th>
+                <th scope="col">Priority</th>
+                <th scope="col">Assigned to</th>
+                <th scope="col">In this status</th>
+                <th scope="col">Target date</th>
+                <th scope="col">Needed by</th>
+                <th scope="col">Notes</th>
+              </tr>
+            </thead>
+            {shown.map(({ status, hint }) => {
+              const rows = byStatus.get(status) ?? [];
+              const label = TICKET_STATUS_LABEL[status];
+              return (
+                <tbody key={status} aria-label={`${label}: ${rows.length}`} data-testid={`board-column-${status}`}>
+                  <tr className="bg-surface-muted">
+                    <th scope="colgroup" colSpan={COLUMN_COUNT} className={`border-l-4 text-left ${ACCENT[status]}`}>
+                      <span className="font-semibold">{label}</span> <span className="rounded-full bg-surface px-2 text-caption tabular-nums">{rows.length}</span>
+                      <span className="ml-2 text-caption font-normal text-ink-muted">{hint}</span>
+                    </th>
+                  </tr>
+                  {rows.length === 0 ? (
+                    <tr>
+                      <td colSpan={COLUMN_COUNT} className="text-caption text-ink-muted">
+                        None
+                      </td>
+                    </tr>
+                  ) : (
+                    rows.map((item) => {
                       const overdue = isOverdue(item, now);
                       return (
-                        <li key={item.id}>
-                          <Link href={`/users/tickets/${item.id}`} className={`block rounded-md border px-3 py-2 hover:border-line-strong ${overdue ? "border-danger-600" : "border-line"}`} data-testid="board-card">
-                            <span className="flex items-start justify-between gap-2">
-                              <span className="font-mono text-caption text-ink-muted">{item.ticketNo}</span>
-                              <TicketPriorityBadge priority={item.priority} />
-                            </span>
-                            <span className="mt-1 block text-label font-medium">{item.title}</span>
-                            <span className="mt-1 block text-caption text-ink-muted">
-                              {item.requesterName}
-                              {item.departmentName ? ` · ${item.departmentName}` : ""}
-                            </span>
-                            <span className="block text-caption text-ink-muted">{item.typeName}</span>
-                            <span className="mt-1 block text-caption">
-                              {item.assigneeName ? (
-                                <>
-                                  With <span className="font-medium">{item.assigneeName}</span>
-                                  {item.taskNo ? ` (${item.taskNo})` : ""}
-                                </>
-                              ) : (
-                                <span className="text-ink-muted">Not assigned</span>
-                              )}
-                            </span>
-                            <span className="mt-1 flex flex-wrap gap-x-2 text-caption text-ink-muted">
-                              <span>
-                                {status === "CLOSED" ? (item.closeKind === "AUTO" ? "Auto closed" : "Closed") : "In this status"} {status === "CLOSED" ? dayText(item.statusSince) : `for ${ago(item.statusSince, now)}`}
-                              </span>
-                              {item.dueAt && status !== "CLOSED" && status !== "AWAITING_CONFIRMATION" && <span className={overdue ? "font-semibold text-danger-600" : ""}>{overdue ? "Overdue · " : ""}Target {dayText(item.dueAt)}</span>}
-                              {item.requiredOn && status !== "CLOSED" && <span>Needed by {isoDayText(item.requiredOn)}</span>}
-                              {status === "AWAITING_CONFIRMATION" && item.confirmDueOn && <span>Auto-closes after {isoDayText(item.confirmDueOn)}</span>}
-                              {item.reopenCount > 0 && <span className="text-danger-600">Reopened {item.reopenCount}×</span>}
-                            </span>
-                          </Link>
-                        </li>
+                        <tr key={item.id} data-testid="board-card">
+                          <td className="whitespace-nowrap font-mono text-label">
+                            <Link href={`/users/tickets/${item.id}`} className="link">
+                              {item.ticketNo}
+                            </Link>
+                          </td>
+                          <td>
+                            <Link href={`/users/tickets/${item.id}`} className="link font-medium">
+                              {item.title}
+                            </Link>
+                            <p className="text-caption text-ink-muted">
+                              {item.categoryName} · {item.typeName}
+                            </p>
+                          </td>
+                          <td className="text-label">{item.requesterName}</td>
+                          <td className="text-label">{item.departmentName ?? "—"}</td>
+                          <td>
+                            <TicketPriorityBadge priority={item.priority} />
+                          </td>
+                          <td className="text-label">
+                            {item.assigneeName ?? <span className="text-ink-muted">Not assigned</span>}
+                            {item.taskNo && <span className="block font-mono text-caption text-ink-muted">{item.taskNo}</span>}
+                          </td>
+                          <td className="whitespace-nowrap text-label">{status === "CLOSED" ? `${item.closeKind === "AUTO" ? "Auto closed" : "Closed"} ${dayText(item.statusSince)}` : ago(item.statusSince, now)}</td>
+                          <td className={`whitespace-nowrap text-label ${overdue ? "font-semibold text-danger-600" : ""}`}>
+                            {item.dueAt ? dayText(item.dueAt) : "—"}
+                            {overdue && <span className="block text-caption">Overdue</span>}
+                          </td>
+                          <td className="whitespace-nowrap text-label">{item.requiredOn ? isoDayText(item.requiredOn) : "—"}</td>
+                          <td className="text-caption text-ink-muted">
+                            {status === "AWAITING_CONFIRMATION" && item.confirmDueOn && <span className="block">Auto-closes after {isoDayText(item.confirmDueOn)}</span>}
+                            {item.reopenCount > 0 && <span className="block text-danger-600">Reopened {item.reopenCount}×</span>}
+                          </td>
+                        </tr>
                       );
-                    })}
-                  </ul>
-                )}
-              </section>
-            );
-          })}
+                    })
+                  )}
+                </tbody>
+              );
+            })}
+          </table>
         </div>
       )}
     </>

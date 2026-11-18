@@ -11,7 +11,7 @@ import type { TicketStatus } from "@/server/tickets/rules";
 //  - otherwise: tickets raised by or assigned to the people in the chosen
 //    scope (me; my reporting line; my departments), plus every ticket of the
 //    forms the viewer coordinates.
-export type TicketAnalyticsScope = { all: true } | { all: false; peopleIds: number[]; viewerId: number };
+export type TicketAnalyticsScope = { all: true } | { all: false; peopleIds: number[]; viewerId: number; categoryIds?: number[] };
 
 export interface AnalyticsTicket {
   id: number;
@@ -40,9 +40,11 @@ const date = (value: unknown) => (value ? new Date(value as string) : null);
 function scopeSql(scope: TicketAnalyticsScope): { sql: string; params: unknown[] } {
   if (scope.all) return { sql: "1 = 1", params: [] };
   const people = scope.peopleIds.length ? scope.peopleIds : [scope.viewerId];
+  // v1.57.1 (D-338): plus the categories the viewer was named for in Admin.
+  const categories = scope.categoryIds?.length ? scope.categoryIds : null;
   return {
-    sql: "(k.requester_id IN (?) OR k.assignee_id IN (?) OR v.type_id IN (SELECT type_id FROM ticket_coordinators WHERE user_id = ?))",
-    params: [people, people, scope.viewerId],
+    sql: `(k.requester_id IN (?) OR k.assignee_id IN (?) OR v.type_id IN (SELECT type_id FROM ticket_coordinators WHERE user_id = ?)${categories ? " OR k.category_id IN (?)" : ""})`,
+    params: [people, people, scope.viewerId, ...(categories ? [categories] : [])],
   };
 }
 const FROM = `FROM tickets k JOIN module_type_versions v ON v.id = k.type_version_id JOIN module_types t ON t.id = v.type_id JOIN ticket_categories c ON c.id = k.category_id

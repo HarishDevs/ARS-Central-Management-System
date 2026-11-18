@@ -1,6 +1,6 @@
 import { analyticsTickets, openTicketsInScope, ticketMonths, type AnalyticsTicket, type TicketAnalyticsScope } from "@/lib/db/repositories/ticket-analytics.repository";
 import { peopleOfDepartments } from "@/lib/db/repositories/meeting-analytics.repository";
-import { seesAllTickets } from "@/lib/db/repositories/tickets.repository";
+import { viewerCategories } from "@/lib/db/repositories/tickets.repository";
 import { teamOf } from "@/server/work/task-access";
 import { TICKET_PRIORITIES, TICKET_PRIORITY_LABEL } from "@/server/modules/settings";
 import { TICKET_STATUSES, TICKET_STATUS_LABEL, isOverdue } from "@/server/tickets/rules";
@@ -23,10 +23,12 @@ const hoursText = (value: number | null) => (value === null ? "—" : value < 24
 
 async function scopeFor(scope: Scope, viewer: Viewer): Promise<TicketAnalyticsScope> {
   // v1.57.0 (D-336): the IT team named in Admin → Ticket categories sees every ticket.
-  if (scope.kind === "ORGANISATION" || (await seesAllTickets(viewer.id).catch(() => false))) return { all: true };
-  if (scope.kind === "TEAM") return { all: false, peopleIds: [viewer.id, ...(await teamOf(viewer.id))], viewerId: viewer.id };
-  if (scope.kind === "DEPARTMENT") return { all: false, peopleIds: [viewer.id, ...(await peopleOfDepartments(scope.departmentIds ?? []))], viewerId: viewer.id };
-  return { all: false, peopleIds: [viewer.id], viewerId: viewer.id };
+  const named = await viewerCategories(viewer.id).catch((): number[] => []);
+  if (scope.kind === "ORGANISATION" || named === "ALL") return { all: true };
+  const categoryIds = named;
+  if (scope.kind === "TEAM") return { all: false, peopleIds: [viewer.id, ...(await teamOf(viewer.id))], viewerId: viewer.id, categoryIds };
+  if (scope.kind === "DEPARTMENT") return { all: false, peopleIds: [viewer.id, ...(await peopleOfDepartments(scope.departmentIds ?? []))], viewerId: viewer.id, categoryIds };
+  return { all: false, peopleIds: [viewer.id], viewerId: viewer.id, categoryIds };
 }
 
 interface Figures {

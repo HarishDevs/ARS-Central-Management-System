@@ -1,5 +1,13 @@
 # Release notes
 
+## v1.57.1 (18 Nov 2026): Coordinator board as a table; tickets seen by category (owner)
+- **Tickets → Coordinator board is a table**, like My tickets: Ticket, Subject (category · form), Requestor, Department, Priority, Assigned to (task number), In this status, Target date (red when overdue), Needed by, Notes (auto-close day, reopened). Rows are grouped by status in the order a ticket moves (New, Reopened, Assigned, In progress, Awaiting confirmation, Closed in the last 7 days), each group with its count.
+- A **chip per status with its count** above the table (All, New, Reopened, …) shows just that status. Category, search and Only overdue work as before.
+- The sidebar's Coordinator board link has its own icon.
+- **Each coordinator sees only their categories:** a coordinator of the Admin ticket forms sees only Admin on Ticket dashboards and the Coordinator board (other categories are no longer listed).
+- **Who else sees tickets, by category:** Admin → Ticket categories → Who else sees tickets now has **Categories they see**: e.g. tick IT Software and IT Hardware for the IT department, so Admin tickets stay with the Admin coordinators. Tick none for every category (as before). IT Admins and the Super Admin still see everything.
+- **Owner steps:** back up, run `database/migrations/202611191100_ticket_viewer_categories.sql` (after 202611191000; adds a category to each viewer row, rollback inside), publish v1.57.1, then set the categories in Admin → Ticket categories.
+
 ## v1.57.0 (18 Nov 2026): Item list with "provided" ticks; IT sees every ticket (owner)
 - **New form field: Item list** (Form Designer → Advanced → Item list). The requester lists each item and the **quantity needed**: no rate, no GST (for example stationery). On the request or ticket, an **Items to provide** table shows each item with a **Provided** tick and "n of m provided"; ticking records who and when, and can be undone.
   - Who ticks: on an approval request, its approvers, the assignee of a work task raised from it, and IT; on a ticket, its coordinators, its assignee and IT (until it closes). Everyone who can see the record sees the ticks.

@@ -17,6 +17,9 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 **Multi-level approvals in any custom manner.** The engine must support any number of levels in any combination: sequential, parallel, any-one, any-N-of-M, conditional and hybrid. Approvers can come from any source, and levels can be added or skipped by rules. Build the engine for this from the first engine phase (P2). The drag-and-drop designer (P3) is only the screen for building it. Check every task against this.
 
 ## Now / Next
+- **Now (18 Nov 2026):** **v1.57.1** Coordinator board as a table with status chips; sidebar icon (D-337); tickets seen by category (D-338). **Owner:** run 202611191000 (if not yet) and 202611191100, publish, then tick the IT department's categories in Admin → Ticket categories.
+- [x] TKT-16 (18 Nov 2026) Coordinator board as a table grouped by status; sidebar icon
+- [x] TKT-17 (18 Nov 2026) Coordinators see only their categories; named viewers limited by category
 - **Now (18 Nov 2026):** **v1.57.0** Item list with provided ticks (D-335); IT sees every ticket (D-336). **Owner:** back up, run 202611191000_item_checks_ticket_viewers.sql, publish, choose the IT department in Admin → Ticket categories → Who else sees every ticket, add Item list fields where needed.
 - [x] FORM-20 (18 Nov 2026) Item list field (item + qty, no rate/GST) with Provided ticks on requests and tickets
 - [x] TKT-15 (18 Nov 2026) Who else sees every ticket (departments and people), e.g. the IT team

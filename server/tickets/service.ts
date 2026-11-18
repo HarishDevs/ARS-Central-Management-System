@@ -22,7 +22,7 @@ import {
   isCoordinatorOf,
   linkTaskToTicket,
   updateTicket,
-  seesAllTickets,
+  viewerCategories,
   type TicketRecord,
 } from "@/lib/db/repositories/tickets.repository";
 import { discardStaged, insertRecordFiles, RecordFileError, type StagedFile } from "@/server/modules/files";
@@ -51,8 +51,9 @@ async function send(ids: number[]) {
 }
 
 export async function ticketViewer(ticket: TicketRecord, actor: { id: number; roles: readonly string[] }): Promise<TicketViewer> {
-  const [isCoordinator, seesAll] = await Promise.all([isCoordinatorOf(ticket.typeId, actor.id), seesAllTickets(actor.id)]);
-  return { id: actor.id, isAdmin: isAdminActor(actor), isCoordinator, seesAll };
+  const [isCoordinator, named] = await Promise.all([isCoordinatorOf(ticket.typeId, actor.id), viewerCategories(actor.id)]);
+  // v1.57.1 (D-338): named for every category, or for this ticket's category.
+  return { id: actor.id, isAdmin: isAdminActor(actor), isCoordinator, seesAll: named === "ALL" || named.includes(ticket.categoryId) };
 }
 
 // The ticket, if this person may see it (else null: a 404).

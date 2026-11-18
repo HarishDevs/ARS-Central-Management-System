@@ -27,16 +27,18 @@ export default async function Page() {
       </section>
       <section className="card mb-6 px-5 py-4" aria-labelledby="ticket-viewers-title">
         <h2 id="ticket-viewers-title" className="font-semibold">
-          Who else sees every ticket
+          Who else sees tickets
         </h2>
         <p className="mb-3 text-label text-ink-muted">
-          IT Admins and the Super Admin always do. The departments and people chosen here (for example the IT department) also see the Ticket dashboards, the Coordinator board, Ticket analytics and every ticket. They can read and add remarks; assigning stays with each form&apos;s coordinators.
+          IT Admins and the Super Admin always do. The departments and people chosen here (for example the IT department) also see the tickets of the categories ticked below on the Ticket dashboards, the Coordinator board and Ticket analytics, and can open those tickets. They can read and add remarks; assigning stays with each form&apos;s coordinators. Everyone else sees only the categories of the forms they coordinate.
         </p>
         <TicketViewersForm
           departments={departments.filter((department) => department.active).map((department) => ({ id: department.id, label: department.name }))}
           people={people.filter((person) => person.active).map((person) => ({ id: person.id, label: personLabel(person) }))}
+          categories={categories.filter((category) => category.active).map((category) => ({ id: category.id, name: category.name }))}
           departmentIds={viewers.departmentIds}
           userIds={viewers.userIds}
+          categoryIds={viewers.categoryIds}
         />
       </section>
       <section className="card px-5 py-4" aria-labelledby="new-category">

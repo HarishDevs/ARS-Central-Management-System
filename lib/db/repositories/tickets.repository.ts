@@ -87,24 +87,39 @@ export async function coordinatesAny(userId: number, db: Queryable = getDbPool()
 // v1.57.0 (D-336, owner: "ticket dashboards should also be visible to IT team"):
 // the departments and people who see every ticket (read-only unless they
 // coordinate it), set in Admin → Ticket categories.
-export async function seesAllTickets(userId: number, db: Queryable = getDbPool()): Promise<boolean> {
+// v1.57.1 (D-338): limited to some categories, or every category (category_id NULL).
+export type ViewerCategories = "ALL" | number[];
+export async function viewerCategories(userId: number, db: Queryable = getDbPool()): Promise<ViewerCategories> {
   const [rows] = await db.query<Row[]>(
-    "SELECT 1 FROM ticket_viewers v WHERE v.user_id = ? OR v.department_id = (SELECT department_id FROM users WHERE id = ?) LIMIT 1",
+    "SELECT DISTINCT v.category_id FROM ticket_viewers v WHERE v.user_id = ? OR v.department_id = (SELECT department_id FROM users WHERE id = ?)",
     [userId, userId],
   );
-  return rows.length > 0;
+  if (rows.some((row) => row.category_id === null)) return "ALL";
+  return rows.map((row) => num(row.category_id));
 }
-export async function listTicketViewers(db: Queryable = getDbPool()): Promise<{ departmentIds: number[]; userIds: number[] }> {
-  const [rows] = await db.query<Row[]>("SELECT department_id, user_id FROM ticket_viewers ORDER BY id");
+export async function seesAllTickets(userId: number, db: Queryable = getDbPool()): Promise<boolean> {
+  return (await viewerCategories(userId, db)) === "ALL";
+}
+// The categories of the ticket forms this person coordinates.
+export async function coordinatedCategories(userId: number, db: Queryable = getDbPool()): Promise<number[]> {
+  const [rows] = await db.query<Row[]>("SELECT DISTINCT r.category_id FROM ticket_coordinators c JOIN ticket_request_types r ON r.type_id = c.type_id WHERE c.user_id = ?", [userId]);
+  return rows.map((row) => num(row.category_id));
+}
+export async function listTicketViewers(db: Queryable = getDbPool()): Promise<{ departmentIds: number[]; userIds: number[]; categoryIds: number[] }> {
+  const [rows] = await db.query<Row[]>("SELECT department_id, user_id, category_id FROM ticket_viewers ORDER BY id");
+  const unique = (values: number[]) => [...new Set(values)];
   return {
-    departmentIds: rows.filter((row) => row.department_id !== null).map((row) => num(row.department_id)),
-    userIds: rows.filter((row) => row.user_id !== null).map((row) => num(row.user_id)),
+    departmentIds: unique(rows.filter((row) => row.department_id !== null).map((row) => num(row.department_id))),
+    userIds: unique(rows.filter((row) => row.user_id !== null).map((row) => num(row.user_id))),
+    // Empty = every category.
+    categoryIds: rows.some((row) => row.category_id === null) ? [] : unique(rows.map((row) => num(row.category_id))),
   };
 }
-export async function replaceTicketViewers(departmentIds: readonly number[], userIds: readonly number[], by: number, db: Queryable): Promise<void> {
+export async function replaceTicketViewers(departmentIds: readonly number[], userIds: readonly number[], by: number, db: Queryable, categoryIds: readonly number[] = []): Promise<void> {
   await db.query("DELETE FROM ticket_viewers");
-  for (const id of [...new Set(departmentIds)]) await db.query("INSERT INTO ticket_viewers (department_id, created_by) VALUES (?, ?)", [id, by]);
-  for (const id of [...new Set(userIds)]) await db.query("INSERT INTO ticket_viewers (user_id, created_by) VALUES (?, ?)", [id, by]);
+  const categories: (number | null)[] = categoryIds.length ? [...new Set(categoryIds)] : [null];
+  for (const id of [...new Set(departmentIds)]) for (const category of categories) await db.query("INSERT INTO ticket_viewers (department_id, category_id, created_by) VALUES (?, ?, ?)", [id, category, by]);
+  for (const id of [...new Set(userIds)]) for (const category of categories) await db.query("INSERT INTO ticket_viewers (user_id, category_id, created_by) VALUES (?, ?, ?)", [id, category, by]);
 }
 
 // Live ticket forms people can raise, with their category (only forms with a category).
@@ -334,8 +349,10 @@ export interface TicketListItem {
   dueAt: Date | null;
 }
 export const TICKET_PAGE_SIZE = 25;
+// Who is looking: isAdmin = sees every ticket; categoryIds = also sees these categories (D-338).
+export type TicketScopeViewer = { id: number; isAdmin: boolean; categoryIds?: number[] };
 // The WHERE of a list or dashboard (scope first: it can't be widened by a filter).
-function ticketWhere(filter: TicketListFilter, viewer: { id: number; isAdmin: boolean }): { clause: string; params: unknown[] } {
+function ticketWhere(filter: TicketListFilter, viewer: TicketScopeViewer): { clause: string; params: unknown[] } {
   const where: string[] = [];
   const params: unknown[] = [];
   if (filter.scope === "mine") {
@@ -345,9 +362,11 @@ function ticketWhere(filter: TicketListFilter, viewer: { id: number; isAdmin: bo
     where.push("k.assignee_id = ?");
     params.push(viewer.id);
   } else if (filter.scope === "coordinating" || !viewer.isAdmin) {
-    // "all" for a non-admin is what they coordinate.
-    where.push("v.type_id IN (SELECT type_id FROM ticket_coordinators WHERE user_id = ?)");
-    params.push(viewer.id);
+    // "all" for a non-admin is what they coordinate, plus the categories they
+    // were named for in Admin → Ticket categories (v1.57.1, D-338).
+    const extra = filter.scope === "all" && viewer.categoryIds?.length ? viewer.categoryIds : null;
+    where.push(extra ? "(v.type_id IN (SELECT type_id FROM ticket_coordinators WHERE user_id = ?) OR k.category_id IN (?))" : "v.type_id IN (SELECT type_id FROM ticket_coordinators WHERE user_id = ?)");
+    params.push(viewer.id, ...(extra ? [extra] : []));
   }
   if (filter.categoryId) {
     where.push("k.category_id = ?");
@@ -390,7 +409,7 @@ function ticketWhere(filter: TicketListFilter, viewer: { id: number; isAdmin: bo
 }
 const LIST_FROM = `FROM tickets k JOIN module_type_versions v ON v.id = k.type_version_id JOIN module_types t ON t.id = v.type_id JOIN ticket_categories c ON c.id = k.category_id JOIN users r ON r.id = k.requester_id LEFT JOIN users a ON a.id = k.assignee_id LEFT JOIN departments d ON d.id = k.requester_department_id`;
 
-export async function listTickets(filter: TicketListFilter, viewer: { id: number; isAdmin: boolean }, db: Queryable = getDbPool()): Promise<{ items: TicketListItem[]; total: number }> {
+export async function listTickets(filter: TicketListFilter, viewer: TicketScopeViewer, db: Queryable = getDbPool()): Promise<{ items: TicketListItem[]; total: number }> {
   const { clause, params } = ticketWhere(filter, viewer);
   const [[count]] = await db.query<Row[]>(`SELECT COUNT(*) AS n ${LIST_FROM} ${clause}`, params);
   const [rows] = await db.query<Row[]>(
@@ -430,7 +449,7 @@ export interface TicketBoardItem extends TicketListItem {
 }
 export async function ticketBoard(
   filter: { categoryId: number | null; q: string; overdueOnly: boolean },
-  viewer: { id: number; isAdmin: boolean },
+  viewer: TicketScopeViewer,
   closedDays = 7,
   db: Queryable = getDbPool(),
 ): Promise<TicketBoardItem[]> {
@@ -486,7 +505,7 @@ export interface TicketCounts {
   AUTO: number;
   overdue: number;
 }
-export async function ticketCounts(filter: TicketListFilter, viewer: { id: number; isAdmin: boolean }, db: Queryable = getDbPool()): Promise<TicketCounts> {
+export async function ticketCounts(filter: TicketListFilter, viewer: TicketScopeViewer, db: Queryable = getDbPool()): Promise<TicketCounts> {
   const { clause, params } = ticketWhere({ ...filter, status: null }, viewer);
   const [[row]] = await db.query<Row[]>(
     `SELECT COUNT(*) AS total,

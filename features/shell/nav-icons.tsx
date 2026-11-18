@@ -3,6 +3,7 @@ import {
   TicketPlus,
   Tags,
   LayoutDashboard as TicketBoard,
+  Columns3 as CoordinatorBoard,
   AlarmClock,
   FolderPlus,
   BookOpenCheck,
@@ -101,6 +102,7 @@ const ICONS: Record<string, LucideIcon> = {
   // v1.55.0 (D-326): the Ticketing System.
   "/users/tickets/new": TicketPlus,
   "/users/tickets": Ticket,
+  "/users/tickets/board": CoordinatorBoard, // v1.57.1 (D-337)
   "/users/tickets/dashboards": TicketBoard,
   // v1.51.0 (D-300): Meeting Management
   "/users/meetings": CalendarClock,
