@@ -17,6 +17,9 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 **Multi-level approvals in any custom manner.** The engine must support any number of levels in any combination: sequential, parallel, any-one, any-N-of-M, conditional and hybrid. Approvers can come from any source, and levels can be added or skipped by rules. Build the engine for this from the first engine phase (P2). The drag-and-drop designer (P3) is only the screen for building it. Check every task against this.
 
 ## Now / Next
+- **Now (18 Nov 2026):** **v1.55.3** reopened tickets reopen their task; Ticket dashboards for coordinators and IT only (D-331). **Owner:** publish (no migration).
+- [x] TKT-11 (18 Nov 2026) Reopening a ticket reopens its task for the same assignee
+- [x] TKT-12 (18 Nov 2026) Ticket dashboards visible to coordinators (and IT) only
 - **Now (18 Nov 2026):** **v1.55.2** meeting form and links, 10 attachments, ticket form (D-330). **Owner:** publish (no migration); make sure the host accepts uploads up to 102 MB.
 - [x] MTG-12 (18 Nov 2026) Schedule form: required *, today/now defaults, end after start, department wording
 - [x] MTG-13 (18 Nov 2026) Meeting notifications with full details and role; scheduler copy

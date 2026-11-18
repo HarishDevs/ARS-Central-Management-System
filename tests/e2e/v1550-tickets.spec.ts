@@ -137,6 +137,16 @@ test("the coordinator's IT Hardware dashboard counts it; filters work", async ({
   await page.screenshot({ path: "test-results/v1550-ticket-dashboard.png", fullPage: true });
 });
 
+// v1.55.3 (D-331, owner): Ticket dashboards are for coordinators (and IT) only.
+test("someone who coordinates no ticket form doesn't see Ticket dashboards", async ({ page, context }) => {
+  await as(context, "E2E_REQ");
+  await page.goto("/users/tickets");
+  await expect(page.getByTestId("sidebar").getByRole("link", { name: "My tickets" })).toBeVisible();
+  await expect(page.getByTestId("sidebar").getByRole("link", { name: "Ticket dashboards" })).toHaveCount(0);
+  const response = await page.goto("/users/tickets/dashboards");
+  expect(response?.status()).toBe(404);
+});
+
 test("someone not involved can't open the ticket", async ({ page, context }) => {
   await as(context, "E2E_HOD");
   const response = await page.goto(ticketPath);

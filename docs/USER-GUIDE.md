@@ -221,7 +221,7 @@ Ask for help: a software problem, a hardware fault, an Admin request. Tickets ap
   3. That employee does the work in their **Tasks**.
 - **When the work is done** you're asked to confirm (Inbox and email):
   - **Confirm and close**, optionally with a rating of 1–5 and feedback;
-  - or **Reopen ticket** with a reason. It goes back to the coordinators.
+  - or **Reopen ticket** with a reason. The same task opens again straight away in the assignee's Tasks, and the coordinators are told (they can reassign it).
 
   If you don't answer, you're reminded after 2 and 3 working days, and the ticket closes by itself after 4 complete working days ("Closed – auto closed"). Weekly offs and company holidays don't count.
 - **My tickets** lists the tickets you raised, and those assigned to you.
@@ -230,7 +230,7 @@ Ask for help: a software problem, a hardware fault, an Admin request. Tickets ap
 - **Coordinators:**
   - open a new ticket, choose **Assign to**, a **Target date** and remarks, then **Assign** (this makes the task);
   - **Reassign** the same way;
-  - **Ticket dashboards** show each category's totals (total, new, assigned, in progress, awaiting confirmation, closed, overdue) and the ticket table, with filters for date, department, priority, status and assigned employee. Every number opens the matching tickets.
+  - **Ticket dashboards** (only for coordinators of ticket forms, and IT) show each category's totals (total, new, assigned, in progress, awaiting confirmation, closed, overdue) and the ticket table, with filters for date, department, priority, status and assigned employee. Every number opens the matching tickets.
 
 ### Information
 - **New information:** choose the type, write the subject and message, choose recipients, then **Publish** (or **Save draft**).

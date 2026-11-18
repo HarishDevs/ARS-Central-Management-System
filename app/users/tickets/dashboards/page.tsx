@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { LayoutDashboard } from "lucide-react";
 import { PageHeader } from "@/features/shell/PageHeader";
 import { EmptyState } from "@/features/ui/Display";
@@ -13,14 +14,15 @@ export const dynamic = "force-dynamic";
 // Software, IT Hardware, Admin…). Coordinators see their forms' tickets; IT sees all.
 export default async function Page() {
   const { user, isAdmin } = await ticketsPage();
-  const may = isAdmin || (await coordinatesAny(user.id));
-  const categories = may ? await listTicketCategories(true) : [];
+  // v1.55.3 (D-331, owner): coordinators (and IT) only; anyone else gets "not found".
+  if (!isAdmin && !(await coordinatesAny(user.id))) notFound();
+  const categories = await listTicketCategories(true);
   const counts = await Promise.all(categories.map((category) => ticketCounts({ scope: "all", categoryId: category.id, status: null, q: "", page: 1 }, { id: user.id, isAdmin })));
   return (
     <>
       <PageHeader title="Ticket dashboards" icon={LayoutDashboard} description={isAdmin ? "Every category's tickets." : "The tickets of the forms you coordinate."} />
-      {!may ? (
-        <EmptyState title="Nothing to coordinate" body="Ticket dashboards are for the coordinators of ticket forms and IT. Your own tickets are in My tickets." />
+      {categories.length === 0 ? (
+        <EmptyState title="No ticket categories yet" body="IT adds them in Admin → Ticket categories." />
       ) : (
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-testid="ticket-dashboards">
           {categories.map((category, index) => {

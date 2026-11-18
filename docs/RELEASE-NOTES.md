@@ -1,5 +1,10 @@
 # Release notes
 
+## v1.55.3 (18 Nov 2026): Reopened tickets reopen their task; dashboards for coordinators (owner)
+- **Reopen a ticket → its task reopens too.** When the requester reopens a ticket, the same task goes straight back to **Open** in the assignee's Tasks (Assigned to me → Open), with the reason in the task's history. The coordinators are still told and can reassign it with a new target date. Before, the task stayed Completed until a coordinator reassigned it.
+- **Ticket dashboards are for coordinators only** (people set as coordinators on a ticket form), plus IT. Everyone else no longer sees the menu item, and the page answers "not found". My tickets stays for everyone with Ticketing.
+- **Owner steps:** no migration; publish v1.55.3.
+
 ## v1.55.2 (18 Nov 2026): Meeting form, meeting links, 10 attachments, ticket form (owner)
 - **Schedule a meeting:**
   - required fields carry a red **\*** (title, type, date, starts, ends, Meeting Owner, Coordinator, mode, priority, who can see it);

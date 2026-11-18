@@ -240,11 +240,20 @@ export async function reopenTicket(input: { ticketId: number; reason: string }, 
   if (reason.length > 2000) return fail("Use 2000 characters or fewer.", { reason: "Use 2000 characters or fewer." });
   return closeOrReopen(input.ticketId, "REOPEN", actor, async (ticket, connection) => {
     if (!(await updateTicket(ticket.id, ticket.rowVersion, { status: "REOPENED", reopen_count: ticket.reopenCount + 1, confirmation_requested_at: null, confirm_due_on: null }, connection))) return null;
-    // Earlier work stays in the history; the coordinators reassign the same task.
+    // v1.55.3 (D-331, owner: "after reopen the ticket the Ticket is not reopening in the task"):
+    // the same task goes straight back to Open for the same assignee, in their Tasks.
+    // Earlier work stays in the history; the coordinators can still reassign it.
+    if (ticket.taskId) {
+      const task = await findTask(ticket.taskId, connection, true);
+      if (task && (task.status === "COMPLETED" || task.status === "CANCELLED")) {
+        if (!(await updateTask(task.id, task.rowVersion, { status: "OPEN", completed_by: null, completed_at: null, cancelled_by: null, cancelled_at: null }, connection))) return null;
+        await appendTaskEvent(task.id, { actorId: actor.id, type: "REOPEN", from: task.status, to: "OPEN", body: `Ticket ${ticket.ticketNo} reopened: ${reason}`.slice(0, 2000), payload: { ticketId: ticket.id } }, connection);
+      }
+    }
     await appendTicketEvent(ticket.id, { actorId: actor.id, action: "REOPENED", from: ticket.status, to: "REOPENED", detail: { reason, previousResolution: ticket.resolutionText } }, connection);
     await insertTicketComment(ticket.id, actor.id, `Reopened: ${reason}`, false, connection);
     const to = [ticket.assigneeId, ...(await coordinatorsOf(ticket.typeId, connection)).map((person) => person.id)].filter((id): id is number => id !== null && id !== actor.id);
-    return { messages: [...new Set(to)].map((id) => ticketMessages.reopened(info(ticket), id, actor.name, reason)), message: "Reopened. The coordinators have been told." };
+    return { messages: [...new Set(to)].map((id) => ticketMessages.reopened(info(ticket), id, actor.name, reason)), message: "Reopened. The task is open again for the assignee, and the coordinators have been told." };
   });
 }
 

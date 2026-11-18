@@ -174,7 +174,7 @@ flowchart TD
   P -->|task completed with completion remarks| AC[AWAITING CONFIRMATION: 4-working-day clock]
   A -->|task completed| AC
   AC -->|requester confirms (rating 1-5 optional)| CL[CLOSED]
-  AC -->|requester reopens with a reason| RO[REOPENED: the same task] --> C
+  AC -->|requester reopens with a reason| RO[REOPENED: the same task back to Open for the assignee (D-331)] --> C
   AC -->|reminders on working days 2 and 3; no answer after 4 full working days| AUTO[CLOSED – AUTO CLOSED]
 ```
 - Task completion never closes a ticket. Only the requester confirms or reopens. Coordinators reassign on the ticket (the task side refuses reassign, cancel and reopen).

@@ -1,11 +1,14 @@
 import "server-only";
 import { enabledFeatures } from "@/server/settings/features";
+import { coordinatesAny } from "@/lib/db/repositories/tickets.repository";
 import type { NavItem } from "@/features/shell/SideNav";
 
 // The My approvals space's pages, in the owner's order. Used by the sidebar
 // (Compact view) and by the Gateway and module menus (Classic view, D-210).
-export async function usersNav(user: { roles: readonly string[] }): Promise<NavItem[]> {
+export async function usersNav(user: { id: number; roles: readonly string[] }): Promise<NavItem[]> {
   const features = await enabledFeatures(user);
+  // v1.55.3 (D-331, owner): Ticket dashboards are for the coordinators of ticket forms (and IT).
+  const ticketDashboards = user.roles.includes("IT_ADMIN") || user.roles.includes("SUPER_ADMIN") || (await coordinatesAny(user.id).catch(() => false));
   return [
     // v1.9.2 (owner): Overview; My Approvals, Tasks and Information as
     // collapsible groups; then Search, Calendar and Analytics.
@@ -47,7 +50,7 @@ export async function usersNav(user: { roles: readonly string[] }): Promise<NavI
     // v1.55.1 (D-329): the Ticketing module (page access hides it without the module).
     { href: "/users/tickets/new", label: "Raise a ticket", section: "Tickets" },
     { href: "/users/tickets", label: "My tickets", section: "Tickets" },
-    { href: "/users/tickets/dashboards", label: "Ticket dashboards", section: "Tickets" },
+    ...(ticketDashboards ? [{ href: "/users/tickets/dashboards", label: "Ticket dashboards", section: "Tickets" }] : []),
     // v1.51.0 (D-300): Meeting Management (the MEETING module; page access hides it otherwise).
     { href: "/users/meetings/new", label: "Schedule meeting", section: "Meetings" },
     { href: "/users/meetings", label: "Meetings", section: "Meetings" },

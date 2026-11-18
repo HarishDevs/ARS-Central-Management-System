@@ -133,6 +133,11 @@ describe("work, confirmation and reopening", () => {
     expect((await reopenTicket({ ticketId: id, reason: "" }, people.requester!)).ok).toBe(false);
     expect((await reopenTicket({ ticketId: id, reason: "Still can't connect" }, people.requester!)).ok).toBe(true);
     expect(await findTicket(id)).toMatchObject({ status: "REOPENED", reopenCount: 1 });
+    // v1.55.3 (D-331): reopening puts the same task straight back to Open for the same assignee.
+    const reopenedTask = await taskOf(id);
+    expect(reopenedTask.id).toBe(before.id);
+    expect(reopenedTask.status).toBe("OPEN");
+    expect(reopenedTask.assignee_id).toBe(people.assignee!.id);
     expect((await assignTicket({ ticketId: id, assigneeId: people.assignee!.id, targetDate: today(), remarks: "Check the certificate", rowVersion: null }, people.coordinator!)).ok).toBe(true);
     const after = await taskOf(id);
     expect(after.id).toBe(before.id);
