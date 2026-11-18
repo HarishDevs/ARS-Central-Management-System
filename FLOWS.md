@@ -154,6 +154,22 @@ flowchart TD
 ## F-RL Group by on request lists (v1.54.16, D-325)
 Group → Status, Approval type, Month raised, Priority; Raised by and Department (lists of other people's requests); Form: <field> for every form field on the page (matched by name; confidential values show as Hidden to those who may not see them).
 
+## F-TKT Ticketing System lifecycle (planned, D-326; not built yet)
+```mermaid
+flowchart TD
+  R([Employee raises a ticket: category → request type → published form]) --> N[NEW: number, requestor, department, location]
+  N --> C[Coordinator notified: category / request-type mapping, backup coordinator]
+  C -->|needs details| W[WAITING FOR INFORMATION] --> C
+  C -->|invalid| X[REJECTED with reason]
+  C -->|assign| A[ASSIGNED: one linked task in Tasks]
+  A --> P[IN PROGRESS / ON HOLD: work in the task]
+  P -->|task completed with resolution notes| AC[AWAITING REQUESTOR CONFIRMATION: 4-working-day clock]
+  AC -->|requestor confirms + rating| CL[CLOSED]
+  AC -->|requestor reopens with reason| RO[REOPENED] --> C
+  AC -->|reminders on working days 2, 3, 4; no answer after day 4| AUTO[CLOSED: AUTO CLOSED]
+```
+- Task completion never closes a ticket. Only the requestor confirms. Working days come from the Working Calendar. The auto-close job claims each ticket once, and a last-second confirmation wins.
+
 ## F-02 User ID + password + OTP
 ```mermaid
 flowchart TD
