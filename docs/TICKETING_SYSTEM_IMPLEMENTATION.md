@@ -1,3 +1,33 @@
+# Ticketing System: implementation (v1.55.0, 18 Nov 2026)
+
+**Built in v1.55.0, following the owner's simple brief of 18 Nov 2026.** It supersedes the larger design where they differ:
+- statuses are New, Assigned, In progress, Awaiting confirmation, Reopened, Closed, Closed – auto closed;
+- priorities are High, Medium, Low;
+- reminders come on working days 2 and 3;
+- rating is optional;
+- coordinators are set per form.
+
+| Part | Where |
+|---|---|
+| Migration (additive, rollback inside) | `database/migrations/202611181000_ticketing.sql` |
+| Rules (statuses, who may do what, overdue, confirmation stages) | `server/tickets/rules.ts` (unit-tested) |
+| Data | `lib/db/repositories/tickets.repository.ts` |
+| Service (raise, assign → task, confirm, reopen, remarks, auto-close job) | `server/tickets/service.ts` |
+| Ticket follows its task (in the task's own transaction) | `server/tickets/sync.ts`, hooked into `actOnTask` (`server/modules/tasks.ts`) |
+| Shared Form Builder: TICKET as a third module kind | `server/modules/settings.ts`, `config.ts`, `ModuleTypeEditor.tsx`, `ModuleTypeScreens.tsx`, `module-types.repository.ts` |
+| Working days (shared) | `addWorkingDays`, `workingDaysBetween` in `server/workflows/calendar.ts` |
+| Job | `ticketConfirmations` in `server/ops/automation.ts` |
+| Notifications | Tickets category (`server/notifications/categories.ts`), messages (`server/modules/messages.ts`) |
+| Files | `record_files` (TICKET) and `/api/files/[id]` (ticket rule; the task's documents open for those who see the ticket) |
+| Employee pages | `/users/tickets` (My tickets), `/users/tickets/new`, `/users/tickets/[id]`, `/users/tickets/dashboards[/id]` |
+| Admin pages | `/admin/ticket-forms` (shared builder + category and coordinators), `/admin/ticket-categories` |
+| Switch | `features.tickets` (Off / IT only / On) |
+| Tests | `tests/tickets/rules.test.ts`, `tests/integration/v1550-tickets.int.test.ts`, `tests/e2e/v1550-tickets.spec.ts` |
+
+The original plan follows for reference.
+
+---
+
 # Ticketing System: implementation plan (draft for approval, 18 Nov 2026)
 
 Status: **Phase 1 (audit) delivered.** Phases 2–7 start after the owner answers the decisions in TICKETING_SYSTEM_GAP_ANALYSIS.md §C.

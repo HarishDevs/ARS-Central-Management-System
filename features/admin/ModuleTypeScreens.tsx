@@ -12,13 +12,15 @@ import { listActiveUserOptions } from "@/lib/db/repositories/admin-users.reposit
 import { listDepartments } from "@/lib/db/repositories/organisation.repository";
 import { listGroups } from "@/lib/db/repositories/groups.repository";
 import { loadFieldLookups } from "@/lib/db/repositories/lookups.repository";
-import { MODULE_ADMIN_PATH, MODULE_LABEL, parseInfoSettings, parseTaskSettings, type ModuleKind } from "@/server/modules/settings";
+import { MODULE_ADMIN_PATH, MODULE_LABEL, parseInfoSettings, parseTaskSettings, parseTicketSettings, type ModuleKind } from "@/server/modules/settings";
+import { TicketFormSetup } from "@/features/tickets/TicketFormSetup";
+import { ticketFormSetup } from "@/lib/db/repositories/tickets.repository";
 import { indiaDateTimeText } from "@/server/modules/settings";
 import { personLabel } from "@/lib/people/label";
 
 // v1.9.0 (D-144): Admin → Task types / Information types. Server screens
 // shared by both modules; every page checks the admin area itself.
-const PLURAL: Record<ModuleKind, string> = { TASK: "Task types", INFO: "Information types" };
+const PLURAL: Record<ModuleKind, string> = { TASK: "Task types", INFO: "Information types", TICKET: "Ticket forms" };
 const ACTION_TEXT: Record<string, string> = {
   MODULE_TYPE_CREATED: "Created",
   MODULE_TYPE_DRAFT_SAVED: "Draft saved",
@@ -40,7 +42,9 @@ export async function ModuleTypesListScreen({ module }: { module: ModuleKind }) 
         description={
           module === "TASK"
             ? "The kinds of task people can create: the form, who may create them, whom they can be assigned to and how they are completed."
-            : "The kinds of information people can send: the form, who may send them, to whom, acknowledgement and expiry."
+            : module === "TICKET"
+              ? "The forms people raise tickets with (one per request type): the form, its category, its coordinators (any one of them assigns the ticket) and who may raise it."
+              : "The kinds of information people can send: the form, who may send them, to whom, acknowledgement and expiry."
         }
       />
       <section className="mb-8" aria-labelledby="new-type">
@@ -95,7 +99,7 @@ export async function ModuleTypeDetailScreen({ module, id, view }: { module: Mod
   if (!type || type.module !== module) notFound();
   const [versions, history, people, departments, groups, lookups] = await Promise.all([
     listTypeVersions(type.id),
-    listAuditForEntity([module === "TASK" ? "TASK_TYPE" : "INFO_TYPE"], type.id, 50),
+    listAuditForEntity([module === "TASK" ? "TASK_TYPE" : module === "TICKET" ? "TICKET_FORM" : "INFO_TYPE"], type.id, 50),
     listActiveUserOptions(),
     listDepartments(),
     listGroups(),
@@ -106,7 +110,9 @@ export async function ModuleTypeDetailScreen({ module, id, view }: { module: Mod
   const viewed = view && /^\d+$/.test(view) ? (versions.find((version) => version.versionNo === Number(view)) ?? null) : null;
   const base = MODULE_ADMIN_PATH[module];
   const personOptions = people.map((person) => ({ id: person.id, label: personLabel(person), detail: person.departmentName ?? undefined }));
-  const parse = module === "TASK" ? parseTaskSettings : parseInfoSettings;
+  const parse = module === "TASK" ? parseTaskSettings : module === "TICKET" ? parseTicketSettings : parseInfoSettings;
+  // v1.55.0 (D-327): a ticket form's category and coordinators (kept with the form, not a version).
+  const ticketSetup = module === "TICKET" ? await ticketFormSetup(type.id) : null;
 
   return (
     <>
@@ -140,6 +146,8 @@ export async function ModuleTypeDetailScreen({ module, id, view }: { module: Mod
           <ModuleTypeCommand module={module} typeId={type.id} command="reactivate" label="Reactivate type" />
         )}
       </div>
+
+      {ticketSetup && <TicketFormSetup typeId={type.id} setup={ticketSetup} people={personOptions} />}
 
       {draft && (
         <section aria-labelledby="draft-heading" className="mb-10">

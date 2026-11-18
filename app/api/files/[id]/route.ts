@@ -3,13 +3,15 @@ import { requireApiArea } from "@/server/authorization/guards";
 import { findRecordFile, readRecordFile } from "@/server/modules/files";
 import { loadTaskFor } from "@/server/modules/tasks";
 import { loadInfoFor } from "@/server/modules/information";
+import { loadTicketFor } from "@/server/tickets/service";
+import { ticketIdForTask } from "@/lib/db/repositories/tickets.repository";
 import { recordAudit } from "@/lib/db/repositories/audit.repository";
 import { downloadHeaders, inlineHeaders, previewKind } from "@/server/attachments/files";
 import { LIMITS, overLimit, tooManyResponse } from "@/server/security/limits";
 import { apiError } from "@/lib/http/api-response";
 import { logError } from "@/lib/logging/logger";
 
-// v1.9.0: files of tasks and information. Signed in, and allowed to see the
+// v1.9.0: files of tasks and information (v1.55.0: and tickets). Signed in, and allowed to see the
 // record (the same rule as its page); anything else is the same plain 404.
 // Denials are audited.
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -21,7 +23,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const file = await findRecordFile(Number(id));
     if (!file) return apiError("NOT_FOUND", "Not found.", 404);
     const viewer = { id: session.user.id, roles: session.user.roles };
-    const allowed = file.entityType === "TASK" ? await loadTaskFor(file.entityId, viewer) : await loadInfoFor(file.entityId, viewer);
+    // v1.55.0: ticket files follow the ticket page's rule; a ticket task's files
+    // (the assignee's supporting documents) may also be opened by those who see the ticket.
+    let allowed: unknown = null;
+    if (file.entityType === "TICKET") allowed = await loadTicketFor(file.entityId, viewer);
+    else if (file.entityType === "TASK") {
+      allowed = await loadTaskFor(file.entityId, viewer);
+      if (!allowed) {
+        const ticketId = await ticketIdForTask(file.entityId);
+        if (ticketId) allowed = await loadTicketFor(ticketId, viewer);
+      }
+    } else allowed = await loadInfoFor(file.entityId, viewer);
     if (!allowed) {
       await recordAudit({ actorUserId: session.user.id, action: "RECORD_FILE_ACCESS_DENIED", entityType: "RECORD_FILE", entityId: file.id, result: "FAILURE", sessionId: session.sessionId });
       return apiError("NOT_FOUND", "Not found.", 404);

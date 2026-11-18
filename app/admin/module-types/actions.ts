@@ -12,11 +12,11 @@ import type { ActionResult } from "@/lib/http/action-result";
 // Admin only; every change is checked again and audited on the server.
 function moduleOf(formData: FormData): ModuleKind | null {
   const value = formData.get("module");
-  return value === "TASK" || value === "INFO" ? value : null;
+  return value === "TASK" || value === "INFO" || value === "TICKET" ? value : null;
 }
 
 // G-3 (v1.10.0): each module's set-up page has its own access rule.
-const PAGE_KEY: Record<ModuleKind, string> = { TASK: "admin.task_types", INFO: "admin.information_types" };
+const PAGE_KEY: Record<ModuleKind, string> = { TASK: "admin.task_types", INFO: "admin.information_types", TICKET: "admin.ticket_forms" };
 
 const NOT_FOUND: ActionResult = { ok: false, message: "Not found." };
 

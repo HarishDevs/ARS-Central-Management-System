@@ -11,7 +11,7 @@ import { MAX_FILES_PER_REQUEST } from "@/server/attachments/files";
 // request files (D-072), but written BEFORE the business transaction and
 // recorded inside it (audit AUD-10): a record is never saved without the
 // files it was made with, and files of a failed save are removed.
-export type FileEntity = "TASK" | "INFO";
+export type FileEntity = "TASK" | "INFO" | "TICKET";
 
 export interface StagedFile {
   name: string;

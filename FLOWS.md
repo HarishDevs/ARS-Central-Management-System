@@ -154,21 +154,21 @@ flowchart TD
 ## F-RL Group by on request lists (v1.54.16, D-325)
 Group → Status, Approval type, Month raised, Priority; Raised by and Department (lists of other people's requests); Form: <field> for every form field on the page (matched by name; confidential values show as Hidden to those who may not see them).
 
-## F-TKT Ticketing System lifecycle (planned, D-326; not built yet)
+## F-TKT Ticketing System lifecycle (v1.55.0, D-328)
 ```mermaid
 flowchart TD
-  R([Anyone with CMS access raises a ticket: category → request type → published form]) --> N[NEW: number, requestor, department]
-  N --> C[The form's coordinators (set up with the form) are notified; any one of them assigns]
-  C -->|needs details| W[WAITING FOR INFORMATION] --> C
-  C -->|invalid| X[REJECTED with reason]
-  C -->|assign| A[ASSIGNED: one linked task in Tasks]
-  A --> P[IN PROGRESS / ON HOLD: work in the task]
-  P -->|task completed with resolution notes| AC[AWAITING REQUESTOR CONFIRMATION: 4-working-day clock]
-  AC -->|requestor confirms + rating 1-5| CL[CLOSED]
-  AC -->|requestor reopens with reason: same task reopened| RO[REOPENED] --> C
-  AC -->|reminders on working days 2, 3, 4; no answer after day 4| AUTO[CLOSED: AUTO CLOSED]
+  R([Anyone with CMS access: Raise a ticket → ticket type (a form of a category) → subject, description, priority, required date, fields, files]) --> N[NEW: number PREFIX-YEAR-00001, requestor details filled in]
+  N --> C[The form's coordinators are told; any one of them assigns]
+  C -->|assign: employee, target date, remarks| A[ASSIGNED: one linked task in the employee's Tasks]
+  A -->|task started| P[IN PROGRESS]
+  P -->|task completed with completion remarks| AC[AWAITING CONFIRMATION: 4-working-day clock]
+  A -->|task completed| AC
+  AC -->|requester confirms (rating 1-5 optional)| CL[CLOSED]
+  AC -->|requester reopens with a reason| RO[REOPENED: the same task] --> C
+  AC -->|reminders on working days 2 and 3; no answer after 4 full working days| AUTO[CLOSED – AUTO CLOSED]
 ```
-- Task completion never closes a ticket. Only the requestor confirms. Working days come from the Working Calendar. The auto-close job claims each ticket once, and a last-second confirmation wins.
+- Task completion never closes a ticket. Only the requester confirms or reopens. Coordinators reassign on the ticket (the task side refuses reassign, cancel and reopen).
+- The auto-close job claims each stage once, and closes only while the ticket still waits.
 
 ## F-02 User ID + password + OTP
 ```mermaid

@@ -3,11 +3,12 @@
 // New notifications store their category; older ones get it from their event
 // type with the same lists, in SQL (CATEGORY_SQL), so both always agree.
 // v1.51.1 (owner): Meeting is its own category in the Inbox.
-export type NotificationCategory = "APPROVAL" | "TASK" | "MEETING" | "INFORMATION" | "SYSTEM";
-export const CATEGORIES: readonly NotificationCategory[] = ["APPROVAL", "TASK", "MEETING", "INFORMATION", "SYSTEM"];
-export const CATEGORY_LABEL: Record<NotificationCategory, string> = { APPROVAL: "Approval", TASK: "Task", MEETING: "Meeting", INFORMATION: "Information", SYSTEM: "System" };
+// v1.55.0 (D-326): Tickets is its own category too.
+export type NotificationCategory = "APPROVAL" | "TASK" | "MEETING" | "INFORMATION" | "TICKET" | "SYSTEM";
+export const CATEGORIES: readonly NotificationCategory[] = ["APPROVAL", "TASK", "MEETING", "INFORMATION", "TICKET", "SYSTEM"];
+export const CATEGORY_LABEL: Record<NotificationCategory, string> = { APPROVAL: "Approval", TASK: "Task", MEETING: "Meeting", INFORMATION: "Information", TICKET: "Ticket", SYSTEM: "System" };
 // The address word for each view (/users/notifications?type=…).
-export const CATEGORY_SLUG: Record<NotificationCategory, string> = { APPROVAL: "approvals", TASK: "tasks", MEETING: "meetings", INFORMATION: "information", SYSTEM: "system" };
+export const CATEGORY_SLUG: Record<NotificationCategory, string> = { APPROVAL: "approvals", TASK: "tasks", MEETING: "meetings", INFORMATION: "information", TICKET: "tickets", SYSTEM: "system" };
 
 // Task Management (not the approval engine's "work" steps, whose
 // TASK_ASSIGNED belongs to the approval).
@@ -30,6 +31,8 @@ export const TASK_EVENTS: readonly string[] = [
 export const MEETING_EVENTS: readonly string[] = ["MEETING_INVITED", "MEETING_UPDATED", "MEETING_CANCELLED", "MEETING_APPROVAL", "MEETING_DECIDED", "MEETING_PUBLISHED", "MEETING_REMINDER", "MEETING_ACTION"];
 // D-252: IT's announcements and management notices sit with Information; its
 // system notices and important alerts with System.
+// v1.55.0 (D-326): the Ticketing System.
+export const TICKET_EVENTS: readonly string[] = ["TICKET_SUBMITTED", "TICKET_NEW", "TICKET_ASSIGNED", "TICKET_UPDATED", "TICKET_INFO_REQUESTED", "TICKET_INFO_PROVIDED", "TICKET_COMMENT", "TICKET_REJECTED", "TICKET_CANCELLED", "TICKET_CONFIRM", "TICKET_CONFIRM_REMINDER", "TICKET_CLOSED", "TICKET_REOPENED"];
 export const INFO_EVENTS: readonly string[] = ["INFO_PUBLISHED", "INFO_UPDATED", "INFO_WITHDRAWN", "INFO_ACK_REMINDER", "ADMIN_ANNOUNCEMENT", "ADMIN_MANAGEMENT"];
 export const SYSTEM_EVENTS: readonly string[] = [
   "NEW_LOGIN",
@@ -58,13 +61,14 @@ export function categoryOf(eventType: string): NotificationCategory {
   if (TASK_EVENTS.includes(eventType)) return "TASK";
   if (MEETING_EVENTS.includes(eventType)) return "MEETING";
   if (INFO_EVENTS.includes(eventType)) return "INFORMATION";
+  if (TICKET_EVENTS.includes(eventType)) return "TICKET";
   if (SYSTEM_EVENTS.includes(eventType)) return "SYSTEM";
   return "APPROVAL";
 }
 
 const quoted = (list: readonly string[]) => list.map((event) => `'${event.replace(/[^A-Z_]/g, "")}'`).join(", ");
 // The category of a notification row `n` (stored, or worked out for old rows).
-export const CATEGORY_SQL = `COALESCE(n.category, CASE WHEN n.event_type IN (${quoted(TASK_EVENTS)}) THEN 'TASK' WHEN n.event_type IN (${quoted(MEETING_EVENTS)}) THEN 'MEETING' WHEN n.event_type IN (${quoted(INFO_EVENTS)}) THEN 'INFORMATION' WHEN n.event_type IN (${quoted(SYSTEM_EVENTS)}) THEN 'SYSTEM' ELSE 'APPROVAL' END)`;
+export const CATEGORY_SQL = `COALESCE(n.category, CASE WHEN n.event_type IN (${quoted(TASK_EVENTS)}) THEN 'TASK' WHEN n.event_type IN (${quoted(MEETING_EVENTS)}) THEN 'MEETING' WHEN n.event_type IN (${quoted(INFO_EVENTS)}) THEN 'INFORMATION' WHEN n.event_type IN (${quoted(TICKET_EVENTS)}) THEN 'TICKET' WHEN n.event_type IN (${quoted(SYSTEM_EVENTS)}) THEN 'SYSTEM' ELSE 'APPROVAL' END)`;
 
 export function parseCategory(value: unknown): NotificationCategory | null {
   if (typeof value !== "string") return null;
@@ -75,7 +79,7 @@ export function parseCategory(value: unknown): NotificationCategory | null {
 }
 
 // The record a notification is about, from its link when not given.
-export type EntityRef = { type: "REQUEST" | "TASK" | "INFO" | "MEETING"; id: number };
+export type EntityRef = { type: "REQUEST" | "TASK" | "INFO" | "MEETING" | "TICKET"; id: number };
 export function entityFromLink(link: string | null | undefined): EntityRef | null {
   if (!link) return null;
   const path = link.replace(/^https?:\/\/[^/]+/, "");
@@ -84,6 +88,7 @@ export function entityFromLink(link: string | null | undefined): EntityRef | nul
     [/^\/users\/tasks\/(\d+)/, "TASK"],
     [/^\/users\/information\/(\d+)/, "INFO"],
     [/^\/users\/meetings\/(\d+)/, "MEETING"],
+    [/^\/users\/tickets\/(\d+)/, "TICKET"],
   ];
   for (const [pattern, type] of patterns) {
     const match = pattern.exec(path);

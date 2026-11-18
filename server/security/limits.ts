@@ -15,6 +15,7 @@ export const LIMITS = {
   download: 120,
   webhook: 600,
   push: 30, // D-252: device registration and status
+  ticketRaise: 5, // v1.55.0: tickets raised per minute per person
 } as const;
 
 export async function overLimit(bucket: string, perMinute: number): Promise<boolean> {

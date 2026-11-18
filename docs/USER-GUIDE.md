@@ -209,6 +209,29 @@ Comments on a request can't be edited or removed. To tell someone in particular,
 - **Comments / All activity:** Comments is the thread (reply, like, pin); All activity is the full history, oldest or newest first.
 - **Choosing a person** anywhere: type a name, code or department; each choice shows **Name - Employee code** and the department below. Lists open where they fit on the screen and close with ×, Esc or a click outside.
 
+### Tickets (IT Software, IT Hardware, Admin)
+Ask for help: a software problem, a hardware fault, an Admin request. Tickets appear in the sidebar once IT switches the Ticketing System on.
+- **Raise a ticket:** choose the ticket type (each category has its own forms), then fill it in.
+  - Your name, employee ID, department and email are filled in for you.
+  - Write a **Subject** and a **Description**, choose the **Priority** (High, Medium, Low) and a **Required date** if you have one, answer the form's own fields and attach files.
+  - You get a number such as `IT-SW-2026-00001`.
+- **What happens next:**
+  1. The form's coordinators are told.
+  2. One of them assigns it to an employee with a **target date**.
+  3. That employee does the work in their **Tasks**.
+- **When the work is done** you're asked to confirm (Inbox and email):
+  - **Confirm and close**, optionally with a rating of 1–5 and feedback;
+  - or **Reopen ticket** with a reason. It goes back to the coordinators.
+
+  If you don't answer, you're reminded after 2 and 3 working days, and the ticket closes by itself after 4 complete working days ("Closed – auto closed"). Weekly offs and company holidays don't count.
+- **My tickets** lists the tickets you raised, and those assigned to you.
+- **Remarks:** anyone on the ticket can add a remark or files. Coordinators and the assignee may mark a remark **Internal**; you don't see those.
+- **Assigned a ticket?** Its task is in your Tasks, titled with the ticket number. **Start** it, add remarks and documents, and **Complete** it with **completion remarks** (the requester reads them). Completing asks the requester to confirm; it doesn't close the ticket. Reassigning and reopening are done on the ticket, not the task.
+- **Coordinators:**
+  - open a new ticket, choose **Assign to**, a **Target date** and remarks, then **Assign** (this makes the task);
+  - **Reassign** the same way;
+  - **Ticket dashboards** show each category's totals (total, new, assigned, in progress, awaiting confirmation, closed, overdue) and the ticket table, with filters for date, department, priority, status and assigned employee. Every number opens the matching tickets.
+
 ### Information
 - **New information:** choose the type, write the subject and message, choose recipients, then **Publish** (or **Save draft**).
 - **Recipients are fixed at publishing:** people who join a department later don't receive it.
@@ -303,6 +326,15 @@ Switch to it from the account menu → **Switch space**.
 - **Stuck requests:** if a level finds nobody (e.g. a department has no HOD), IT gets a message and the request shows **Stuck: needs IT**. You can give the step to people, skip it, or **Try again** after fixing the master data. Your reason is shown on the timeline and to the requester. Nobody can skip or route a step of their **own** request (ask another IT person), and a request is never approved when every approval level was skipped for want of an approver: it stops as Stuck instead.
 
 ---
+
+### Ticketing set-up (IT)
+- **Admin → Ticket categories:** IT Software, IT Hardware and Admin are ready. Add more, rename them, set each one's number prefix (e.g. `IT-SW`) and digits, or switch one off.
+- **Admin → Ticket forms:** the same Form Builder as approval forms. For each form (request type):
+  - choose its **Category**, and its **Coordinators** (the people who assign its tickets; any one of them can);
+  - choose **who may raise it** (everyone by default) and the default **priority**;
+  - build the fields, preview, **Save draft** and **Publish**. Earlier tickets keep the form version they were raised with.
+- **Super Admin → Settings → Feature switches → Ticketing System:** Off until released; "IT team only" for a trial; On for everyone.
+- **Reminders and auto-close** run with the job runner. Message deliveries shows the ticket messages.
 
 ## 4. Super Admin
 - **Phone & desktop notifications:** Settings → **Generate keys** once (no outside account is needed); choose what a lock screen shows (title, full message or only "New in ARS CMS"). **Daily session** (Sign-in security): phones and the app until midnight (default), everyone, or off.

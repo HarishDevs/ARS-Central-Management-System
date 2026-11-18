@@ -26,6 +26,7 @@ import { checkHoliday, holidayMessage } from "@/server/work/holidays";
 import { departmentOf, holidayContext } from "@/server/work/holiday-store";
 import { afterTaskCompleted } from "@/server/work/on-complete";
 import { indiaDate } from "@/server/workflows/calendar";
+import { syncTicketWithTask } from "@/server/tickets/sync";
 
 const utcToIndiaLocalDay = (value: Date | null) => (value ? indiaDate(value) : null);
 
@@ -267,6 +268,20 @@ export async function actOnTask(input: TaskActionInput, actor: TaskActor): Promi
       }
     }
 
+    // v1.55.0 (owner's ticketing brief): a task that carries out a ticket.
+    // Completing needs completion remarks (the requester reads them);
+    // reassigning is the coordinator's and reopening the requester's, on the ticket.
+    if (mirrored && !mirrored.deletedAt && mirrored.ticketId) {
+      if (input.action === "COMPLETE" && reason.length < 3) {
+        await discardStaged(input.files);
+        return fail("Write completion remarks: the person who raised the ticket reads them.", { reason: "Write completion remarks (3 characters or more)." });
+      }
+      if (input.action === "REASSIGN" || input.action === "CANCEL" || input.action === "REOPEN") {
+        await discardStaged(input.files);
+        return fail(input.action === "REOPEN" ? "This task carries out a ticket: only the person who raised it can reopen it, on the ticket." : "This task carries out a ticket: its coordinator reassigns it on the ticket.");
+      }
+    }
+
     const outcome = await withTransaction(async (connection) => {
       const task = await findTask(input.taskId, connection, true);
       if (!task || task.deletedAt) return { error: "Not found." } as const;
@@ -368,6 +383,8 @@ export async function actOnTask(input: TaskActionInput, actor: TaskActor): Promi
         else if (input.action === "REASSIGN" && to === newAssignee?.id) messages.push(taskMessages.assigned({ ...info }, to, actor.name));
         else messages.push(taskMessages.updated(info, to, ACTION_WORD[input.action]));
       }
+      // v1.55.0: the ticket follows its task (same transaction).
+      if (task.ticketId && typeof changes.status === "string") messages.push(...(await syncTicketWithTask(task.ticketId, changes.status, actor, reason, connection)));
       return { outbox: await insertOutbox(null, messages, connection) } as const;
     });
     if ("error" in outcome) {

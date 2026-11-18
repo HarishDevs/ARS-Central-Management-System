@@ -44,6 +44,14 @@ export async function usersNav(user: { roles: readonly string[] }): Promise<NavI
           { href: "/users/information/new", label: "New information", section: "Information" },
         ]
       : []),
+    // v1.55.0 (D-326, D-327): the Ticketing System (the "tickets" feature switch).
+    ...(features.tickets
+      ? [
+          { href: "/users/tickets/new", label: "Raise a ticket", section: "Tickets" },
+          { href: "/users/tickets", label: "My tickets", section: "Tickets" },
+          { href: "/users/tickets/dashboards", label: "Ticket dashboards", section: "Tickets" },
+        ]
+      : []),
     // v1.51.0 (D-300): Meeting Management (the MEETING module; page access hides it otherwise).
     { href: "/users/meetings/new", label: "Schedule meeting", section: "Meetings" },
     { href: "/users/meetings", label: "Meetings", section: "Meetings" },

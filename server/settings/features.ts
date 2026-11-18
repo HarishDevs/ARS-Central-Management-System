@@ -7,7 +7,8 @@ import { getSettingValue } from "@/server/settings/values";
 // v1.9.0: "tasks" and "information" switch the Task and Information modules.
 // D-168 (AI module branch): "ai" is an off switch for the whole AI module; who
 // sees it is decided by the AI module grant (nobody has it until an admin ticks it).
-export type Feature = "analytics" | "reports" | "scheduled_reports" | "amendments" | "templates" | "tasks" | "information" | "ai";
+// v1.55.0 (D-327): "tickets" switches the Ticketing System (anyone with CMS access; Off until released).
+export type Feature = "analytics" | "reports" | "scheduled_reports" | "amendments" | "templates" | "tasks" | "information" | "ai" | "tickets";
 
 export async function featureMode(feature: Feature): Promise<"ON" | "OFF" | "IT_ONLY"> {
   const value = await getSettingValue(`features.${feature}`).catch(() => null);
@@ -22,7 +23,7 @@ export async function featureOn(feature: Feature, user: { roles: readonly string
 }
 
 export async function enabledFeatures(user: { roles: readonly string[] }): Promise<Record<Feature, boolean>> {
-  const features: Feature[] = ["analytics", "reports", "scheduled_reports", "amendments", "templates", "tasks", "information", "ai"];
+  const features: Feature[] = ["analytics", "reports", "scheduled_reports", "amendments", "templates", "tasks", "information", "ai", "tickets"];
   const values = await Promise.all(features.map((feature) => featureOn(feature, user)));
   return Object.fromEntries(features.map((feature, index) => [feature, values[index]])) as Record<Feature, boolean>;
 }

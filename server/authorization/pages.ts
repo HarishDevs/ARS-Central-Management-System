@@ -61,6 +61,10 @@ export const PAGES: readonly PageDef[] = [
   { key: "users.information", module: "INFORMATION", area: "users", label: "Information: lists", what: "The information inbox and information sent by the person.", paths: [exact("/users/information"), under("/users/information/sent")] },
   { key: "users.information_new", module: "INFORMATION", area: "users", label: "Information: new", what: "Writing and publishing information.", paths: [under("/users/information/new")] },
   { key: "users.information_item", module: "INFORMATION", area: "users", label: "Information: page", what: "Opening information: reading, acknowledging, withdrawing.", paths: [/^\/users\/information\/\d+(\/.*)?$/] },
+  // v1.55.0 (D-326, D-327): the Ticketing System (anyone with CMS access once switched on).
+  { key: "users.tickets", area: "users", label: "Tickets: raise and my tickets", what: "Raising a ticket and the person's own and assigned tickets.", paths: [exact("/users/tickets"), under("/users/tickets/new")] },
+  { key: "users.ticket_dashboards", area: "users", label: "Tickets: dashboards", what: "The ticket dashboards of each category (coordinators see their forms' tickets; IT sees all).", paths: [under("/users/tickets/dashboards")] },
+  { key: "users.ticket_item", area: "users", label: "Tickets: page", what: "Opening a ticket: assigning, remarks, confirming or reopening.", paths: [/^\/users\/tickets\/\d+(\/.*)?$/] },
   // D-168: the AI module. D-180 (owner): it is the assistant only; the old AI
   // pages (dashboard, intelligence, insights, sources, reports, history)
   // redirect to it, and sources, reports and history moved to Super Admin.
@@ -85,6 +89,7 @@ export const PAGES: readonly PageDef[] = [
   { key: "admin.task_holidays", area: "admin", label: "Task settings", what: "Task holidays (organisation and department), moving or telling about tasks due on a holiday, the morning summary, repeating tasks.", paths: [under("/admin/task-holidays")] },
   { key: "admin.meetings", area: "admin", label: "Meeting settings", what: "Meeting types (with their default points) and the Management group (ED, MD) who see every meeting.", paths: [under("/admin/meetings")] },
   { key: "admin.information_types", area: "admin", label: "Information types", what: "Setting up the kinds of information (forms, recipients, acknowledgement).", paths: [under("/admin/information-types")] },
+  { key: "admin.ticket_forms", area: "admin", label: "Ticket forms and categories", what: "Setting up ticket categories and the ticket forms (fields, coordinators, who may raise).", paths: [under("/admin/ticket-forms"), under("/admin/ticket-categories")] },
   { key: "admin.groups", area: "admin", label: "Approver groups", what: "Groups of approvers.", paths: [under("/admin/groups")] },
   { key: "admin.doa", area: "admin", label: "Approval authority (DoA)", what: "Delegation of authority matrices.", paths: [under("/admin/doa")] },
   { key: "admin.budgets", area: "admin", label: "Budgets", what: "Department budgets.", paths: [under("/admin/budgets")] },

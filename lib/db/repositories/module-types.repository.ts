@@ -78,7 +78,7 @@ const toVersion = (row: VersionRow): ModuleTypeVersion => ({
 const VERSION_SELECT = `SELECT v.id, v.type_id, v.version_no, v.status, v.form_json, v.settings_json, c.name AS created_by_name, v.created_at, v.updated_at, p.name AS published_by_name, v.published_at
   FROM module_type_versions v LEFT JOIN users c ON c.id = v.created_by LEFT JOIN users p ON p.id = v.published_by`;
 
-const RECORD_TABLE: Record<ModuleKind, string> = { TASK: "tasks", INFO: "info_items" };
+const RECORD_TABLE: Record<ModuleKind, string> = { TASK: "tasks", INFO: "info_items", TICKET: "tickets" };
 
 export async function listModuleTypes(module: ModuleKind, db: Queryable = getDbPool()): Promise<ModuleTypeListItem[]> {
   const [rows] = await db.query<(TypeRow & { live_version: number | null; draft_count: number; records: number })[]>(

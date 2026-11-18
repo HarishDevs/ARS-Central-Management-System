@@ -209,6 +209,14 @@ Stops anyone reaching the GoDaddy server directly, around Cloudflare (and faking
 1. https://approval.arssteels.net → **Continue with Google** → **itsupport@arsenergy.co.in** (D-082). The seed created this Super Admin, User ID `itadmin`. `itadmin@arssteels.co.in` can't be used: it's only an alias, and Google reports the main address.
 2. You land on **My approvals**. Your name at the top right opens a menu whose **Switch space** section shows Admin and Super Admin.
 
+### G0. Ticketing System (v1.55.0)
+1. Back up the database, then run `database/migrations/202611181000_ticketing.sql`. It is additive: new ticket tables, a `tasks.ticket_id` link, and new list values. The rollback is in the file.
+2. Publish v1.55.0. The feature switch **Ticketing System** stays **Off**: nobody sees tickets yet.
+3. Admin → Ticket categories: check IT Software (IT-SW), IT Hardware (IT-HW), Admin (ADM).
+4. Admin → Ticket forms: create each form (request type), set its **Category** and **Coordinators**, build the fields, and publish.
+5. Super Admin → Settings → Feature switches → Ticketing System: **IT team only** for a trial, then **On**.
+6. The job runner (cron, Part I) sends the confirmation reminders and auto-closes after 4 working days; check its health in Super Admin.
+
 ### G1b. Email through the GoDaddy cPanel mailbox (SMTP, v1.54.8)
 The app can send from the hosting's own mailbox, **no_reply@cms.arssteels.net**, instead of Resend.
 1. **cPanel → Email Accounts:** the mailbox exists. Its **Connect Devices** page gives the outgoing server (`bom1plzcpnl493872.prod.bom1.secureserver.net`) and port **465 (SSL)**. IMAP, POP3 and SMTP need the mailbox password.

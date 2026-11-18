@@ -271,7 +271,8 @@ export async function deleteUnusedWorkflow(id: number, db: Queryable): Promise<b
 // ---- request numbers -------------------------------------------------------------
 // PREFIX-YYYY-000001. The row lock makes concurrent submissions queue, so
 // numbers are unique and gap-free per prefix and year.
-export async function nextRequestNumber(prefix: string, db: Queryable = getDbPool()): Promise<string> {
+// v1.55.0: `digits` (default 6) lets ticket categories use their own width, e.g. IT-SW-2026-00001.
+export async function nextRequestNumber(prefix: string, db: Queryable = getDbPool(), digits = 6): Promise<string> {
   // The year in India, whatever the database server's time zone (audit R-09).
   const [yearRows] = await db.query<(RowDataPacket & { year: number })[]>("SELECT YEAR(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 330 MINUTE)) AS year");
   const year = Number(yearRows[0]!.year);
@@ -279,7 +280,7 @@ export async function nextRequestNumber(prefix: string, db: Queryable = getDbPoo
   const [rows] = await db.query<(RowDataPacket & { current_value: number })[]>("SELECT current_value FROM request_sequences WHERE prefix = ? AND year = ? FOR UPDATE", [prefix, year]);
   const next = Number(rows[0]!.current_value) + 1;
   await db.query<ResultSetHeader>("UPDATE request_sequences SET current_value = ? WHERE prefix = ? AND year = ?", [next, prefix, year]);
-  return `${prefix}-${year}-${String(next).padStart(6, "0")}`;
+  return `${prefix}-${year}-${String(next).padStart(Math.min(Math.max(digits, 3), 8), "0")}`;
 }
 
 // ---- requests ---------------------------------------------------------------------

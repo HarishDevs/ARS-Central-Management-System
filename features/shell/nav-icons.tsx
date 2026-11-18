@@ -1,4 +1,8 @@
 import {
+  Ticket,
+  TicketPlus,
+  Tags,
+  LayoutDashboard as TicketBoard,
   AlarmClock,
   FolderPlus,
   BookOpenCheck,
@@ -94,6 +98,10 @@ const ICONS: Record<string, LucideIcon> = {
   "/users/information": FileText,
   "/users/information/sent": Send,
   "/users/information/new": MailPlus,
+  // v1.55.0 (D-326): the Ticketing System.
+  "/users/tickets/new": TicketPlus,
+  "/users/tickets": Ticket,
+  "/users/tickets/dashboards": TicketBoard,
   // v1.51.0 (D-300): Meeting Management
   "/users/meetings": CalendarClock,
   "/users/meetings/new": CalendarPlus,
@@ -118,6 +126,8 @@ const ICONS: Record<string, LucideIcon> = {
   "/admin/task-types": ClipboardList,
   "/admin/task-holidays": CalendarOff,
   "/admin/information-types": Megaphone,
+  "/admin/ticket-forms": Ticket,
+  "/admin/ticket-categories": Tags,
   "/admin": LayoutDashboard,
   "/admin/insights": BarChart3,
   "/admin/dashboards": Gauge,
@@ -153,7 +163,7 @@ const ICONS: Record<string, LucideIcon> = {
 };
 
 // v1.9.2: the collapsible groups of the user sidebar.
-const SECTION_ICONS: Record<string, LucideIcon> = { "My Approvals": ClipboardCheck, Tasks: ListTodo, "Tasks & projects": ListTodo, Information: Newspaper, Meetings: CalendarClock, AI: Sparkles, "AI Assistant": MessagesSquare, "AI Details": Sparkles };
+const SECTION_ICONS: Record<string, LucideIcon> = { "My Approvals": ClipboardCheck, Tasks: ListTodo, "Tasks & projects": ListTodo, Information: Newspaper, Meetings: CalendarClock, Tickets: Ticket, AI: Sparkles, "AI Assistant": MessagesSquare, "AI Details": Sparkles };
 
 export function SectionIcon({ section, className = "h-4 w-4" }: { section: string; className?: string }) {
   const Icon = SECTION_ICONS[section];

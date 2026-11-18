@@ -5,9 +5,10 @@ import { checkFormDefinition, type FormField } from "@/server/forms/fields";
 // the Admin space. A type's form uses the same field builder as approval
 // types; its behaviour is these settings. Both are versioned with the type.
 // Pure and unit-tested.
-export type ModuleKind = "TASK" | "INFO";
-export const MODULE_LABEL: Record<ModuleKind, string> = { TASK: "Task", INFO: "Information" };
-export const MODULE_ADMIN_PATH: Record<ModuleKind, string> = { TASK: "/admin/task-types", INFO: "/admin/information-types" };
+// v1.55.0 (D-326): ticket forms are the third kind (Ticketing System).
+export type ModuleKind = "TASK" | "INFO" | "TICKET";
+export const MODULE_LABEL: Record<ModuleKind, string> = { TASK: "Task", INFO: "Information", TICKET: "Ticket" };
+export const MODULE_ADMIN_PATH: Record<ModuleKind, string> = { TASK: "/admin/task-types", INFO: "/admin/information-types", TICKET: "/admin/ticket-forms" };
 
 // Who may create records of a type.
 export const accessSchema = z.object({
@@ -120,6 +121,27 @@ export const DEFAULT_INFO_SETTINGS: InfoSettings = {
   calendar: false,
 };
 
+// v1.55.0 (D-326, D-327): a ticket form's behaviour. Who may raise it (anyone
+// with CMS access unless narrowed) and the priority a new ticket starts with;
+// the coordinators are kept with the form itself (ticket_coordinators).
+// Owner (18 Nov 2026): High, Medium, Low.
+export const TICKET_PRIORITIES = ["HIGH", "MEDIUM", "LOW"] as const;
+export type TicketPriority = (typeof TICKET_PRIORITIES)[number];
+export const TICKET_PRIORITY_LABEL: Record<TicketPriority, string> = { HIGH: "High", MEDIUM: "Medium", LOW: "Low" };
+export const ticketSettingsSchema = z.object({
+  access: accessSchema,
+  defaultPriority: z.enum(TICKET_PRIORITIES),
+  // The requester may pick the priority when raising (else the default applies; a coordinator can change it).
+  requesterPriority: z.boolean().default(true),
+});
+export type TicketSettings = z.infer<typeof ticketSettingsSchema>;
+export const DEFAULT_TICKET_SETTINGS: TicketSettings = { access: OPEN_ACCESS, defaultPriority: "MEDIUM", requesterPriority: true };
+export function parseTicketSettings(raw: unknown): TicketSettings {
+  const parsed = ticketSettingsSchema.safeParse(typeof raw === "string" ? safeJson(raw) : raw);
+  return parsed.success ? parsed.data : DEFAULT_TICKET_SETTINGS;
+}
+export type ModuleSettings = TaskSettings | InfoSettings | TicketSettings;
+
 export function parseTaskSettings(raw: unknown): TaskSettings {
   const parsed = taskSettingsSchema.safeParse(typeof raw === "string" ? safeJson(raw) : raw);
   return parsed.success ? parsed.data : DEFAULT_TASK_SETTINGS;
@@ -142,11 +164,12 @@ function safeJson(text: string): unknown {
 export const RESERVED_KEYS: Record<ModuleKind, ReadonlySet<string>> = {
   TASK: new Set(["title", "description", "priority", "assignee", "due", "due_at", "starts_on", "related", "submission_key", "type", "attachments", "note"]),
   INFO: new Set(["title", "body", "priority", "recipients", "people", "departments", "groups", "everyone", "ack", "expires_on", "effective_on", "type", "attachments", "intent"]),
+  TICKET: new Set(["title", "subject", "description", "priority", "required_on", "category", "type", "status", "assignee", "attachments", "submission_key", "resolution", "rating", "employee_name", "employee_id", "department", "email"]),
 };
 export const MAX_FIELDS = 30;
 
 // The problems with a type's draft (empty when it can be published).
-export function checkTypeDraft(module: ModuleKind, form: readonly FormField[], settings: TaskSettings | InfoSettings): string[] {
+export function checkTypeDraft(module: ModuleKind, form: readonly FormField[], settings: ModuleSettings): string[] {
   const problems = checkFormDefinition(form);
   if (form.length > MAX_FIELDS) problems.push(`Use at most ${MAX_FIELDS} fields.`);
   for (const field of form) {
@@ -160,7 +183,7 @@ export function checkTypeDraft(module: ModuleKind, form: readonly FormField[], s
     const task = settings as TaskSettings;
     if (task.assignScope === "GROUPS" && task.assignGroupIds.length === 0) problems.push("Choose at least one group whose members can be assigned.");
     if (task.assignScope === "PEOPLE" && task.assignUserIds.length === 0) problems.push("Choose at least one person who can be assigned.");
-  } else {
+  } else if (module === "INFO") {
     const info = settings as InfoSettings;
     if (!info.allowPeople && !info.allowDepartments && !info.allowGroups && !info.allowEveryone) problems.push("Allow at least one way to choose recipients.");
   }

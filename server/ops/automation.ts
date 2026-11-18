@@ -290,6 +290,18 @@ export const AUTOMATIONS: readonly Automation[] = [
     owner: "IT team",
   },
   {
+    key: "ticketConfirmations",
+    name: "Ticket confirmations",
+    what: "Tickets whose work is done and wait for the requester: a reminder after 2 and after 3 working days, and the ticket closes by itself (Closed – auto closed) after 4 complete working days without an answer (Working Calendar: weekly offs and holidays skipped). v1.55.0.",
+    trigger: "Every job run (works with nobody signed in).",
+    everyMinutes: 5,
+    retry: "The next run picks up anything not done; a failed message is retried by the delivery runner.",
+    idempotency: "Each reminder and the closure are claimed once per ticket and confirmation round (unique ticket + round + stage); the closure only applies while the ticket still waits, so a last-minute confirm or reopen wins.",
+    onFailure: "Recorded here; the ticket stays waiting and the next run tries again.",
+    recovery: "None needed once the runner is healthy.",
+    owner: "IT team",
+  },
+  {
     key: "stuck",
     name: "Stuck-request scan",
     what: "Counts open requests that need IT (blocked steps, inactive approvers, no activity, unsent messages).",
@@ -346,6 +358,10 @@ const STEPS: Record<string, () => Promise<StepResult>> = {
   ai: () => runAiStep(),
   hodWeekly: () => runHodWeekly(),
   workTasks: async () => ({ ...(await backfillWorkMirrors()) }),
+  ticketConfirmations: async () => {
+    const { runTicketConfirmations } = await import("@/server/tickets/service");
+    return { ...(await runTicketConfirmations()) };
+  },
   stuck: async () => {
     const counts = countByReason(await findStuckRequests());
     return { ...counts };

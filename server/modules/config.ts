@@ -15,7 +15,7 @@ import {
   updateModuleTypeDetails,
 } from "@/lib/db/repositories/module-types.repository";
 import { formFieldSchema, type FormField } from "@/server/forms/fields";
-import { checkTypeDraft, DEFAULT_INFO_SETTINGS, DEFAULT_TASK_SETTINGS, infoSettingsSchema, taskSettingsSchema, type InfoSettings, type ModuleKind, type TaskSettings } from "@/server/modules/settings";
+import { checkTypeDraft, DEFAULT_INFO_SETTINGS, DEFAULT_TASK_SETTINGS, DEFAULT_TICKET_SETTINGS, infoSettingsSchema, taskSettingsSchema, ticketSettingsSchema, type ModuleKind, type ModuleSettings } from "@/server/modules/settings";
 
 // v1.9.0 (D-144): IT keeps Task types and Information types. Every change
 // is checked on the server, done in a transaction and audited with what it
@@ -29,16 +29,16 @@ export interface ConfigActor {
 type Outcome<T = undefined> = { ok: true; value: T } | { ok: false; message: string };
 
 const isAdmin = (actor: ConfigActor) => actor.roles.includes("IT_ADMIN") || actor.roles.includes("SUPER_ADMIN");
-const ENTITY: Record<ModuleKind, string> = { TASK: "TASK_TYPE", INFO: "INFO_TYPE" };
+const ENTITY: Record<ModuleKind, string> = { TASK: "TASK_TYPE", INFO: "INFO_TYPE", TICKET: "TICKET_FORM" };
 
-export const STARTER_FORM: Record<ModuleKind, FormField[]> = { TASK: [], INFO: [] };
+export const STARTER_FORM: Record<ModuleKind, FormField[]> = { TASK: [], INFO: [], TICKET: [] };
 
 export function settingsSchemaFor(module: ModuleKind) {
-  return module === "TASK" ? taskSettingsSchema : infoSettingsSchema;
+  return module === "TASK" ? taskSettingsSchema : module === "INFO" ? infoSettingsSchema : ticketSettingsSchema;
 }
 
-export function defaultSettings(module: ModuleKind): TaskSettings | InfoSettings {
-  return module === "TASK" ? DEFAULT_TASK_SETTINGS : DEFAULT_INFO_SETTINGS;
+export function defaultSettings(module: ModuleKind): ModuleSettings {
+  return module === "TASK" ? DEFAULT_TASK_SETTINGS : module === "INFO" ? DEFAULT_INFO_SETTINGS : DEFAULT_TICKET_SETTINGS;
 }
 
 const detailsSchema = z.object({

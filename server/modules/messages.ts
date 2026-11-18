@@ -98,3 +98,29 @@ export const meetingMessages = {
   actionReview: (meeting: MeetingInfo, to: number, by: string, confirmed: boolean, title: string, note: string) =>
     message("MEETING_ACTION", to, `Action ${confirmed ? "confirmed" : "sent back"}: ${title.slice(0, 80)}`, `${by} ${confirmed ? "confirmed as done" : "sent back"} the action "${title}" from "${meeting.title}" (${meeting.meetingNo}).${note ? ` Note: ${note}` : ""}`, meetingPath(meeting), { type: "MEETING", id: meeting.id }),
 };
+
+// v1.55.0 (D-326): the Ticketing System's messages.
+export interface TicketInfo {
+  id: number;
+  ticketNo: string;
+  title: string;
+}
+const ticketPath = (ticket: TicketInfo) => `/users/tickets/${ticket.id}`;
+const ticketMessage = (event: string, ticket: TicketInfo, to: number, title: string, text: string) => message(event, to, title, text, ticketPath(ticket), { type: "TICKET", id: ticket.id });
+export const ticketMessages = {
+  submitted: (ticket: TicketInfo, to: number) => ticketMessage("TICKET_SUBMITTED", ticket, to, `Ticket raised: ${ticket.ticketNo}`, `Your ticket "${ticket.title}" (${ticket.ticketNo}) was raised. Its coordinators have been told.`),
+  forCoordinator: (ticket: TicketInfo, to: number, by: string, form: string) => ticketMessage("TICKET_NEW", ticket, to, `New ticket to allot: ${ticket.ticketNo}`, `${by} raised "${ticket.title}" (${ticket.ticketNo}, ${form}). Review it and assign someone.`),
+  assigned: (ticket: TicketInfo, to: number, by: string, taskNo: string) => ticketMessage("TICKET_ASSIGNED", ticket, to, `Ticket assigned to you: ${ticket.ticketNo}`, `${by} assigned you the ticket "${ticket.title}" (${ticket.ticketNo}). Work on it in task ${taskNo}.`),
+  updated: (ticket: TicketInfo, to: number, what: string) => ticketMessage("TICKET_UPDATED", ticket, to, `Ticket ${ticket.ticketNo}: ${what}`, `"${ticket.title}" (${ticket.ticketNo}): ${what}.`),
+  infoRequested: (ticket: TicketInfo, to: number, by: string) => ticketMessage("TICKET_INFO_REQUESTED", ticket, to, `More information needed: ${ticket.ticketNo}`, `${by} asked for more information on your ticket "${ticket.title}" (${ticket.ticketNo}). Open it to answer.`),
+  infoProvided: (ticket: TicketInfo, to: number, by: string) => ticketMessage("TICKET_INFO_PROVIDED", ticket, to, `Information added: ${ticket.ticketNo}`, `${by} answered on "${ticket.title}" (${ticket.ticketNo}).`),
+  comment: (ticket: TicketInfo, to: number, by: string) => ticketMessage("TICKET_COMMENT", ticket, to, `New comment on ticket ${ticket.ticketNo}`, `${by} commented on "${ticket.title}" (${ticket.ticketNo}).`),
+  rejected: (ticket: TicketInfo, to: number, by: string, reason: string) => ticketMessage("TICKET_REJECTED", ticket, to, `Ticket rejected: ${ticket.ticketNo}`, `${by} rejected your ticket "${ticket.title}" (${ticket.ticketNo}). Reason: ${reason}`),
+  cancelled: (ticket: TicketInfo, to: number, by: string) => ticketMessage("TICKET_CANCELLED", ticket, to, `Ticket cancelled: ${ticket.ticketNo}`, `${by} cancelled the ticket "${ticket.title}" (${ticket.ticketNo}).`),
+  confirmationRequested: (ticket: TicketInfo, to: number, by: string, confirmBy: string) =>
+    ticketMessage("TICKET_CONFIRM", ticket, to, `Work done on ${ticket.ticketNo}: please confirm`, `${by} completed the work on your ticket "${ticket.title}" (${ticket.ticketNo}). Open it to confirm, or reopen it if it isn't solved. With no answer, it closes by itself after ${confirmBy}.`),
+  confirmReminder: (ticket: TicketInfo, to: number, confirmBy: string) =>
+    ticketMessage("TICKET_CONFIRM_REMINDER", ticket, to, `Reminder: confirm ticket ${ticket.ticketNo}`, `The work on "${ticket.title}" (${ticket.ticketNo}) is done and waits for your confirmation. It closes by itself after ${confirmBy}.`),
+  closed: (ticket: TicketInfo, to: number, how: string) => ticketMessage("TICKET_CLOSED", ticket, to, `Ticket closed: ${ticket.ticketNo}`, `"${ticket.title}" (${ticket.ticketNo}) is closed: ${how}.`),
+  reopened: (ticket: TicketInfo, to: number, by: string, reason: string) => ticketMessage("TICKET_REOPENED", ticket, to, `Ticket reopened: ${ticket.ticketNo}`, `${by} reopened "${ticket.title}" (${ticket.ticketNo}). Reason: ${reason}`),
+};

@@ -20,10 +20,14 @@ import {
   INFO_PRIORITY_LABEL,
   PRIORITY_LABEL,
   TASK_PRIORITIES,
+  TICKET_PRIORITIES,
+  TICKET_PRIORITY_LABEL,
   type CreateAccess,
   type InfoSettings,
   type ModuleKind,
+  type ModuleSettings,
   type TaskSettings,
+  type TicketSettings,
 } from "@/server/modules/settings";
 
 // v1.9.0 (D-144): IT's editor for a Task type or an Information type: the
@@ -40,7 +44,7 @@ export function NewModuleTypeForm({ module }: { module: ModuleKind }) {
         <label htmlFor="type-name" className="field-label">
           Name
         </label>
-        <input id="type-name" name="name" required minLength={3} maxLength={120} placeholder={module === "TASK" ? "e.g. IT support task" : "e.g. HR circular"} className="field-input" />
+        <input id="type-name" name="name" required minLength={3} maxLength={120} placeholder={module === "TASK" ? "e.g. IT support task" : module === "TICKET" ? "e.g. Software installation" : "e.g. HR circular"} className="field-input" />
       </div>
       <div>
         <label htmlFor="type-code" className="field-label">
@@ -231,6 +235,29 @@ function InfoSettingsEditor({ settings, set, departments, people }: { settings: 
   );
 }
 
+// v1.55.0 (D-326): a ticket form's behaviour (its category and coordinators are set beside the form).
+function TicketSettingsEditor({ settings, set, departments, people }: { settings: TicketSettings; set: (change: Partial<TicketSettings>) => void; departments: Option[]; people: Option[] }) {
+  return (
+    <div className="grid gap-6 lg:grid-cols-2">
+      <AccessEditor verb="raise these tickets" access={settings.access} onChange={(access) => set({ access })} departments={departments} people={people} />
+      <fieldset className="space-y-2">
+        <legend className="field-label">Priority</legend>
+        <label className="flex flex-wrap items-center gap-2 text-label">
+          A new ticket starts as
+          <select aria-label="Default priority" value={settings.defaultPriority} onChange={(event) => set({ defaultPriority: event.target.value as TicketSettings["defaultPriority"] })} className="field-input w-auto">
+            {TICKET_PRIORITIES.map((priority) => (
+              <option key={priority} value={priority}>
+                {TICKET_PRIORITY_LABEL[priority]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <Toggle label="The person raising it may choose the priority" help="A coordinator can always change it." checked={settings.requesterPriority} onChange={(requesterPriority) => set({ requesterPriority })} />
+      </fieldset>
+    </div>
+  );
+}
+
 export function ModuleTypeEditor({
   module,
   typeId,
@@ -248,18 +275,18 @@ export function ModuleTypeEditor({
   initialName: string;
   initialDescription: string;
   initialForm: FormField[];
-  initialSettings: TaskSettings | InfoSettings;
+  initialSettings: ModuleSettings;
   lookups?: FieldLookups;
   people: Option[];
   departments: Option[];
   groups: Option[];
 }) {
   const [form, setForm] = useState<FormField[]>(initialForm);
-  const [settings, setSettings] = useState<TaskSettings | InfoSettings>(initialSettings);
+  const [settings, setSettings] = useState<ModuleSettings>(initialSettings);
   const [previewing, setPreviewing] = useState(false);
   const { result, pending, onSubmit } = useActionForm(saveModuleTypeDraftAction);
-  const set = (change: Partial<TaskSettings> | Partial<InfoSettings>) => setSettings((current) => ({ ...current, ...change }) as TaskSettings | InfoSettings);
-  const noun = module === "TASK" ? "task" : "information";
+  const set = (change: Partial<TaskSettings> | Partial<InfoSettings> | Partial<TicketSettings>) => setSettings((current) => ({ ...current, ...change }) as ModuleSettings);
+  const noun = module === "TASK" ? "task" : module === "TICKET" ? "ticket" : "information";
 
   return (
     <form onSubmit={onSubmit} className="space-y-6" aria-label="Draft set-up">
@@ -298,7 +325,9 @@ export function ModuleTypeEditor({
         intro={
           module === "TASK"
             ? "Fields the creator fills in besides title, description, assignee, priority and due date. Mark fields to show in lists, to match the list search, or to be changeable later."
-            : "Fields the sender fills in besides subject, message, importance and recipients. Mark fields to show in lists, to match the search, or to be changeable after publishing."
+            : module === "TICKET"
+              ? "Fields the person raising the ticket fills in besides the subject, description and priority (attachments, conditions and calculations all work as in approval forms)."
+              : "Fields the sender fills in besides subject, message, importance and recipients. Mark fields to show in lists, to match the search, or to be changeable after publishing."
         }
       />
 
@@ -311,6 +340,8 @@ export function ModuleTypeEditor({
         </div>
         {module === "TASK" ? (
           <TaskSettingsEditor settings={settings as TaskSettings} set={set} departments={departments} groups={groups} people={people} />
+        ) : module === "TICKET" ? (
+          <TicketSettingsEditor settings={settings as TicketSettings} set={set} departments={departments} people={people} />
         ) : (
           <InfoSettingsEditor settings={settings as InfoSettings} set={set} departments={departments} people={people} />
         )}

@@ -45,6 +45,32 @@ export function addWorkingHours(start: Date, hours: number, calendar: WorkingCal
   return new Date(cursor); // a year without working days: give up safely
 }
 
+// v1.55.0 (D-326): the India date that is the `days`-th working day after
+// `fromDate` (YYYY-MM-DD; fromDate itself never counts). Weekly offs and
+// holidays are skipped. With no working days set, plain calendar days.
+export function addWorkingDays(fromDate: string, days: number, calendar: WorkingCalendar): string {
+  let cursor = Date.parse(`${fromDate}T00:00:00Z`);
+  let left = Math.max(0, Math.floor(days));
+  for (let guard = 0; left > 0 && guard < 3660; guard += 1) {
+    cursor += DAY_MS;
+    const date = new Date(cursor).toISOString().slice(0, 10);
+    if (calendar.workingDays.size === 0 || isWorkingDay(date, calendar)) left -= 1;
+  }
+  return new Date(cursor).toISOString().slice(0, 10);
+}
+
+// Working days strictly after `fromDate` up to and including `toDate`.
+export function workingDaysBetween(fromDate: string, toDate: string, calendar: WorkingCalendar): number {
+  let count = 0;
+  let cursor = Date.parse(`${fromDate}T00:00:00Z`);
+  const end = Date.parse(`${toDate}T00:00:00Z`);
+  for (let guard = 0; cursor < end && guard < 3660; guard += 1) {
+    cursor += DAY_MS;
+    if (calendar.workingDays.size === 0 || isWorkingDay(new Date(cursor).toISOString().slice(0, 10), calendar)) count += 1;
+  }
+  return count;
+}
+
 export function parseWorkingDays(raw: string | null | undefined): Weekday[] {
   if (!raw) return DEFAULT_WORKING_DAYS;
   const days = raw

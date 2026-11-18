@@ -17,6 +17,7 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 **Multi-level approvals in any custom manner.** The engine must support any number of levels in any combination: sequential, parallel, any-one, any-N-of-M, conditional and hybrid. Approvers can come from any source, and levels can be added or skipped by rules. Build the engine for this from the first engine phase (P2). The drag-and-drop designer (P3) is only the screen for building it. Check every task against this.
 
 ## Now / Next
+- **Now (18 Nov 2026):** **v1.55.0 Ticketing System** built and tested (D-328): raise → coordinator assigns (task) → complete → confirm / reopen / auto-close after 4 working days; three category dashboards; set-up in Admin. **Owner:** back up, run migration 202611181000_ticketing.sql, publish, build the ticket forms (category + coordinators) in Admin → Ticket forms, then switch Ticketing on (IT only first). Later, if wanted: SLA measures, ticket escalation rules, ticket reports, Form Builder extras (placeholder, validation, duplicate).
 - **Now (18 Nov 2026, later):** Ticketing decisions recorded (D-327); **Phase 2 design** in docs/TICKETING_SYSTEM_DESIGN.md. **Owner:** approve it (and confirm the coordinator reading), then Phase 3 starts.
 - **Before (18 Nov 2026):** **Ticketing System** Phase 1 audit delivered (D-326): docs/TICKETING_SYSTEM_CURRENT_STATE.md, GAP_ANALYSIS.md (reuse-versus-build matrix), IMPLEMENTATION.md (plan). **Owner:** answer Q-T1 to Q-T7 (Q-032), then Phase 2 design.
 - **Now (14 Nov 2026):** v1.54.16: Message deliveries dashboard; Group by Department and any form field (D-325). **Owner:** publish (no migration).
@@ -188,12 +189,12 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 ## Ticketing System (D-326): phased plan
 - [x] TKT-1 (18 Nov 2026) Phase 1: existing-system audit and reuse-versus-build matrix
 - [x] TKT-2 (18 Nov 2026) Owner decisions Q-T1 to Q-T7 (D-327)
-- [~] TKT-3 Phase 2: design written (docs/TICKETING_SYSTEM_DESIGN.md, 18 Nov 2026); waiting for owner approval
-- [ ] TKT-4 Phase 3: core (TICKET module kind in the shared form engine, categories, request types, raise, numbers, routing, assign → task, ticket page)
-- [ ] TKT-5 Phase 4: workflow (completion → awaiting confirmation, confirm / reopen, auto-close, reminders, escalations)
-- [ ] TKT-6 Phase 5: configuration (+ shared engine extras: placeholder, validation, option lists, duplicate type)
-- [ ] TKT-7 Phase 6: dashboards and reports
-- [ ] TKT-8 Phase 7: regression, security, guides, deployment and rollback
+- [x] TKT-3 (18 Nov 2026) Phase 2: design approved by the owner
+- [x] TKT-4 (18 Nov 2026) Core: TICKET kind in the shared builder, categories, forms with coordinators, raise, numbers, assign → task, ticket page (v1.55.0)
+- [x] TKT-5 (18 Nov 2026) Workflow: completion → awaiting confirmation, confirm / reopen, auto-close and reminders (escalation rules deferred)
+- [~] TKT-6 Configuration done (categories, forms, coordinators, who may raise, priority); shared builder extras (placeholder, validation, option lists, duplicate type) deferred: not in the owner's simple brief
+- [x] TKT-7 (18 Nov 2026) Three category dashboards (totals, table, filters); further reports deferred
+- [x] TKT-8 (18 Nov 2026) Tests (unit, integration lifecycle, e2e journey + regression), guides, deployment and rollback
 
 ## Session log — v1.54.16 (14 Nov 2026): delivery dashboard, Group by department and fields
 - [x] V15416-01 (14 Nov 2026) Message deliveries dashboard with filters shared by the list (D-325)

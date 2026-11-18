@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 // request's background work step may read that request.
 // v1.46.0 (D-277, D-278): the encrypted backup copy may go to an ARS Google
 // Drive folder; security records are deleted after 90 days.
-const PRIVACY_EFFECTIVE = "14 November 2026";
+const PRIVACY_EFFECTIVE = "18 November 2026";
 
 export default function PrivacyPage() {
   return (
@@ -47,7 +47,7 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>Work records</strong> people create in the app: approval requests and decisions, comments and mentions, tasks and projects (with their descriptions, files, followers and
-            history), information notices and acknowledgements, meetings (who owns, coordinates and attends them, their points, attendance, minutes, decisions, action items and follow-up notes),
+            history), information notices and acknowledgements, meetings (who owns, coordinates and attends them, their points, attendance, minutes, decisions, action items and follow-up notes), tickets (what was asked, its form answers and files, who raised, coordinated and did the work, remarks, the confirmation with an optional rating and feedback; the requester&apos;s name, employee ID, department and email are shown to the ticket&apos;s coordinators and the assigned employee),
             calendar entries people add, and attached files and pasted images.
           </li>
           <li>

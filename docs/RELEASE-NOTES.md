@@ -1,5 +1,20 @@
 # Release notes
 
+## v1.55.0 (18 Nov 2026): Ticketing System (owner)
+A simple Ticketing System inside ARS CMS. It is **switched off** until the Super Admin turns it on: Settings → Feature switches → Ticketing System (IT team only for a trial, then On).
+
+The flow: **raise → coordinator assigns → the work is a task → completed → the requester confirms → closed.**
+- **Three categories ready:** IT Software, IT Hardware, Admin. Each has its own ticket numbers (`IT-SW-2026-00001`…), forms and dashboard, plus categories IT adds.
+- **Forms are built in the existing Form Builder** (Admin → Ticket forms), the same one as approval forms. Each form has its category, its coordinators and who may raise it. Nothing is hard-coded, and a ticket keeps the form version it was raised with.
+- **Raise a ticket:** your name, employee ID, department and email filled in; subject, description, priority (High, Medium, Low), required date, the form's fields and attachments.
+- **Coordinators** are told, assign the ticket to an employee with a target date and remarks, and can reassign. **Assigning makes a task** in the employee's Tasks, with the ticket number in its title and linked for good.
+- **The assignee works in Tasks:** Start, remarks, documents, then Complete with completion remarks. Completing asks the requester to confirm. It **never closes the ticket**.
+- **The requester confirms** (optional rating 1–5 and feedback) or **reopens** with a reason. Reopening returns the ticket to the coordinators with the same task, and the earlier work stays in the history.
+- **No answer:** a reminder after 2 and after 3 working days, and the ticket closes by itself after 4 complete working days ("Closed – auto closed"; Working Calendar). Each reminder and the closure happen once, and a last-minute confirm or reopen wins.
+- **Statuses:** New, Assigned, In progress, Awaiting confirmation, Reopened, Closed, Closed – auto closed.
+- **Pages:** Raise a ticket, My tickets (raised by me / assigned to me), the ticket page (details, attachments, linked task, remarks with internal ones for staff, timeline) and Ticket dashboards (one per category: totals, ticket table, filters by date, department, priority, status, assigned employee).
+- **Owner steps:** run migration `202611181000_ticketing.sql` (additive), publish, then in Admin build the ticket forms (category, coordinators), and switch the Ticketing System on.
+
 ## v1.54.16 (14 Nov 2026): Message deliveries dashboard; Group by Department and any form field (owner)
 - **Super Admin → Message deliveries** is now a dashboard:
   - totals: all messages, email accepted, WhatsApp sent (and delivered or read), failed (and how many wait for a retry), skipped;

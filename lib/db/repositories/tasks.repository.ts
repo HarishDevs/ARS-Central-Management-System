@@ -27,6 +27,7 @@ export interface TaskRecord {
   formData: Record<string, unknown>;
   relatedRequestId: number | null;
   relatedRequestNo: string | null;
+  ticketId: number | null; // v1.55.0: the ticket this task carries out
   completedByName: string | null;
   completedAt: Date | null;
   completionNote: string | null;
@@ -66,6 +67,7 @@ type TaskRow = RowDataPacket & {
   form_data_json: unknown;
   related_request_id: number | null;
   related_request_no: string | null;
+  ticket_id?: number | null;
   completed_by_name: string | null;
   completed_at: Date | null;
   completion_note: string | null;
@@ -106,6 +108,7 @@ const toTask = (row: TaskRow): TaskRecord => ({
   formData: (typeof row.form_data_json === "string" ? JSON.parse(row.form_data_json) : row.form_data_json) as Record<string, unknown>,
   relatedRequestId: row.related_request_id,
   relatedRequestNo: row.related_request_no,
+  ticketId: row.ticket_id ?? null,
   completedByName: row.completed_by_name,
   completedAt: row.completed_at,
   completionNote: row.completion_note,
