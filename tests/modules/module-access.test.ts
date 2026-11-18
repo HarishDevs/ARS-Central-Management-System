@@ -75,9 +75,8 @@ describe("the user form", () => {
 describe("every page of the user space has a module decision", () => {
   // Shared by every module on purpose; anything else must name its module.
   // D-210: users.menu (Classic view menus) lists only pages the person may already open.
-  // v1.55.0 (D-327, owner: "anyone with CMS access" raises tickets): the ticket pages are shared and
-  // switched on or off for everyone by the "tickets" feature switch, not a per-person module.
-  const SHARED = ["users.overview", "users.menu", "users.calendar", "users.analytics", "users.help", "users.profile", "users.notifications", "users.delegation", "users.tickets", "users.ticket_dashboards", "users.ticket_item"];
+  // v1.55.1 (D-329, owner: "ticketing as a separate module"): the ticket pages name the TICKET module.
+  const SHARED = ["users.overview", "users.menu", "users.calendar", "users.analytics", "users.help", "users.profile", "users.notifications", "users.delegation"];
   it("approval, task and information pages name their module; nothing is left undecided", () => {
     for (const page of PAGES.filter((item) => item.area === "users")) {
       if (SHARED.includes(page.key)) expect(page.module, page.key).toBeUndefined();
@@ -86,6 +85,8 @@ describe("every page of the user space has a module decision", () => {
     expect(PAGES.find((page) => page.key === "users.task")?.module).toBe("TASK");
     expect(PAGES.find((page) => page.key === "users.request")?.module).toBe("APPROVAL");
     expect(PAGES.find((page) => page.key === "users.information_item")?.module).toBe("INFORMATION");
+    expect(PAGES.find((page) => page.key === "users.tickets")?.module).toBe("TICKET");
+    expect(PAGES.find((page) => page.key === "users.ticket_item")?.partyOpen).toBe(true);
     expect(PAGES.filter((page) => page.area === "admin").every((page) => page.module === undefined)).toBe(true); // admin is by role
   });
 });

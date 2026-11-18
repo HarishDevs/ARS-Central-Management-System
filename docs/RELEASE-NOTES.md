@@ -1,5 +1,10 @@
 # Release notes
 
+## v1.55.1 (18 Nov 2026): Ticketing is its own module; one priority scale (owner)
+- **Ticketing is a module** (owner: "i want the ticketing as a separate module"). It is given per person like the others: **Admin → Users & roles → person → Module access → Ticketing**, or several people at once with **Modules** in the users list. The Ticketing feature switch is gone. Nobody has the module until IT ticks it (the Super Admin always has it). Without it, Tickets doesn't show in the sidebar and Raise a ticket, My tickets and the dashboards answer "not found"; a ticket you're on (as its assignee, say) still opens from its link. People without it see Ticketing as **Coming soon**. The user import file takes `TICKET` in its modules column.
+- **One priority scale everywhere** (owner: "Critical, Most Important, Important, High, Normal"): tasks, information, meetings, meeting actions and tickets. **High** is new, between Important and Normal. Existing tickets move from High → **High**, Medium and Low → **Normal**, and ticket forms' default priority the same way. Information's "Urgent" is now called **Critical**. A ticket's task now keeps exactly the ticket's priority. Approval forms' own Priority fields keep the options IT set in the Form Designer.
+- **Owner steps:** back up, run `database/migrations/202611190900_ticket_module_priorities.sql` (rollback inside), publish, then give **Ticketing** in Users & roles.
+
 ## v1.55.0 (18 Nov 2026): Ticketing System (owner)
 A simple Ticketing System inside ARS CMS. It is **switched off** until the Super Admin turns it on: Settings → Feature switches → Ticketing System (IT team only for a trial, then On).
 

@@ -40,7 +40,7 @@ export default async function WorkSearchPage({ searchParams }: { searchParams: P
   const without = (change: Partial<typeof search>) => `/users/work/search?${new URLSearchParams(workSearchQuery({ ...search, ...change, page: 1 }))}`;
   const nameOf = (value: number | "me" | null) => (value === "me" ? "me" : (people.find((person) => person.id === value)?.label ?? "someone"));
   const STATUS_TEXT: Record<string, string> = { completed: "Completed", cancelled: "Cancelled", all: "Any status" };
-  const PRIORITY_TEXT: Record<string, string> = { URGENT: "Critical", HIGH: "Most Important", IMPORTANT: "Important", NORMAL: "Normal", LOW: "Low" };
+  const PRIORITY_TEXT: Record<string, string> = { URGENT: "Critical", HIGH: "Most Important", IMPORTANT: "Important", ELEVATED: "High", NORMAL: "Normal", LOW: "Low" };
   const chips = [
     search.q && { label: `“${search.q}”`, href: without({ q: "" }) },
     search.status !== "open" && { label: STATUS_TEXT[search.status] ?? search.status, href: without({ status: "open" }) },

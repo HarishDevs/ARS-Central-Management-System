@@ -58,7 +58,7 @@ export function RequestPriorityBadge({ priority }: { priority: { label: string; 
 // v1.47.0 (owner: "add Priority in all possible tables"): a task's (or an
 // information item's) built-in priority as the same pill: Urgent red, High
 // orange, Low grey; Normal shows nothing unless `showNormal`.
-const TASK_PRIORITY_NAME: Record<string, string> = { URGENT: "Critical", HIGH: "Most Important", IMPORTANT: "Important", NORMAL: "Normal", LOW: "Low" };
+const TASK_PRIORITY_NAME: Record<string, string> = { URGENT: "Critical", HIGH: "Most Important", IMPORTANT: "Important", ELEVATED: "High", NORMAL: "Normal", LOW: "Low" };
 
 export function TaskPriorityPill({ priority, showNormal = false }: { priority: string; showNormal?: boolean }) {
   // v1.50.1 (owner): Critical, Most Important, Important, Normal.

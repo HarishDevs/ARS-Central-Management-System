@@ -443,12 +443,13 @@ function ModulesHome({ name, user, tasks }: { name: string; user: Parameters<typ
   const links = [
     hasModule(user, "TASK") && { href: "/users/tasks", label: "My tasks", body: "Tasks given to you, and tasks you give others." },
     hasModule(user, "MEETING") && { href: "/users/meetings", label: "Meetings", body: "Your meetings, approvals and action items." },
+    hasModule(user, "TICKET") && { href: "/users/tickets", label: "My tickets", body: "Raise a ticket and follow the ones you raised or were given." },
     hasModule(user, "INFORMATION") && { href: "/users/information", label: "Information inbox", body: "Notices and circulars for you." },
     hasModule(user, "AI") && { href: "/users/ai/assistant", label: "AI Assistant", body: "Ask your business analyst." },
     { href: "/users/calendar", label: "Calendar", body: "Your dates and personal entries." },
   ].filter(Boolean) as { href: string; label: string; body: string }[];
   // D-307 (owner): the modules not given yet, blurred and locked ("Coming soon").
-  const soon = (["TASK", "PROJECT", "MEETING", "INFORMATION", "AI"] as const).filter((module) => !hasModule(user, module));
+  const soon = (["TASK", "PROJECT", "MEETING", "TICKET", "INFORMATION", "AI"] as const).filter((module) => !hasModule(user, module));
   return (
     <>
       <PageHeader title={`Welcome, ${name}`} />

@@ -211,10 +211,10 @@ Stops anyone reaching the GoDaddy server directly, around Cloudflare (and faking
 
 ### G0. Ticketing System (v1.55.0)
 1. Back up the database, then run `database/migrations/202611181000_ticketing.sql`. It is additive: new ticket tables, a `tasks.ticket_id` link, and new list values. The rollback is in the file.
-2. Publish v1.55.0. The feature switch **Ticketing System** stays **Off**: nobody sees tickets yet.
+2. Publish v1.55.0, then (v1.55.1) run `database/migrations/202611190900_ticket_module_priorities.sql` and publish v1.55.1. Nobody sees tickets until they have the Ticketing module.
 3. Admin → Ticket categories: check IT Software (IT-SW), IT Hardware (IT-HW), Admin (ADM).
 4. Admin → Ticket forms: create each form (request type), set its **Category** and **Coordinators**, build the fields, and publish.
-5. Super Admin → Settings → Feature switches → Ticketing System: **IT team only** for a trial, then **On**.
+5. Admin → Users & roles → **Module access → Ticketing** for IT and the coordinators first (a trial), then for everyone who raises tickets (bulk: tick people → **Modules → Add → Ticketing**).
 6. The job runner (cron, Part I) sends the confirmation reminders and auto-closes after 4 working days; check its health in Super Admin.
 
 ### G1b. Email through the GoDaddy cPanel mailbox (SMTP, v1.54.8)

@@ -149,8 +149,6 @@ export async function raiseTicket(input: RaiseTicketInput, actor: TaskActor): Pr
 }
 
 // ---- coordinator: assign (makes the linked task) or reassign ------------------------------------
-// Ticket priority → task priority (task names: Critical, Most Important, Important, Normal).
-const TASK_PRIORITY = { HIGH: "HIGH", MEDIUM: "IMPORTANT", LOW: "NORMAL" } as const;
 
 export interface AssignInput {
   ticketId: number;
@@ -185,7 +183,7 @@ export async function assignTicket(input: AssignInput, actor: TaskActor): Promis
       // The first assignment: one task, in the assignee's Tasks, linked for good.
       taskNo = await nextRequestNumber("TSK", connection);
       const description = [`Ticket ${ticket.ticketNo} (${ticket.categoryName}: ${ticket.typeName}), raised by ${ticket.requesterName}${ticket.departmentName ? ` (${ticket.departmentName})` : ""}.`, ticket.requiredOn ? `Required by ${ticket.requiredOn}.` : "", "", ticket.description ?? "", remarks ? `\nCoordinator's remarks: ${remarks}` : ""].join("\n").slice(0, 4000);
-      taskId = await insertTask({ taskNo, typeVersionId: general.versionId, title: taskTitle, description, priority: TASK_PRIORITY[ticket.priority], createdBy: actor.id, assigneeId: assignee.id, dueAt, startsOn: null, formData: {}, relatedRequestId: null, submissionKey: null }, connection);
+      taskId = await insertTask({ taskNo, typeVersionId: general.versionId, title: taskTitle, description, priority: ticket.priority /* v1.55.1: one scale; the task keeps the ticket's priority */, createdBy: actor.id, assigneeId: assignee.id, dueAt, startsOn: null, formData: {}, relatedRequestId: null, submissionKey: null }, connection);
       await linkTaskToTicket(taskId, ticket.id, connection);
       await appendTaskEvent(taskId, { actorId: actor.id, type: "CREATED", to: "OPEN", payload: { assigneeId: assignee.id, dueAt: dueAt.toISOString(), ticketId: ticket.id, ticketNo: ticket.ticketNo } }, connection);
       await addFollower(taskId, actor.id, "CREATOR", actor.id, connection);

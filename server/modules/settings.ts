@@ -20,11 +20,14 @@ export type CreateAccess = z.infer<typeof accessSchema>;
 export const OPEN_ACCESS: CreateAccess = { mode: "EVERYONE", departmentIds: [], userIds: [] };
 
 // v1.50.1 (owner): Critical, Most Important, Important, Normal (highest first).
-// LOW stays valid for older tasks but is no longer offered.
-export const ALL_TASK_PRIORITIES = ["LOW", "NORMAL", "IMPORTANT", "HIGH", "URGENT"] as const;
+// v1.55.1 (D-329, owner: "wherever Priority is involved it should be Critical,
+// Most Important, Important, High, Normal"): ELEVATED is the new "High" level,
+// between Important and Normal. LOW stays valid for older tasks but is no longer offered.
+// The one scale is shared by tasks, information, meetings and tickets.
+export const ALL_TASK_PRIORITIES = ["LOW", "NORMAL", "ELEVATED", "IMPORTANT", "HIGH", "URGENT"] as const;
 export type TaskPriority = (typeof ALL_TASK_PRIORITIES)[number];
-export const TASK_PRIORITIES = ["URGENT", "HIGH", "IMPORTANT", "NORMAL"] as const satisfies readonly TaskPriority[];
-export const PRIORITY_LABEL: Record<TaskPriority, string> = { LOW: "Low", NORMAL: "Normal", IMPORTANT: "Important", HIGH: "Most Important", URGENT: "Critical" };
+export const TASK_PRIORITIES = ["URGENT", "HIGH", "IMPORTANT", "ELEVATED", "NORMAL"] as const satisfies readonly TaskPriority[];
+export const PRIORITY_LABEL: Record<TaskPriority, string> = { LOW: "Low", NORMAL: "Normal", ELEVATED: "High", IMPORTANT: "Important", HIGH: "Most Important", URGENT: "Critical" };
 
 // Whom a task may be assigned to.
 export const ASSIGN_SCOPES = ["ANYONE", "SAME_DEPARTMENT", "MY_TEAM", "GROUPS", "PEOPLE"] as const;
@@ -83,9 +86,10 @@ export const DEFAULT_TASK_SETTINGS: TaskSettings = {
   allowRelatedRequest: true,
 };
 
-export const INFO_PRIORITIES = ["NORMAL", "IMPORTANT", "URGENT"] as const;
+// v1.55.1 (D-329): the same five levels as tasks (Urgent is now "Critical").
+export const INFO_PRIORITIES = ["NORMAL", "ELEVATED", "IMPORTANT", "HIGH", "URGENT"] as const;
 export type InfoPriority = (typeof INFO_PRIORITIES)[number];
-export const INFO_PRIORITY_LABEL: Record<InfoPriority, string> = { NORMAL: "Normal", IMPORTANT: "Important", URGENT: "Urgent" };
+export const INFO_PRIORITY_LABEL: Record<InfoPriority, string> = { NORMAL: "Normal", ELEVATED: "High", IMPORTANT: "Important", HIGH: "Most Important", URGENT: "Critical" };
 export const ACK_RULES = ["NEVER", "ALWAYS", "SENDER_CHOOSES"] as const;
 export type AckRule = (typeof ACK_RULES)[number];
 export const ACK_LABEL: Record<AckRule, string> = { NEVER: "Never asked", ALWAYS: "Always asked", SENDER_CHOOSES: "The sender chooses" };
@@ -124,10 +128,10 @@ export const DEFAULT_INFO_SETTINGS: InfoSettings = {
 // v1.55.0 (D-326, D-327): a ticket form's behaviour. Who may raise it (anyone
 // with CMS access unless narrowed) and the priority a new ticket starts with;
 // the coordinators are kept with the form itself (ticket_coordinators).
-// Owner (18 Nov 2026): High, Medium, Low.
-export const TICKET_PRIORITIES = ["HIGH", "MEDIUM", "LOW"] as const;
+// v1.55.1 (D-329, owner): the shared five levels (was High, Medium, Low).
+export const TICKET_PRIORITIES = ["URGENT", "HIGH", "IMPORTANT", "ELEVATED", "NORMAL"] as const;
 export type TicketPriority = (typeof TICKET_PRIORITIES)[number];
-export const TICKET_PRIORITY_LABEL: Record<TicketPriority, string> = { HIGH: "High", MEDIUM: "Medium", LOW: "Low" };
+export const TICKET_PRIORITY_LABEL: Record<TicketPriority, string> = { URGENT: "Critical", HIGH: "Most Important", IMPORTANT: "Important", ELEVATED: "High", NORMAL: "Normal" };
 export const ticketSettingsSchema = z.object({
   access: accessSchema,
   defaultPriority: z.enum(TICKET_PRIORITIES),
@@ -135,7 +139,7 @@ export const ticketSettingsSchema = z.object({
   requesterPriority: z.boolean().default(true),
 });
 export type TicketSettings = z.infer<typeof ticketSettingsSchema>;
-export const DEFAULT_TICKET_SETTINGS: TicketSettings = { access: OPEN_ACCESS, defaultPriority: "MEDIUM", requesterPriority: true };
+export const DEFAULT_TICKET_SETTINGS: TicketSettings = { access: OPEN_ACCESS, defaultPriority: "NORMAL", requesterPriority: true };
 export function parseTicketSettings(raw: unknown): TicketSettings {
   const parsed = ticketSettingsSchema.safeParse(typeof raw === "string" ? safeJson(raw) : raw);
   return parsed.success ? parsed.data : DEFAULT_TICKET_SETTINGS;

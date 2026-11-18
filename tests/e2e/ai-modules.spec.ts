@@ -91,7 +91,7 @@ test("a Super Admin's page says every module instead of showing boxes that would
   await context.addCookies([await sessionCookie("E2E_ADMIN")]);
   await page.goto("/admin/users?q=E2E_SUPER");
   await page.getByRole("link", { name: "Sam Super" }).click();
-  await expect(page.getByTestId("module-access")).toContainText("Every module: Approvals, Tasks, Projects, Information, Meeting Management, AI Assistant");
+  await expect(page.getByTestId("module-access")).toContainText("Every module: Approvals, Tasks, Projects, Information, Meeting Management, Ticketing, AI Assistant");
   await expect(page.getByTestId("module-access").getByRole("checkbox")).toHaveCount(0);
   await expect(page.getByTestId("user-modules")).toHaveText("All (Super Admin)");
 });

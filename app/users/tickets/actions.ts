@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireApiArea } from "@/server/authorization/guards";
-import { featureOn } from "@/server/settings/features";
+import { hasModule } from "@/server/modules/modules";
 import { getActionContext } from "@/lib/http/request-context";
 import { readFiles } from "@/server/modules/upload";
 import { findLiveType } from "@/lib/db/repositories/module-types.repository";
@@ -16,10 +16,12 @@ import type { ActionResult } from "@/lib/http/action-result";
 // v1.55.0 (owner's ticketing brief): the Ticketing System's actions. The
 // session and the feature switch are checked here; the service re-checks who
 // may do what, under a lock, against the ticket's latest state.
-async function actor(): Promise<TaskActor | null> {
+// v1.55.1 (D-329): raising needs the Ticketing module; acting on a ticket
+// you're on (assignee, requester, coordinator) is decided by the service.
+async function actor(needModule = false): Promise<TaskActor | null> {
   try {
     const session = await requireApiArea("users");
-    if (!(await featureOn("tickets", session.user))) return null;
+    if (needModule && !hasModule(session.user, "TICKET")) return null;
     const { ipAddress } = await getActionContext();
     return { id: session.user.id, name: session.user.name, roles: session.user.roles, sessionId: session.sessionId, ipAddress };
   } catch {
@@ -34,7 +36,7 @@ const text = (formData: FormData, name: string) => {
 const idOf = (value: string) => (/^\d{1,10}$/.test(value) ? Number(value) : null);
 
 export async function raiseTicketAction(_previous: ActionResult | null, formData: FormData): Promise<ActionResult> {
-  const me = await actor();
+  const me = await actor(true);
   if (!me) return NOT_FOUND;
   // Abuse guard: at most 5 tickets a minute per person.
   if (await overLimit(`ticket-raise:${me.id}`, LIMITS.ticketRaise)) return { ok: false, message: "That's a lot of tickets in a short time. Please wait a little and try again." };

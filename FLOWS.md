@@ -157,7 +157,7 @@ Group → Status, Approval type, Month raised, Priority; Raised by and Departmen
 ## F-TKT Ticketing System lifecycle (v1.55.0, D-328)
 ```mermaid
 flowchart TD
-  R([Anyone with CMS access: Raise a ticket → ticket type (a form of a category) → subject, description, priority, required date, fields, files]) --> N[NEW: number PREFIX-YEAR-00001, requestor details filled in]
+  R([Anyone with the Ticketing module (D-329): Raise a ticket → ticket type (a form of a category) → subject, description, priority, required date, fields, files]) --> N[NEW: number PREFIX-YEAR-00001, requestor details filled in]
   N --> C[The form's coordinators are told; any one of them assigns]
   C -->|assign: employee, target date, remarks| A[ASSIGNED: one linked task in the employee's Tasks]
   A -->|task started| P[IN PROGRESS]

@@ -89,7 +89,7 @@ function CreateTaskDialog({
   const [editorKey, setEditorKey] = useState(0); // remounts the editor when Pico Bot (or Undo) replaces the text
   const [periodic, setPeriodic] = useState(false);
   // D-259: priority, set on the new task(s) right after they are made.
-  const [priority, setPriority] = useState<"LOW" | "NORMAL" | "IMPORTANT" | "HIGH" | "URGENT">("NORMAL");
+  const [priority, setPriority] = useState<"LOW" | "NORMAL" | "ELEVATED" | "IMPORTANT" | "HIGH" | "URGENT">("NORMAL");
   const assignees = forWhom === "self" || periodic ? [meId] : others;
   const [kind, setKind] = useState<Recurrence["kind"]>("WEEKLY");
   const [every, setEvery] = useState(1);
@@ -435,6 +435,8 @@ function CreateTaskDialog({
                   <option value="URGENT">Critical</option>
                   <option value="HIGH">Most Important</option>
                   <option value="IMPORTANT">Important</option>
+                  <option value="ELEVATED">High</option>
+                  <option value="ELEVATED">High</option>
                   <option value="NORMAL">Normal</option>
                 </select>
               </div>

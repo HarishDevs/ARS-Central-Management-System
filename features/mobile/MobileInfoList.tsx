@@ -15,7 +15,7 @@ export interface MobileInfoRow {
   title: string;
   infoNo: string;
   detail: string; // type · from (or recipients)
-  priority: "NORMAL" | "IMPORTANT" | "URGENT";
+  priority: "NORMAL" | "ELEVATED" | "IMPORTANT" | "HIGH" | "URGENT";
   unread: boolean;
   chip: { text: string; tone: "danger" | "warning" | "success" | "neutral" };
 }

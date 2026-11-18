@@ -14,6 +14,8 @@ const PRIORITIES: [string, string][] = [
   ["URGENT", "Critical"],
   ["HIGH", "Most Important"],
   ["IMPORTANT", "Important"],
+  ["ELEVATED", "High"],
+  ["ELEVATED", "High"],
   ["NORMAL", "Normal"],
 ];
 

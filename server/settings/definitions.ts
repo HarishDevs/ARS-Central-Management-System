@@ -61,7 +61,6 @@ export const SETTING_DEFINITIONS: readonly SettingDefinition[] = [
   { key: "features.tasks", group: "FEATURES", label: "Task Management", valueType: "STRING", encrypted: false, schema: z.enum(["ON", "OFF", "IT_ONLY"]), defaultValue: "ON" },
   { key: "features.information", group: "FEATURES", label: "Information Management", valueType: "STRING", encrypted: false, schema: z.enum(["ON", "OFF", "IT_ONLY"]), defaultValue: "ON" },
   // v1.55.0 (D-327): Off until the owner releases it (IT_ONLY = a pilot by the IT team).
-  { key: "features.tickets", group: "FEATURES", label: "Ticketing System", valueType: "STRING", encrypted: false, schema: z.enum(["ON", "OFF", "IT_ONLY"]), defaultValue: "OFF" },
   { key: "features.ai", group: "FEATURES", label: "AI module; people also need the AI module ticked on their user page", valueType: "STRING", encrypted: false, schema: z.enum(["ON", "OFF", "IT_ONLY"]), defaultValue: "ON" },
   { key: "features.templates", group: "FEATURES", label: "Request templates and raise again", valueType: "STRING", encrypted: false, schema: z.enum(["ON", "OFF", "IT_ONLY"]), defaultValue: "ON" },
   // Retention (FN10, D-126): 0 = not set, keep for ever. Setting a value only

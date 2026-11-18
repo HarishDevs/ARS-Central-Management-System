@@ -6,7 +6,7 @@ import type { TicketListItem } from "@/lib/db/repositories/tickets.repository";
 
 // v1.55.0 (owner's ticketing brief §12): small shared pieces of the ticket pages.
 const STATUS_TONE: Record<TicketStatus, Tone> = { NEW: "info", ASSIGNED: "primary", IN_PROGRESS: "primary", AWAITING_CONFIRMATION: "warning", REOPENED: "danger", CLOSED: "success" };
-const PRIORITY_TONE: Record<TicketPriority, Tone> = { HIGH: "danger", MEDIUM: "warning", LOW: "neutral" };
+const PRIORITY_TONE: Record<TicketPriority, Tone> = { URGENT: "danger", HIGH: "warning", IMPORTANT: "warning", ELEVATED: "info", NORMAL: "neutral" };
 
 export function TicketStatusBadge({ status, closeKind }: { status: TicketStatus; closeKind: string | null }) {
   return <Badge tone={closeKind === "AUTO" ? "neutral" : STATUS_TONE[status]}>{statusText(status, closeKind)}</Badge>;

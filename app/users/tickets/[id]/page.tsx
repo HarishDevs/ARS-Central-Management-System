@@ -41,7 +41,7 @@ const EVENT_TEXT: Record<string, string> = {
 const day = (value: string | null) => (value ? new Date(`${value}T00:00:00Z`).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }) : "—");
 
 export default async function Page({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ raised?: string }> }) {
-  const { user } = await ticketsPage();
+  const { user } = await ticketsPage({ partyOpen: true });
   const { id } = await params;
   if (!/^\d{1,10}$/.test(id)) notFound();
   const loaded = await loadTicketFor(Number(id), user);

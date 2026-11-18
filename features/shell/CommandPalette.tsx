@@ -412,6 +412,8 @@ export function CommandPalette({ pages, saved }: { pages: PaletteLink[]; saved?:
                           <option value="URGENT">Critical</option>
                           <option value="HIGH">Most Important</option>
                           <option value="IMPORTANT">Important</option>
+                          <option value="ELEVATED">High</option>
+                          <option value="ELEVATED">High</option>
                           <option value="NORMAL">Normal</option>
                         </select>,
                         "sf-priority",

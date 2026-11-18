@@ -34,4 +34,4 @@ All results below are from runs on 18 Nov 2026: unit tests (Vitest), integration
 | e2e: ticketing journey | 7 / 7 passed |
 | e2e regression (tasks, task types, approvals, settings, lists, navigation) | See the release notes of v1.55.0 for the final run |
 
-The module-access guard test now lists the three ticket pages as shared on purpose: tickets are for anyone with CMS access, controlled by the Ticketing feature switch.
+v1.55.1: the ticket pages belong to the TICKET module (module-access guard test); the e2e suite gives the module to its people for the run. Unit 1,134, integration 381 passed.

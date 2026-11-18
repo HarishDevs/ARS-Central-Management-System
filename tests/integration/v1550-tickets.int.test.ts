@@ -47,7 +47,7 @@ beforeAll(async () => {
   const created = await createModuleType("TICKET", { code: `TKT_${Date.now().toString(36).toUpperCase()}`, name: "Software installation" }, people.admin);
   if (!created.ok) throw new Error(created.message);
   typeId = created.value.id;
-  const saved = await saveTypeDraft("TICKET", typeId, { name: "Software installation", form: [{ key: "software", label: "Software", type: "TEXT", required: true }], settings: { access: { mode: "EVERYONE", departmentIds: [], userIds: [] }, defaultPriority: "MEDIUM", requesterPriority: true } }, people.admin);
+  const saved = await saveTypeDraft("TICKET", typeId, { name: "Software installation", form: [{ key: "software", label: "Software", type: "TEXT", required: true }], settings: { access: { mode: "EVERYONE", departmentIds: [], userIds: [] }, defaultPriority: "NORMAL", requesterPriority: true } }, people.admin);
   if (!saved.ok) throw new Error(saved.message);
   const published = await publishTypeDraft("TICKET", typeId, people.admin);
   if (!published.ok) throw new Error(published.message);
@@ -72,7 +72,7 @@ describe("raise and assign", () => {
 
   it("the same form sent twice makes one ticket", async () => {
     const keyText = submission();
-    const input = { typeId, title: "Twice", description: "Sent twice by a double click", priority: "LOW", requiredOn: "", fields: { software: "X" }, files: [], submissionKey: keyText };
+    const input = { typeId, title: "Twice", description: "Sent twice by a double click", priority: "NORMAL", requiredOn: "", fields: { software: "X" }, files: [], submissionKey: keyText };
     expect((await raiseTicket(input, people.requester!)).ok).toBe(true);
     expect((await raiseTicket(input, people.requester!)).ok).toBe(false);
   });

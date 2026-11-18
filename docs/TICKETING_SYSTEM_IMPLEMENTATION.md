@@ -2,7 +2,7 @@
 
 **Built in v1.55.0, following the owner's simple brief of 18 Nov 2026.** It supersedes the larger design where they differ:
 - statuses are New, Assigned, In progress, Awaiting confirmation, Reopened, Closed, Closed – auto closed;
-- priorities are High, Medium, Low;
+- priorities are High, Medium, Low (v1.55.1: the shared five levels Critical, Most Important, Important, High, Normal);
 - reminders come on working days 2 and 3;
 - rating is optional;
 - coordinators are set per form.
@@ -21,7 +21,7 @@
 | Files | `record_files` (TICKET) and `/api/files/[id]` (ticket rule; the task's documents open for those who see the ticket) |
 | Employee pages | `/users/tickets` (My tickets), `/users/tickets/new`, `/users/tickets/[id]`, `/users/tickets/dashboards[/id]` |
 | Admin pages | `/admin/ticket-forms` (shared builder + category and coordinators), `/admin/ticket-categories` |
-| Switch | `features.tickets` (Off / IT only / On) |
+| Access | v1.55.1: the **TICKET module** (`users.module_access`); the ticket pages name it in `server/authorization/pages.ts` (the ticket page is open to the people on it). Was the `features.tickets` switch in v1.55.0. |
 | Tests | `tests/tickets/rules.test.ts`, `tests/integration/v1550-tickets.int.test.ts`, `tests/e2e/v1550-tickets.spec.ts` |
 
 The original plan follows for reference.

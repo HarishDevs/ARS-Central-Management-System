@@ -10,9 +10,9 @@ import { classicModules } from "@/features/shell/classic-modules";
 // D-307 (owner, v1.53.0): the main modules in their order, Projects separate
 // from Tasks, modules released one at a time.
 describe("the main modules (D-307)", () => {
-  it("are Approvals, Tasks, Projects, Information, Meeting Management, then the AI assistant", () => {
-    expect(MODULES).toEqual(["APPROVAL", "TASK", "PROJECT", "INFORMATION", "MEETING", "AI"]);
-    expect(MODULES.map((module) => MODULE_LABEL[module])).toEqual(["Approvals", "Tasks", "Projects", "Information", "Meeting Management", "AI Assistant"]);
+  it("are Approvals, Tasks, Projects, Information, Meeting Management, Ticketing (v1.55.1), then the AI assistant", () => {
+    expect(MODULES).toEqual(["APPROVAL", "TASK", "PROJECT", "INFORMATION", "MEETING", "TICKET", "AI"]);
+    expect(MODULES.map((module) => MODULE_LABEL[module])).toEqual(["Approvals", "Tasks", "Projects", "Information", "Meeting Management", "Ticketing", "AI Assistant"]);
     expect(parseModuleSet("PROJECT,TASK")).toEqual(["TASK", "PROJECT"]);
   });
 

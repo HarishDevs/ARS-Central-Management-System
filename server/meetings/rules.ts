@@ -13,7 +13,7 @@ export type PointsPolicy = "BLOCK" | "LAST_APPROVED";
 export type MeetingMode = "ONLINE" | "OFFLINE" | "HYBRID";
 export type Confidentiality = "GENERAL" | "MANAGEMENT";
 export type Attendance = "UNMARKED" | "PRESENT" | "LATE" | "ABSENT" | "EXCUSED";
-export type MeetingPriority = "NORMAL" | "IMPORTANT" | "HIGH" | "URGENT";
+export type MeetingPriority = "NORMAL" | "ELEVATED" | "IMPORTANT" | "HIGH" | "URGENT"; // v1.55.1: ELEVATED = "High"
 
 export const STATUS_LABEL: Record<MeetingStatus, string> = {
   SCHEDULED: "Scheduled",
@@ -29,8 +29,8 @@ export const POINTS_LABEL: Record<PointsStatus, string> = { DRAFT: "Draft", SUBM
 export const MODE_LABEL: Record<MeetingMode, string> = { ONLINE: "Online", OFFLINE: "Offline", HYBRID: "Hybrid" };
 export const ATTENDANCE_LABEL: Record<Attendance, string> = { UNMARKED: "Not marked", PRESENT: "Present", LATE: "Late", ABSENT: "Absent", EXCUSED: "Excused" };
 // Same names as tasks (owner, 10 Nov 2026).
-export const PRIORITY_LABEL: Record<MeetingPriority, string> = { URGENT: "Critical", HIGH: "Most Important", IMPORTANT: "Important", NORMAL: "Normal" };
-export const PRIORITIES: readonly MeetingPriority[] = ["URGENT", "HIGH", "IMPORTANT", "NORMAL"];
+export const PRIORITY_LABEL: Record<MeetingPriority, string> = { URGENT: "Critical", HIGH: "Most Important", IMPORTANT: "Important", ELEVATED: "High", NORMAL: "Normal" };
+export const PRIORITIES: readonly MeetingPriority[] = ["URGENT", "HIGH", "IMPORTANT", "ELEVATED", "NORMAL"];
 
 export interface MeetingFacts {
   status: MeetingStatus;

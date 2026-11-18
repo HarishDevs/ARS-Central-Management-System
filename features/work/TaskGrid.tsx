@@ -499,6 +499,8 @@ export function TaskGrid({
                                   <option value="URGENT">Critical</option>
                                   <option value="HIGH">Most Important</option>
                                   <option value="IMPORTANT">Important</option>
+                                  <option value="ELEVATED">High</option>
+                                  <option value="ELEVATED">High</option>
                                   <option value="NORMAL">Normal</option>
                                 </select>
                               ) : (
@@ -591,6 +593,8 @@ function FilterPanel({ config, set, people, projects }: { config: GridConfig; se
           ["URGENT", "Critical"],
           ["HIGH", "Most Important"],
           ["IMPORTANT", "Important"],
+          ["ELEVATED", "High"],
+          ["ELEVATED", "High"],
           ["NORMAL", "Normal"],
         ];
       case "kind":

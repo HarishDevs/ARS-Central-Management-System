@@ -779,12 +779,14 @@ function StepEditor({
             <select
               id={`work-priority-${step.id}`}
               value={step.workPriority ?? "NORMAL"}
-              onChange={(event) => onChange({ ...step, workPriority: event.target.value === "NORMAL" ? undefined : (event.target.value as "IMPORTANT" | "HIGH" | "URGENT") })}
+              onChange={(event) => onChange({ ...step, workPriority: event.target.value === "NORMAL" ? undefined : (event.target.value as "ELEVATED" | "IMPORTANT" | "HIGH" | "URGENT") })}
               className="field-input"
             >
               <option value="URGENT">Critical</option>
               <option value="HIGH">Most Important</option>
               <option value="IMPORTANT">Important</option>
+              <option value="ELEVATED">High</option>
+              <option value="ELEVATED">High</option>
               <option value="NORMAL">Normal</option>
             </select>
           </div>

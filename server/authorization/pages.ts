@@ -62,9 +62,9 @@ export const PAGES: readonly PageDef[] = [
   { key: "users.information_new", module: "INFORMATION", area: "users", label: "Information: new", what: "Writing and publishing information.", paths: [under("/users/information/new")] },
   { key: "users.information_item", module: "INFORMATION", area: "users", label: "Information: page", what: "Opening information: reading, acknowledging, withdrawing.", paths: [/^\/users\/information\/\d+(\/.*)?$/] },
   // v1.55.0 (D-326, D-327): the Ticketing System (anyone with CMS access once switched on).
-  { key: "users.tickets", area: "users", label: "Tickets: raise and my tickets", what: "Raising a ticket and the person's own and assigned tickets.", paths: [exact("/users/tickets"), under("/users/tickets/new")] },
-  { key: "users.ticket_dashboards", area: "users", label: "Tickets: dashboards", what: "The ticket dashboards of each category (coordinators see their forms' tickets; IT sees all).", paths: [under("/users/tickets/dashboards")] },
-  { key: "users.ticket_item", area: "users", label: "Tickets: page", what: "Opening a ticket: assigning, remarks, confirming or reopening.", paths: [/^\/users\/tickets\/\d+(\/.*)?$/] },
+  { key: "users.tickets", module: "TICKET", area: "users", label: "Tickets: raise and my tickets", what: "Raising a ticket and the person's own and assigned tickets.", paths: [exact("/users/tickets"), under("/users/tickets/new")] },
+  { key: "users.ticket_dashboards", module: "TICKET", area: "users", label: "Tickets: dashboards", what: "The ticket dashboards of each category (coordinators see their forms' tickets; IT sees all).", paths: [under("/users/tickets/dashboards")] },
+  { key: "users.ticket_item", module: "TICKET", partyOpen: true, area: "users", label: "Tickets: page", what: "Opening a ticket: assigning, remarks, confirming or reopening.", paths: [/^\/users\/tickets\/\d+(\/.*)?$/] },
   // D-168: the AI module. D-180 (owner): it is the assistant only; the old AI
   // pages (dashboard, intelligence, insights, sources, reports, history)
   // redirect to it, and sources, reports and history moved to Super Admin.

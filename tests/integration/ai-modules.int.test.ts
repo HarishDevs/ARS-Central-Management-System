@@ -55,7 +55,7 @@ afterAll(async () => {
 describe("module access in the database", () => {
   it("D-307: anyone created without a choice has the released modules, Approval and Task, never AI (every path)", async () => {
     // The test helper gives every module but AI (the scenarios use them all).
-    expect((await findUserById(staffId))!.modules).toEqual(["APPROVAL", "TASK", "PROJECT", "INFORMATION", "MEETING"]);
+    expect((await findUserById(staffId))!.modules).toEqual(["APPROVAL", "TASK", "PROJECT", "INFORMATION", "MEETING", "TICKET"]);
     const created = await createUserService(
       { loginId: `m-${tag}`.toLowerCase(), name: "Module default", email: `m-${tag}@example.test`.toLowerCase(), whatsappNumber: null, departmentId: null, designationId: null, reportingManagerId: null, signInMethod: "GOOGLE", roles: ["USER"] },
       itAdmin(adminId),
@@ -81,7 +81,7 @@ describe("module access in the database", () => {
     expect(await updateUser(staffId, await input(staffId, { modules: ["APPROVAL", "AI"] }), itAdmin(adminId))).toEqual({ ok: true, value: undefined });
     expect((await getUserForAdmin(staffId))!.modules).toEqual(["APPROVAL", "AI"]);
     const entry = (await auditsFor(staffId)).filter((item) => item.action === "USER_UPDATED").at(-1)!;
-    expect(entry.metadata).toMatchObject({ modules: { before: ["APPROVAL", "TASK", "PROJECT", "INFORMATION", "MEETING"], after: ["APPROVAL", "AI"] } });
+    expect(entry.metadata).toMatchObject({ modules: { before: ["APPROVAL", "TASK", "PROJECT", "INFORMATION", "MEETING", "TICKET"], after: ["APPROVAL", "AI"] } });
   });
 
   it("editing other details never changes modules (the form didn't send them)", async () => {

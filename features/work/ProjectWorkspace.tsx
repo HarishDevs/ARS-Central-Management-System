@@ -27,7 +27,7 @@ export interface BoardTask {
   taskNo: string;
   title: string;
   status: "OPEN" | "IN_PROGRESS" | "BLOCKED" | "COMPLETED" | "CANCELLED";
-  priority: "LOW" | "NORMAL" | "IMPORTANT" | "HIGH" | "URGENT";
+  priority: "LOW" | "NORMAL" | "ELEVATED" | "IMPORTANT" | "HIGH" | "URGENT";
   assigneeId: number;
   assigneeName: string;
   dueAt: string | null;
@@ -49,14 +49,14 @@ export interface BoardSection {
 }
 type Sort = "manual" | "due" | "priority" | "title" | "assignee";
 type GroupBy = "section" | "assignee" | "due" | "priority";
-const PRIORITY_NAME = { URGENT: "Critical", HIGH: "Most Important", IMPORTANT: "Important", NORMAL: "Normal", LOW: "Low" } as const;
+const PRIORITY_NAME = { URGENT: "Critical", HIGH: "Most Important", IMPORTANT: "Important", ELEVATED: "High", NORMAL: "Normal", LOW: "Low" } as const;
 const shiftDay = (day: string, days: number) => {
   const date = new Date(`${day}T00:00:00Z`);
   date.setUTCDate(date.getUTCDate() + days);
   return date.toISOString().slice(0, 10);
 };
 const OPEN = new Set(["OPEN", "IN_PROGRESS", "BLOCKED"]);
-const PRIORITY_RANK = { URGENT: 0, HIGH: 1, IMPORTANT: 2, NORMAL: 3, LOW: 4 } as const;
+const PRIORITY_RANK = { URGENT: 0, HIGH: 1, IMPORTANT: 2, ELEVATED: 3, NORMAL: 4, LOW: 5 } as const;
 
 export function ProjectWorkspace({
   projectId,
@@ -511,6 +511,8 @@ export function ProjectWorkspace({
                             <option value="URGENT">Critical</option>
                             <option value="HIGH">Most Important</option>
                             <option value="IMPORTANT">Important</option>
+                            <option value="ELEVATED">High</option>
+                            <option value="ELEVATED">High</option>
                             <option value="NORMAL">Normal</option>
                           </select>
                         ) : (

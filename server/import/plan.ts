@@ -344,7 +344,7 @@ function planUsers(rows: Row[], snapshot: Snapshot): { planned: PlannedRow[]; op
     if (unknown.length) check.add("roles", `Unknown role${unknown.length === 1 ? "" : "s"}: ${unknown.join(", ")}. Use USER, EXPORTER, IT_ADMIN or SUPER_ADMIN.`);
 
     const { modules, unknown: unknownModules } = parseModules(row.get("modules"));
-    if (unknownModules.length) check.add("modules", `Unknown module${unknownModules.length === 1 ? "" : "s"}: ${unknownModules.join(", ")}. Use APPROVAL, TASK, PROJECT, INFORMATION, MEETING, AI or ALL, separated by ;.`);
+    if (unknownModules.length) check.add("modules", `Unknown module${unknownModules.length === 1 ? "" : "s"}: ${unknownModules.join(", ")}. Use APPROVAL, TASK, PROJECT, INFORMATION, MEETING, TICKET, AI or ALL, separated by ;.`);
     else if (modules && modulesProblem(modules)) check.add("modules", modulesProblem(modules)!);
 
     const value: UserValue = {

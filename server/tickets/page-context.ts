@@ -1,13 +1,15 @@
 import "server-only";
 import { notFound } from "next/navigation";
 import { requireArea } from "@/server/authorization/guards";
-import { featureOn } from "@/server/settings/features";
+import { hasModule } from "@/server/modules/modules";
 import { isAdminActor } from "@/server/modules/tasks";
 
-// v1.55.0: every ticket page: signed in to the users area and the Ticketing
-// switch on for this person (else a plain 404, like any switched-off module).
-export async function ticketsPage() {
+// v1.55.1 (D-329): Ticketing is a module. Its lists, Raise a ticket and the
+// dashboards need the TICKET module (else a plain 404); a ticket's own page is
+// open to the people on it (partyOpen: requester, coordinators, assignee),
+// and the service decides what each of them sees.
+export async function ticketsPage(options: { partyOpen?: boolean } = {}) {
   const { user } = await requireArea("users");
-  if (!(await featureOn("tickets", user))) notFound();
+  if (!options.partyOpen && !hasModule(user, "TICKET")) notFound();
   return { user, isAdmin: isAdminActor(user) };
 }

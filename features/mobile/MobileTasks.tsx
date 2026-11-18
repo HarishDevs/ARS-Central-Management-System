@@ -24,7 +24,7 @@ type Tab = (typeof TABS)[number]["key"];
 // Manage view → Sort and Group by (fixed SQL per choice, never from the address).
 const SORTS = {
   due: { label: "Due date", sql: "t.due_at IS NULL, t.due_at, t.id DESC" },
-  priority: { label: "Priority", sql: "FIELD(t.priority, 'URGENT', 'HIGH', 'IMPORTANT', 'NORMAL', 'LOW'), t.due_at IS NULL, t.due_at" },
+  priority: { label: "Priority", sql: "FIELD(t.priority, 'URGENT', 'HIGH', 'IMPORTANT', 'ELEVATED', 'NORMAL', 'LOW'), t.due_at IS NULL, t.due_at" },
   title: { label: "Title", sql: "t.title, t.id" },
   newest: { label: "Newest first", sql: "t.created_at DESC, t.id DESC" },
 } as const;
@@ -35,6 +35,7 @@ const PRIORITY: Record<string, { label: string; dot: string } | null> = {
   URGENT: { label: "Critical", dot: "bg-[color:var(--m-red)]" },
   HIGH: { label: "Most Important", dot: "bg-warning-solid" },
   IMPORTANT: { label: "Important", dot: "bg-warning-solid" },
+  ELEVATED: { label: "High", dot: "bg-info-600" },
   NORMAL: null,
   LOW: null,
 };

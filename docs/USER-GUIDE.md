@@ -29,7 +29,7 @@ From the top:
 Groups open and close like a dropdown; the group of the page you're on opens by itself and the app remembers the rest. **☰** folds the sidebar into a narrow row of icons. You only see the modules IT gave you.
 
 ### Modules and "Coming soon"
-ARS-CMS has five main modules: **Approvals, Tasks, Projects, Information** and **Meeting Management** (and later the **AI Assistant**). They are switched on per person, one at a time as each is released. Home, Inbox, Calendar and Analytics are shared by every module.
+ARS-CMS has six main modules: **Approvals, Tasks, Projects, Information, Meeting Management** and **Ticketing** (and later the **AI Assistant**). They are switched on per person, one at a time as each is released. Home, Inbox, Calendar and Analytics are shared by every module.
 - A module **not switched on for you** shows on Home, the Classic menu and Analytics as a **blurred card or a locked choice marked "Coming soon"**. You can't open it; its content is never shown. Once IT switches it on, it opens normally.
 - A page IT has set to **Hidden** in Page access isn't shown at all.
 - **Tasks without Projects:** a task's project shows as its name with a lock, with no link; you can't add a task to a project or create a project. You see the tasks you are on and your team's, not other tasks of a project; project notifications wait until Projects is switched on for you.
@@ -45,7 +45,7 @@ The phone screens follow the familiar Asana app layout: a big title with **…**
 - **Home:** one line on what needs you (approvals waiting, overdue steps, requests returned to you, overdue tasks), four counts that open their lists, quick actions (New request, New task, Search, Ask AI), the first approvals waiting for you, your tasks due today and your requests in progress.
 - **Approvals:** **Choose view** picks **Waiting for me**, **My requests**, **Approved** or **Drafts**. Each request is a card: number and title, who raised it and their department, the amount (when the form has one and it isn't confidential), who has it now, when it was submitted, how long it has waited, **Overdue** or **Due soon**, and the status. **Manage view → Compact mode** shows one line per request. **+** starts a new request; **…** has Approved by me, Collaborating, Search requests and Out of office.
 - **Deciding on a request:** the buttons stay at the bottom of the request: **Approve**, **Return** (ask for changes), **Hold** and **Reject**. Each opens a panel with the comment box and that one action; Reject asks once more.
-- **My tasks:** **Choose view** picks **Due today**, **Upcoming**, **Overdue**, **Completed** or **Assigned by me**. Each task is one row: tick the circle to complete it (Undo is offered), then the title, its projects, the priority (Important, Urgent) and the due date (red when overdue). **Manage view** has **Compact mode**, **Sort** (due date, priority, title, newest) and **Group by** (none, due date, project); groups fold with the arrow. **+** opens Create task; **…** has Projects, Periodic tasks, Calendar, Search tasks and Deleted tasks.
+- **My tasks:** **Choose view** picks **Due today**, **Upcoming**, **Overdue**, **Completed** or **Assigned by me**. Each task is one row: tick the circle to complete it (Undo is offered), then the title, its projects, the priority (Critical, Most Important, Important, High) and the due date (red when overdue). **Manage view** has **Compact mode**, **Sort** (due date, priority, title, newest) and **Group by** (none, due date, project); groups fold with the arrow. **+** opens Create task; **…** has Projects, Periodic tasks, Calendar, Search tasks and Deleted tasks.
 - **A task:** the top bar has back, **Mark complete**, copy link and **…** (start, block, reassign, edit, cancel, share). Below: the title, **Assigned to** and **Due date**, then details, subtasks, comments and history. **Add a comment** stays at the bottom of the screen; tap it to write, @mention someone and **Send**.
 - **Information:** the same pattern: **Choose view** for the lists, **Manage view** to search and sort, **+** for new information, **…** for Received and Sent by me.
 - **New request:** the steps (Details, Workflow, Review) and the buttons (Draft, Reset, Next) are one slim row each, so most of the form fits on the first screen.
@@ -91,7 +91,7 @@ Everything the app has told you, in one place: **All**, **Approvals**, **Tasks**
 The **bell** at the top still shows your latest notices; **Read more** opens the Inbox.
 
 ### My requests
-If the form has a Priority field, the **Priority** column (after Status) shows it in its colour (until IT picks colours, Critical shows red, Most important and High orange, Important yellow, Normal blue, Low grey; tasks use the same colours); **Sort → Priority** puts the most important first and **Group → Priority** groups by it. Hide the column in **Columns** if you don't need it.
+If the form has a Priority field, the **Priority** column (after Status) shows it in its colour (until IT picks colours, Critical shows red, Most Important orange, Important yellow, High teal, Normal blue, Low grey; tasks, information, meetings and tickets use the same colours); **Sort → Priority** puts the most important first and **Group → Priority** groups by it. Hide the column in **Columns** if you don't need it.
 - **Raised by me / Shared with me** at the top, each with how many requests it holds.
 - The **status cards** (All, Open, Waiting for approvers, Sent back, On hold, Approved, Rejected, Withdrawn, Overdue) filter the list. Overdue requests are also counted under Waiting for approvers.
 - **Search** finds a request by number, title, approval type or the person it is waiting on.
@@ -210,10 +210,10 @@ Comments on a request can't be edited or removed. To tell someone in particular,
 - **Choosing a person** anywhere: type a name, code or department; each choice shows **Name - Employee code** and the department below. Lists open where they fit on the screen and close with ×, Esc or a click outside.
 
 ### Tickets (IT Software, IT Hardware, Admin)
-Ask for help: a software problem, a hardware fault, an Admin request. Tickets appear in the sidebar once IT switches the Ticketing System on.
+Ask for help: a software problem, a hardware fault, an Admin request. Tickets appear in the sidebar once IT gives you the **Ticketing** module (Users & roles → Module access).
 - **Raise a ticket:** choose the ticket type (each category has its own forms), then fill it in.
   - Your name, employee ID, department and email are filled in for you.
-  - Write a **Subject** and a **Description**, choose the **Priority** (High, Medium, Low) and a **Required date** if you have one, answer the form's own fields and attach files.
+  - Write a **Subject** and a **Description**, choose the **Priority** (Critical, Most Important, Important, High, Normal) and a **Required date** if you have one, answer the form's own fields and attach files.
   - You get a number such as `IT-SW-2026-00001`.
 - **What happens next:**
   1. The form's coordinators are told.
@@ -285,7 +285,7 @@ After a decision, **Next waiting for you** opens the next one. Budget warnings s
 
 **FYI** messages need nothing from you.
 
-**Task priority** everywhere: Critical, Most Important, Important or Normal. A task assigned to you always opens from its email link, even without the Task module.
+**Priority** everywhere (tasks, information, meetings, tickets): Critical, Most Important, Important, High or Normal (v1.55.1). An approval form's own Priority field keeps the options IT gave it in the Form Designer. A task assigned to you always opens from its email link, even without the Task module.
 
 **Work task levels** (in New request or an approval type): choose **Work task**, then **Task priority** and an optional **Task due date**. The task reaches the person's Task Management with them when the level starts; tasks raised from a request are listed in its **Work tasks** card. **Linked requests**: type a number or title and pick a request you can see. **Download PDF** gives the request as it looks on screen.
 
@@ -333,7 +333,7 @@ Switch to it from the account menu → **Switch space**.
   - choose its **Category**, and its **Coordinators** (the people who assign its tickets; any one of them can);
   - choose **who may raise it** (everyone by default) and the default **priority**;
   - build the fields, preview, **Save draft** and **Publish**. Earlier tickets keep the form version they were raised with.
-- **Super Admin → Settings → Feature switches → Ticketing System:** Off until released; "IT team only" for a trial; On for everyone.
+- **Who sees Ticketing:** Admin → Users & roles → open a person → **Module access → Ticketing** (or tick several people in the list and use **Modules → Add → Ticketing**). Give it to everyone who should raise tickets, to each form's coordinators, and to IT. Someone without it can still open a ticket they're on (for example a ticket assigned to them) from its link or its task. The Super Admin always has it.
 - **Reminders and auto-close** run with the job runner. Message deliveries shows the ticket messages.
 
 ## 4. Super Admin

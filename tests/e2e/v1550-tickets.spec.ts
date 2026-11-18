@@ -18,21 +18,23 @@ async function as(context: BrowserContext, loginId: string) {
   await context.clearCookies();
   await context.addCookies([await sessionCookie(loginId)]);
 }
-async function setting(key: string, value: string) {
+// v1.55.1 (D-329): Ticketing is a module. The e2e people get it for this
+// suite and lose it afterwards, so other suites see their usual sidebar.
+async function ticketModule(give: boolean) {
   const conn = await db();
   try {
-    await conn.query("INSERT INTO system_settings (setting_key, setting_group, value_type, encrypted, value) VALUES (?, 'FEATURES', 'STRING', FALSE, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)", [key, value]);
+    if (give) await conn.query("UPDATE users SET module_access = CONCAT_WS(',', NULLIF(module_access, ''), 'TICKET') WHERE login_id LIKE 'E2E%' AND NOT FIND_IN_SET('TICKET', module_access)");
+    else await conn.query("UPDATE users SET module_access = TRIM(BOTH ',' FROM REPLACE(CONCAT(',', module_access, ','), ',TICKET,', ',')) WHERE login_id LIKE 'E2E%' AND FIND_IN_SET('TICKET', module_access)");
   } finally {
     await conn.end();
   }
 }
 
 test.beforeAll(async () => {
-  await setting("features.tickets", "ON");
+  await ticketModule(true);
 });
-// The switch is Off by default: put it back so other suites see the usual sidebar.
 test.afterAll(async () => {
-  await setting("features.tickets", "OFF");
+  await ticketModule(false);
 });
 
 test("IT sets up a ticket form: the shared Form Builder, its category and its coordinators", async ({ page, context }) => {
@@ -127,9 +129,9 @@ test("the coordinator's IT Hardware dashboard counts it; filters work", async ({
   await expect(kpis.getByRole("link", { name: /Total tickets/ })).toContainText(/[1-9]/);
   await expect(kpis.getByRole("link", { name: /^Closed/ })).toContainText(/[1-9]/);
   await expect(page.getByTestId("ticket-table")).toContainText(subject);
-  await page.getByLabel("Priority").selectOption("LOW");
+  await page.getByLabel("Priority").selectOption("NORMAL");
   await page.getByRole("button", { name: "Apply" }).click();
-  await expect(page).toHaveURL(/priority=LOW/);
+  await expect(page).toHaveURL(/priority=NORMAL/);
   await expect(page.getByTestId("ticket-table")).toHaveCount(0);
   await page.screenshot({ path: "test-results/v1550-ticket-dashboard.png", fullPage: true });
 });

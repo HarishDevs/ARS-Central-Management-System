@@ -135,7 +135,7 @@ describe("planImport: users' module access (v1.49.2)", () => {
     );
     const created = plan.ops.filter((op) => op.kind === "user-create");
     expect(created.map((op) => (op.kind === "user-create" ? op.modules : null))).toEqual([
-      ["APPROVAL", "TASK", "PROJECT", "INFORMATION", "MEETING", "AI"],
+      ["APPROVAL", "TASK", "PROJECT", "INFORMATION", "MEETING", "TICKET", "AI"],
       ["APPROVAL", "AI"],
       ["APPROVAL", "TASK"],
     ]);

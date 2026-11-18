@@ -107,4 +107,4 @@ export function contrastRatio(a: string, b: string): number {
 // High / Important orange, Normal plain, Low grey.
 // v1.47.1 (owner: "the colours should be reflected wherever the priority is
 // shown"): every built-in priority has a colour, Normal included.
-export const BUILT_IN_PRIORITY_COLOR: Record<string, OptionColor | null> = { URGENT: "red", HIGH: "orange", IMPORTANT: "yellow", NORMAL: "blue", LOW: "grey" };
+export const BUILT_IN_PRIORITY_COLOR: Record<string, OptionColor | null> = { URGENT: "red", HIGH: "orange", IMPORTANT: "yellow", ELEVATED: "teal", NORMAL: "blue", LOW: "grey" };

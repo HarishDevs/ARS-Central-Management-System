@@ -7,14 +7,16 @@ import type { ModuleCode } from "@/types/auth";
 // then the AI assistant. Projects is its own module (it was part of Tasks).
 // Home, Inbox, Calendar and Analytics are common to every module.
 export type { ModuleCode };
-export const MODULES: readonly ModuleCode[] = ["APPROVAL", "TASK", "PROJECT", "INFORMATION", "MEETING", "AI"];
-export const MODULE_LABEL: Record<ModuleCode, string> = { APPROVAL: "Approvals", TASK: "Tasks", PROJECT: "Projects", INFORMATION: "Information", MEETING: "Meeting Management", AI: "AI Assistant" };
+// v1.55.1 (D-329, owner: "i want the ticketing as a separate module"): Ticketing.
+export const MODULES: readonly ModuleCode[] = ["APPROVAL", "TASK", "PROJECT", "INFORMATION", "MEETING", "TICKET", "AI"];
+export const MODULE_LABEL: Record<ModuleCode, string> = { APPROVAL: "Approvals", TASK: "Tasks", PROJECT: "Projects", INFORMATION: "Information", MEETING: "Meeting Management", TICKET: "Ticketing", AI: "AI Assistant" };
 export const MODULE_HELP: Record<ModuleCode, string> = {
   APPROVAL: "Raise requests, custom approvals, approve what is assigned, search requests.",
   TASK: "My tasks, tasks given to others, team tasks.",
   PROJECT: "Projects: lists, boards, timelines, status updates, members and templates.",
   INFORMATION: "The information inbox and sending information.",
   MEETING: "Meetings: schedule, meeting points, MOM, action items and follow-ups.",
+  TICKET: "Tickets: raise a ticket, my tickets, ticket dashboards (coordinators assign; the work is a task).",
   AI: "The AI dashboard, assistant, business intelligence and reports.",
 };
 // D-307 (owner): new people start with the released modules: Approvals and Tasks.

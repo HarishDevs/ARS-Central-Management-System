@@ -193,7 +193,7 @@ export function taskListSql(
       : f.sort === "oldest"
         ? "t.id ASC"
         : f.sort === "priority"
-          ? "FIELD(t.priority, 'URGENT', 'HIGH', 'IMPORTANT', 'NORMAL', 'LOW'), t.due_at IS NULL, t.due_at, t.id"
+          ? "FIELD(t.priority, 'URGENT', 'HIGH', 'IMPORTANT', 'ELEVATED', 'NORMAL', 'LOW'), t.due_at IS NULL, t.due_at, t.id"
           : f.sort === "updated"
             ? "t.updated_at DESC, t.id DESC"
             : "t.due_at IS NULL, t.due_at, t.id";

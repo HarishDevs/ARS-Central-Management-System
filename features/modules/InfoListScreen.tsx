@@ -29,7 +29,7 @@ const INFO_SORT_LABEL: Record<(typeof INFO_SORTS)[number], string> = { newest: "
 const TITLE: Record<InfoBase, string> = { INBOX: "Information inbox", SENT: "Information sent by me" };
 const PATH: Record<InfoBase, string> = { INBOX: "/users/information", SENT: "/users/information/sent" };
 export const INFO_STATE_TONE: Record<InfoState, Tone> = { DRAFT: "warning", PUBLISHED: "success", WITHDRAWN: "neutral", ARCHIVED: "neutral", EXPIRED: "neutral" };
-export const INFO_PRIORITY_TONE: Record<InfoPriority, Tone> = { NORMAL: "neutral", IMPORTANT: "warning", URGENT: "danger" };
+export const INFO_PRIORITY_TONE: Record<InfoPriority, Tone> = { NORMAL: "neutral", ELEVATED: "info", IMPORTANT: "warning", HIGH: "warning", URGENT: "danger" };
 
 export async function InfoListScreen({ base, query }: { base: InfoBase; query: Record<string, string | string[] | undefined> }) {
   const { user } = await requireArea("users");
