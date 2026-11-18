@@ -164,6 +164,16 @@ flowchart LR
   M --> K[Calendar: Meetings kind, start–end, Join]
 ```
 
+## F-ITEMS Item list: requested → provided (v1.57.0, D-335)
+```mermaid
+flowchart LR
+  R([Requester: Item list rows, item + qty]) --> S[Request or ticket submitted]
+  S --> T{Who may tick?}
+  T -->|request: approvers, work-task assignees, IT| P[Tick each item Provided: who and when recorded]
+  T -->|ticket: coordinators, assignee, IT; until closed| P
+  P --> V[Everyone who sees the record sees n of m provided]
+```
+
 ## F-TKT Ticketing System lifecycle (v1.55.0, D-328)
 ```mermaid
 flowchart TD

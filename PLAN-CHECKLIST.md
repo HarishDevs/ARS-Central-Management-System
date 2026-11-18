@@ -17,6 +17,9 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 **Multi-level approvals in any custom manner.** The engine must support any number of levels in any combination: sequential, parallel, any-one, any-N-of-M, conditional and hybrid. Approvers can come from any source, and levels can be added or skipped by rules. Build the engine for this from the first engine phase (P2). The drag-and-drop designer (P3) is only the screen for building it. Check every task against this.
 
 ## Now / Next
+- **Now (18 Nov 2026):** **v1.57.0** Item list with provided ticks (D-335); IT sees every ticket (D-336). **Owner:** back up, run 202611191000_item_checks_ticket_viewers.sql, publish, choose the IT department in Admin → Ticket categories → Who else sees every ticket, add Item list fields where needed.
+- [x] FORM-20 (18 Nov 2026) Item list field (item + qty, no rate/GST) with Provided ticks on requests and tickets
+- [x] TKT-15 (18 Nov 2026) Who else sees every ticket (departments and people), e.g. the IT team
 - **Now (18 Nov 2026):** **v1.56.0** Coordinator board (D-332); meetings table and every meeting on the calendar (D-333); Ticket analytics by access (D-334). **Owner:** publish (no migration).
 - [x] TKT-13 (18 Nov 2026) Coordinator board: where each ticket is now, status-wise
 - [x] MTG-15 (18 Nov 2026) Meetings list as a table (like tickets)

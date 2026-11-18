@@ -69,6 +69,7 @@ const TYPE_ICON: Record<string, LucideIcon> = {
   "LOOKUP:DESIGNATION": AtSign,
   CALC: Calculator,
   LINE_ITEMS: Rows3,
+  ITEM_LIST: ListChecks,
   URL: Link2,
   SECTION: Heading,
 };

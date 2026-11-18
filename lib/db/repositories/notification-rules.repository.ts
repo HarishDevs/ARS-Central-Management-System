@@ -298,7 +298,7 @@ export async function formFieldOptions(module: RuleModule, db: Queryable = getDb
   const seen = new Map<string, string>();
   for (const row of rows) {
     for (const field of json<{ key?: string; label?: string; type?: string }[]>(row.form_json, [])) {
-      if (!field?.key || field.type === "SECTION" || field.type === "ATTACHMENT" || field.type === "LINE_ITEMS") continue;
+      if (!field?.key || field.type === "SECTION" || field.type === "ATTACHMENT" || field.type === "LINE_ITEMS" || field.type === "ITEM_LIST") continue;
       if (!seen.has(field.key)) seen.set(field.key, field.label ?? field.key);
     }
   }

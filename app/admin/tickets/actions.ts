@@ -6,7 +6,7 @@ import { getAdminActor } from "@/server/admin/actor";
 import { withTransaction } from "@/lib/db/transaction";
 import { recordAudit } from "@/lib/db/repositories/audit.repository";
 import { findModuleType } from "@/lib/db/repositories/module-types.repository";
-import { findTicketCategory, insertTicketCategory, saveTicketFormSetup, updateTicketCategory } from "@/lib/db/repositories/tickets.repository";
+import { findTicketCategory, insertTicketCategory, replaceTicketViewers, saveTicketFormSetup, updateTicketCategory } from "@/lib/db/repositories/tickets.repository";
 import { PREFIX_PATTERN } from "@/server/tickets/rules";
 import { logError } from "@/lib/logging/logger";
 import type { ActionResult } from "@/lib/http/action-result";
@@ -84,4 +84,25 @@ export async function saveTicketCategoryAction(_previous: ActionResult | null, f
   }
   revalidatePath("/admin/ticket-categories");
   return { ok: true, message: "Saved." };
+}
+
+// v1.57.0 (D-336, owner: "ticket dashboards should also be visible to IT team"):
+// the departments and people who see every ticket (read-only unless they coordinate it).
+export async function saveTicketViewersAction(_previous: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  const actor = await getAdminActor("admin.ticket_forms");
+  if (!actor) return NOT_FOUND;
+  const ids = (name: string) => [...new Set(formData.getAll(name).filter((value): value is string => typeof value === "string" && /^\d{1,10}$/.test(value)).map(Number))].slice(0, 200);
+  const departmentIds = ids("viewerDepartments");
+  const userIds = ids("viewerPeople");
+  try {
+    await withTransaction(async (connection) => {
+      await replaceTicketViewers(departmentIds, userIds, actor.id, connection);
+      await recordAudit({ actorUserId: actor.id, action: "TICKET_VIEWERS_SAVED", entityType: "TICKET_SETTINGS", entityId: "viewers", sessionId: actor.sessionId, ipAddress: actor.ipAddress ?? null, metadata: { departmentIds, userIds } }, connection);
+    });
+  } catch (error) {
+    logError("saveTicketViewersAction failed", error);
+    return { ok: false, message: "Couldn't save. Please try again." };
+  }
+  revalidatePath("/admin/ticket-categories");
+  return { ok: true, message: `Saved: ${departmentIds.length} department${departmentIds.length === 1 ? "" : "s"} and ${userIds.length} ${userIds.length === 1 ? "person" : "people"} see every ticket.` };
 }

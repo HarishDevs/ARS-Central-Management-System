@@ -1,3 +1,5 @@
+import { ItemChecklist } from "@/features/modules/ItemChecklist";
+import { checklistsFor, mayTickTicket } from "@/server/records/item-checks";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -58,6 +60,9 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   ]);
   const query = await searchParams;
   const names = new Map(people.map((person) => [person.id, person.name]));
+  // v1.57.0 (D-335): Item list fields, ticked as provided by the coordinators and the assignee.
+  const checklists = await checklistsFor("TICKET", ticket.id, form, ticket.formData);
+  const canTickItems = checklists.length > 0 && (await mayTickTicket(ticket.id, user));
   const today = new Date(Date.now() + 330 * 60_000).toISOString().slice(0, 10);
   const requester = ticket.requesterId === user.id;
   const late = isOverdue(ticket);
@@ -136,7 +141,12 @@ export default async function Page({ params, searchParams }: { params: Promise<{
                 <RichText text={ticket.description} />
               </div>
             )}
-            <FieldValues form={form} data={ticket.formData} names={names} lookupNames={lookupNames} />
+            <FieldValues form={form.filter((field) => field.type !== "ITEM_LIST")} data={ticket.formData} names={names} lookupNames={lookupNames} />
+            {checklists.length > 0 && (
+              <div className="mt-4">
+                <ItemChecklist entityType="TICKET" entityId={ticket.id} lists={checklists} canTick={canTickItems} />
+              </div>
+            )}
             <div className="mt-4 space-y-3">
               <FileLinks files={files} label="Attachments" />
               <FileLinks files={taskFiles} label="Supporting documents from the work" />

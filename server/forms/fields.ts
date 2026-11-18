@@ -12,7 +12,54 @@ import { computeLines, dependencyOrder, evaluateFormula, formatPaise, formulaFie
 // v1.9.0: CURRENCY (₹, two decimals), DATETIME (India time), MULTI_CHOICE
 // (several of the options), CHECKBOX (ticked = "Yes"), RADIO (one option,
 // shown as buttons), URL (http/https link).
-export const FIELD_TYPES = ["TEXT", "LONG_TEXT", "NUMBER", "DATE", "CHOICE", "PERSON", "LOOKUP", "CALC", "LINE_ITEMS", "SECTION", "ATTACHMENT", "CURRENCY", "DATETIME", "MULTI_CHOICE", "CHECKBOX", "RADIO", "URL"] as const;
+// v1.57.0 (D-335, owner): ITEM_LIST, a list of items with the quantity asked
+// for (no rate, no GST), e.g. stationery; whoever handles the request or ticket
+// ticks each item when it is provided (record_item_checks).
+export const FIELD_TYPES = ["TEXT", "LONG_TEXT", "NUMBER", "DATE", "CHOICE", "PERSON", "LOOKUP", "CALC", "LINE_ITEMS", "SECTION", "ATTACHMENT", "CURRENCY", "DATETIME", "MULTI_CHOICE", "CHECKBOX", "RADIO", "URL", "ITEM_LIST"] as const;
+// An item list's rows: at most 100, each up to 200 characters, quantity 1–100,000.
+export const MAX_ITEM_ROWS = 100;
+export interface ListItem {
+  description: string;
+  quantity: number;
+}
+// The items stored for an item-list field (a JSON list), safely.
+export function storedItems(value: unknown): ListItem[] {
+  if (typeof value !== "string" || !value) return [];
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((row): row is Record<string, unknown> => typeof row === "object" && row !== null)
+      .map((row) => ({ description: String(row.description ?? "").slice(0, 200), quantity: Number(row.quantity) }))
+      .filter((row) => row.description && Number.isInteger(row.quantity) && row.quantity > 0);
+  } catch {
+    return [];
+  }
+}
+// The rows the browser sent for an item list: { items } or { error }.
+export function parseItemRows(value: string): { items: ListItem[] } | { error: string } {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    return { error: "The items couldn't be read. Check them and try again." };
+  }
+  if (!Array.isArray(parsed)) return { error: "The items couldn't be read. Check them and try again." };
+  const rows = parsed
+    .filter((row): row is Record<string, unknown> => typeof row === "object" && row !== null)
+    .map((row) => ({ description: String(row.description ?? "").trim(), quantity: String(row.quantity ?? "").trim() }))
+    .filter((row) => row.description || (row.quantity && row.quantity !== "1"));
+  if (rows.length > MAX_ITEM_ROWS) return { error: `Add at most ${MAX_ITEM_ROWS} items.` };
+  const items: ListItem[] = [];
+  for (const [index, row] of rows.entries()) {
+    if (!row.description) return { error: `Item ${index + 1}: write what is needed.` };
+    if (row.description.length > 200) return { error: `Item ${index + 1}: use 200 characters or fewer.` };
+    const quantity = Number(row.quantity);
+    if (!/^\d{1,6}$/.test(row.quantity) || quantity < 1 || quantity > 100000) return { error: `Item ${index + 1}: the quantity must be a whole number from 1 to 100,000.` };
+    items.push({ description: row.description, quantity });
+  }
+  return { items };
+}
 // Most files one attachment field takes (the request limit of 20 still applies).
 export const MAX_FIELD_FILES = 10; // v1.55.2 (D-330): was 5
 // Types whose value is a number (usable in formulas, rules and the DoA).
@@ -222,6 +269,12 @@ export function parseFormSubmission(
         else if (!isWebLink(value)) errors[field.key] = "Enter a web link starting with https:// or http://.";
         else data[field.key] = value;
         break;
+      case "ITEM_LIST": {
+        const parsed = parseItemRows(value);
+        if ("error" in parsed) errors[field.key] = parsed.error;
+        else if (parsed.items.length) data[field.key] = JSON.stringify(parsed.items);
+        break;
+      }
       case "CHECKBOX":
         if (!["yes", "on", "true"].includes(value.toLowerCase())) errors[field.key] = "Tick the box or leave it empty.";
         else data[field.key] = "Yes";
@@ -323,7 +376,7 @@ export function parseFormSubmission(
       continue;
     }
     if (required && (data[field.key] === undefined || data[field.key] === "") && !errors[field.key]) {
-      errors[field.key] = field.type === "LINE_ITEMS" ? `Add at least one line to ${field.label}.` : field.type === "ATTACHMENT" ? `Attach at least one file to ${field.label}.` : `${field.label} is required.`;
+      errors[field.key] = field.type === "LINE_ITEMS" ? `Add at least one line to ${field.label}.` : field.type === "ITEM_LIST" ? `Add at least one item to ${field.label}.` : field.type === "ATTACHMENT" ? `Attach at least one file to ${field.label}.` : `${field.label} is required.`;
     }
   }
   return Object.keys(errors).length ? { ok: false, errors, data } : { ok: true, data };
@@ -369,6 +422,10 @@ export function displayValue(field: FormField, value: unknown, names: ReadonlyMa
   if (field.type === "NUMBER" && typeof value === "number") return value.toLocaleString("en-IN");
   if (field.type === "CALC" && typeof value === "number") return value.toLocaleString("en-IN", { maximumFractionDigits: field.decimals ?? 2 });
   if (field.type === "LINE_ITEMS" && typeof value === "number") return `${formatPaise(Math.round(value * 100))}`;
+  if (field.type === "ITEM_LIST") {
+    const items = storedItems(value);
+    return items.length ? items.map((item) => `${item.description} × ${item.quantity.toLocaleString("en-IN")}`).join("\n") : "—";
+  }
   if (field.type === "ATTACHMENT" && typeof value === "number") return `${value} file${value === 1 ? "" : "s"}`;
   if (field.type === "PERSON" && typeof value === "number") return names.get(value) ?? `User #${value}`;
   return String(value);

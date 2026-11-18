@@ -110,6 +110,8 @@ function missingRequired(form: HTMLFormElement | null, fields: readonly FormFiel
         ? [...form.querySelectorAll<HTMLInputElement>(`input[name="file:${CSS.escape(field.key)}"]`)].some((input) => (input.files?.length ?? 0) > 0)
         : field.type === "LINE_ITEMS"
           ? !["", "[]"].includes(String(data.get(`${field.key}__lines`) ?? data.get(field.key) ?? "").trim())
+          : field.type === "ITEM_LIST"
+            ? !["", "[]"].includes(String(data.get(field.key) ?? "").trim())
           : field.type === "MULTI_CHOICE"
             ? data.getAll(field.key).some((value) => String(value).trim() !== "")
             : String(data.get(field.key) ?? "").trim() !== "";
@@ -239,7 +241,7 @@ export function CustomApprovalForm({
 
   // A field shown in the summary: IT's fields with a value, in their order.
   const summaryFields = fields
-    .filter((field) => !["ATTACHMENT", "SECTION", "LINE_ITEMS"].includes(field.type))
+    .filter((field) => !["ATTACHMENT", "SECTION", "LINE_ITEMS", "ITEM_LIST"].includes(field.type))
     .map((field) => ({ label: field.label, value: snapshot.values[field.key] ?? "", type: field.type, options: (field as { options?: { value: string; label: string }[] }).options, colors: field.optionColors }))
     .filter((field) => field.value.trim() !== "")
     .map((field) => ({

@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { MultiChoiceInput, parseMulti } from "@/features/requests/MultiChoiceInput";
 import { LineItemsEditor } from "@/features/requests/LineItemsEditor";
+import { ItemListEditor } from "@/features/requests/ItemListEditor";
 import { describeRule, evaluateFormula, parseFormula, ruleHolds, visibleFields } from "@/server/forms/dynamic";
 import { FieldError } from "@/features/ui/form";
 import { Hint } from "@/features/ui/Hint";
@@ -140,6 +141,8 @@ export function DynamicFields({
               <output id={`f-${field.key}`} aria-live="polite" className="field-input flex items-center bg-surface tabular-nums">
                 {calculated[field.key] === null || calculated[field.key] === undefined ? <span className="text-ink-faint">Fill in the fields it uses</span> : calculated[field.key]!.toLocaleString("en-IN", { maximumFractionDigits: field.decimals ?? 2 })}
               </output>
+            ) : field.type === "ITEM_LIST" ? (
+              <ItemListEditor name={field.key} label={field.label} defaultValue={initial?.[field.key] ?? ""} invalid={Boolean(error)} describedBy={error ? `${field.key}-error` : undefined} />
             ) : field.type === "LINE_ITEMS" ? (
               <LineItemsEditor name={field.key} label={field.label} defaultValue={initial?.[`${field.key}__lines`] ?? initial?.[field.key] ?? ""} invalid={Boolean(error)} describedBy={error ? `${field.key}-error` : undefined} onChange={lineHandlers[field.key]!} />
             ) : (

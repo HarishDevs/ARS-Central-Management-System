@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
 import { requireArea } from "@/server/authorization/guards";
 import { PageHeader } from "@/features/shell/PageHeader";
-import { listTicketCategories } from "@/lib/db/repositories/tickets.repository";
+import { listTicketCategories, listTicketViewers } from "@/lib/db/repositories/tickets.repository";
 import { TicketCategoryForm } from "@/features/tickets/TicketCategoryForm";
+import { TicketViewersForm } from "@/features/tickets/TicketViewersForm";
+import { listDepartments } from "@/lib/db/repositories/organisation.repository";
+import { listPeopleFacts } from "@/lib/db/repositories/tasks.repository";
+import { personLabel } from "@/lib/people/label";
 
 export const metadata: Metadata = { title: "Ticket categories" };
 export const dynamic = "force-dynamic";
@@ -12,7 +16,7 @@ export const dynamic = "force-dynamic";
 // its forms (request types) are set up in Ticket forms.
 export default async function Page() {
   await requireArea("admin");
-  const categories = await listTicketCategories();
+  const [categories, viewers, departments, people] = await Promise.all([listTicketCategories(), listTicketViewers(), listDepartments(), listPeopleFacts()]);
   return (
     <>
       <PageHeader title="Ticket categories" description="Each category numbers its own tickets (e.g. IT-SW-2026-00001) and has its own dashboard. Its request types are the ticket forms that choose it, in Ticket forms." />
@@ -20,6 +24,20 @@ export default async function Page() {
         {categories.map((category) => (
           <TicketCategoryForm key={category.id} category={category} />
         ))}
+      </section>
+      <section className="card mb-6 px-5 py-4" aria-labelledby="ticket-viewers-title">
+        <h2 id="ticket-viewers-title" className="font-semibold">
+          Who else sees every ticket
+        </h2>
+        <p className="mb-3 text-label text-ink-muted">
+          IT Admins and the Super Admin always do. The departments and people chosen here (for example the IT department) also see the Ticket dashboards, the Coordinator board, Ticket analytics and every ticket. They can read and add remarks; assigning stays with each form&apos;s coordinators.
+        </p>
+        <TicketViewersForm
+          departments={departments.filter((department) => department.active).map((department) => ({ id: department.id, label: department.name }))}
+          people={people.filter((person) => person.active).map((person) => ({ id: person.id, label: personLabel(person) }))}
+          departmentIds={viewers.departmentIds}
+          userIds={viewers.userIds}
+        />
       </section>
       <section className="card px-5 py-4" aria-labelledby="new-category">
         <h2 id="new-category" className="mb-3 font-semibold">

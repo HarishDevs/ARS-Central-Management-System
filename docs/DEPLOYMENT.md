@@ -209,6 +209,11 @@ Stops anyone reaching the GoDaddy server directly, around Cloudflare (and faking
 1. https://approval.arssteels.net → **Continue with Google** → **itsupport@arsenergy.co.in** (D-082). The seed created this Super Admin, User ID `itadmin`. `itadmin@arssteels.co.in` can't be used: it's only an alias, and Google reports the main address.
 2. You land on **My approvals**. Your name at the top right opens a menu whose **Switch space** section shows Admin and Super Admin.
 
+### G0b. Item lists and ticket viewers (v1.57.0)
+1. Back up the database, then run `database/migrations/202611191000_item_checks_ticket_viewers.sql` (new tables `record_item_checks` and `ticket_viewers`; rollback inside).
+2. Publish v1.57.0.
+3. Admin → Ticket categories → **Who else sees every ticket**: choose the IT department (and anyone else).
+
 ### G0a. Upload size (v1.55.2)
 Up to 10 files of 10 MB go in one upload, so the app accepts request bodies up to 102 MB (`next.config.ts`). If the hosting (or a proxy in front of it) has a smaller request size limit, raise it to at least 102 MB, or large uploads are cut off.
 

@@ -20,6 +20,7 @@ const TYPE_HELP: Partial<Record<FieldType, string>> = {
   CHECKBOX: 'One tick box. Required means it must be ticked (e.g. "I confirm the details are correct").',
   URL: "A web link starting with https:// or http://. Shown as a link that opens in a new tab.",
   LINE_ITEMS: "Rows of item, quantity, rate (₹) and GST %. The total can be the DoA amount.",
+  ITEM_LIST: "Rows of item and quantity requested (no rate or GST), e.g. stationery. Whoever handles the request or ticket ticks each item when it is provided.",
   SECTION: "A heading that groups the fields below it. It holds no value.",
   ATTACHMENT: "Files, 10 MB each. Required means at least one file.",
 };

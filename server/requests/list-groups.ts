@@ -22,7 +22,7 @@ export interface ListGroupData {
 }
 
 // Field types that make no sense as groups.
-const NOT_GROUPABLE = new Set(["SECTION", "ATTACHMENT", "LONG_TEXT", "LINE_ITEMS"]);
+const NOT_GROUPABLE = new Set(["SECTION", "ATTACHMENT", "LONG_TEXT", "LINE_ITEMS", "ITEM_LIST"]);
 export const NO_VALUE = "No value";
 export const HIDDEN = "Hidden";
 

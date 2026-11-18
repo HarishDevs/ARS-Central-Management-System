@@ -1,5 +1,12 @@
 # Release notes
 
+## v1.57.0 (18 Nov 2026): Item list with "provided" ticks; IT sees every ticket (owner)
+- **New form field: Item list** (Form Designer → Advanced → Item list). The requester lists each item and the **quantity needed**: no rate, no GST (for example stationery). On the request or ticket, an **Items to provide** table shows each item with a **Provided** tick and "n of m provided"; ticking records who and when, and can be undone.
+  - Who ticks: on an approval request, its approvers, the assignee of a work task raised from it, and IT; on a ticket, its coordinators, its assignee and IT (until it closes). Everyone who can see the record sees the ticks.
+  - For approval forms and ticket forms (not task or information forms). Up to 100 items, quantities 1 to 100,000.
+- **Ticket dashboards for the IT team:** Admin → Ticket categories → **Who else sees every ticket**: choose departments (e.g. the IT department) and people. They see the Ticket dashboards, the Coordinator board, Ticket analytics and every ticket (and can add remarks); assigning stays with each form's coordinators. IT Admins and the Super Admin always do.
+- **Owner steps:** back up, run `database/migrations/202611191000_item_checks_ticket_viewers.sql` (two new tables; rollback inside), publish v1.57.0, then in Admin → Ticket categories choose the IT department under "Who else sees every ticket", and add an Item list field to the forms that need it.
+
 ## v1.56.0 (18 Nov 2026): Coordinator board for tickets; meetings as a table; every meeting on the calendar (owner)
 - **Meetings list is a table** (like the tickets): Meeting number, Title (type and open actions), Date and time, Mode / venue (with **Join** when there is a link), Owner, Coordinator, Department, Priority, Invited, Status (and points status). Tabs, filters and search work as before.
 - **Analytics → Ticket analytics** (for everyone with Ticketing), by access: **Whole organisation** (IT) counts every ticket; otherwise the scope at the top counts the tickets raised by or assigned to you, your reporting line (My team) or your departments, **plus every ticket of the forms you coordinate**. Figures: raised, closed, auto closed, open now, overdue, reopened, first response and resolution times, average rating; where the open tickets are and who has them; by category, form, department and priority; twelve months; the overdue list.

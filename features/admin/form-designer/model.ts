@@ -32,6 +32,8 @@ export const TYPE_CHOICES: TypeChoice[] = [
   { value: "LOOKUP:DESIGNATION", label: "Designation (from the list)", short: "Designation", group: "ADVANCED" },
   { value: "CALC", label: "Calculated (formula)", short: "Calculation", group: "ADVANCED" },
   { value: "LINE_ITEMS", label: "Line items (qty × rate + GST)", short: "Line items", group: "ADVANCED" },
+  // v1.57.0 (D-335): items and quantities only; ticked when provided.
+  { value: "ITEM_LIST", label: "Item list (item + qty, tick when provided)", short: "Item list", group: "ADVANCED" },
   { value: "URL", label: "Web link (URL)", short: "Web link", group: "ADVANCED" },
   { value: "SECTION", label: "Section heading", short: "Section", group: "LAYOUT" },
 ];

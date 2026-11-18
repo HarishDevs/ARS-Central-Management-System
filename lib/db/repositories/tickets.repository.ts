@@ -84,6 +84,29 @@ export async function coordinatesAny(userId: number, db: Queryable = getDbPool()
   return rows.length > 0;
 }
 
+// v1.57.0 (D-336, owner: "ticket dashboards should also be visible to IT team"):
+// the departments and people who see every ticket (read-only unless they
+// coordinate it), set in Admin → Ticket categories.
+export async function seesAllTickets(userId: number, db: Queryable = getDbPool()): Promise<boolean> {
+  const [rows] = await db.query<Row[]>(
+    "SELECT 1 FROM ticket_viewers v WHERE v.user_id = ? OR v.department_id = (SELECT department_id FROM users WHERE id = ?) LIMIT 1",
+    [userId, userId],
+  );
+  return rows.length > 0;
+}
+export async function listTicketViewers(db: Queryable = getDbPool()): Promise<{ departmentIds: number[]; userIds: number[] }> {
+  const [rows] = await db.query<Row[]>("SELECT department_id, user_id FROM ticket_viewers ORDER BY id");
+  return {
+    departmentIds: rows.filter((row) => row.department_id !== null).map((row) => num(row.department_id)),
+    userIds: rows.filter((row) => row.user_id !== null).map((row) => num(row.user_id)),
+  };
+}
+export async function replaceTicketViewers(departmentIds: readonly number[], userIds: readonly number[], by: number, db: Queryable): Promise<void> {
+  await db.query("DELETE FROM ticket_viewers");
+  for (const id of [...new Set(departmentIds)]) await db.query("INSERT INTO ticket_viewers (department_id, created_by) VALUES (?, ?)", [id, by]);
+  for (const id of [...new Set(userIds)]) await db.query("INSERT INTO ticket_viewers (user_id, created_by) VALUES (?, ?)", [id, by]);
+}
+
 // Live ticket forms people can raise, with their category (only forms with a category).
 export interface RaisableForm {
   typeId: number;

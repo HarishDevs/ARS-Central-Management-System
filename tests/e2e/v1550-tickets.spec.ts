@@ -54,6 +54,9 @@ test("IT sets up a ticket form: the shared Form Builder, its category and its co
   // The same builder as approvals: add a field, then publish.
   await page.getByRole("button", { name: /Short text/ }).first().click();
   await page.getByLabel("Field label").last().fill("Asset tag");
+  // v1.57.0 (D-335): an Item list (item + qty, ticked when provided).
+  await page.getByRole("button", { name: /Item list/ }).first().click();
+  await page.getByLabel("Field label").last().fill("Accessories needed");
   await page.getByRole("button", { name: "Save draft" }).click();
   await expect(page.getByText(/Draft saved. It passes every check/)).toBeVisible();
   await page.getByRole("button", { name: "Publish version 1" }).click();
@@ -73,6 +76,8 @@ test("the requester raises a ticket: own details filled in, a number by its cate
   await form.getByLabel("Priority").selectOption("HIGH");
   await form.getByLabel("Required date").fill(new Date(Date.now() + 330 * 60_000 + 86_400_000).toISOString().slice(0, 10));
   await form.getByLabel("Asset tag").fill("LT-0042");
+  await form.getByLabel("Item 1", { exact: true }).fill("USB mouse");
+  await form.getByLabel("Item 1 quantity").fill("2");
   await form.getByRole("button", { name: "Raise ticket" }).click();
   await expect(page).toHaveURL(/\/users\/tickets\/\d+\?raised=1/);
   ticketPath = new URL(page.url()).pathname;
@@ -93,6 +98,16 @@ test("the coordinator assigns it: a linked task in the assignee's Tasks", async 
   await page.reload();
   await expect(page.locator("main")).toContainText("Assigned");
   await expect(page.getByRole("link", { name: /^TSK-/ })).toBeVisible();
+  // v1.57.0 (D-335): the coordinator ticks the item as provided.
+  const items = page.getByTestId("item-checklists");
+  await expect(items).toContainText("USB mouse");
+  await expect(items.getByTestId("item-progress")).toHaveText("0 of 1 provided");
+  await items.getByLabel("USB mouse: provided").check();
+  await expect(items.getByTestId("item-progress")).toHaveText("1 of 1 provided");
+  await expect(items).toContainText("Manoj Manager");
+  await page.reload();
+  await expect(page.getByTestId("item-checklists").getByLabel("USB mouse: provided")).toBeChecked();
+  await page.screenshot({ path: "test-results/v1570-item-checklist.png", fullPage: true });
 });
 
 test("the assignee starts and completes the task with remarks; the ticket awaits confirmation", async ({ page, context }) => {

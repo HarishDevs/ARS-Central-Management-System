@@ -15,6 +15,8 @@ import { Hint } from "@/features/ui/Hint";
 import { RequestStatusPill } from "@/features/requests/StatusPill";
 import { ApprovalLevels } from "@/features/requests/ApprovalLevels";
 import { RequestDetails } from "@/features/requests/RequestDetails";
+import { ItemChecklist } from "@/features/modules/ItemChecklist";
+import { checklistsFor, mayTickRequest } from "@/server/records/item-checks";
 import { RequestTimeline } from "@/features/requests/RequestTimeline";
 import { indiaDateTime, processFigures } from "@/features/requests/request-page";
 import { loadJourney } from "@/server/journey/load";
@@ -83,6 +85,9 @@ export default async function RequestPage({
   const journey = view ? await loadJourney(view.id, { id: user.id, roles: user.roles }).catch(() => null) : null;
   const road = journey ? { road: journey.road } : null;
   if (!view) notFound();
+  // v1.57.0 (D-335): Item list fields, ticked as provided (confidential ones the viewer can't see are left out).
+  const checklists = view.form.some((field) => field.type === "ITEM_LIST") ? await checklistsFor("REQUEST", view.id, view.form, view.rawFields) : [];
+  const canTickItems = checklists.length > 0 && (await mayTickRequest(view.id, user));
   // WS-04: remember the visit (only after the access check passed).
   await recordView(user.id, view.id).catch(() => undefined);
   const query = await searchParams;
@@ -257,6 +262,14 @@ export default async function RequestPage({
         <div className="flex min-w-0 flex-col gap-6">
           <div className="order-1 min-w-0">
             <RequestDetails view={view} requester={requester} raisedOn={indiaDateTime(raisedAt ?? figures.startIso, true)} files={fileRows} />
+            {checklists.length > 0 && (
+              <section className="card mt-6 px-5 py-4" aria-labelledby="items-provided">
+                <h2 id="items-provided" className="mb-3 text-body font-semibold">
+                  Items to provide
+                </h2>
+                <ItemChecklist entityType="REQUEST" entityId={view.id} lists={checklists} canTick={canTickItems} />
+              </section>
+            )}
           </div>
           <div className="order-2 min-w-0">
             <ApprovalLevels status={view.status} tracker={view.tracker} stages={view.stages} figures={figures} />

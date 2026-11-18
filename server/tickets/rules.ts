@@ -30,6 +30,8 @@ export interface TicketViewer {
   id: number;
   isAdmin: boolean; // IT Admin / Super Admin: sees and coordinates every ticket
   isCoordinator: boolean; // a coordinator of the ticket's form
+  // v1.57.0 (D-336): sees every ticket (Admin → Ticket categories → who else sees all tickets); read-only.
+  seesAll?: boolean;
 }
 export interface TicketFacts {
   status: TicketStatus;
@@ -45,13 +47,13 @@ export const roleOf = (ticket: TicketFacts, viewer: TicketViewer) => ({
 
 export function canSeeTicket(ticket: TicketFacts, viewer: TicketViewer): boolean {
   const role = roleOf(ticket, viewer);
-  return role.requester || role.coordinator || role.assignee;
+  return role.requester || role.coordinator || role.assignee || Boolean(viewer.seesAll);
 }
 
 // Coordinator remarks are internal: coordinators and the assignee see them, the requester doesn't.
 export function seesInternal(ticket: TicketFacts, viewer: TicketViewer): boolean {
   const role = roleOf(ticket, viewer);
-  return role.coordinator || role.assignee;
+  return role.coordinator || role.assignee || Boolean(viewer.seesAll);
 }
 
 export function allowedTicketActions(ticket: TicketFacts, viewer: TicketViewer): Set<TicketAction> {
@@ -65,7 +67,7 @@ export function allowedTicketActions(ticket: TicketFacts, viewer: TicketViewer):
     actions.add("CONFIRM");
     actions.add("REOPEN");
   }
-  if (role.requester || role.coordinator || role.assignee) actions.add("COMMENT");
+  if (role.requester || role.coordinator || role.assignee || viewer.seesAll) actions.add("COMMENT");
   return actions;
 }
 

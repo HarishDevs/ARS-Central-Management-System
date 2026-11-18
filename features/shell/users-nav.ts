@@ -1,6 +1,6 @@
 import "server-only";
 import { enabledFeatures } from "@/server/settings/features";
-import { coordinatesAny } from "@/lib/db/repositories/tickets.repository";
+import { coordinatesAny, seesAllTickets } from "@/lib/db/repositories/tickets.repository";
 import type { NavItem } from "@/features/shell/SideNav";
 
 // The My approvals space's pages, in the owner's order. Used by the sidebar
@@ -8,7 +8,7 @@ import type { NavItem } from "@/features/shell/SideNav";
 export async function usersNav(user: { id: number; roles: readonly string[] }): Promise<NavItem[]> {
   const features = await enabledFeatures(user);
   // v1.55.3 (D-331, owner): Ticket dashboards are for the coordinators of ticket forms (and IT).
-  const ticketDashboards = user.roles.includes("IT_ADMIN") || user.roles.includes("SUPER_ADMIN") || (await coordinatesAny(user.id).catch(() => false));
+  const ticketDashboards = user.roles.includes("IT_ADMIN") || user.roles.includes("SUPER_ADMIN") || (await coordinatesAny(user.id).catch(() => false)) || (await seesAllTickets(user.id).catch(() => false));
   return [
     // v1.9.2 (owner): Overview; My Approvals, Tasks and Information as
     // collapsible groups; then Search, Calendar and Analytics.

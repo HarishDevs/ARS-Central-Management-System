@@ -179,6 +179,8 @@ export function checkTypeDraft(module: ModuleKind, form: readonly FormField[], s
   for (const field of form) {
     if (RESERVED_KEYS[module].has(field.key)) problems.push(`"${field.label}": the key "${field.key}" is used by the page itself. Choose another.`);
     if (field.type === "LINE_ITEMS") problems.push(`"${field.label}": line items are only for approval forms.`);
+    // v1.57.0 (D-335): item lists are ticked off on approval requests and tickets.
+    if (field.type === "ITEM_LIST" && module !== "TICKET") problems.push(`"${field.label}": item lists are only for approval and ticket forms.`);
   }
   const access = settings.access;
   if (access.mode === "DEPARTMENTS" && access.departmentIds.length === 0) problems.push("Choose at least one department that may create these.");
