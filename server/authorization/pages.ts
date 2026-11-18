@@ -64,6 +64,7 @@ export const PAGES: readonly PageDef[] = [
   // v1.55.0 (D-326, D-327): the Ticketing System (anyone with CMS access once switched on).
   { key: "users.tickets", module: "TICKET", area: "users", label: "Tickets: raise and my tickets", what: "Raising a ticket and the person's own and assigned tickets.", paths: [exact("/users/tickets"), under("/users/tickets/new")] },
   { key: "users.ticket_dashboards", module: "TICKET", area: "users", label: "Tickets: dashboards", what: "The ticket dashboards of each category (coordinators see their forms' tickets; IT sees all).", paths: [under("/users/tickets/dashboards")] },
+  { key: "users.ticket_board", module: "TICKET", area: "users", label: "Tickets: coordinator board", what: "Where each ticket is now, by status (coordinators see their forms' tickets; IT sees all).", paths: [under("/users/tickets/board")] },
   { key: "users.ticket_item", module: "TICKET", partyOpen: true, area: "users", label: "Tickets: page", what: "Opening a ticket: assigning, remarks, confirming or reopening.", paths: [/^\/users\/tickets\/\d+(\/.*)?$/] },
   // D-168: the AI module. D-180 (owner): it is the assistant only; the old AI
   // pages (dashboard, intelligence, insights, sources, reports, history)

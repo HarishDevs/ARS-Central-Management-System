@@ -1,3 +1,4 @@
+import { TicketBoard } from "@/features/analytics/TicketBoard";
 import { ComingSoonCard } from "@/features/ui/ComingSoon";
 import { TaskPriorityPill } from "@/features/ui/ChoicePill";
 import Link from "next/link";
@@ -233,7 +234,7 @@ export async function CenterScreen({ base, board, boards, soon = [], modules, qu
             <option value="LAST_YEAR">Same period last year</option>
           </select>
         </div>
-        {board === "employees" && (
+      {board === "employees" && (
           <>
             <div>
               <label htmlFor="q" className="field-label">
@@ -276,6 +277,7 @@ export async function CenterScreen({ base, board, boards, soon = [], modules, qu
           everythingHref={boardHref(base, carry, query.mscope === "all" ? {} : { mscope: "all" })}
         />
       )}
+      {board === "tickets" && <TicketBoard scope={scope} viewer={viewer} period={period} previous={previous} />}
       {board === "employees" && <Employees base={base} carry={carry} query={query} scope={scope} viewer={viewer} period={period} exportHref={canExport ? exportHref("employees") : null} />}
       {board === "departments" && <Departments scope={scope} period={period} exportHref={canExport ? exportHref("departments") : null} />}
       {board === "sla" && <Sla base={base} carry={carry} scope={scope} viewer={viewer} period={period} />}

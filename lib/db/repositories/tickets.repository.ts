@@ -394,6 +394,63 @@ export async function listTickets(filter: TicketListFilter, viewer: { id: number
   };
 }
 
+// v1.56.0 (D-332, owner: "one more separate page for Coordinators that will show
+// the status wise so that the coordinators can know where the ticket is now"):
+// the coordinator's board. Every open ticket they coordinate (IT: all), plus the
+// ones closed in the last `closedDays` days, with when it reached its status.
+export interface TicketBoardItem extends TicketListItem {
+  requiredOn: string | null;
+  confirmDueOn: string | null;
+  reopenCount: number;
+  statusSince: Date;
+  taskNo: string | null;
+}
+export async function ticketBoard(
+  filter: { categoryId: number | null; q: string; overdueOnly: boolean },
+  viewer: { id: number; isAdmin: boolean },
+  closedDays = 7,
+  db: Queryable = getDbPool(),
+): Promise<TicketBoardItem[]> {
+  const base = ticketWhere({ scope: viewer.isAdmin ? "all" : "coordinating", categoryId: filter.categoryId, status: filter.overdueOnly ? "overdue" : null, q: filter.q, page: 1 }, viewer);
+  const clause = `${base.clause ? `${base.clause} AND` : "WHERE"} (k.status <> 'CLOSED' OR k.closed_at >= UTC_TIMESTAMP() - INTERVAL ? DAY)`;
+  const [rows] = await db.query<Row[]>(
+    `SELECT k.id, k.ticket_no, k.title, c.name AS category_name, t.name AS type_name, r.name AS requester_name, d.name AS department_name, a.name AS assignee_name,
+            k.priority, k.status, k.close_kind, k.submitted_at, k.due_at, k.required_on, k.confirm_due_on, k.reopen_count, tk.task_no,
+            CASE k.status
+              WHEN 'NEW' THEN k.submitted_at
+              WHEN 'ASSIGNED' THEN COALESCE(k.assigned_at, k.updated_at)
+              WHEN 'IN_PROGRESS' THEN COALESCE(k.work_started_at, k.updated_at)
+              WHEN 'AWAITING_CONFIRMATION' THEN COALESCE(k.confirmation_requested_at, k.updated_at)
+              WHEN 'REOPENED' THEN COALESCE((SELECT MAX(e.created_at) FROM ticket_events e WHERE e.ticket_id = k.id AND e.action = 'REOPENED'), k.updated_at)
+              ELSE COALESCE(k.closed_at, k.updated_at)
+            END AS status_since
+       ${LIST_FROM} LEFT JOIN tasks tk ON tk.id = k.task_id ${clause}
+      ORDER BY FIELD(k.priority, 'URGENT', 'HIGH', 'IMPORTANT', 'ELEVATED', 'NORMAL'), k.due_at IS NULL, k.due_at, k.id
+      LIMIT 1000`,
+    [...base.params, closedDays],
+  );
+  return rows.map((row) => ({
+    id: num(row.id),
+    ticketNo: String(row.ticket_no),
+    title: String(row.title),
+    categoryName: String(row.category_name),
+    typeName: String(row.type_name),
+    requesterName: String(row.requester_name),
+    departmentName: row.department_name ? String(row.department_name) : null,
+    assigneeName: row.assignee_name ? String(row.assignee_name) : null,
+    priority: String(row.priority) as TicketPriority,
+    status: String(row.status) as TicketStatus,
+    closeKind: row.close_kind ? String(row.close_kind) : null,
+    submittedAt: new Date(row.submitted_at as string),
+    dueAt: date(row.due_at),
+    requiredOn: day(row.required_on),
+    confirmDueOn: day(row.confirm_due_on),
+    reopenCount: num(row.reopen_count),
+    statusSince: new Date(row.status_since as string),
+    taskNo: row.task_no ? String(row.task_no) : null,
+  }));
+}
+
 // The dashboard's numbers, from the same filters (status filter ignored: these ARE the statuses).
 export interface TicketCounts {
   total: number;

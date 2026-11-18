@@ -179,6 +179,7 @@ flowchart TD
 ```
 - Task completion never closes a ticket. Only the requester confirms or reopens. Coordinators reassign on the ticket (the task side refuses reassign, cancel and reopen).
 - The auto-close job claims each stage once, and closes only while the ticket still waits.
+- Coordinator board (D-332): every column above (New, Reopened, Assigned, In progress, Awaiting confirmation, Closed last 7 days) as one page, for coordinators and IT.
 
 ## F-02 User ID + password + OTP
 ```mermaid

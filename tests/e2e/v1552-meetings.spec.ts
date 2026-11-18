@@ -36,6 +36,8 @@ test("the schedule form: today and now, required marks, department search, end a
   await expect(page.getByText("Choose one department.")).toBeVisible();
   await expect(page.getByText("Up to 50 departments.")).toBeVisible();
   // Moving the start past the end moves the end an hour later.
+  await page.locator("#mtg-start").fill("09:00");
+  await page.locator("#mtg-end").fill("10:00");
   await page.locator("#mtg-start").fill("15:00");
   await expect(page.locator("#mtg-end")).toHaveValue("16:00");
   // An end before the start is refused in the browser.
@@ -59,7 +61,7 @@ test("an online meeting's link shows in the meetings list and on the calendar", 
   await expect(page).toHaveURL(/\/users\/meetings\/\d+\?scheduled=1/);
 
   await page.goto(`/users/meetings?tab=all&q=${encodeURIComponent(title)}`);
-  const card = page.getByTestId("meeting-list").locator("li", { hasText: title });
+  const card = page.getByTestId("meeting-list").locator("tr", { hasText: title });
   await expect(card.getByTestId("meeting-join-link")).toHaveAttribute("href", link);
 
   await page.goto(`/users/calendar?view=day&date=${indiaToday()}`);

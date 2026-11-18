@@ -137,14 +137,41 @@ test("the coordinator's IT Hardware dashboard counts it; filters work", async ({
   await page.screenshot({ path: "test-results/v1550-ticket-dashboard.png", fullPage: true });
 });
 
+// v1.56.0 (D-332, owner): the coordinator board, status-wise.
+test("the coordinator board shows where the ticket is now", async ({ page, context }) => {
+  await as(context, "E2E_MGR");
+  await page.goto("/users/tickets");
+  await page.getByTestId("sidebar").getByRole("link", { name: "Coordinator board" }).click();
+  await expect(page).toHaveURL(/\/users\/tickets\/board/);
+  for (const status of ["NEW", "REOPENED", "ASSIGNED", "IN_PROGRESS", "AWAITING_CONFIRMATION", "CLOSED"]) await expect(page.getByTestId(`board-column-${status}`)).toBeVisible();
+  // The journey's ticket was confirmed and closed: it sits in Closed.
+  await expect(page.getByTestId("board-column-CLOSED")).toContainText(subject);
+  await page.locator("#board-q").fill(subject);
+  await page.getByRole("button", { name: "Apply" }).click();
+  await expect(page.getByTestId("board-card")).toHaveCount(1);
+  await page.screenshot({ path: "test-results/v1560-coordinator-board.png", fullPage: true });
+});
+
+// v1.56.0 (D-334, owner): Ticket analytics, by access.
+test("Analytics has a Ticket analytics board for the coordinator, with their form's tickets", async ({ page, context }) => {
+  await as(context, "E2E_MGR");
+  await page.goto("/users/analytics?board=tickets&period=custom&from=2026-01-01&to=2030-12-31");
+  const board = page.getByTestId("ticket-analytics");
+  await expect(board).toBeVisible();
+  await expect(board.getByTestId("ticket-by-category")).toContainText("IT Hardware");
+  await page.screenshot({ path: "test-results/v1560-ticket-analytics.png", fullPage: true });
+});
+
 // v1.55.3 (D-331, owner): Ticket dashboards are for coordinators (and IT) only.
 test("someone who coordinates no ticket form doesn't see Ticket dashboards", async ({ page, context }) => {
   await as(context, "E2E_REQ");
   await page.goto("/users/tickets");
   await expect(page.getByTestId("sidebar").getByRole("link", { name: "My tickets" })).toBeVisible();
   await expect(page.getByTestId("sidebar").getByRole("link", { name: "Ticket dashboards" })).toHaveCount(0);
+  await expect(page.getByTestId("sidebar").getByRole("link", { name: "Coordinator board" })).toHaveCount(0);
   const response = await page.goto("/users/tickets/dashboards");
   expect(response?.status()).toBe(404);
+  expect((await page.goto("/users/tickets/board"))?.status()).toBe(404);
 });
 
 test("someone not involved can't open the ticket", async ({ page, context }) => {

@@ -8,6 +8,8 @@ export const BOARDS = [
   { key: "information", label: "Information analytics", what: "Publishing, reading and acknowledgement of information." },
   // v1.52.0 (owner): meetings, by access and reporting line.
   { key: "meetings", label: "Meeting analytics", what: "Meetings held, on time (the Coordinator's ticks), attendance, approvals and action follow-up, by type, department, Coordinator and action owner." },
+  // v1.56.0 (D-334, owner): tickets, by access (scope, plus the forms one coordinates).
+  { key: "tickets", label: "Ticket analytics", what: "Tickets raised, closed and reopened, response and resolution times, ratings, where the open tickets are and who has them, by category, form, department and priority." },
   { key: "employees", label: "Employee analytics", what: "Each person's approval, task and information workload, kept separate." },
   { key: "departments", label: "Department analytics", what: "Each department's workload, completion and backlog by module." },
   { key: "sla", label: "SLA & performance", what: "Approval response times and task due-date performance." },
@@ -20,7 +22,7 @@ export type BoardKey = (typeof BOARDS)[number]["key"];
 // boards need the module; people and department boards need a team,
 // department or whole-organisation view; data quality is for the IT team.
 export interface BoardAccess {
-  modules: { approval: boolean; task: boolean; information: boolean; meeting?: boolean };
+  modules: { approval: boolean; task: boolean; information: boolean; meeting?: boolean; ticket?: boolean };
   scopes: readonly string[]; // the ScopeKinds this person has
 }
 export function boardsFor(access: BoardAccess): BoardKey[] {
@@ -32,6 +34,7 @@ export function boardsFor(access: BoardAccess): BoardKey[] {
     tasks: modules.task,
     information: modules.information,
     meetings: Boolean(modules.meeting),
+    tickets: Boolean(modules.ticket),
     employees: manages,
     departments: scopes.includes("DEPARTMENT") || scopes.includes("ORGANISATION"),
     sla: modules.approval || modules.task,
@@ -43,8 +46,8 @@ export function boardsFor(access: BoardAccess): BoardKey[] {
 
 // D-307 (owner): the dashboards of modules the person hasn't been given yet,
 // shown locked ("coming soon") rather than left out.
-export function soonBoards(modules: { approval: boolean; task: boolean; information: boolean; meeting?: boolean }): BoardKey[] {
-  return ([["approvals", modules.approval], ["tasks", modules.task], ["information", modules.information], ["meetings", Boolean(modules.meeting)]] as const).filter(([, on]) => !on).map(([key]) => key);
+export function soonBoards(modules: { approval: boolean; task: boolean; information: boolean; meeting?: boolean; ticket?: boolean }): BoardKey[] {
+  return ([["approvals", modules.approval], ["tasks", modules.task], ["information", modules.information], ["meetings", Boolean(modules.meeting)], ["tickets", Boolean(modules.ticket)]] as const).filter(([, on]) => !on).map(([key]) => key);
 }
 
 export function parseBoard(value: string | undefined): BoardKey {

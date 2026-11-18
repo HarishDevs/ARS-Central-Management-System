@@ -2,7 +2,8 @@ import { beforeAll, describe, expect, it } from "vitest";
 import type { RowDataPacket } from "mysql2/promise";
 import { getDbPool } from "@/lib/db/client";
 import { createModuleType, publishTypeDraft, saveTypeDraft } from "@/server/modules/config";
-import { saveTicketFormSetup, findTicket } from "@/lib/db/repositories/tickets.repository";
+import { saveTicketFormSetup, findTicket, ticketBoard } from "@/lib/db/repositories/tickets.repository";
+import { analyticsTickets } from "@/lib/db/repositories/ticket-analytics.repository";
 import { assignTicket, confirmTicket, raiseTicket, reopenTicket, runTicketConfirmations } from "@/server/tickets/service";
 import { actOnTask, type TaskActor } from "@/server/modules/tasks";
 import { loadWorkingCalendar } from "@/lib/db/repositories/calendar.repository";
@@ -145,6 +146,38 @@ describe("work, confirmation and reopening", () => {
     expect((await findTicket(id))!.status).toBe("ASSIGNED");
     const [events] = await q<{ n: number }>("SELECT COUNT(*) AS n FROM ticket_events WHERE ticket_id = ? AND action IN ('WORK_COMPLETED', 'REOPENED')", [id]);
     expect(Number(events!.n)).toBe(2); // the earlier work stays in the history
+  });
+});
+
+// v1.56.0 (D-332): the coordinator board shows where each ticket is now.
+describe("the coordinator board", () => {
+  it("puts each ticket in its current status, for its coordinators and IT only", async () => {
+    const { id } = await raise("Board check");
+    const asCoordinator = await ticketBoard({ categoryId: null, q: "Board check", overdueOnly: false }, { id: people.coordinator!.id, isAdmin: false });
+    expect(asCoordinator.find((item) => item.id === id)).toMatchObject({ status: "NEW", assigneeName: null });
+    expect((await ticketBoard({ categoryId: null, q: "Board check", overdueOnly: false }, { id: people.stranger!.id, isAdmin: false })).some((item) => item.id === id)).toBe(false);
+    expect((await ticketBoard({ categoryId: null, q: "Board check", overdueOnly: false }, { id: people.stranger!.id, isAdmin: true })).some((item) => item.id === id)).toBe(true);
+    expect((await assignTicket({ ticketId: id, assigneeId: people.assignee!.id, targetDate: today(), remarks: "", rowVersion: null }, people.coordinator!)).ok).toBe(true);
+    const moved = (await ticketBoard({ categoryId: null, q: "Board check", overdueOnly: false }, { id: people.coordinator!.id, isAdmin: false })).find((item) => item.id === id);
+    expect(moved).toMatchObject({ status: "ASSIGNED", assigneeName: expect.any(String) });
+    expect(moved!.taskNo).toMatch(/^TSK-/);
+    expect(moved!.statusSince.getTime()).toBeGreaterThan(Date.now() - 5 * 60_000);
+  });
+});
+
+// v1.56.0 (D-334): Ticket analytics by access.
+describe("ticket analytics scope", () => {
+  it("counts a ticket for its requester, its coordinators and IT, not for others", async () => {
+    const { id } = await raise("Analytics scope");
+    const from = new Date(Date.now() - 3_600_000);
+    const to = new Date(Date.now() + 3_600_000);
+    const has = async (scope: Parameters<typeof analyticsTickets>[0]) => (await analyticsTickets(scope, from, to)).some((row) => row.id === id);
+    expect(await has({ all: false, peopleIds: [people.requester!.id], viewerId: people.requester!.id })).toBe(true);
+    expect(await has({ all: false, peopleIds: [people.coordinator!.id], viewerId: people.coordinator!.id })).toBe(true);
+    expect(await has({ all: false, peopleIds: [people.stranger!.id], viewerId: people.stranger!.id })).toBe(false);
+    expect(await has({ all: true })).toBe(true);
+    // A manager whose team includes the requester sees it too.
+    expect(await has({ all: false, peopleIds: [people.stranger!.id, people.requester!.id], viewerId: people.stranger!.id })).toBe(true);
   });
 });
 

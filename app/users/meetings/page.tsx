@@ -5,6 +5,7 @@ import { requireArea } from "@/server/authorization/guards";
 import { EmptyState, PageHeader } from "@/features/shell/PageHeader";
 import { NoResults, Pagination } from "@/features/ui/Display";
 import { ListToolbar } from "@/features/ui/ListToolbar";
+import { TaskPriorityPill } from "@/features/ui/ChoicePill";
 import { MeetingSections, MeetingStatusBadge, PointsBadge, whenText } from "@/features/meetings/MeetingParts";
 import { listMeetings, listMeetingTypes, type MeetingListFilter } from "@/lib/db/repositories/meetings.repository";
 import { scopeFor } from "@/server/meetings/service";
@@ -122,44 +123,69 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
           />
         )
       ) : (
-        <ul className="space-y-2" data-testid="meeting-list">
-          {list.rows.map((row) => (
-            <li key={row.id}>
-              {/* v1.55.2 (D-330): the whole card opens the meeting; its Join link opens the meeting link. */}
-              <div className="card relative block px-4 py-3 hover:border-primary-600">
-                <div className="flex flex-wrap items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="font-semibold">
-                      <Link href={`/users/meetings/${row.id}`} className="after:absolute after:inset-0 after:content-['']">
-                        {row.title}
-                      </Link>
-                    </p>
-                    <p className="text-label text-ink-muted">
-                      {row.meetingNo} · {row.typeName} · {whenText(row.scheduledStart, row.scheduledEnd)} · {MODE_LABEL[row.mode]}
-                      {row.venue ? ` · ${row.venue}` : ""}
-                    </p>
-                    {row.link && (
-                      <p className="text-caption">
-                        <a href={row.link} target="_blank" rel="noopener noreferrer" className="link relative z-10 break-all" data-testid="meeting-join-link">
-                          Join: {row.link}
-                        </a>
-                      </p>
-                    )}
+        // v1.56.0 (D-333, owner: "i want the meeting to be like table format like the tickets").
+        <div className="card overflow-x-auto">
+          <table className="data-table" data-testid="meeting-list">
+            <caption className="sr-only">Meetings</caption>
+            <thead>
+              <tr>
+                <th scope="col">Meeting</th>
+                <th scope="col">Title</th>
+                <th scope="col">Date and time</th>
+                <th scope="col">Mode / venue</th>
+                <th scope="col">Owner</th>
+                <th scope="col">Coordinator</th>
+                <th scope="col">Department</th>
+                <th scope="col">Priority</th>
+                <th scope="col">Invited</th>
+                <th scope="col">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {list.rows.map((row) => (
+                <tr key={row.id}>
+                  <td className="whitespace-nowrap font-mono text-label">
+                    <Link href={`/users/meetings/${row.id}`} className="link">
+                      {row.meetingNo}
+                    </Link>
+                  </td>
+                  <td>
+                    <Link href={`/users/meetings/${row.id}`} className="link font-medium">
+                      {row.title}
+                    </Link>
                     <p className="text-caption text-ink-muted">
-                      Owner {row.ownerName} · Coordinator {row.coordinatorName} · {row.participants} invited
-                      {row.departmentName ? ` · ${row.departmentName}` : ""}
+                      {row.typeName}
                       {row.openActions > 0 ? ` · ${row.openActions} open action(s)` : ""}
                     </p>
-                  </div>
-                  <div className="flex shrink-0 flex-wrap gap-1.5">
-                    <MeetingStatusBadge status={row.status} />
-                    {(row.status === "SCHEDULED" || row.status === "IN_PROGRESS") && <PointsBadge status={row.pointsStatus} />}
-                  </div>
-                </div>
-              </div>
-            </li>
-          ))}
-        </ul>
+                  </td>
+                  <td className="whitespace-nowrap text-label">{whenText(row.scheduledStart, row.scheduledEnd)}</td>
+                  <td className="text-label">
+                    {MODE_LABEL[row.mode]}
+                    {row.venue && <span className="block text-caption text-ink-muted">{row.venue}</span>}
+                    {row.link && (
+                      <a href={row.link} target="_blank" rel="noopener noreferrer" className="link block text-caption" title={row.link} data-testid="meeting-join-link">
+                        Join
+                      </a>
+                    )}
+                  </td>
+                  <td className="text-label">{row.ownerName}</td>
+                  <td className="text-label">{row.coordinatorName}</td>
+                  <td className="text-label">{row.departmentName ?? "—"}</td>
+                  <td>
+                    <TaskPriorityPill priority={row.priority} showNormal />
+                  </td>
+                  <td className="text-label tabular-nums">{row.participants}</td>
+                  <td>
+                    <span className="flex flex-col items-start gap-1">
+                      <MeetingStatusBadge status={row.status} />
+                      {(row.status === "SCHEDULED" || row.status === "IN_PROGRESS") && <PointsBadge status={row.pointsStatus} />}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
       {pages > 1 && (
         <div className="mt-4">

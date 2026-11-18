@@ -38,10 +38,10 @@ describe("the main modules (D-307)", () => {
 
   it("Analytics lists the dashboards of modules not given, locked, never the given ones", () => {
     const modules = { approval: true, task: true, information: false, meeting: false };
-    expect(soonBoards(modules)).toEqual(["information", "meetings"]);
+    expect(soonBoards(modules)).toEqual(["information", "meetings", "tickets"]);
     const open = boardsFor({ modules, scopes: ["MINE"] });
     expect(soonBoards(modules).some((key) => open.includes(key))).toBe(false);
-    expect(soonBoards({ approval: true, task: true, information: true, meeting: true })).toEqual([]);
+    expect(soonBoards({ approval: true, task: true, information: true, meeting: true, ticket: true })).toEqual([]);
   });
 
   it("the Classic view has Project Management as its own module, after Tasks", () => {

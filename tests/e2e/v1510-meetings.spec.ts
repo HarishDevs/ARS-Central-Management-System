@@ -87,7 +87,8 @@ test("the Coordinator runs the meeting and sends the MOM with an action item", a
   await pick(page, "Responsible", "Sita", /Sita Staff/);
   await page.screenshot({ path: "test-results/v1510-mom.png", fullPage: true });
   await page.getByRole("button", { name: "Send MOM to Meeting Owner" }).click();
-  await expect(page.getByText(/MOM sent to/).first()).toBeVisible();
+  // The confirmation can be replaced by the refreshed page; the history records the send.
+  await expect(page.getByRole("region", { name: "History" })).toContainText("MOM sent for approval");
   await page.reload();
   await expect(page.getByText("Yes, by 35 min")).toBeVisible();
 });

@@ -36,11 +36,11 @@ describe("meeting invitation (D-330)", () => {
 });
 
 describe("meetings on the calendar (D-330)", () => {
-  it("are a kind of entry, for people with the Meeting module", () => {
+  it("are a kind of entry for everyone on a meeting, whatever their modules (D-333)", () => {
     expect(KINDS).toContain("meeting");
     expect(KIND_LABEL.meeting).toBe("Meetings");
     expect(calendarKindAllowed({ roles: ["USER"], modules: ["MEETING"] }, "meeting")).toBe(true);
-    expect(calendarKindAllowed({ roles: ["USER"], modules: ["APPROVAL"] }, "meeting")).toBe(false);
+    expect(calendarKindAllowed({ roles: ["USER"], modules: ["APPROVAL"] }, "meeting")).toBe(true);
   });
 });
 

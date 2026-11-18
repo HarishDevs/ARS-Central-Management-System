@@ -1,5 +1,15 @@
 # Release notes
 
+## v1.56.0 (18 Nov 2026): Coordinator board for tickets; meetings as a table; every meeting on the calendar (owner)
+- **Meetings list is a table** (like the tickets): Meeting number, Title (type and open actions), Date and time, Mode / venue (with **Join** when there is a link), Owner, Coordinator, Department, Priority, Invited, Status (and points status). Tabs, filters and search work as before.
+- **Analytics → Ticket analytics** (for everyone with Ticketing), by access: **Whole organisation** (IT) counts every ticket; otherwise the scope at the top counts the tickets raised by or assigned to you, your reporting line (My team) or your departments, **plus every ticket of the forms you coordinate**. Figures: raised, closed, auto closed, open now, overdue, reopened, first response and resolution times, average rating; where the open tickets are and who has them; by category, form, department and priority; twelve months; the overdue list.
+- **Every meeting you are on is on your Calendar** (as Owner, Coordinator, participant or the one who scheduled it), even without the Meeting Management module.
+- **Tickets → Coordinator board:** a separate page for coordinators (and IT) that shows where every ticket is now, status by status: **New** (to assign), **Reopened**, **Assigned**, **In progress**, **Awaiting confirmation** and **Closed** (last 7 days), each with its count.
+- Each card: ticket number, subject, priority, requester and department, form, **who has it** (and the task number), **how long it has been in this status**, the target date (red when overdue), the needed-by date, when it auto-closes while awaiting confirmation, and how many times it was reopened. Most urgent first.
+- Filters: category, search (number or subject), **Only overdue**. Click a card to open the ticket.
+- Coordinators see the tickets of the forms they coordinate; IT sees all; nobody else sees the page or its menu item.
+- **Owner steps:** no migration; publish v1.56.0 (it includes v1.55.2 and v1.55.3 if those aren't published yet: meetings reach the calendar from v1.55.2).
+
 ## v1.55.3 (18 Nov 2026): Reopened tickets reopen their task; dashboards for coordinators (owner)
 - **Reopen a ticket → its task reopens too.** When the requester reopens a ticket, the same task goes straight back to **Open** in the assignee's Tasks (Assigned to me → Open), with the reason in the task's history. The coordinators are still told and can reassign it with a new target date. Before, the task stayed Completed until a coordinator reassigned it.
 - **Ticket dashboards are for coordinators only** (people set as coordinators on a ticket form), plus IT. Everyone else no longer sees the menu item, and the page answers "not found". My tickets stays for everyone with Ticketing.

@@ -17,6 +17,11 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 **Multi-level approvals in any custom manner.** The engine must support any number of levels in any combination: sequential, parallel, any-one, any-N-of-M, conditional and hybrid. Approvers can come from any source, and levels can be added or skipped by rules. Build the engine for this from the first engine phase (P2). The drag-and-drop designer (P3) is only the screen for building it. Check every task against this.
 
 ## Now / Next
+- **Now (18 Nov 2026):** **v1.56.0** Coordinator board (D-332); meetings table and every meeting on the calendar (D-333); Ticket analytics by access (D-334). **Owner:** publish (no migration).
+- [x] TKT-13 (18 Nov 2026) Coordinator board: where each ticket is now, status-wise
+- [x] MTG-15 (18 Nov 2026) Meetings list as a table (like tickets)
+- [x] MTG-16 (18 Nov 2026) Every meeting the person is on shows on their calendar, whatever their modules
+- [x] TKT-14 (18 Nov 2026) Analytics → Ticket analytics, by access (scope + forms coordinated; IT all)
 - **Now (18 Nov 2026):** **v1.55.3** reopened tickets reopen their task; Ticket dashboards for coordinators and IT only (D-331). **Owner:** publish (no migration).
 - [x] TKT-11 (18 Nov 2026) Reopening a ticket reopens its task for the same assignee
 - [x] TKT-12 (18 Nov 2026) Ticket dashboards visible to coordinators (and IT) only
