@@ -17,7 +17,8 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 **Multi-level approvals in any custom manner.** The engine must support any number of levels in any combination: sequential, parallel, any-one, any-N-of-M, conditional and hybrid. Approvers can come from any source, and levels can be added or skipped by rules. Build the engine for this from the first engine phase (P2). The drag-and-drop designer (P3) is only the screen for building it. Check every task against this.
 
 ## Now / Next
-- **Now (18 Nov 2026):** **Ticketing System** Phase 1 audit delivered (D-326): docs/TICKETING_SYSTEM_CURRENT_STATE.md, GAP_ANALYSIS.md (reuse-versus-build matrix), IMPLEMENTATION.md (plan). **Owner:** answer Q-T1 to Q-T7 (Q-032), then Phase 2 design.
+- **Now (18 Nov 2026, later):** Ticketing decisions recorded (D-327); **Phase 2 design** in docs/TICKETING_SYSTEM_DESIGN.md. **Owner:** approve it (and confirm the coordinator reading), then Phase 3 starts.
+- **Before (18 Nov 2026):** **Ticketing System** Phase 1 audit delivered (D-326): docs/TICKETING_SYSTEM_CURRENT_STATE.md, GAP_ANALYSIS.md (reuse-versus-build matrix), IMPLEMENTATION.md (plan). **Owner:** answer Q-T1 to Q-T7 (Q-032), then Phase 2 design.
 - **Now (14 Nov 2026):** v1.54.16: Message deliveries dashboard; Group by Department and any form field (D-325). **Owner:** publish (no migration).
 - **Now (14 Nov 2026):** **Email works:** SMTP → relay-hosting.secureserver.net:25 RELAY; test delivered to the Inbox (D-324). v1.54.15 fixes the diagnostic's test message and reads GoDaddy's queue ids. **Owner:** publish v1.54.15; keep the settings; watch Message deliveries for FAILED rows. Next: STARTTLS on the relay hop; DKIM if mail lands in Spam.
 - **Now (14 Nov 2026):** v1.54.14: email delivery audit, live Email diagnostics, honest ACCEPTED status, queue id per delivery (D-323). **Owner:**
@@ -186,8 +187,8 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 
 ## Ticketing System (D-326): phased plan
 - [x] TKT-1 (18 Nov 2026) Phase 1: existing-system audit and reuse-versus-build matrix
-- [ ] TKT-2 Owner decisions Q-T1 to Q-T7 (Q-032)
-- [ ] TKT-3 Phase 2: design (schema, transitions, permission matrix, notification matrix, job design, screens)
+- [x] TKT-2 (18 Nov 2026) Owner decisions Q-T1 to Q-T7 (D-327)
+- [~] TKT-3 Phase 2: design written (docs/TICKETING_SYSTEM_DESIGN.md, 18 Nov 2026); waiting for owner approval
 - [ ] TKT-4 Phase 3: core (TICKET module kind in the shared form engine, categories, request types, raise, numbers, routing, assign → task, ticket page)
 - [ ] TKT-5 Phase 4: workflow (completion → awaiting confirmation, confirm / reopen, auto-close, reminders, escalations)
 - [ ] TKT-6 Phase 5: configuration (+ shared engine extras: placeholder, validation, option lists, duplicate type)

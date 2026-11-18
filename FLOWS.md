@@ -157,15 +157,15 @@ Group → Status, Approval type, Month raised, Priority; Raised by and Departmen
 ## F-TKT Ticketing System lifecycle (planned, D-326; not built yet)
 ```mermaid
 flowchart TD
-  R([Employee raises a ticket: category → request type → published form]) --> N[NEW: number, requestor, department, location]
-  N --> C[Coordinator notified: category / request-type mapping, backup coordinator]
+  R([Anyone with CMS access raises a ticket: category → request type → published form]) --> N[NEW: number, requestor, department]
+  N --> C[The category's coordinators are notified; any of them can act]
   C -->|needs details| W[WAITING FOR INFORMATION] --> C
   C -->|invalid| X[REJECTED with reason]
   C -->|assign| A[ASSIGNED: one linked task in Tasks]
   A --> P[IN PROGRESS / ON HOLD: work in the task]
   P -->|task completed with resolution notes| AC[AWAITING REQUESTOR CONFIRMATION: 4-working-day clock]
-  AC -->|requestor confirms + rating| CL[CLOSED]
-  AC -->|requestor reopens with reason| RO[REOPENED] --> C
+  AC -->|requestor confirms + rating 1-5| CL[CLOSED]
+  AC -->|requestor reopens with reason: same task reopened| RO[REOPENED] --> C
   AC -->|reminders on working days 2, 3, 4; no answer after day 4| AUTO[CLOSED: AUTO CLOSED]
 ```
 - Task completion never closes a ticket. Only the requestor confirms. Working days come from the Working Calendar. The auto-close job claims each ticket once, and a last-second confirmation wins.
