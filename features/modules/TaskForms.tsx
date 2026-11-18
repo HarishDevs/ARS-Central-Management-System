@@ -118,9 +118,9 @@ export function CreateTaskForm({
           <label htmlFor="task-files" className="field-label">
             Files <span className="font-normal text-ink-faint">(optional)</span>
           </label>
-          <Hint text="Up to 5 files, 10 MB each." align="start" className="mb-1.5" />
+          <Hint text="Up to 10 files, 10 MB each." align="start" className="mb-1.5" />
         </div>
-        <FileListInput id="task-files" name="attachments" accept={ACCEPT_ATTRIBUTE} maxFiles={5} />
+        <FileListInput id="task-files" name="attachments" accept={ACCEPT_ATTRIBUTE} maxFiles={10} />
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <SubmitButton pending={pending}>Create task</SubmitButton>
@@ -191,7 +191,7 @@ export function TaskActionButton({
           <FieldError result={result} name="reason" />
         </div>
       )}
-      {allowFiles && <FileListInput name="attachments" accept={ACCEPT_ATTRIBUTE} ariaLabel="Evidence files" maxFiles={5} />}
+      {allowFiles && <FileListInput name="attachments" accept={ACCEPT_ATTRIBUTE} ariaLabel="Evidence files" maxFiles={10} />}
       <div className="flex flex-wrap items-center gap-2">
         <SubmitButton pending={pending} variant={action === "COMPLETE" ? "primary" : "secondary"} className="btn-compact">
           {label}
@@ -245,7 +245,7 @@ export function CommentForm({ taskId }: { taskId: number }) {
         Add files to the history, with a note (optional)
       </label>
       <textarea id="task-comment" name="reason" rows={3} maxLength={2000} className="field-input h-auto py-2" />
-      <FileListInput name="attachments" accept={ACCEPT_ATTRIBUTE} ariaLabel="Files to add" maxFiles={5} />
+      <FileListInput name="attachments" accept={ACCEPT_ATTRIBUTE} ariaLabel="Files to add" maxFiles={10} />
       <FieldError result={result} name="reason" />
       <div className="flex flex-wrap items-center gap-3">
         <SubmitButton pending={pending} variant="secondary" className="btn-compact">
@@ -375,7 +375,7 @@ export function AttachFilesForm({ taskId }: { taskId: number }) {
       <input type="hidden" name="taskId" value={taskId} />
       <input type="hidden" name="action" value="COMMENT" />
       <input type="hidden" name="reason" value="" />
-      <FileListInput id="task-attach-files" name="attachments" accept={ACCEPT_ATTRIBUTE} ariaLabel="Files to add to the task" buttonLabel="Choose files" maxFiles={5} />
+      <FileListInput id="task-attach-files" name="attachments" accept={ACCEPT_ATTRIBUTE} ariaLabel="Files to add to the task" buttonLabel="Choose files" maxFiles={10} />
       <div className="flex flex-wrap items-center gap-3">
         <SubmitButton pending={pending} variant="secondary" className="btn-compact">
           Add files

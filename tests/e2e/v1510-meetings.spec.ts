@@ -32,6 +32,10 @@ test("the Coordinator schedules a meeting; people are chosen by search", async (
   await expect(page).toHaveURL(/\/users\/meetings\/new$/);
   await page.locator("#mtg-title").fill(title);
   await page.locator("#mtg-type").selectOption({ label: "IDM (Inter Department Meeting)" });
+  // v1.55.2 (D-330): the form starts at today and now; this journey uses tomorrow 10:00 to 11:00, as before.
+  await page.locator("#mtg-date").fill(new Date(Date.now() + 330 * 60_000 + 86_400_000).toISOString().slice(0, 10));
+  await page.locator("#mtg-start").fill("10:00");
+  await page.locator("#mtg-end").fill("11:00");
   await pick(page, "Meeting Owner", "Manoj", /Manoj Manager/);
   await pick(page, "Participants", "Sita", /Sita Staff/);
   await page.locator("#mtg-points").fill("Production review\nDespatch plan");

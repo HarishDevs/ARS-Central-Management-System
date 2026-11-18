@@ -243,11 +243,11 @@ export function FieldProperties({
               Up to
               <select
                 aria-label={`Most files for ${name}`}
-                value={field.maxFiles ?? 5}
+                value={field.maxFiles ?? 10}
                 onChange={(event) => onChange((item) => ({ ...item, maxFiles: Number(event.target.value) }), "maxFiles")}
                 className="field-input w-20"
               >
-                {[1, 2, 3, 4, 5].map((count) => (
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((count) => (
                   <option key={count}>{count}</option>
                 ))}
               </select>

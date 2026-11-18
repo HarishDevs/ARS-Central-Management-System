@@ -42,8 +42,8 @@ describe("names, counts and downloads", () => {
   });
 
   it("limits files per upload and per request", () => {
-    expect(checkCount(0, 5)).toBeNull();
-    expect(checkCount(0, 6)).toMatch(/at most 5/);
+    expect(checkCount(0, 10)).toBeNull(); // v1.55.2 (D-330): 10 files at a time
+    expect(checkCount(0, 11)).toMatch(/at most 10/);
     expect(checkCount(18, 3)).toMatch(/at most 20/);
   });
 

@@ -675,6 +675,9 @@ export interface MeetingListRow {
   coordinatorId: number;
   agendaDueAt: Date | null;
   momDueAt: Date | null;
+  // v1.55.2 (D-330, owner: the link "should also be reflected in both calendar and in meetings table").
+  link: string | null;
+  venue: string | null;
 }
 
 export async function listMeetings(scope: MeetingScope, filter: MeetingListFilter, db: Queryable = getDbPool()): Promise<{ rows: MeetingListRow[]; total: number }> {
@@ -719,7 +722,7 @@ export async function listMeetings(scope: MeetingScope, filter: MeetingListFilte
   const [countRows] = await db.query<Row[]>(`SELECT COUNT(*) AS total FROM meetings m WHERE ${whereSql}`, params);
   const order = filter.tab === "upcoming" ? "m.scheduled_start ASC" : "m.scheduled_start DESC";
   const [rows] = await db.query<Row[]>(
-    `SELECT m.id, m.meeting_no, m.title, t.name AS type_name, d.name AS department_name, o.name AS owner_name, c.name AS coordinator_name, m.status, m.points_status, m.mode, m.priority, m.scheduled_start, m.scheduled_end, m.owner_id, m.coordinator_id, m.agenda_due_at, m.mom_due_at,
+    `SELECT m.id, m.meeting_no, m.title, t.name AS type_name, d.name AS department_name, o.name AS owner_name, c.name AS coordinator_name, m.status, m.points_status, m.mode, m.priority, m.scheduled_start, m.scheduled_end, m.owner_id, m.coordinator_id, m.agenda_due_at, m.mom_due_at, m.link, m.venue,
             (SELECT COUNT(*) FROM meeting_actions a LEFT JOIN tasks tk ON tk.id = a.task_id WHERE a.meeting_id = m.id AND a.confirmed_at IS NULL AND (tk.status IS NULL OR tk.status <> 'CANCELLED')) AS open_actions,
             (SELECT COUNT(*) FROM meeting_participants p WHERE p.meeting_id = m.id) AS participants
        FROM meetings m JOIN meeting_types t ON t.id = m.type_id JOIN users o ON o.id = m.owner_id JOIN users c ON c.id = m.coordinator_id LEFT JOIN departments d ON d.id = m.department_id
@@ -746,6 +749,8 @@ export async function listMeetings(scope: MeetingScope, filter: MeetingListFilte
       coordinatorId: num(row.coordinator_id),
       agendaDueAt: dateOrNull(row.agenda_due_at),
       momDueAt: dateOrNull(row.mom_due_at),
+      link: strOrNull(row.link) || null,
+      venue: strOrNull(row.venue) || null,
       openActions: num(row.open_actions),
       participants: num(row.participants),
     })),
@@ -925,4 +930,38 @@ export async function listPeopleLabels(db: Queryable = getDbPool()): Promise<Map
     "SELECT u.id, g.name AS designation, d.name AS department FROM users u LEFT JOIN designations g ON g.id = u.designation_id LEFT JOIN departments d ON d.id = u.department_id WHERE u.active = TRUE AND u.is_break_glass = FALSE",
   );
   return new Map(rows.map((row) => [num(row.id), [strOrNull(row.designation), strOrNull(row.department)].filter(Boolean).join(" · ")]));
+}
+
+// v1.55.2 (D-330): the person's meetings on their calendar (owner, coordinator,
+// participant or the one who scheduled it); cancelled and deleted ones are left out.
+export interface CalendarMeeting {
+  id: number;
+  meetingNo: string;
+  title: string;
+  start: Date;
+  end: Date;
+  mode: MeetingMode;
+  venue: string | null;
+  link: string | null;
+}
+export async function calendarMeetings(userId: number, from: Date, to: Date, db: Queryable = getDbPool()): Promise<CalendarMeeting[]> {
+  const [rows] = await db.query<Row[]>(
+    `SELECT m.id, m.meeting_no, m.title, m.scheduled_start, m.scheduled_end, m.mode, m.venue, m.link
+       FROM meetings m
+      WHERE m.deleted_at IS NULL AND m.status <> 'CANCELLED' AND m.scheduled_start >= ? AND m.scheduled_start < ?
+        AND (m.owner_id = ? OR m.coordinator_id = ? OR m.created_by = ? OR EXISTS (SELECT 1 FROM meeting_participants mp WHERE mp.meeting_id = m.id AND mp.user_id = ?))
+      ORDER BY m.scheduled_start, m.id
+      LIMIT 500`,
+    [from, to, userId, userId, userId, userId],
+  );
+  return rows.map((row) => ({
+    id: num(row.id),
+    meetingNo: str(row.meeting_no),
+    title: str(row.title),
+    start: dateOrNull(row.scheduled_start)!,
+    end: dateOrNull(row.scheduled_end)!,
+    mode: str(row.mode) as MeetingMode,
+    venue: strOrNull(row.venue) || null,
+    link: strOrNull(row.link) || null,
+  }));
 }

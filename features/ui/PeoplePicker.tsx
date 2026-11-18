@@ -38,7 +38,13 @@ export function PeoplePicker({
   invalid,
   value,
   onChange,
+  kind = "person",
+  required = false,
 }: {
+  // v1.55.2 (D-330, owner): the same picker chooses departments ("Type a department name").
+  kind?: "person" | "department";
+  // Shows the red * after the label (the server still checks).
+  required?: boolean;
   name?: string;
   options: PersonOption[];
   label: string;
@@ -67,6 +73,8 @@ export function PeoplePicker({
     return options.filter((option) => !chosen.includes(option.id) && words.every((word) => `${option.label} ${option.detail ?? ""}`.toLowerCase().includes(word))).slice(0, 8);
   }, [options, chosen, query]);
   const full = chosen.length >= max;
+  const one = kind === "department" ? "department" : "person";
+  const many = kind === "department" ? "departments" : "people";
   const add = (option: PersonOption) => {
     if (full) return;
     setChosen((current) => [...current, option.id]);
@@ -98,6 +106,11 @@ export function PeoplePicker({
     <div>
       <label htmlFor={`${id}-input`} className="field-label">
         {label}
+        {required && (
+          <span className="text-danger-600" aria-hidden="true">
+            {" "}*
+          </span>
+        )}
       </label>
       {chosen.length > 0 && (
         <ul className="mb-2 flex flex-wrap gap-2" aria-label={`${label}: chosen`}>
@@ -135,7 +148,7 @@ export function PeoplePicker({
             aria-invalid={invalid || undefined}
             value={query}
             disabled={full}
-            placeholder={full ? `${max} people chosen (the most allowed)` : "Type a name or user id"}
+            placeholder={full ? `${max} ${many} chosen (the most allowed)` : kind === "department" ? "Type a department name" : "Type a name or user id"}
             onChange={(event) => {
               setQuery(event.target.value);
               setOpen(true);
@@ -182,7 +195,7 @@ export function PeoplePicker({
                 </button>
               </li>
               {matches.length === 0 ? (
-                <li className="px-3 py-2 text-label text-ink-muted">Nobody matches.</li>
+                <li className="px-3 py-2 text-label text-ink-muted">{kind === "department" ? "No department matches." : "Nobody matches."}</li>
               ) : (
                 matches.map((option, index) => (
                   <li
@@ -216,13 +229,13 @@ export function PeoplePicker({
         <span id={`${id}-help`}>
           {max === 1 ? (
             full ? (
-              "Remove to choose someone else."
+              kind === "department" ? "Remove to choose another department." : "Remove to choose someone else."
             ) : (
-              "Choose one person."
+              `Choose one ${one}.`
             )
           ) : (
             <>
-              Up to {max} people.{chosen.length > 0 && ` ${chosen.length} chosen.`}
+              Up to {max} {many}.{chosen.length > 0 && ` ${chosen.length} chosen.`}
             </>
           )}
         </span>

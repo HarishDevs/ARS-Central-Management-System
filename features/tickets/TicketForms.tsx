@@ -70,16 +70,20 @@ export function RaiseTicketForm({
           <FieldError result={result} name="title" />
         </div>
         <div>
-          <RichEditor id="ticket-description" name="description" label="Description *" minHeight={140} maxLength={20000} testId="ticket-description" />
+          {/* v1.55.2 (D-330, owner): the box is headed "Issue Description". */}
+          <p className="field-label">
+            Issue Description <span className="text-danger-600" aria-hidden="true">*</span>
+          </p>
+          <RichEditor id="ticket-description" name="description" label="Issue Description" placeholder="Describe the issue: what happened, where, and since when." minHeight={140} maxLength={20000} testId="ticket-description" />
           <FieldError result={result} name="description" />
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           {priorityChoice && (
             <div>
               <label htmlFor="ticket-priority" className="field-label">
-                Priority
+                Priority <span className="text-danger-600" aria-hidden="true">*</span>
               </label>
-              <select id="ticket-priority" name="priority" defaultValue={defaultPriority} className="field-input">
+              <select id="ticket-priority" name="priority" defaultValue={defaultPriority} required aria-required="true" className="field-input">
                 {TICKET_PRIORITIES.map((priority) => (
                   <option key={priority} value={priority}>
                     {TICKET_PRIORITY_LABEL[priority]}
@@ -90,16 +94,16 @@ export function RaiseTicketForm({
           )}
           <div>
             <label htmlFor="ticket-required" className="field-label">
-              Required date
+              Required date <span className="text-danger-600" aria-hidden="true">*</span>
             </label>
-            <input id="ticket-required" name="required_on" type="date" min={today} className="field-input" />
+            <input id="ticket-required" name="required_on" type="date" min={today} required aria-required="true" className="field-input" />
             <FieldError result={result} name="required_on" />
           </div>
         </div>
         {form.length > 0 && <DynamicFields fields={form} mode="submit" people={people} lookups={lookups} result={result} />}
         <div>
           <p className="field-label">Attachments</p>
-          <FileListInput id="ticket-files" name="attachments" accept={ACCEPT} maxFiles={5} />
+          <FileListInput id="ticket-files" name="attachments" accept={ACCEPT} maxFiles={10} />
         </div>
         <FieldError result={result} name="form" />
       </section>
@@ -221,7 +225,7 @@ export function TicketRemarkForm({ ticketId, canInternal }: { ticketId: number; 
       <input type="hidden" name="ticketId" value={ticketId} />
       <RichEditor key={editorKey} id="ticket-remark" name="body" label="Remark" minHeight={70} maxLength={4000} testId="ticket-remark-editor" />
       <FieldError result={result} name="body" />
-      <FileListInput id="ticket-remark-files" name="attachments" accept={ACCEPT} maxFiles={5} />
+      <FileListInput id="ticket-remark-files" name="attachments" accept={ACCEPT} maxFiles={10} />
       <div className="flex flex-wrap items-center gap-3">
         {canInternal && (
           <label className="flex items-center gap-2 text-label">

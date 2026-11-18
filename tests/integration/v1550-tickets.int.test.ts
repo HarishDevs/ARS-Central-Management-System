@@ -21,7 +21,7 @@ const today = () => indiaDate(new Date());
 const q = async <T,>(sql: string, params: unknown[] = []) => (await getDbPool().query<(RowDataPacket & T)[]>(sql, params))[0];
 
 async function raise(title: string) {
-  const result = await raiseTicket({ typeId, title, description: "The accounting software won't install.", priority: "HIGH", requiredOn: "", fields: { software: "Tally" }, files: [], submissionKey: submission() }, people.requester!);
+  const result = await raiseTicket({ typeId, title, description: "The accounting software won't install.", priority: "HIGH", requiredOn: new Date(Date.now() + 330 * 60_000 + 86_400_000).toISOString().slice(0, 10), fields: { software: "Tally" }, files: [], submissionKey: submission() }, people.requester!);
   if (!result.ok) throw new Error(result.message);
   return result.value;
 }
@@ -72,9 +72,16 @@ describe("raise and assign", () => {
 
   it("the same form sent twice makes one ticket", async () => {
     const keyText = submission();
-    const input = { typeId, title: "Twice", description: "Sent twice by a double click", priority: "NORMAL", requiredOn: "", fields: { software: "X" }, files: [], submissionKey: keyText };
+    const input = { typeId, title: "Twice", description: "Sent twice by a double click", priority: "NORMAL", requiredOn: new Date(Date.now() + 330 * 60_000 + 86_400_000).toISOString().slice(0, 10), fields: { software: "X" }, files: [], submissionKey: keyText };
     expect((await raiseTicket(input, people.requester!)).ok).toBe(true);
     expect((await raiseTicket(input, people.requester!)).ok).toBe(false);
+  });
+
+  // v1.55.2 (D-330, owner): the required date is required.
+  it("a ticket without a required date is refused", async () => {
+    const result = await raiseTicket({ typeId, title: "No date", description: "Missing the date", priority: "NORMAL", requiredOn: "", fields: { software: "X" }, files: [], submissionKey: submission() }, people.requester!);
+    expect(result.ok).toBe(false);
+    expect(!result.ok && result.fieldErrors?.required_on).toBe("Choose the date you need it by.");
   });
 
   it("only a coordinator assigns; assigning makes one linked task in the assignee's Tasks", async () => {

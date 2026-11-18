@@ -17,6 +17,12 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 **Multi-level approvals in any custom manner.** The engine must support any number of levels in any combination: sequential, parallel, any-one, any-N-of-M, conditional and hybrid. Approvers can come from any source, and levels can be added or skipped by rules. Build the engine for this from the first engine phase (P2). The drag-and-drop designer (P3) is only the screen for building it. Check every task against this.
 
 ## Now / Next
+- **Now (18 Nov 2026):** **v1.55.2** meeting form and links, 10 attachments, ticket form (D-330). **Owner:** publish (no migration); make sure the host accepts uploads up to 102 MB.
+- [x] MTG-12 (18 Nov 2026) Schedule form: required *, today/now defaults, end after start, department wording
+- [x] MTG-13 (18 Nov 2026) Meeting notifications with full details and role; scheduler copy
+- [x] MTG-14 (18 Nov 2026) Meeting link in the meetings list and on the Calendar (Meetings kind)
+- [x] ATT-10 (18 Nov 2026) Up to 10 attachments in every form
+- [x] TKT-10 (18 Nov 2026) Raise a ticket: Issue Description header; Priority and Required date required
 - **Now (18 Nov 2026):** **v1.55.1**: Ticketing is its own module and one five-level priority scale (D-329). **Owner:** back up, run 202611181000_ticketing.sql (if not yet) and 202611190900_ticket_module_priorities.sql, publish, then Admin → Users & roles → Module access → Ticketing (IT and coordinators first).
 - [x] TKT-9 (18 Nov 2026) Ticketing as a separate module (TICKET in module access; pages, nav, Coming soon, import)
 - [x] PRI-1 (18 Nov 2026) Priority Critical / Most Important / Important / High / Normal for tasks, information, meetings, tickets

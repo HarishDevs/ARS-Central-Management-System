@@ -97,7 +97,9 @@ export async function raiseTicket(input: RaiseTicketInput, actor: TaskActor): Pr
     else if (description.length > 20000) errors.description = "Use 20,000 characters or fewer.";
     const priority: TicketPriority = settings.requesterPriority && (TICKET_PRIORITIES as readonly string[]).includes(input.priority) ? (input.priority as TicketPriority) : settings.defaultPriority;
     let requiredOn: string | null = null;
-    if (input.requiredOn) {
+    // v1.55.2 (D-330, owner): the required date is required.
+    if (!input.requiredOn) errors.required_on = "Choose the date you need it by.";
+    else {
       if (!ISO.test(input.requiredOn)) errors.required_on = "Choose a valid date.";
       else if (input.requiredOn < indiaDate(new Date())) errors.required_on = "The required date can't be in the past.";
       else requiredOn = input.requiredOn;

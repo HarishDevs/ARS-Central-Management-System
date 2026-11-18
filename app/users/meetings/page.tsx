@@ -125,13 +125,26 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
         <ul className="space-y-2" data-testid="meeting-list">
           {list.rows.map((row) => (
             <li key={row.id}>
-              <Link href={`/users/meetings/${row.id}`} className="card block px-4 py-3 hover:border-primary-600">
+              {/* v1.55.2 (D-330): the whole card opens the meeting; its Join link opens the meeting link. */}
+              <div className="card relative block px-4 py-3 hover:border-primary-600">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="font-semibold">{row.title}</p>
+                    <p className="font-semibold">
+                      <Link href={`/users/meetings/${row.id}`} className="after:absolute after:inset-0 after:content-['']">
+                        {row.title}
+                      </Link>
+                    </p>
                     <p className="text-label text-ink-muted">
                       {row.meetingNo} · {row.typeName} · {whenText(row.scheduledStart, row.scheduledEnd)} · {MODE_LABEL[row.mode]}
+                      {row.venue ? ` · ${row.venue}` : ""}
                     </p>
+                    {row.link && (
+                      <p className="text-caption">
+                        <a href={row.link} target="_blank" rel="noopener noreferrer" className="link relative z-10 break-all" data-testid="meeting-join-link">
+                          Join: {row.link}
+                        </a>
+                      </p>
+                    )}
                     <p className="text-caption text-ink-muted">
                       Owner {row.ownerName} · Coordinator {row.coordinatorName} · {row.participants} invited
                       {row.departmentName ? ` · ${row.departmentName}` : ""}
@@ -143,7 +156,7 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
                     {(row.status === "SCHEDULED" || row.status === "IN_PROGRESS") && <PointsBadge status={row.pointsStatus} />}
                   </div>
                 </div>
-              </Link>
+              </div>
             </li>
           ))}
         </ul>

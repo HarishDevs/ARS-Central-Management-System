@@ -11,9 +11,10 @@ const form: FormField[] = [
 const parse = (raw: Record<string, string>) => parseFormSubmission(form, raw, new Set());
 
 describe("attachment field", () => {
-  it("is a valid field type with a file limit of 1–5", () => {
+  it("is a valid field type with a file limit of 1–10 (D-330)", () => {
     expect(formSchema.safeParse(form).success).toBe(true);
-    expect(formSchema.safeParse([{ key: "x", label: "X", type: "ATTACHMENT", required: false, maxFiles: 6 }]).success).toBe(false);
+    expect(formSchema.safeParse([{ key: "x", label: "X", type: "ATTACHMENT", required: false, maxFiles: 11 }]).success).toBe(false);
+    expect(formSchema.safeParse([{ key: "x", label: "X", type: "ATTACHMENT", required: false, maxFiles: 10 }]).success).toBe(true);
     expect(checkFormDefinition(form)).toEqual([]);
   });
 

@@ -1,6 +1,9 @@
 import "server-only";
 import { loadNeededBy } from "@/server/approvals/calendar";
 import { itemsInRange, linkStates } from "@/lib/db/repositories/gcal.repository";
+import { calendarMeetings } from "@/lib/db/repositories/meetings.repository";
+import { indiaDayStartUtc } from "@/server/records/filters";
+import { addDays } from "@/server/calendar/events";
 import { businessSources, indiaDate } from "@/server/calendar/sources";
 import { daysCovered, type Kind, type ViewState } from "@/server/calendar/views";
 
@@ -18,6 +21,9 @@ export interface CalendarEntry {
   source: "ARS" | "GOOGLE";
   sync: "synced" | "pending" | "error" | "conflict" | null;
   recurring: boolean;
+  // v1.55.2 (D-330): a meeting's join link and its end time ("15:30").
+  joinLink?: string | null;
+  endTime?: string | null;
 }
 
 const indiaTime = (value: Date) => new Date(value.getTime() + 330 * 60_000).toISOString().slice(11, 16);
@@ -54,6 +60,25 @@ export async function loadEntries(user: { id: number; roles: readonly string[] }
     const day = source.when.kind === "allDay" ? source.when.startDate : indiaDate(source.when.start);
     const time = source.when.kind === "timed" ? indiaTime(source.when.start) : null;
     out.push({ key: `${source.entityType}:${source.entityId}`, kind, title: source.title, ref: source.ref, href: source.path, day, time, source: "ARS", sync: syncOf(source.entityType, source.entityId), recurring: false });
+  }
+
+  if (wants("meeting")) {
+    for (const meeting of await calendarMeetings(user.id, indiaDayStartUtc(state.from), indiaDayStartUtc(addDays(state.to, 1)))) {
+      out.push({
+        key: `MEETING:${meeting.id}`,
+        kind: "meeting",
+        title: meeting.title,
+        ref: meeting.meetingNo,
+        href: `/users/meetings/${meeting.id}`,
+        day: indiaDate(meeting.start),
+        time: indiaTime(meeting.start),
+        endTime: indiaTime(meeting.end),
+        source: "ARS",
+        sync: null,
+        recurring: false,
+        joinLink: meeting.link,
+      });
+    }
   }
 
   if (wants("personal")) {

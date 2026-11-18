@@ -28,8 +28,11 @@ export default async function NewMeetingPage({ searchParams }: { searchParams: P
   const personOptions = people.map((person) => ({ id: person.id, label: personLabel(person), detail: labels.get(person.id) || undefined }));
   const departmentOptions = departments.filter((department) => department.active).map((department) => ({ id: department.id, label: department.name }));
 
-  // Tomorrow 10:00 to 11:00 by default.
-  const tomorrow = new Date(Date.now() + 86_400_000);
+  // v1.55.2 (D-330, owner: "by default the date and time should be current"):
+  // today, from now (India time, rounded up to the next 5 minutes) for an hour.
+  const indiaNow = new Date(Date.now() + 330 * 60_000);
+  const nowMinutes = Math.min(Math.ceil((indiaNow.getUTCHours() * 60 + indiaNow.getUTCMinutes()) / 5) * 5, 23 * 60 + 55);
+  const clock = (minutes: number) => `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
   let defaults: ScheduleDefaults = {
     meetingId: null,
     rowVersion: null,
@@ -48,9 +51,9 @@ export default async function NewMeetingPage({ searchParams }: { searchParams: P
     priority: "NORMAL",
     confidentiality: "GENERAL",
     guests: "",
-    date: indiaDay(tomorrow),
-    startTime: "10:00",
-    endTime: "11:00",
+    date: indiaDay(new Date()),
+    startTime: clock(nowMinutes),
+    endTime: clock(Math.min(nowMinutes + 60, 23 * 60 + 59)),
     agendaDue: "",
     momDue: "",
     pointsPolicy: "LAST_APPROVED",

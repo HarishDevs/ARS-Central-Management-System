@@ -45,6 +45,13 @@ export interface ScheduleDefaults {
   pointsPolicy: string;
 }
 
+// "HH:MM" plus some minutes, never past 23:59 (a meeting ends the day it starts).
+function laterTime(time: string, minutes: number): string {
+  const [hours, mins] = time.split(":").map(Number);
+  const total = Math.min((hours ?? 0) * 60 + (mins ?? 0) + minutes, 23 * 60 + 59);
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+}
+
 export function ScheduleMeetingForm({
   defaults,
   types,
@@ -65,9 +72,17 @@ export function ScheduleMeetingForm({
   const [points, setPoints] = useState(template);
   const [touchedPoints, setTouchedPoints] = useState(false);
   const isNew = defaults.meetingId === null;
+  const [startTime, setStartTime] = useState(defaults.startTime);
+  const [endTime, setEndTime] = useState(defaults.endTime);
   const err = (name: string) => <FieldError result={result} name={name} />;
   return (
     <form onSubmit={onSubmit} className="card space-y-5 px-5 py-5" aria-label="Meeting">
+      <p className="text-caption text-ink-muted">
+        <span className="text-danger-600" aria-hidden="true">
+          *
+        </span>{" "}
+        Required
+      </p>
       <UnsavedGuard />
       {defaults.meetingId && <input type="hidden" name="meetingId" value={defaults.meetingId} />}
       {defaults.rowVersion !== null && <input type="hidden" name="rowVersion" value={defaults.rowVersion} />}
@@ -80,14 +95,14 @@ export function ScheduleMeetingForm({
       <div className="grid gap-4 md:grid-cols-[2fr_1fr]">
         <div>
           <label htmlFor="mtg-title" className="field-label">
-            Meeting title
+            Meeting title <span className="text-danger-600" aria-hidden="true">*</span>
           </label>
           <input id="mtg-title" name="title" defaultValue={defaults.title} required minLength={3} maxLength={200} className="field-input" />
           {err("title")}
         </div>
         <div>
           <label htmlFor="mtg-type" className="field-label">
-            Meeting type
+            Meeting type <span className="text-danger-600" aria-hidden="true">*</span>
           </label>
           <select
             id="mtg-type"
@@ -114,22 +129,48 @@ export function ScheduleMeetingForm({
       <div className="grid gap-4 md:grid-cols-3">
         <div>
           <label htmlFor="mtg-date" className="field-label">
-            Date
+            Date <span className="text-danger-600" aria-hidden="true">*</span>
           </label>
           <input id="mtg-date" name="date" type="date" defaultValue={defaults.date} required className="field-input" />
           {err("start")}
         </div>
         <div>
           <label htmlFor="mtg-start" className="field-label">
-            Starts
+            Starts <span className="text-danger-600" aria-hidden="true">*</span>
           </label>
-          <input id="mtg-start" name="startTime" type="time" defaultValue={defaults.startTime} required className="field-input" />
+          <input
+            id="mtg-start"
+            name="startTime"
+            type="time"
+            value={startTime}
+            onChange={(event) => {
+              const next = event.target.value;
+              setStartTime(next);
+              // v1.55.2 (D-330): the end always stays after the start (an hour later if it wasn't).
+              if (next && (!endTime || endTime <= next)) setEndTime(laterTime(next, 60));
+            }}
+            required
+            className="field-input"
+          />
         </div>
         <div>
           <label htmlFor="mtg-end" className="field-label">
-            Ends
+            Ends <span className="text-danger-600" aria-hidden="true">*</span>
           </label>
-          <input id="mtg-end" name="endTime" type="time" defaultValue={defaults.endTime} required className="field-input" />
+          <input
+            id="mtg-end"
+            name="endTime"
+            type="time"
+            value={endTime}
+            min={startTime ? laterTime(startTime, 1) : undefined}
+            onChange={(event) => setEndTime(event.target.value)}
+            onInvalid={(event) => event.currentTarget.setCustomValidity(endTime && startTime && endTime <= startTime ? "The end time must be after the start time." : "")}
+            onInput={(event) => event.currentTarget.setCustomValidity("")}
+            required
+            aria-invalid={Boolean(endTime && startTime && endTime <= startTime) || undefined}
+            className="field-input"
+          />
+          {endTime && startTime && endTime <= startTime && <p className="mt-1 text-caption text-danger-600">The end time must be after the start time.</p>}
           {err("end")}
         </div>
       </div>
@@ -139,6 +180,7 @@ export function ScheduleMeetingForm({
             name="owner"
             options={people}
             label="Meeting Owner"
+            required
             help="Approves the meeting points and the MOM. Can be anyone."
             max={1}
             initial={defaults.ownerId ? [defaults.ownerId] : []}
@@ -151,6 +193,7 @@ export function ScheduleMeetingForm({
             name="coordinator"
             options={people}
             label="Coordinator"
+            required
             help="Runs the meeting: points, attendance and MOM. Can be the Owner."
             max={1}
             initial={defaults.coordinatorId ? [defaults.coordinatorId] : []}
@@ -171,13 +214,13 @@ export function ScheduleMeetingForm({
         {err("participants")}
       </div>
       <div className="grid gap-4 md:grid-cols-2">
-        <PeoplePicker name="department" options={departments} label="Organising department" max={1} initial={defaults.departmentId ? [defaults.departmentId] : []} />
-        <PeoplePicker name="departments" options={departments} label="Departments involved" help="For IDMs, choose every department taking part." max={50} initial={defaults.departmentIds} />
+        <PeoplePicker name="department" kind="department" options={departments} label="Organising department" max={1} initial={defaults.departmentId ? [defaults.departmentId] : []} />
+        <PeoplePicker name="departments" kind="department" options={departments} label="Departments involved" help="For IDMs, choose every department taking part." max={50} initial={defaults.departmentIds} />
       </div>
       <div className="grid gap-4 md:grid-cols-3">
         <div>
           <label htmlFor="mtg-mode" className="field-label">
-            Mode
+            Mode <span className="text-danger-600" aria-hidden="true">*</span>
           </label>
           <select id="mtg-mode" name="mode" value={mode} onChange={(event) => setMode(event.target.value)} className="field-input">
             <option value="OFFLINE">Offline (in person)</option>
@@ -204,7 +247,7 @@ export function ScheduleMeetingForm({
       <div className="grid gap-4 md:grid-cols-3">
         <div>
           <label htmlFor="mtg-priority" className="field-label">
-            Priority
+            Priority <span className="text-danger-600" aria-hidden="true">*</span>
           </label>
           <select id="mtg-priority" name="priority" defaultValue={defaults.priority || "NORMAL"} className="field-input">
             {PRIORITIES.map((priority) => (
@@ -216,7 +259,7 @@ export function ScheduleMeetingForm({
         </div>
         <div>
           <label htmlFor="mtg-conf" className="field-label">
-            Who can see it
+            Who can see it <span className="text-danger-600" aria-hidden="true">*</span>
           </label>
           <select id="mtg-conf" name="confidentiality" defaultValue={defaults.confidentiality || "GENERAL"} className="field-input">
             <option value="GENERAL">General: people on it and their HODs</option>

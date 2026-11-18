@@ -264,7 +264,7 @@ export function FieldInput({
       );
     }
     case "ATTACHMENT": {
-      const most = field.maxFiles ?? 5;
+      const most = field.maxFiles ?? 10;
       return (
         <>
           <div className="flex items-center gap-2">

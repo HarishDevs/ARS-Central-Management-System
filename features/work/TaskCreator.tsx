@@ -38,7 +38,7 @@ export function TaskCreator({ projects, people, meId, ai = false }: { projects: 
 const UNIT: Record<(typeof RECURRENCE_KINDS)[number], string> = { DAILY: "days", WEEKLY: "weeks", MONTHLY: "months", YEARLY: "years", AFTER_DONE: "days after it is completed" };
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 // The upload's own limits (server/attachments/files.ts), said before sending.
-const MAX_FILES = 5;
+const MAX_FILES = 10;
 const MAX_BYTES = 10 * 1024 * 1024;
 const ACCEPT = ".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt";
 type Pop = "" | "plus" | "collab";

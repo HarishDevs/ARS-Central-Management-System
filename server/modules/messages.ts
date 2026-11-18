@@ -82,11 +82,36 @@ export interface MeetingInfo {
   meetingNo: string;
   title: string;
   start?: Date | null;
+  // v1.55.2 (D-330, owner: "enable all meeting notifications for scheduling a
+  // meeting"): the invitation and change messages carry the full details.
+  end?: Date | null;
+  mode?: string | null;
+  venue?: string | null;
+  link?: string | null;
 }
+export type MeetingRole = "OWNER" | "COORDINATOR" | "PARTICIPANT";
 const meetingPath = (meeting: MeetingInfo) => `/users/meetings/${meeting.id}`;
-const when = (meeting: MeetingInfo) => (meeting.start ? ` On ${indiaDateTimeText(meeting.start)}.` : "");
+const MODE_TEXT: Record<string, string> = { OFFLINE: "In person", ONLINE: "Online", HYBRID: "Hybrid" };
+const endClock = (end: Date) => end.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata" });
+const when = (meeting: MeetingInfo) => {
+  if (!meeting.start) return "";
+  const parts = [` On ${indiaDateTimeText(meeting.start)}${meeting.end ? ` to ${endClock(meeting.end)}` : ""}.`];
+  if (meeting.mode) parts.push(` ${MODE_TEXT[meeting.mode] ?? meeting.mode}${meeting.venue ? `, ${meeting.venue}` : ""}.`);
+  else if (meeting.venue) parts.push(` Venue: ${meeting.venue}.`);
+  if (meeting.link) parts.push(` Join: ${meeting.link}`);
+  return parts.join("");
+};
+const ROLE_TEXT: Record<MeetingRole, string> = {
+  OWNER: " You are the Meeting Owner: you approve the meeting points and the MOM.",
+  COORDINATOR: " You are the Coordinator: you send the points, mark attendance and write the MOM.",
+  PARTICIPANT: "",
+};
 export const meetingMessages = {
-  invited: (meeting: MeetingInfo, to: number, by: string) => message("MEETING_INVITED", to, `Meeting: ${meeting.title}`, `${by} added you to the meeting "${meeting.title}" (${meeting.meetingNo}).${when(meeting)}`, meetingPath(meeting), { type: "MEETING", id: meeting.id }),
+  invited: (meeting: MeetingInfo, to: number, by: string, role: MeetingRole = "PARTICIPANT") =>
+    message("MEETING_INVITED", to, `Meeting: ${meeting.title}`, `${by} added you to the meeting "${meeting.title}" (${meeting.meetingNo}).${when(meeting)}${ROLE_TEXT[role]}`, meetingPath(meeting), { type: "MEETING", id: meeting.id }),
+  // The person who scheduled it gets a copy (they're never sent their own invitation).
+  scheduled: (meeting: MeetingInfo, to: number, invited: number) =>
+    message("MEETING_INVITED", to, `Meeting scheduled: ${meeting.title}`, `You scheduled "${meeting.title}" (${meeting.meetingNo}); ${invited} ${invited === 1 ? "person was" : "people were"} told.${when(meeting)}`, meetingPath(meeting), { type: "MEETING", id: meeting.id }),
   updated: (meeting: MeetingInfo, to: number, what: string) => message("MEETING_UPDATED", to, `Meeting ${meeting.meetingNo}: ${what}`, `"${meeting.title}" (${meeting.meetingNo}): ${what}.${when(meeting)}`, meetingPath(meeting), { type: "MEETING", id: meeting.id }),
   cancelled: (meeting: MeetingInfo, to: number, by: string, reason: string) => message("MEETING_CANCELLED", to, `Meeting cancelled: ${meeting.title}`, `${by} cancelled "${meeting.title}" (${meeting.meetingNo}). Reason: ${reason}`, meetingPath(meeting), { type: "MEETING", id: meeting.id }),
   toApprove: (meeting: MeetingInfo, to: number, by: string, what: "meeting points" | "MOM") => message("MEETING_APPROVAL", to, `To approve: ${what} of ${meeting.meetingNo}`, `${by} sent the ${what} of "${meeting.title}" (${meeting.meetingNo}) for your approval.`, meetingPath(meeting), { type: "MEETING", id: meeting.id }),

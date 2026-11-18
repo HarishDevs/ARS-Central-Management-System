@@ -20,10 +20,11 @@ export const dynamic = "force-dynamic";
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 // Kinds are told apart by their label as well as their colour.
 // v1.46.0: the Show dropdown's colour dot per kind (solid, readable in both themes).
-const KIND_DOT: Record<Kind, string> = { approval: "bg-primary-solid", task: "bg-warning-solid", info: "bg-success-solid", needed: "bg-ink-muted", personal: "bg-info-600" };
+const KIND_DOT: Record<Kind, string> = { approval: "bg-primary-solid", task: "bg-warning-solid", meeting: "bg-danger-600", info: "bg-success-solid", needed: "bg-ink-muted", personal: "bg-info-600" };
 const KIND_STYLE: Record<Kind, string> = {
   approval: "bg-primary-50 text-primary-700",
   task: "bg-warning-50 text-warning-600",
+  meeting: "bg-danger-50 text-danger-600",
   info: "bg-success-50 text-success-600",
   needed: "bg-surface-muted text-ink",
   personal: "bg-info-50 text-info-600",
@@ -32,6 +33,7 @@ const KIND_STYLE: Record<Kind, string> = {
 const KIND_ACCENT: Record<Kind, string> = {
   approval: "border-l-primary-600",
   task: "border-l-warning-600",
+  meeting: "border-l-danger-600",
   info: "border-l-success-600",
   needed: "border-l-line-strong",
   personal: "border-l-info-600",
@@ -68,7 +70,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   const shownLabel = shownKinds.length === 0 ? "nothing" : shownKinds.length === allowedKinds.length ? "everything" : shownKinds.length <= 2 ? shownKinds.join(", ") : `${shownKinds.slice(0, 2).join(", ")} +${shownKinds.length - 2}`;
   return (
     <>
-      <PageHeader title="Calendar" icon={CalendarDays} description="Your approvals, tasks, information and needed-by dates, and your own entries, in one place." />
+      <PageHeader title="Calendar" icon={CalendarDays} description="Your approvals, tasks, meetings, information and needed-by dates, and your own entries, in one place." />
 
       <div className="card mb-3 flex flex-wrap items-center gap-2 px-4 py-3">
         <Link href={href({ date: state.prev })} className="grid h-9 w-9 place-items-center rounded-full border border-line hover:bg-surface-muted" aria-label={`Previous ${unit}`}>
@@ -245,8 +247,13 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
           {entries.map((entry) => (
             <li key={entry.key} className={`flex flex-wrap items-center gap-x-4 gap-y-1 border-l-4 px-4 py-3 ${KIND_ACCENT[entry.kind]}`}>
               <span className="w-28 shrink-0 text-label font-semibold">
-                {state.view === "day" ? (entry.time ?? "All day") : dayLabel(entry.day)}
-                {state.view !== "day" && entry.time && <span className="block text-caption font-normal text-ink-muted">{entry.time}</span>}
+                {state.view === "day" ? (entry.time ? `${entry.time}${entry.endTime ? `–${entry.endTime}` : ""}` : "All day") : dayLabel(entry.day)}
+                {state.view !== "day" && entry.time && (
+                  <span className="block text-caption font-normal text-ink-muted">
+                    {entry.time}
+                    {entry.endTime ? `–${entry.endTime}` : ""}
+                  </span>
+                )}
               </span>
               <span className={`rounded px-1.5 py-0.5 text-caption font-semibold ${KIND_STYLE[entry.kind]}`}>{KIND_LABEL[entry.kind]}</span>
               {/* D-219: your tasks tick off here too. */}
@@ -255,6 +262,12 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                 {entry.ref ? `${entry.ref} · ` : ""}
                 {entry.title}
               </Link>
+              {/* v1.55.2 (D-330): a meeting's join link. */}
+              {entry.joinLink && (
+                <a href={entry.joinLink} target="_blank" rel="noopener noreferrer" className="btn-secondary btn-compact" data-testid="calendar-join-link">
+                  Join
+                </a>
+              )}
               <Marks entry={entry} />
             </li>
           ))}

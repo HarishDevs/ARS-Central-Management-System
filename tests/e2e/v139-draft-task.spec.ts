@@ -140,8 +140,8 @@ test("the + menu and the file limits", async ({ page, context }) => {
   await expect(more.getByRole("menuitem", { name: "Task with a form" })).toHaveCount(0);
   await more.getByRole("menuitem", { name: "Set a due date" }).click();
   await expect(dialog.getByRole("textbox", { name: "Due date", exact: true })).toBeVisible();
-  const six = Array.from({ length: 6 }, (_, index) => ({ name: `f${index}-${stamp}.txt`, mimeType: "text/plain", buffer: Buffer.from(`file ${index}`) }));
+  const six = Array.from({ length: 11 }, (_, index) => ({ name: `f${index}-${stamp}.txt`, mimeType: "text/plain", buffer: Buffer.from(`file ${index}`) }));
   await dialog.getByLabel("Choose files to attach").setInputFiles(six);
-  await expect(dialog.getByRole("alert")).toContainText("Attach at most 5 files.");
-  await expect(dialog.getByTestId("draft-files").getByRole("listitem")).toHaveCount(5);
+  await expect(dialog.getByRole("alert")).toContainText("Attach at most 10 files.");
+  await expect(dialog.getByTestId("draft-files").getByRole("listitem")).toHaveCount(10);
 });

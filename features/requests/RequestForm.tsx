@@ -222,9 +222,9 @@ export function RequestForm({
             <label htmlFor="f-attachments" className="field-label">
               {mode === "submit" ? "Attachments" : "Add files"} <span className="font-normal text-ink-faint">(optional)</span>
             </label>
-            <Hint text="Quotes, invoices, photos: PDF, images, Word, Excel, PowerPoint, CSV or text. Up to 5 files of 10 MB each." align="start" className="mb-1.5" />
+            <Hint text="Quotes, invoices, photos: PDF, images, Word, Excel, PowerPoint, CSV or text. Up to 10 files of 10 MB each." align="start" className="mb-1.5" />
           </div>
-          <FileListInput id="f-attachments" name="attachments" accept={ACCEPT_ATTRIBUTE} maxFiles={5} />
+          <FileListInput id="f-attachments" name="attachments" accept={ACCEPT_ATTRIBUTE} maxFiles={10} />
           <FieldError result={result} name="attachments" />
         </div>
         {mode === "submit" && !amendment && collaboratorOptions && (

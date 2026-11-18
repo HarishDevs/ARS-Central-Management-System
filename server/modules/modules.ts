@@ -50,7 +50,7 @@ export function hasModule(person: { roles: readonly string[]; modules: readonly 
 }
 
 // The calendar's kinds of entry, by module (personal entries are everyone's).
-const KIND_MODULE = { approval: "APPROVAL", needed: "APPROVAL", task: "TASK", info: "INFORMATION", personal: null } as const;
+const KIND_MODULE = { approval: "APPROVAL", needed: "APPROVAL", task: "TASK", meeting: "MEETING", info: "INFORMATION", personal: null } as const;
 export function calendarKindAllowed(person: { roles: readonly string[]; modules: readonly ModuleCode[] }, kind: keyof typeof KIND_MODULE): boolean {
   const needed = KIND_MODULE[kind];
   return needed === null || hasModule(person, needed);

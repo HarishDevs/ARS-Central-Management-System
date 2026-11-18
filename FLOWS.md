@@ -154,6 +154,16 @@ flowchart TD
 ## F-RL Group by on request lists (v1.54.16, D-325)
 Group → Status, Approval type, Month raised, Priority; Raised by and Department (lists of other people's requests); Form: <field> for every form field on the page (matched by name; confidential values show as Hidden to those who may not see them).
 
+## F-MTG-CAL Meeting scheduled → told and on the calendar (v1.55.2, D-330)
+```mermaid
+flowchart LR
+  S([Schedule a meeting: today/now by default, end after start, link optional]) --> M[(meetings)]
+  M --> N[Owner, Coordinator, participants told: date, time, place, link, role]
+  M --> C[Scheduler gets a copy]
+  M --> L[Meetings list card: Join link]
+  M --> K[Calendar: Meetings kind, start–end, Join]
+```
+
 ## F-TKT Ticketing System lifecycle (v1.55.0, D-328)
 ```mermaid
 flowchart TD

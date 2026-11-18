@@ -445,10 +445,10 @@ export function CustomApprovalForm({
             <label htmlFor="c-attachments" className="field-label">
               Attachments <span className="font-normal text-ink-faint">(optional)</span>
             </label>
-            <Hint text="Quotes, invoices, photos: PDF, images, Word, Excel, PowerPoint, CSV or text. Up to 5 files of 10 MB each." align="start" className="mb-1.5" />
+            <Hint text="Quotes, invoices, photos: PDF, images, Word, Excel, PowerPoint, CSV or text. Up to 10 files of 10 MB each." align="start" className="mb-1.5" />
           </div>
           {/* v1.52.2 (owner): each file listed with its name; more files add to the list; any can be removed. */}
-          <FileListInput id="c-attachments" name="attachments" accept={ACCEPT_ATTRIBUTE} maxFiles={5} />
+          <FileListInput id="c-attachments" name="attachments" accept={ACCEPT_ATTRIBUTE} maxFiles={10} />
           <FieldError result={result} name="attachments" />
         </div>
         <div>

@@ -83,7 +83,7 @@ export function withType(field: FormField, value: string): FormField {
     ...((type === "NUMBER" || type === "CURRENCY") && field.min !== undefined ? { min: field.min } : {}),
     ...(type === "LOOKUP" ? { source: source && (LOOKUP_SOURCES as readonly string[]).includes(source) ? source : "DEPARTMENT" } : {}),
     ...(type === "CALC" ? { formula: field.formula ?? "", ...(field.decimals !== undefined ? { decimals: field.decimals } : {}) } : {}),
-    ...(type === "ATTACHMENT" ? { maxFiles: field.maxFiles ?? 5 } : {}),
+    ...(type === "ATTACHMENT" ? { maxFiles: field.maxFiles ?? 10 } : {}),
     ...(type === "DATE" && field.neededBy ? { neededBy: true } : {}),
     ...(type !== "SECTION" && field.confidential ? { confidential: true } : {}),
     ...(field.showIf ? { showIf: field.showIf } : {}),

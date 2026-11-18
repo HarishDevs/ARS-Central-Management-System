@@ -69,8 +69,9 @@ test("the requester raises a ticket: own details filled in, a number by its cate
   await expect(form.getByRole("region", { name: "Your details" })).toContainText("Ravi Requester");
   await expect(form.getByRole("region", { name: "Your details" })).toContainText("E2E_REQ");
   await form.getByLabel(/^Subject/).fill(subject);
-  await form.getByRole("textbox", { name: /Description/ }).fill("It shows a blue screen at start-up.");
+  await form.getByRole("textbox", { name: /Issue Description/ }).fill("It shows a blue screen at start-up.");
   await form.getByLabel("Priority").selectOption("HIGH");
+  await form.getByLabel("Required date").fill(new Date(Date.now() + 330 * 60_000 + 86_400_000).toISOString().slice(0, 10));
   await form.getByLabel("Asset tag").fill("LT-0042");
   await form.getByRole("button", { name: "Raise ticket" }).click();
   await expect(page).toHaveURL(/\/users\/tickets\/\d+\?raised=1/);

@@ -1,5 +1,17 @@
 # Release notes
 
+## v1.55.2 (18 Nov 2026): Meeting form, meeting links, 10 attachments, ticket form (owner)
+- **Schedule a meeting:**
+  - required fields carry a red **\*** (title, type, date, starts, ends, Meeting Owner, Coordinator, mode, priority, who can see it);
+  - the date and time start at **today and now** (rounded up to 5 minutes, one hour long); change them as needed;
+  - **the end is always after the start:** moving the start past the end moves the end an hour later, and an earlier end is refused (in the browser and on the server);
+  - **Organising department** and **Departments involved** say "Type a department name" and count departments, not people.
+- **Meeting notifications:** everyone on a new meeting (Owner, Coordinator, participants) is told, in the Inbox and by email, with the date, start and end time, mode, venue, **meeting link** and their role; whoever scheduled it gets a copy. Changes carry the same details.
+- **Meeting link everywhere:** shown on each meeting in the meetings list (**Join**) and on the **Calendar**, where meetings are now their own kind (Show → Meetings) with start–end times and a **Join** button.
+- **Attachments: up to 10 files** at a time in every form (requests, approval form fields, tasks, information, tickets, remarks). Each file is still up to 10 MB; a form's Attachments field can be set to 1–10 files.
+- **Raise a ticket:** the description box is headed **Issue Description**; **Priority** and **Required date** are required.
+- **Owner steps:** no migration. Publish v1.55.2. Uploads can now be up to about 100 MB in one go; if the host refuses large uploads, raise its request size limit to at least 102 MB.
+
 ## v1.55.1 (18 Nov 2026): Ticketing is its own module; one priority scale (owner)
 - **Ticketing is a module** (owner: "i want the ticketing as a separate module"). It is given per person like the others: **Admin → Users & roles → person → Module access → Ticketing**, or several people at once with **Modules** in the users list. The Ticketing feature switch is gone. Nobody has the module until IT ticks it (the Super Admin always has it). Without it, Tickets doesn't show in the sidebar and Raise a ticket, My tickets and the dashboards answer "not found"; a ticket you're on (as its assignee, say) still opens from its link. People without it see Ticketing as **Coming soon**. The user import file takes `TICKET` in its modules column.
 - **One priority scale everywhere** (owner: "Critical, Most Important, Important, High, Normal"): tasks, information, meetings, meeting actions and tickets. **High** is new, between Important and Normal. Existing tickets move from High → **High**, Medium and Low → **Normal**, and ticket forms' default priority the same way. Information's "Urgent" is now called **Critical**. A ticket's task now keeps exactly the ticket's priority. Approval forms' own Priority fields keep the options IT set in the Form Designer.

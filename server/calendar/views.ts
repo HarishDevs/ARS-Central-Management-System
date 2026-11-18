@@ -3,9 +3,10 @@ import { monthGrid, parseMonth, shiftMonth } from "@/server/approvals/calendar-r
 
 // v1.11.0 (D-155): month, week and day views of the calendar page. Pure.
 export type CalendarView = "month" | "week" | "day";
-export const KINDS = ["approval", "task", "info", "needed", "personal"] as const;
+// v1.55.2 (D-330): meetings join the calendar (with their join link).
+export const KINDS = ["approval", "task", "meeting", "info", "needed", "personal"] as const;
 export type Kind = (typeof KINDS)[number];
-export const KIND_LABEL: Record<Kind, string> = { approval: "Approvals", task: "Tasks", info: "Information", needed: "Needed by", personal: "Personal" };
+export const KIND_LABEL: Record<Kind, string> = { approval: "Approvals", task: "Tasks", meeting: "Meetings", info: "Information", needed: "Needed by", personal: "Personal" };
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 export const indiaToday = (now: Date = new Date()) => new Date(now.getTime() + 330 * 60_000).toISOString().slice(0, 10);

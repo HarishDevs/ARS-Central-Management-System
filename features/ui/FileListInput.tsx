@@ -21,7 +21,7 @@ export function FileListInput({
   name,
   accept,
   multiple = true,
-  maxFiles = 5,
+  maxFiles = 10,
   maxBytes = 10 * MB,
   ariaLabel,
   ariaDescribedBy,

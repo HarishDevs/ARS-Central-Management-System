@@ -135,9 +135,9 @@ export function InfoForm({
           <label htmlFor="info-files" className="field-label">
             Files <span className="font-normal text-ink-faint">(optional)</span>
           </label>
-          <Hint text="Up to 5 files, 10 MB each." align="start" className="mb-1.5" />
+          <Hint text="Up to 10 files, 10 MB each." align="start" className="mb-1.5" />
         </div>
-        <FileListInput id="info-files" name="attachments" accept={ACCEPT_ATTRIBUTE} maxFiles={5} />
+        <FileListInput id="info-files" name="attachments" accept={ACCEPT_ATTRIBUTE} maxFiles={10} />
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <button type="submit" name="intent" value="publish" disabled={pending} className="btn-primary">

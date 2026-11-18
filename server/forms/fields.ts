@@ -14,7 +14,7 @@ import { computeLines, dependencyOrder, evaluateFormula, formatPaise, formulaFie
 // shown as buttons), URL (http/https link).
 export const FIELD_TYPES = ["TEXT", "LONG_TEXT", "NUMBER", "DATE", "CHOICE", "PERSON", "LOOKUP", "CALC", "LINE_ITEMS", "SECTION", "ATTACHMENT", "CURRENCY", "DATETIME", "MULTI_CHOICE", "CHECKBOX", "RADIO", "URL"] as const;
 // Most files one attachment field takes (the request limit of 20 still applies).
-export const MAX_FIELD_FILES = 5;
+export const MAX_FIELD_FILES = 10; // v1.55.2 (D-330): was 5
 // Types whose value is a number (usable in formulas, rules and the DoA).
 export const NUMERIC_TYPES: readonly string[] = ["NUMBER", "CALC", "LINE_ITEMS", "CURRENCY"];
 // Types whose values come from the field's own list of options.
@@ -56,7 +56,7 @@ export interface FormField {
   decimals?: number; // CALC only: 0–4 (default 2)
   defaultValue?: string; // filled in on a new request
   neededBy?: boolean; // DATE only: the request's "needed by" date (calendar)
-  maxFiles?: number; // ATTACHMENT only: 1–5 (default 5)
+  maxFiles?: number; // ATTACHMENT only: 1–10 (default 10)
   confidential?: boolean; // v1.7.0 (A8): only the requester, approvers and IT see the value
   // v1.9.0 (task and information forms): shown as a column in lists,
   // matched by the list search, may be changed after the record is made.

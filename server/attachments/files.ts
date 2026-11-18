@@ -1,7 +1,8 @@
 // Attachment rules (S6-05, D-072, F-18). Pure and unit-tested: which files
 // are allowed, how big, and whether the bytes really are what the name says.
 export const MAX_FILE_BYTES = 10 * 1024 * 1024;
-export const MAX_FILES_PER_UPLOAD = 5;
+// v1.55.2 (D-330, owner: "all the attachments in all the forms should support upto 10 attachments").
+export const MAX_FILES_PER_UPLOAD = 10;
 export const MAX_FILES_PER_REQUEST = 20;
 export const SNIFF_BYTES = 4096;
 

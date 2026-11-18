@@ -190,7 +190,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     title: "Your calendar",
     intro: "Every date that matters to you, in one place.",
     points: [
-      "Approvals due from you, your tasks' due dates, your requests' needed-by dates and information dates.",
+      "Approvals due from you, your tasks' due dates, your meetings (with their join link), your requests' needed-by dates and information dates.",
       "Switch between Month, Week and Day, and filter by kind.",
       "Add your own entries (meetings, reminders); only you see them.",
     ],

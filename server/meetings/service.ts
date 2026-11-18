@@ -9,7 +9,7 @@ import { appendTaskEvent, findTask, insertTask, listPeopleFacts, updateTask } fr
 import { addFollower, generalTypeVersion } from "@/lib/db/repositories/work.repository";
 import * as repo from "@/lib/db/repositories/meetings.repository";
 import { deliverOutbox } from "@/server/approvals/service";
-import { meetingMessages, taskMessages, type MeetingInfo } from "@/server/modules/messages";
+import { meetingMessages, taskMessages, type MeetingInfo, type MeetingRole } from "@/server/modules/messages";
 import { isAdminActor, type TaskActor } from "@/server/modules/tasks";
 import { indiaLocalToUtc } from "@/server/modules/settings";
 import type { NotifyInput } from "@/server/notifications/notify";
@@ -180,6 +180,7 @@ export async function scheduleMeeting(input: ScheduleMeetingInput, actor: Meetin
   };
   // Owner and Coordinator always attend.
   const everyone = [...new Set([...participantIds, values.ownerId, values.coordinatorId])];
+  const roleOf = (id: number): MeetingRole => (id === values.ownerId ? "OWNER" : id === values.coordinatorId ? "COORDINATOR" : "PARTICIPANT");
   const departmentIds = [...new Set(input.departmentIds)].slice(0, 50);
 
   const outcome = await withTransaction(async (connection) => {
@@ -228,10 +229,10 @@ export async function scheduleMeeting(input: ScheduleMeetingInput, actor: Meetin
         },
         connection,
       );
-      const after = { ...info(before), title: values.title, start: values.scheduledStart };
+      const after: MeetingInfo = { ...info(before), title: values.title, start: values.scheduledStart, end: values.scheduledEnd, mode: values.mode, venue: values.venue, link: values.link };
       const addedSet = new Set(added);
       const messages: NotifyInput[] = [
-        ...added.filter((id) => id !== actor.id).map((id) => meetingMessages.invited(after, id, actor.name)),
+        ...added.filter((id) => id !== actor.id).map((id) => meetingMessages.invited(after, id, actor.name, roleOf(id))),
         ...everyone.filter((id) => id !== actor.id && !addedSet.has(id)).map((id) => meetingMessages.updated(after, id, moved ? "the date or time changed" : "the details changed")),
       ];
       return { id: before.id, meetingNo: before.meetingNo, outbox: await insertOutbox(null, messages, connection) };
@@ -287,8 +288,9 @@ export async function scheduleMeeting(input: ScheduleMeetingInput, actor: Meetin
       },
       connection,
     );
-    const summary: MeetingInfo = { id, meetingNo, title: values.title, start: values.scheduledStart };
-    const messages = everyone.filter((personId) => personId !== actor.id).map((personId) => meetingMessages.invited(summary, personId, actor.name));
+    const summary: MeetingInfo = { id, meetingNo, title: values.title, start: values.scheduledStart, end: values.scheduledEnd, mode: values.mode, venue: values.venue, link: values.link };
+    const invitees = everyone.filter((personId) => personId !== actor.id);
+    const messages = [...invitees.map((personId) => meetingMessages.invited(summary, personId, actor.name, roleOf(personId))), meetingMessages.scheduled(summary, actor.id, invitees.length)];
     return { id, meetingNo, outbox: await insertOutbox(null, messages, connection) };
   });
   if ("error" in outcome) return fail(outcome.error ?? NOT_FOUND);
