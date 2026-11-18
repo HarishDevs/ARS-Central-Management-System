@@ -5,7 +5,7 @@ Based on the Phase 1 audit (TICKETING_SYSTEM_CURRENT_STATE.md, GAP_ANALYSIS.md) 
 | Question | Owner's answer | Effect on the design |
 |---|---|---|
 | Location | Drop it | No location field, no location dashboards or routing |
-| Coordinator routing | Drop it | **Interpreted as:** no routing rules. Each category has its own coordinator list; all are notified and any of them can act. *Correct this if you meant something else.* |
+| Coordinator routing | **Per form** (clarified 18 Nov 2026) | Each ticket form (request type) has its own **set of coordinators**, chosen when the form is set up. All of them are notified of a new ticket; any one of them assigns it. No other routing rules |
 | 4 working days | Whole working days | India time, Working Calendar (weekly offs + company holidays) |
 | Who can raise | Anyone with CMS access | A feature switch `tickets`: Off → IT admins only (pilot) → On for everyone. No per-person module |
 | Hardware assets | Drop it | No asset field or asset dashboards |
@@ -34,7 +34,9 @@ ticket_categories      id, code (IT_SW | IT_HW | ADMIN | …), name, number_pref
                        active, position, created_by/at
 ticket_request_types   id, category_id → ticket_categories, type_id → module_types (module = 'TICKET'),
                        active, position          UNIQUE(type_id)
-ticket_coordinators    category_id, user_id → users, added_by/at        PK(category_id, user_id)
+ticket_coordinators    type_id → module_types (the ticket form), user_id → users, added_by/at   PK(type_id, user_id)
+                       (kept per form, not per version: changing coordinators needs no new form version;
+                        a form can't be published without at least one active coordinator)
 ticket_priorities      config in settings: LOW / NORMAL / HIGH / URGENT with response & resolution targets
                        in working days (default 1/3, 1/2, 0.5→same day/1, same day/same day)  [setting, no table]
 tickets                id, ticket_no UNIQUE, category_id, request_type_id, type_version_id → module_type_versions,
@@ -83,16 +85,16 @@ module_types.module, record_files.entity_type, notification_rules.module, notifi
 
 ## 4. Permissions
 
-| Action | Requester | Coordinator (of the category) | Assignee | Ticket admin (page access) | Super Admin |
+| Action | Requester | Coordinator (of the ticket's form) | Assignee | Ticket admin (page access) | Super Admin |
 |---|---|---|---|---|---|
 | Raise (feature On) | ✓ any user | ✓ | ✓ | ✓ | ✓ |
-| See the ticket | own | category's | assigned | all | all |
+| See the ticket | own | their forms' | assigned | all | all |
 | Internal comments | — | ✓ | ✓ | ✓ | ✓ |
 | Assign / reassign / priority / reject / ask info / escalate | — | ✓ | — | ✓ | ✓ |
 | Work, resolution | — | — | ✓ (task) | — | — |
 | Confirm / reopen / rate | ✓ only | — | — | — | — |
 | Categories, request types (forms), coordinators, priorities, numbering | — | — | — | ✓ | ✓ |
-| Reports | own | category's | own | ✓ | ✓ |
+| Reports | own | their forms' | own | ✓ | ✓ |
 
 ## 5. Auto-closure job (`ticketConfirmations`, every runner call)
 
@@ -145,8 +147,7 @@ The requester's Confirm / Reopen uses the same conditional update, so whichever 
   - for awaiting tickets, the auto-close date and Confirm / Reopen.
 - **Admin → Tickets:**
   - Categories (prefix, digits, active, order);
-  - Request types (the shared Form Builder, module TICKET, per category);
-  - Coordinators per category;
+  - Request types (the shared Form Builder, module TICKET, per category), each with its **Coordinators** box in the same setup screen;
   - Priorities and targets;
   - Reports.
 - **Dashboards** (per category and personal):
@@ -158,7 +159,7 @@ The requester's Confirm / Reopen uses the same conditional update, so whichever 
 ## 9. Server actions (no public API)
 
 - `raiseTicket`, `ticketAction` (one entry point, an action enum, a role check per action, the transition table above), `ticketComment`, `confirmTicket`, `reopenTicket`.
-- Admin: `saveCategory`, `saveCoordinators`, `saveTicketSettings`. Request types use the existing module-type actions with kind TICKET.
+- Admin: `saveCategory`, `saveFormCoordinators` (per form), `saveTicketSettings`. Request types use the existing module-type actions with kind TICKET.
 - All re-check the session and the role on the server, validate input with zod, rate-limit raising (e.g. 20 an hour per person), and audit.
 
 ## 10. Rollout and rollback
@@ -181,4 +182,4 @@ The requester's Confirm / Reopen uses the same conditional update, so whichever 
   - assignee can't confirm; a stranger can't see; forms keep their version.
 - **e2e:** requester, coordinator and assignee journeys; dashboards; admin form and coordinator setup.
 
-**Approval needed:** the coordinator interpretation (§ table at the top), priority targets (§2 defaults), and this design overall. Phase 3 starts after approval.
+**Approval needed:** priority targets (§2 defaults) and this design overall. Coordinators per form: settled by the owner on 18 Nov 2026. Phase 3 starts after approval.

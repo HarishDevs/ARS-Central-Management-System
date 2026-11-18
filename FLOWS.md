@@ -158,7 +158,7 @@ Group → Status, Approval type, Month raised, Priority; Raised by and Departmen
 ```mermaid
 flowchart TD
   R([Anyone with CMS access raises a ticket: category → request type → published form]) --> N[NEW: number, requestor, department]
-  N --> C[The category's coordinators are notified; any of them can act]
+  N --> C[The form's coordinators (set up with the form) are notified; any one of them assigns]
   C -->|needs details| W[WAITING FOR INFORMATION] --> C
   C -->|invalid| X[REJECTED with reason]
   C -->|assign| A[ASSIGNED: one linked task in Tasks]
