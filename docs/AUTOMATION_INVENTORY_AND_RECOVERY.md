@@ -122,3 +122,12 @@ A healthy pending request is never listed. This is covered by `tests/integration
 | Backup failed | Alert; Automation | Check disk space and the backup folder; **Back up now** |
 | Google Drive backup copy FAILING (v1.46.0) | Alert; Automation (error text) | "Only encrypted backups…": set `BACKUP_ENCRYPTION_KEY` and wait for the next backup. "folder wasn't found" or "can't add files": share the shared-drive folder with the service account as Content manager. "couldn't delete an old backup": the upload worked; check the service account's role. Then **Test** and **Run now**. Meanwhile download the newest backup by hand (DEPLOYMENT P1) |
 | Security records clean-up FAILING (v1.46.0) | Automation | Read the error (usually a lock timeout on a busy table); **Run now** later. Nothing is lost; records are kept longer |
+
+## v1.57.6 (19 Nov 2026): state recovery (D-348)
+- **One run at a time:** `runAutomations` takes a MySQL named lock (per database); a run while one is going returns "skipped: already running" and runs no step; Super Admin "Run now" says another run is going.
+- **Exports:** up to 3 tries (`export_jobs.attempts`); after the 3rd failure the job is FAILED and the requester is told. Finish / fail / requeue only apply to the run that claimed it (same attempt count, still RUNNING).
+- **Google Calendar jobs:** finish and fail only apply while the job is still RUNNING (a recovered job isn't overwritten by a late worker).
+- **Outbox:** claims older than 15 minutes that were never sent are released and sent on the next run (this replaces D-243's "a stopped send is never retried by itself" for outbox messages); marking sent checks the claim token.
+- **Weekly HOD report / scheduled reports:** runs stuck SENDING / RUNNING for over an hour are marked FAILED ("interrupted") and retried once on the next run (same email key, so no duplicates). Ordinary send failures are not retried.
+- **AI data sync:** runs stuck RUNNING for over an hour are marked FAILED; the checkpoint never moves forward from them.
+

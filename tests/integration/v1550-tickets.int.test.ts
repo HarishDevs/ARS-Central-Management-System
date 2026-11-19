@@ -6,6 +6,7 @@ import { saveTicketFormSetup, findTicket, ticketBoard } from "@/lib/db/repositor
 import { analyticsTickets } from "@/lib/db/repositories/ticket-analytics.repository";
 import { assignTicket, confirmTicket, raiseTicket, reopenTicket, runTicketConfirmations } from "@/server/tickets/service";
 import { actOnTask, type TaskActor } from "@/server/modules/tasks";
+import { deleteTask } from "@/server/work/service";
 import { loadWorkingCalendar } from "@/lib/db/repositories/calendar.repository";
 import { addWorkingDays, indiaDate } from "@/server/workflows/calendar";
 import { createUser } from "./helpers";
@@ -95,6 +96,41 @@ describe("raise and assign", () => {
     expect(await findTicket(id)).toMatchObject({ status: "ASSIGNED", assigneeId: people.assignee!.id, taskId: task.id });
     const [tasks] = await q<{ n: number }>("SELECT COUNT(*) AS n FROM tasks WHERE ticket_id = ?", [id]);
     expect(Number(tasks!.n)).toBe(1);
+  });
+});
+
+// v1.57.6 (D-345, owner: "Block the delete"): a ticket's task can't be deleted on its own.
+describe("a ticket's task", () => {
+  it("can't be deleted from the task pages, by its creator or by IT; nothing changes", async () => {
+    const { id } = await raise("Delete guard");
+    expect((await assignTicket({ ticketId: id, assigneeId: people.assignee!.id, targetDate: today(), remarks: "", rowVersion: null }, people.coordinator!)).ok).toBe(true);
+    const task = await taskOf(id);
+    for (const who of [people.coordinator!, people.admin!]) {
+      const result = await deleteTask(task.id, { ...who, sessionId: null } as never);
+      expect(result.ok).toBe(false);
+      expect(!result.ok && result.message).toMatch(/carries out a ticket/);
+    }
+    const after = await taskOf(id);
+    expect(after.status).toBe("OPEN");
+    const [row] = await q<{ deleted_at: Date | null }>("SELECT deleted_at FROM tasks WHERE id = ?", [task.id]);
+    expect(row!.deleted_at).toBeNull();
+    expect((await findTicket(id))!.status).toBe("ASSIGNED");
+  });
+
+  // v1.57.6 (D-345, owner: "Task back to Open"): reassigning an In-progress ticket to someone else.
+  it("reassigned to a different person while In progress, the task goes back to Open and the ticket to Assigned", async () => {
+    const { id } = await raise("Reassign started");
+    expect((await assignTicket({ ticketId: id, assigneeId: people.assignee!.id, targetDate: today(), remarks: "", rowVersion: null }, people.coordinator!)).ok).toBe(true);
+    const task = await taskOf(id);
+    expect((await actOnTask({ taskId: task.id, action: "START", rowVersion: null, reason: "", assigneeId: null, files: [] }, people.assignee!)).ok).toBe(true);
+    expect((await findTicket(id))!.status).toBe("IN_PROGRESS");
+    expect((await assignTicket({ ticketId: id, assigneeId: people.stranger!.id, targetDate: today(), remarks: "Please take over", rowVersion: null }, people.coordinator!)).ok).toBe(true);
+    const after = await taskOf(id);
+    expect(after).toMatchObject({ id: task.id, status: "OPEN", assignee_id: people.stranger!.id });
+    expect((await findTicket(id))!.status).toBe("ASSIGNED");
+    // The new person can start it.
+    expect((await actOnTask({ taskId: task.id, action: "START", rowVersion: null, reason: "", assigneeId: null, files: [] }, people.stranger!)).ok).toBe(true);
+    expect((await findTicket(id))!.status).toBe("IN_PROGRESS");
   });
 });
 

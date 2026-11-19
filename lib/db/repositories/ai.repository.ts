@@ -348,8 +348,25 @@ export async function startSyncRun(sourceKey: string, dataset: string, checkpoin
   return result.insertId;
 }
 
-export async function finishSyncRun(id: number, outcome: { status: "SUCCEEDED" | "FAILED"; rowsFetched: number; checkpointOut: string | null; error: string | null }, db: Queryable = getDbPool()): Promise<void> {
-  await db.query("UPDATE ai_sync_runs SET status = ?, rows_fetched = ?, checkpoint_out = ?, error = ?, finished_at = CURRENT_TIMESTAMP WHERE id = ?", [outcome.status, outcome.rowsFetched, outcome.checkpointOut, outcome.error?.slice(0, 300) ?? null, id]);
+// v1.57.6 (D-348, owner): only a run that is still RUNNING is finished. A run
+// already recovered as FAILED (stuck over an hour) stays FAILED, so a late
+// finish can never move the checkpoint. Returns whether it applied.
+export async function finishSyncRun(id: number, outcome: { status: "SUCCEEDED" | "FAILED"; rowsFetched: number; checkpointOut: string | null; error: string | null }, db: Queryable = getDbPool()): Promise<boolean> {
+  const [result] = await db.query<ResultSetHeader>("UPDATE ai_sync_runs SET status = ?, rows_fetched = ?, checkpoint_out = ?, error = ?, finished_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'RUNNING'", [outcome.status, outcome.rowsFetched, outcome.checkpointOut, outcome.error?.slice(0, 300) ?? null, id]);
+  return result.affectedRows === 1;
+}
+
+// v1.57.6 (D-348, owner): a sync run left RUNNING for over an hour died with
+// its process. It is closed as FAILED with no checkpoint_out, so the next
+// sync continues from the last good checkpoint (lastGoodCheckpoint).
+export const AI_SYNC_STUCK_MINUTES = 60;
+export async function recoverStuckSyncRuns(db: Queryable = getDbPool()): Promise<number> {
+  const [result] = await db.query<ResultSetHeader>(
+    `UPDATE ai_sync_runs SET status = 'FAILED', checkpoint_out = NULL, error = 'INTERRUPTED: the run stopped before finishing.', finished_at = CURRENT_TIMESTAMP
+     WHERE status = 'RUNNING' AND started_at < DATE_SUB(CURRENT_TIMESTAMP, INTERVAL ? MINUTE)`,
+    [AI_SYNC_STUCK_MINUTES],
+  );
+  return result.affectedRows;
 }
 
 // The checkpoint to continue from: the last SUCCESSFUL run's (a failed run never moves it).

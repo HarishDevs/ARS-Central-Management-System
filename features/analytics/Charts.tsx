@@ -518,7 +518,8 @@ export function Heatmap({ title, help, rows, columns, cells, cellHref, empty = "
                   {columns.map((column) => {
                     const value = cells[row]?.[column] ?? 0;
                     const step = heatStep(value, max);
-                    const style = step ? { background: `color-mix(in srgb, var(--color-primary-600) ${HEAT_MIX[step]}%, transparent)` } : undefined;
+                    // v1.57.6: the solid brand colour (dark in both themes) so white figures on the darkest cells stay readable.
+                    const style = step ? { background: `color-mix(in srgb, var(--color-primary-solid) ${HEAT_MIX[step]}%, transparent)` } : undefined;
                     const text = step >= 4 ? "text-on-solid font-semibold" : "text-ink";
                     return (
                       <td key={column} className={`min-w-12 rounded px-2 py-1.5 text-right tabular-nums ${step ? text : "text-ink-faint"}`} style={style} title={`${row} · ${column}: ${value}`}>

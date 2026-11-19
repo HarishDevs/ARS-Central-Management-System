@@ -442,6 +442,14 @@ export async function actOnMeeting(input: ActOnMeetingInput, actor: MeetingActor
     const messages: NotifyInput[] = [];
     const everyone = () => audience(meeting.id, meeting, actor.id, connection);
     const summary = info(meeting);
+    // v1.57.6 (D-346, owner): approving the MOM approves points still with the
+    // Owner (SUBMITTED), so they are never left awaiting approval forever. Applied
+    // in the same row_version-guarded update as the MOM approval.
+    const pointsPending = meeting.pointsStatus === "SUBMITTED";
+    const settlePoints = (): Record<string, unknown> => (pointsPending ? { points_status: "APPROVED", points_decided_at: new Date() } : {});
+    const pointsSettledEvent = async () => {
+      if (pointsPending) await event("POINTS_APPROVED", "Approved with the MOM (the points were still with the Meeting Owner)", { withMom: true });
+    };
 
     switch (input.action) {
       case "RESPOND": {
@@ -513,27 +521,13 @@ export async function actOnMeeting(input: ActOnMeetingInput, actor: MeetingActor
         await event("MOM_STARTED");
         return { message: "Write the MOM: timing, attendance, discussion, decisions and action items.", outbox: [] };
       }
-      case "START": {
-        if (!allowed.has("START"))
-          return { error: meeting.pointsPolicy === "BLOCK" && meeting.pointsStatus !== "APPROVED" ? "The Meeting Owner asked for approved points before the meeting starts." : NOT_FOUND } as const;
-        await update({ status: "IN_PROGRESS", actual_start: new Date() });
-        await event("STARTED");
-        return { message: "Meeting started. Mark attendance and take the minutes as you go.", outbox: [] };
-      }
+      // v1.57.6 (D-346, owner): the unreachable START case (never allowed since
+      // v1.51.2) is removed. Meetings already IN_PROGRESS (old rows) still END.
       case "END": {
         if (!allowed.has("END")) return { error: NOT_FOUND } as const;
-        // Recorded as held after the fact: the Coordinator enters the real times.
-        let actualStart = meeting.actualStart;
-        let actualEnd = new Date();
-        if (meeting.status === "SCHEDULED") {
-          const from = indiaLocalToUtc(input.actualStart);
-          const to = indiaLocalToUtc(input.actualEnd);
-          if (!from || !to || to <= from) return { error: "Enter when the meeting really started and ended (the end after the start)." } as const;
-          if (to.getTime() > Date.now() + 5 * 60_000) return { error: "The end time can't be in the future." } as const;
-          actualStart = from;
-          actualEnd = to;
-        }
-        await update({ status: "AWAITING_MOM", actual_start: actualStart, actual_end: actualEnd });
+        // v1.57.6 (D-346, owner): END is only allowed IN_PROGRESS, so the old
+        // "recorded after the fact from SCHEDULED" branch was dead and is removed.
+        await update({ status: "AWAITING_MOM", actual_start: meeting.actualStart, actual_end: new Date() });
         await event("ENDED");
         return { message: "Meeting ended. Write the MOM and send it to the Meeting Owner.", outbox: [] };
       }
@@ -581,7 +575,8 @@ export async function actOnMeeting(input: ActOnMeetingInput, actor: MeetingActor
         if (selfApproved(meeting, actor.id)) {
           const tasks = await createActionTasks(meeting, actor, connection);
           if ("error" in tasks) return { error: tasks.error } as const;
-          await update({ ...changes, status: "MOM_APPROVED", mom_decided_at: new Date() });
+          await update({ ...changes, ...settlePoints(), status: "MOM_APPROVED", mom_decided_at: new Date() });
+          await pointsSettledEvent();
           await event("MOM_APPROVED", `The Coordinator is the Meeting Owner; ${tasks.created} task(s) created`);
           await audit("MOM_APPROVED", { self: true, tasks: tasks.created });
           for (const id of await everyone()) messages.push(meetingMessages.published(summary, id, "MOM"));
@@ -607,7 +602,8 @@ export async function actOnMeeting(input: ActOnMeetingInput, actor: MeetingActor
         }
         const tasks = await createActionTasks(meeting, actor, connection);
         if ("error" in tasks) return { error: tasks.error } as const;
-        await update({ status: "MOM_APPROVED", mom_decided_at: new Date(), mom_remarks: remarks || null });
+        await update({ ...settlePoints(), status: "MOM_APPROVED", mom_decided_at: new Date(), mom_remarks: remarks || null });
+        await pointsSettledEvent();
         await event("MOM_APPROVED", `${tasks.created} task(s) created${remarks ? `. ${remarks}` : ""}`);
         await audit("MOM_APPROVED", { tasks: tasks.created });
         if (meeting.coordinatorId !== actor.id) messages.push(meetingMessages.decided(summary, meeting.coordinatorId, actor.name, "MOM", true, remarks));
@@ -669,15 +665,22 @@ export async function reviewAction(
     // Send back: the work isn't acceptable; the task reopens with the note.
     if (note.length < 3) return { error: "Say what is still needed (at least 3 characters)." } as const;
     if (!action.taskId) return { error: NOT_FOUND } as const;
-    const task = await findTask(action.taskId);
+    // v1.57.6 (D-346, owner): the meeting decides, whatever the task type's
+    // allowReopen. The task row is locked in this transaction and updated with its
+    // row_version; the reopen is a REOPEN task event and the assignee is told.
+    const task = await findTask(action.taskId, connection, true);
     if (!task || task.deletedAt) return { error: "The task was deleted." } as const;
+    let reopened = false;
     if (task.status === "COMPLETED") {
       if (!(await updateTask(task.id, task.rowVersion, { status: "OPEN", completed_by: null, completed_at: null }, connection))) return { error: STALE } as const;
-      await appendTaskEvent(task.id, { actorId: actor.id, type: "REOPENED", from: "COMPLETED", to: "OPEN", body: `Sent back from meeting ${meeting.meetingNo}: ${note}` }, connection);
+      await appendTaskEvent(task.id, { actorId: actor.id, type: "REOPEN", from: "COMPLETED", to: "OPEN", body: note, payload: { meetingId: meeting.id, actionId: action.id } }, connection);
+      reopened = true;
+      if (task.assigneeId !== actor.id) messages.push(taskMessages.reopened({ id: task.id, taskNo: task.taskNo, title: task.title, dueAt: task.dueAt }, task.assigneeId, actor.name));
     }
     await repo.confirmAction(action, null, note, connection);
     await repo.appendMeetingEvent(meeting.id, { actorId: actor.id, type: "ACTION_SENT_BACK", body: `${action.title}: ${note}` }, connection);
-    if (action.ownerId !== actor.id) messages.push(meetingMessages.actionReview(summary, action.ownerId, actor.name, false, action.title, note));
+    // The meeting message carries the note; skipped for the assignee already told of the reopen.
+    if (action.ownerId !== actor.id && !(reopened && action.ownerId === task.assigneeId)) messages.push(meetingMessages.actionReview(summary, action.ownerId, actor.name, false, action.title, note));
     return { message: "Sent back to the action owner.", outbox: await insertOutbox(null, messages, connection), meetingId: meeting.id };
   });
   if ("error" in outcome) return fail(outcome.error ?? NOT_FOUND);
@@ -693,19 +696,9 @@ export async function closeOpenPointFor(input: { pointId: number; note: string }
     if (!point) return fail<{ meetingId: number }>(NOT_FOUND);
     const locked = await lockFor(point.meetingId, actor, connection);
     if (!locked || !locked.allowed.has("CONFIRM_ACTIONS")) return fail<{ meetingId: number }>(NOT_FOUND);
-    // Closing closes the whole chain (the point carried into later meetings too).
-    await repo.closeOpenPoint(point.id, note, actor.id, connection);
-    await connection.query("UPDATE meeting_open_points SET status = 'CLOSED', closed_note = ?, closed_by = ?, closed_at = UTC_TIMESTAMP() WHERE status = 'OPEN' AND carried_from_id = ?", [
-      note,
-      actor.id,
-      point.id,
-    ]);
-    if (point.carriedFromId)
-      await connection.query("UPDATE meeting_open_points SET status = 'CLOSED', closed_note = ?, closed_by = ?, closed_at = UTC_TIMESTAMP() WHERE status = 'OPEN' AND id = ?", [
-        note,
-        actor.id,
-        point.carriedFromId,
-      ]);
+    // v1.57.6 (D-346, owner): closing closes every OPEN point of the whole carry
+    // chain (any length, both ways along carried_from_id), not just one step.
+    await repo.closeOpenPointChain(point.id, note, actor.id, connection);
     await repo.appendMeetingEvent(point.meetingId, { actorId: actor.id, type: "OPEN_POINT_CLOSED", body: `${point.text.slice(0, 200)}: ${note}` }, connection);
     return { ok: true as const, value: { meetingId: point.meetingId } };
   });

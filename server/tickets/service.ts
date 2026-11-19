@@ -199,6 +199,9 @@ export async function assignTicket(input: AssignInput, actor: TaskActor): Promis
       if (!task) return { error: "The ticket's task is missing. Ask IT." } as const;
       const changes: Record<string, unknown> = { assignee_id: assignee.id, assigned_by: actor.id, assigned_at: new Date(), due_at: dueAt };
       if (reopened || task.status === "COMPLETED" || task.status === "CANCELLED") Object.assign(changes, { status: "OPEN", completed_by: null, completed_at: null, cancelled_by: null, cancelled_at: null });
+      // v1.57.6 (D-345, owner: "Task back to Open"): a different person starts afresh, so the
+      // task and the ticket (Assigned) agree and the new assignee can press Start.
+      else if (task.assigneeId !== assignee.id && (task.status === "IN_PROGRESS" || task.status === "BLOCKED")) changes.status = "OPEN";
       if (!(await updateTask(task.id, task.rowVersion, changes, connection))) return { error: "The task changed while you were looking. Reload and try again." } as const;
       await appendTaskEvent(task.id, { actorId: actor.id, type: reopened ? "REOPEN" : "REASSIGN", from: task.status, to: (changes.status as string | undefined) ?? task.status, body: remarks || null, payload: { from: task.assigneeId, to: assignee.id, ticketId: ticket.id } }, connection);
       await addFollower(task.id, assignee.id, "ASSIGNEE", actor.id, connection);

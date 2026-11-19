@@ -29,6 +29,8 @@ export async function runJobsNowAction(_previous: ActionResult | null, formData:
     const report = await runAutomations({ trigger: "MANUAL", only: job ? [job] : undefined });
     await recordAudit({ actorUserId: session.user.id, action: "JOBS_RUN_MANUALLY", entityType: "SYSTEM", entityId: job || "ALL", sessionId: session.sessionId, metadata: { runRef: report.runRef, failed: report.failed } });
     revalidatePath("/superadmin/automation");
+    // v1.57.6 (D-348): another run is going (cron or another person); nothing ran this time.
+    if (report.skipped) return { ok: false, message: "Another run is going right now. Try again in a minute." };
     return report.failed.length ? { ok: false, message: `Finished with problems: ${report.failed.join(", ")}. See the run history.` } : { ok: true, message: job ? "Done." : "All jobs ran." };
   } catch (error) {
     logError("runJobsNowAction failed", error);

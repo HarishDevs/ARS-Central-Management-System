@@ -33,6 +33,15 @@ export async function answerConsultationRow(id: number, consulteeId: number, ans
   return result.affectedRows === 1;
 }
 
+// v1.57.6 (D-347, owner): "withdraw on close". When a request ends (approved,
+// rejected, withdrawn) or is deleted, the advice still asked on it is no
+// longer needed: its OPEN consultations become WITHDRAWN. Conditional, so an
+// answered one stays answered. Run on the request's transaction.
+export async function withdrawOpenConsultations(requestId: number, db: Queryable = getDbPool()): Promise<number> {
+  const [result] = await db.query<ResultSetHeader>("UPDATE consultations SET status = 'WITHDRAWN' WHERE request_id = ? AND status = 'OPEN'", [requestId]);
+  return result.affectedRows;
+}
+
 export async function findConsultation(id: number, db: Queryable = getDbPool()): Promise<Consultation | null> {
   return (await listConsultationsWhere("c.id = ?", [id], db))[0] ?? null;
 }

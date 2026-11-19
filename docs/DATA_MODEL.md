@@ -851,7 +851,7 @@ Migration names are shortened to their date-time prefix; the full file is `datab
 | `push_subscriptions` | Notifications | One row per browser push endpoint; keys encrypted (v1.41.0, §4) | 202611011200 |
 | `admin_broadcasts` | Notifications | Notices IT sent from Admin → Notifications (v1.41.0, §4) | 202611011200 |
 | `condition_rules_backup` | Runner | Each row's `form_json` as it was before the v1.46.0 rule conversion (`table_name`, `row_id` primary key); only for rollback; may be dropped once the release has settled | 202611021000 |
-| `hod_report_runs` | Reports | The weekly HOD report: one row per department and week (claimed before sending; SENDING, SENT or FAILED) | 202611011000 |
+| `hod_report_runs` | Reports | The weekly HOD report: one row per department and week (claimed before sending; SENDING, SENT or FAILED; `attempts` since v1.57.6) | 202611011000, 202611191200 |
 | `used_security_links` | Security | "This wasn't me" links already used | 202610091000 |
 | `request_drafts` | Approvals | Autosaved request drafts, one per person and form | 202610100900 |
 | `saved_views` | Personal | A person's saved request filters | 202610100900 |
@@ -872,12 +872,12 @@ Migration names are shortened to their date-time prefix; the full file is `datab
 | `workflow_migration_items` | Approvals | Each request's outcome in that run | 202610121200 |
 | `analytics_views` | Reports | Saved Analytics and report filters | 202610121300 |
 | `report_schedules` | Reports | Reports emailed on a schedule | 202610121300 |
-| `report_runs` | Reports | Each scheduled run | 202610121300 |
+| `report_runs` | Reports | Each scheduled run (`attempts` since v1.57.6: an interrupted run is retried once) | 202610121300, 202611191200 |
 | `alert_rules` | Reports | A person's metric alerts | 202610121300 |
 | `alert_events` | Reports | Each time an alert fired | 202610121300 |
 | `legal_holds` | Governance | Holds that block deletion or pruning | 202610121400 |
 | `request_collaborators` | Approvals | People following a request (never decide) | 202610130900 |
-| `export_jobs` | Reports | Large exports made in the background | 202610140900 |
+| `export_jobs` | Reports | Large exports made in the background (`attempts`: up to 3 tries since v1.57.6) | 202610140900, 202611191200 |
 | `custom_approval_settings` | Approvals | Custom approval form and policy (one row) | 202610150900 |
 | `page_access_rules` | People | Hidden, View or Full per page and scope | 202610150900 |
 | `module_types` | Tasks / Information | Task types and Information types | 202610160900 |

@@ -1,3 +1,4 @@
+import { meetingOfTask } from "@/lib/db/repositories/meetings.repository";
 import { workMirrorLink } from "@/server/approvals/work-mirror";
 import "server-only";
 import { afterResponse } from "@/lib/http/after-response";
@@ -616,6 +617,15 @@ export async function deleteTask(taskId: number, actor: TaskActor): Promise<Work
   if (!(loaded.rights.edit)) return fail("Only the task's creator, project editors and IT can delete it.");
   // D-269: a request's work step closes with the request, not on its own.
   if (workMirrorLink(loaded.task.formData) && OPEN_STATUSES.includes(loaded.task.status)) return fail(`This task is a work step of ${loaded.task.relatedRequestNo ?? "a request"}; it closes on the request.`);
+  // v1.57.6 (D-345, owner chose "Block the delete"): a ticket's task is never
+  // deleted on its own (the ticket would be left with no way forward); it is
+  // reassigned on the ticket, and the ticket closes when the requester confirms.
+  if (loaded.task.ticketId) return fail("This task carries out a ticket, so it can't be deleted here. Reassign it on the ticket; the ticket closes when the requester confirms.");
+  // v1.57.6 (D-345, owner chose "Block the delete" for meeting actions too): an action
+  // item's task closes through the meeting's follow-up (confirm or send back), so a
+  // deleted one can't leave the meeting unable to close.
+  const meeting = await meetingOfTask(loaded.task.id);
+  if (meeting) return fail(`This task is an action item of meeting ${meeting.meetingNo}, so it can't be deleted here. Follow it up on the meeting.`);
   const now = new Date();
   await withTransaction(async (connection) => {
     for (const id of [taskId, ...(await repo.descendants(taskId, connection)).map((item) => item.id)]) {

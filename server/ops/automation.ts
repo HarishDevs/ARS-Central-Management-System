@@ -1,10 +1,11 @@
 import "server-only";
 import crypto from "node:crypto";
+import type { RowDataPacket } from "mysql2/promise";
 import { runDeliveryRetries, runHousekeeping } from "@/server/jobs/retry-deliveries";
 import { runSlaChecks } from "@/server/jobs/sla";
 import { auditDelegationDates } from "@/server/jobs/delegations";
 import { runOutbox } from "@/server/approvals/service";
-import { pruneOutbox } from "@/lib/db/repositories/outbox.repository";
+import { pruneOutbox, releaseStaleOutboxClaims } from "@/lib/db/repositories/outbox.repository";
 import { closeAbandonedRuns, finishJobRun, pruneJobRuns, startJobRun, summariseJobs, type JobSummary } from "@/lib/db/repositories/job-runs.repository";
 import { explainBackupError, runDailyBackup } from "@/server/ops/backup";
 import { runDailyTemplateSync } from "@/server/notifications/template-registry";
@@ -53,7 +54,8 @@ export const AUTOMATIONS: readonly Automation[] = [
     retry: "Up to 5 tries per message; after that it waits for IT.",
     // D-243 (audit DB-014): states the real guarantee.
     idempotency:
-      "Each message is claimed before sending, so only one sender sends it, and a message recorded as sent is never sent again. A send that stopped before it was confirmed is never repeated by itself: it waits under Messages not sent, because it may already have arrived. Emails carry a key, so the email provider drops a repeat within 24 hours.",
+      // v1.57.6 (D-348, owner): a stopped send is released after 15 minutes.
+      "Each message is claimed before sending, so only one sender sends it, and a message recorded as sent is never sent again. A send that stopped before it was confirmed is released after 15 minutes and tried again (within the 5 tries). Emails carry a key, so the email provider drops a repeat within 24 hours.",
     onFailure: "The message stays unsent and is listed under Messages not sent.",
     recovery: "Resend (gives the message fresh tries; never sends one recorded as sent). For a message whose send stopped part-way, check first that the person didn't get it.",
     owner: "Super Admin (providers); IT team for the affected requests",
@@ -175,7 +177,8 @@ export const AUTOMATIONS: readonly Automation[] = [
     what: "Emails each scheduled report when it is due, with the owner's current permissions.",
     trigger: "Every job run (reports due since the last run).",
     everyMinutes: 5,
-    retry: "Each recipient is sent to on their own, so one failure doesn't stop the others (the run shows who got it). A run that reached nobody is retried at its next slot; three such runs in a row pause the schedule.",
+    // v1.57.6 (D-348, owner): an interrupted run is retried once.
+    retry: "Each recipient is sent to on their own, so one failure doesn't stop the others (the run shows who got it). A run that reached nobody is retried at its next slot; three such runs in a row pause the schedule. A run stopped by a crash (running over an hour) is marked failed and sent again once on the next run.",
     idempotency: "Each slot is claimed once (unique schedule + due time), so a report is never sent twice for the same slot.",
     onFailure: "Recorded in the schedule's run history; the owner sees it under Reports.",
     recovery: "Fix the cause (usually email settings), then switch the schedule on again.",
@@ -247,7 +250,8 @@ export const AUTOMATIONS: readonly Automation[] = [
     what: "Marks AI proposals past their 7 days as expired, removes AI conversations older than the retention setting, and copies Salesforce data (read-only) at most hourly once it is set up.",
     trigger: "Every job run; the Salesforce copy only when the last one is an hour old.",
     everyMinutes: 5,
-    retry: "The next run tries again. A failed Salesforce object keeps its last good copy and checkpoint.",
+    // v1.57.6 (D-348, owner): stuck sync runs are closed.
+    retry: "The next run tries again. A failed Salesforce object keeps its last good copy and checkpoint; a sync run still running after an hour (the process stopped) is marked failed without moving the checkpoint.",
     idempotency: "Expiry and retention are single statements; Salesforce records are stored by their own Id, so a repeat never duplicates.",
     onFailure: "Recorded here; AI → Data Sources shows each object's last run and error.",
     recovery: "Super Admin → AI settings → Sync now, after fixing the cause.",
@@ -259,9 +263,10 @@ export const AUTOMATIONS: readonly Automation[] = [
     what: "Makes large report exports people asked for, and removes export files after 7 days.",
     trigger: "Every job run (and straight after each request).",
     everyMinutes: 5,
-    retry: "A failed export is marked failed with the reason; the person asks again. A run that died is put back in the queue after 30 minutes.",
-    idempotency: "Each export is claimed (queued → running) before it is made, so it is made once.",
-    onFailure: "The export shows as failed on Reports; the next run carries on with the rest.",
+    // v1.57.6 (D-348, owner): at most 3 tries; the third failure is final.
+    retry: "An unexpected error, or a run that died (running over 30 minutes), puts the export back in the queue, up to 3 tries in all; after the third it is marked failed and the person is told in the app. A permission problem fails it at once.",
+    idempotency: "Each export is claimed (queued → running, counting the try) before it is made, so it is made once; a run that was given up on can't overwrite a newer try.",
+    onFailure: "The export shows as failed on Reports and the person is told; the next run carries on with the rest.",
     recovery: "The person asks for the export again.",
     owner: "Each export's owner; Super Admin for storage",
   },
@@ -271,7 +276,8 @@ export const AUTOMATIONS: readonly Automation[] = [
     what: "Every Monday from 9:00 (India time) emails each department's head their department's requests of the last 7 days: raised, approved, rejected, open and overdue now, the oldest waiting (D-247). Off until the Super Admin switches it on.",
     trigger: "Every job run; sends once a week.",
     everyMinutes: 5,
-    retry: "A department whose email failed is recorded as failed for that week (Super Admin can see it in the run counts); the next week sends again.",
+    // v1.57.6 (D-348, owner): an interrupted send is retried once.
+    retry: "A department whose email failed is recorded as failed for that week (Super Admin can see it in the run counts); the next week sends again. A send stopped by a crash (still sending after an hour) is marked failed and sent again once that week.",
     idempotency: "Each department is claimed once per week (unique week + department) before the email, and the email carries a one-per-week key, so nobody gets it twice.",
     onFailure: "Recorded here with the count of failed departments.",
     recovery: "Fix the email settings or the HOD's address; the next Monday's report goes out as normal.",
@@ -333,7 +339,12 @@ export function softFailure(counts: StepResult): string | null {
 }
 
 const STEPS: Record<string, () => Promise<StepResult>> = {
-  outbox: () => runOutbox(),
+  // v1.57.6 (D-348, owner): claims older than 15 minutes that were never
+  // marked sent are released first, so this run picks those messages up again.
+  outbox: async () => {
+    const outboxClaimsReleased = await releaseStaleOutboxClaims();
+    return { outboxClaimsReleased, ...(await runOutbox()) };
+  },
   deliveries: async () => ({ ...(await runDeliveryRetries()) }) as StepResult,
   push: async () => ({ ...(await drainPushQueue()) }),
   sla: () => runSlaChecks(),
@@ -372,12 +383,59 @@ export interface RunReport {
   runRef: string;
   steps: Record<string, { status: "OK" | "FAILED"; counts?: StepResult }>;
   failed: string[];
+  // v1.57.6 (D-348, owner): set when another run held the lock; no step ran.
+  skipped?: "already running";
+}
+
+// v1.57.6 (D-348, owner): only one job run at a time. A MySQL named lock
+// (per database, so a test and a live database on one server don't block each
+// other) is taken on one pooled connection and released on that same
+// connection; if the process dies, MySQL drops the lock with the connection.
+// Returns null when another run holds it.
+export async function acquireAutomationLock(): Promise<{ release: () => Promise<void> } | null> {
+  const connection = await getDbPool().getConnection();
+  try {
+    const [[row]] = await connection.query<RowDataPacket[]>("SELECT GET_LOCK(LEFT(CONCAT('ars_automation:', COALESCE(DATABASE(), '')), 64), 0) AS got");
+    if (Number(row?.got) !== 1) {
+      connection.release();
+      return null;
+    }
+  } catch (error) {
+    connection.release();
+    throw error;
+  }
+  let released = false;
+  return {
+    release: async () => {
+      if (released) return;
+      released = true;
+      try {
+        await connection.query("SELECT RELEASE_LOCK(LEFT(CONCAT('ars_automation:', COALESCE(DATABASE(), '')), 64))");
+        connection.release();
+      } catch (error) {
+        // The lock goes with the connection: drop it rather than reuse it.
+        logError("automation: couldn't release the run lock", error);
+        connection.destroy();
+      }
+    },
+  };
 }
 
 // Runs every step, recording each one. Errors are summarised by name and
 // message only (no payloads); details stay in the server log.
 export async function runAutomations(input: { runRef?: string | null; trigger?: "CRON" | "MANUAL"; only?: readonly string[] } = {}): Promise<RunReport> {
   const runRef = input.runRef || crypto.randomUUID();
+  // v1.57.6 (D-348, owner): a second run while one is going is skipped.
+  const lock = await acquireAutomationLock();
+  if (!lock) return { runRef, steps: {}, failed: [], skipped: "already running" };
+  try {
+    return await runSteps(runRef, input);
+  } finally {
+    await lock.release();
+  }
+}
+
+async function runSteps(runRef: string, input: { trigger?: "CRON" | "MANUAL"; only?: readonly string[] }): Promise<RunReport> {
   const report: RunReport = { runRef, steps: {}, failed: [] };
   for (const automation of AUTOMATIONS) {
     if (input.only && !input.only.includes(automation.key)) continue;

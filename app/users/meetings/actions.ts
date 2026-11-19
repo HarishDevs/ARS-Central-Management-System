@@ -130,7 +130,7 @@ const ACTIONS: readonly ActOnMeetingInput["action"][] = [
   "SUBMIT_POINTS",
   "APPROVE_POINTS",
   "RETURN_POINTS",
-  "START",
+  // v1.57.6 (D-346, owner): "START" removed (never allowed; Enter MOM replaced it).
   "END",
   "SAVE_MOM",
   "SUBMIT_MOM",

@@ -26,6 +26,10 @@ async function holdsPendingTask(requestId: number, actor: Actor): Promise<boolea
   return request.state.tasks.some((task) => task.status === "PENDING" && (task.approverId === actor.id || delegators.has(task.approverId)));
 }
 
+// v1.57.6 (D-347, owner): a request that has ended no longer takes advice.
+const CLOSED_STATUSES: ReadonlySet<string> = new Set(["APPROVED", "REJECTED", "CANCELLED"]);
+const WITHDRAWN_MESSAGE = "This request has closed, so the advice is no longer needed. Nothing was saved.";
+
 // EN-06 (BD-9): ask a colleague for advice. They can then read the request
 // and answer; they never get a decision.
 export async function consult(input: { requestId: number; consulteeId: number; question: string }, actor: Actor): Promise<Result<{ id: number }>> {
@@ -65,7 +69,16 @@ export async function answerConsultation(input: { consultationId: number; answer
   if (answer.length > 2000) return { ok: false, code: "TOO_LONG", message: "Keep it under 2,000 characters." };
   const consultation = await findConsultation(input.consultationId);
   if (!consultation || consultation.consulteeId !== actor.id) return { ok: false, code: "NOT_FOUND", message: "Not found." };
-  if (!(await answerConsultationRow(consultation.id, actor.id, answer))) return { ok: false, code: "ANSWERED", message: "You've already answered this." };
+  // v1.57.6 (D-347, owner): only an open question on a request still open can be answered.
+  if (consultation.status === "ANSWERED") return { ok: false, code: "ANSWERED", message: "You've already answered this." };
+  if (consultation.status === "WITHDRAWN") return { ok: false, code: "WITHDRAWN", message: WITHDRAWN_MESSAGE };
+  const open = await findRequest(consultation.requestId);
+  if (!open || CLOSED_STATUSES.has(open.state.status)) return { ok: false, code: "CLOSED", message: WITHDRAWN_MESSAGE };
+  if (!(await answerConsultationRow(consultation.id, actor.id, answer))) {
+    // Lost a race: answered in another tab, or withdrawn as the request closed.
+    const now = await findConsultation(consultation.id);
+    return now?.status === "WITHDRAWN" ? { ok: false, code: "WITHDRAWN", message: WITHDRAWN_MESSAGE } : { ok: false, code: "ANSWERED", message: "You've already answered this." };
+  }
   await appendEvents(consultation.requestId, [{ type: "CONSULT_ANSWERED", consultationId: consultation.id, actorId: actor.id, answer }], actor.id, getDbPool());
   await recordAudit({ actorUserId: actor.id, action: "REQUEST_CONSULT_ANSWERED", entityType: "REQUEST", entityId: consultation.requestId, metadata: { consultationId: consultation.id } });
   try {

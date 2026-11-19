@@ -162,13 +162,49 @@ export async function ownerOf(userId: number) {
   return owner(userId);
 }
 
+// v1.57.6 (D-348, owner): a run left RUNNING for over an hour (the process
+// stopped) is closed as FAILED with an INTERRUPTED message, and that slot is
+// sent again once on the next run (attempts 1 -> 2). The emails carry the
+// same per-run key, so anyone who did get it isn't sent it twice.
+export const REPORT_RUN_STUCK_MINUTES = 60;
+export const REPORT_RUN_INTERRUPTED = "INTERRUPTED: the run stopped before finishing; it is sent again once.";
+
+export async function recoverStuckReportRuns(): Promise<number> {
+  const [result] = await getDbPool().query<ResultSetHeader>(
+    "UPDATE report_runs SET status = 'FAILED', finished_at = CURRENT_TIMESTAMP, message = ? WHERE status = 'RUNNING' AND started_at < DATE_SUB(CURRENT_TIMESTAMP, INTERVAL ? MINUTE)",
+    [REPORT_RUN_INTERRUPTED, REPORT_RUN_STUCK_MINUTES],
+  );
+  return result.affectedRows;
+}
+
 // Job runner step. Each slot is claimed by inserting its report_runs row
 // (unique per schedule and due time), so a slot is delivered at most once
 // even when two runs overlap or a run is retried.
-export async function runDueSchedules(limit = 20): Promise<{ reportsSent: number; reportsFailed: number; reportsSkipped: number }> {
+export async function runDueSchedules(limit = 20): Promise<{ reportsSent: number; reportsFailed: number; reportsSkipped: number; reportsRecovered?: number; reportsRetried?: number }> {
   const db = getDbPool();
   const out = { reportsSent: 0, reportsFailed: 0, reportsSkipped: 0 };
+  // v1.57.6 (D-348, owner): stuck runs are closed first, even while the feature is off.
+  const reportsRecovered = await recoverStuckReportRuns();
   if ((await featureMode("scheduled_reports")) === "OFF") return out;
+  // v1.57.6 (D-348, owner): an interrupted run of the last day is retried once,
+  // while its schedule is still on. The claim (FAILED -> RUNNING, attempts 2)
+  // lets only one runner retry it.
+  let reportsRetried = 0;
+  const [interrupted] = await db.query<(Row & { run_id: number })[]>(
+    `SELECT s.*, r.id AS run_id FROM report_runs r JOIN report_schedules s ON s.id = r.schedule_id
+     WHERE r.status = 'FAILED' AND r.attempts = 1 AND r.message = ? AND s.active = TRUE AND r.started_at > DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 1 DAY)
+     ORDER BY r.id LIMIT ?`,
+    [REPORT_RUN_INTERRUPTED, limit],
+  );
+  for (const row of interrupted) {
+    const [again] = await db.query<ResultSetHeader>(
+      "UPDATE report_runs SET status = 'RUNNING', attempts = 2, started_at = CURRENT_TIMESTAMP, finished_at = NULL, message = NULL WHERE id = ? AND status = 'FAILED' AND attempts = 1 AND message = ?",
+      [row.run_id, REPORT_RUN_INTERRUPTED],
+    );
+    if (again.affectedRows !== 1) continue;
+    reportsRetried += 1;
+    await deliverRun(toSchedule(row), row.run_id, 2, new Date(), out);
+  }
   const [due] = await db.query<Row[]>("SELECT * FROM report_schedules WHERE active = TRUE AND next_run_at <= CURRENT_TIMESTAMP ORDER BY next_run_at LIMIT ?", [limit]);
   for (const row of due.map(toSchedule)) {
     let runId: number;
@@ -181,86 +217,97 @@ export async function runDueSchedules(limit = 20): Promise<{ reportsSent: number
     }
     const now = new Date();
     await db.query("UPDATE report_schedules SET next_run_at = ?, last_run_at = CURRENT_TIMESTAMP WHERE id = ?", [nextRunAt(row, now), row.id]);
-    const finish = async (status: "SENT" | "FAILED" | "SKIPPED", message: string, extra: { rows?: number; bytes?: number } = {}) => {
-      await db.query("UPDATE report_runs SET status = ?, finished_at = CURRENT_TIMESTAMP, message = ?, row_count = ?, bytes = ? WHERE id = ?", [status, message.slice(0, 300), extra.rows ?? null, extra.bytes ?? null, runId]);
-      await db.query("UPDATE report_schedules SET last_status = ?, failures = IF(? = 'FAILED', failures + 1, 0) WHERE id = ?", [status, status, row.id]);
-      out[status === "SENT" ? "reportsSent" : status === "FAILED" ? "reportsFailed" : "reportsSkipped"] += 1;
-    };
-    try {
-      const person = await owner(row.userId);
-      if (!person || !person.active) {
-        await db.query("UPDATE report_schedules SET active = FALSE WHERE id = ?", [row.id]);
-        await finish("SKIPPED", "The owner is inactive; the schedule is paused.");
-        continue;
-      }
-      if (!(await allowedFor(person))) {
-        await finish("SKIPPED", "Scheduled reports are switched off for this person at the moment.");
-        continue;
-      }
-      if (!(await canUseReports(person))) {
-        await finish("SKIPPED", "Reports are for the IT team only; the owner no longer has access.");
-        continue;
-      }
-      if (!(await canExport(person))) {
-        await finish("SKIPPED", "Downloads are limited to the Can export permission, which the owner doesn't have.");
-        continue;
-      }
-      const ran = await runReport(row.reportKey, cleanQuery(row.query), { id: person.id, roles: person.roles }, now);
-      if (!ran) {
-        await db.query("UPDATE report_schedules SET active = FALSE WHERE id = ?", [row.id]);
-        await finish("SKIPPED", "The owner can no longer run this report; the schedule is paused.");
-        continue;
-      }
-      // B06: the owner, then each extra recipient, each with their own
-      // permissions at the time it runs. Someone who can't run this report
-      // for the same scope, or may not download, is skipped (never widened).
-      const { audience, skippedPeople } = await scheduleAudience(row, person, ran, now);
-      let totalBytes = 0;
-      let attachedAll = true;
-      // D-243 (audit DB-013): each recipient on their own; one failure is
-      // recorded and the others still get the report.
-      const outcome = await sendToEach(audience, async (entry) => {
-        const meta = { title: entry.ran.report.name, scopeLabel: entry.ran.scope.label, periodLabel: entry.ran.report.usesPeriod ? `${entry.ran.filter.period.label} (${entry.ran.filter.period.from} to ${entry.ran.filter.period.to})` : null, generatedAt: now, generatedBy: `${person.name} (scheduled)` };
-        const file = await exportReport(row.format, entry.ran.result, meta);
-        const bytes = typeof file === "string" ? Buffer.byteLength(file) : file.byteLength;
-        totalBytes += bytes;
-        const params = new URLSearchParams(cleanQuery(row.query) as Record<string, string>).toString();
-        const link = `${base()}/admin/reports/${row.reportKey}${params ? `?${params}` : ""}`;
-        const attach = bytes <= MAX_ATTACHMENT_BYTES;
-        attachedAll &&= attach;
-        const why = entry.person.id === person.id ? "You get this because you scheduled it." : `You get this because ${person.name} added you to their scheduled report. It shows what you can see.`;
-        await sendEmail(
-          await getEmailConfig(),
-          {
-            to: entry.person.email,
-            subject: `ARS CMS: ${entry.ran.report.name} (${describeSchedule(row).toLowerCase()})`,
-            text: `${entry.ran.report.name}\n${meta.scopeLabel}${meta.periodLabel ? ` · ${meta.periodLabel}` : ""}\n${entry.ran.result.rows.length} row${entry.ran.result.rows.length === 1 ? "" : "s"}${entry.ran.result.truncated ? " (first rows only)" : ""}.\n\n${attach ? "The report is attached." : "The report is too large to attach."} Open it in the app:\n${link}\n\n${why} Manage schedules: ${base()}/admin/reports`,
-            attachments: attach ? [{ filename: fileName(row.reportKey, row.format, now), content: file }] : undefined,
-            // D-243: one email per run and person, even if the send is repeated.
-            idempotencyKey: `ars-report-r${runId}-u${entry.person.id}`,
-          },
-          emailDeps(),
-        );
-      }, (entry, error) => logError("scheduled report: a recipient failed", error, { scheduleId: row.id, userId: entry.person.id }));
-      const result = runResult(outcome, audience.length);
-      if (result.status === "FAILED") {
-        await finish("FAILED", result.note);
-        await db.query("UPDATE report_schedules SET active = FALSE WHERE id = ? AND failures >= 3", [row.id]).catch(() => undefined);
-        continue;
-      }
-      const rows = ran.result.rows.length;
-      const bytes = totalBytes;
-      const attach = attachedAll;
-      const extra = audience.length > 1 || skippedPeople ? ` To ${audience.length} ${audience.length === 1 ? "person" : "people"}${skippedPeople ? `, ${skippedPeople} skipped (no access)` : ""}.` : "";
-      await finish("SENT", `${attach ? "Sent with the file attached." : "Sent with a link (file too large to attach)."}${extra}${result.note}`, { rows, bytes });
-    } catch (error) {
-      logError("scheduled report failed", error, { scheduleId: row.id });
-      await finish("FAILED", error instanceof Error ? `${error.name}: ${error.message}` : "Failed").catch(() => undefined);
-      // Three failures in a row pause the schedule; the owner sees it on Reports.
-      await db.query("UPDATE report_schedules SET active = FALSE WHERE id = ? AND failures >= 3", [row.id]).catch(() => undefined);
-    }
+    await deliverRun(row, runId, 1, now, out);
   }
-  return out;
+  return { ...out, reportsRecovered, reportsRetried };
+}
+
+// Sends one claimed run (v1.57.6: split out so an interrupted run can be
+// retried with the same steps). attempt is the run's attempts value.
+async function deliverRun(row: ScheduleRow, runId: number, attempt: number, now: Date, out: { reportsSent: number; reportsFailed: number; reportsSkipped: number }): Promise<void> {
+  const db = getDbPool();
+  // v1.57.6 (D-348, owner): the outcome is written only while this run is
+  // still RUNNING under this attempt; a run recovered as INTERRUPTED (or
+  // being retried) meanwhile keeps its newer state, and nothing is counted.
+  const finish = async (status: "SENT" | "FAILED" | "SKIPPED", message: string, extra: { rows?: number; bytes?: number } = {}) => {
+    const [ended] = await db.query<ResultSetHeader>("UPDATE report_runs SET status = ?, finished_at = CURRENT_TIMESTAMP, message = ?, row_count = ?, bytes = ? WHERE id = ? AND status = 'RUNNING' AND attempts = ?", [status, message.slice(0, 300), extra.rows ?? null, extra.bytes ?? null, runId, attempt]);
+    if (ended.affectedRows !== 1) return;
+    await db.query("UPDATE report_schedules SET last_status = ?, failures = IF(? = 'FAILED', failures + 1, 0) WHERE id = ?", [status, status, row.id]);
+    out[status === "SENT" ? "reportsSent" : status === "FAILED" ? "reportsFailed" : "reportsSkipped"] += 1;
+  };
+  try {
+    const person = await owner(row.userId);
+    if (!person || !person.active) {
+      await db.query("UPDATE report_schedules SET active = FALSE WHERE id = ?", [row.id]);
+      await finish("SKIPPED", "The owner is inactive; the schedule is paused.");
+      return;
+    }
+    if (!(await allowedFor(person))) {
+      await finish("SKIPPED", "Scheduled reports are switched off for this person at the moment.");
+      return;
+    }
+    if (!(await canUseReports(person))) {
+      await finish("SKIPPED", "Reports are for the IT team only; the owner no longer has access.");
+      return;
+    }
+    if (!(await canExport(person))) {
+      await finish("SKIPPED", "Downloads are limited to the Can export permission, which the owner doesn't have.");
+      return;
+    }
+    const ran = await runReport(row.reportKey, cleanQuery(row.query), { id: person.id, roles: person.roles }, now);
+    if (!ran) {
+      await db.query("UPDATE report_schedules SET active = FALSE WHERE id = ?", [row.id]);
+      await finish("SKIPPED", "The owner can no longer run this report; the schedule is paused.");
+      return;
+    }
+    // B06: the owner, then each extra recipient, each with their own
+    // permissions at the time it runs. Someone who can't run this report
+    // for the same scope, or may not download, is skipped (never widened).
+    const { audience, skippedPeople } = await scheduleAudience(row, person, ran, now);
+    let totalBytes = 0;
+    let attachedAll = true;
+    // D-243 (audit DB-013): each recipient on their own; one failure is
+    // recorded and the others still get the report.
+    const outcome = await sendToEach(audience, async (entry) => {
+      const meta = { title: entry.ran.report.name, scopeLabel: entry.ran.scope.label, periodLabel: entry.ran.report.usesPeriod ? `${entry.ran.filter.period.label} (${entry.ran.filter.period.from} to ${entry.ran.filter.period.to})` : null, generatedAt: now, generatedBy: `${person.name} (scheduled)` };
+      const file = await exportReport(row.format, entry.ran.result, meta);
+      const bytes = typeof file === "string" ? Buffer.byteLength(file) : file.byteLength;
+      totalBytes += bytes;
+      const params = new URLSearchParams(cleanQuery(row.query) as Record<string, string>).toString();
+      const link = `${base()}/admin/reports/${row.reportKey}${params ? `?${params}` : ""}`;
+      const attach = bytes <= MAX_ATTACHMENT_BYTES;
+      attachedAll &&= attach;
+      const why = entry.person.id === person.id ? "You get this because you scheduled it." : `You get this because ${person.name} added you to their scheduled report. It shows what you can see.`;
+      await sendEmail(
+        await getEmailConfig(),
+        {
+          to: entry.person.email,
+          subject: `ARS CMS: ${entry.ran.report.name} (${describeSchedule(row).toLowerCase()})`,
+          text: `${entry.ran.report.name}\n${meta.scopeLabel}${meta.periodLabel ? ` · ${meta.periodLabel}` : ""}\n${entry.ran.result.rows.length} row${entry.ran.result.rows.length === 1 ? "" : "s"}${entry.ran.result.truncated ? " (first rows only)" : ""}.\n\n${attach ? "The report is attached." : "The report is too large to attach."} Open it in the app:\n${link}\n\n${why} Manage schedules: ${base()}/admin/reports`,
+          attachments: attach ? [{ filename: fileName(row.reportKey, row.format, now), content: file }] : undefined,
+          // D-243: one email per run and person, even if the send is repeated.
+          idempotencyKey: `ars-report-r${runId}-u${entry.person.id}`,
+        },
+        emailDeps(),
+      );
+    }, (entry, error) => logError("scheduled report: a recipient failed", error, { scheduleId: row.id, userId: entry.person.id }));
+    const result = runResult(outcome, audience.length);
+    if (result.status === "FAILED") {
+      await finish("FAILED", result.note);
+      await db.query("UPDATE report_schedules SET active = FALSE WHERE id = ? AND failures >= 3", [row.id]).catch(() => undefined);
+      return;
+    }
+    const rows = ran.result.rows.length;
+    const bytes = totalBytes;
+    const attach = attachedAll;
+    const extra = audience.length > 1 || skippedPeople ? ` To ${audience.length} ${audience.length === 1 ? "person" : "people"}${skippedPeople ? `, ${skippedPeople} skipped (no access)` : ""}.` : "";
+    await finish("SENT", `${attach ? "Sent with the file attached." : "Sent with a link (file too large to attach)."}${extra}${result.note}`, { rows, bytes });
+  } catch (error) {
+    logError("scheduled report failed", error, { scheduleId: row.id });
+    await finish("FAILED", error instanceof Error ? `${error.name}: ${error.message}` : "Failed").catch(() => undefined);
+    // Three failures in a row pause the schedule; the owner sees it on Reports.
+    await db.query("UPDATE report_schedules SET active = FALSE WHERE id = ? AND failures >= 3", [row.id]).catch(() => undefined);
+  }
 }
 
 // ---- alert rules ---------------------------------------------------------------

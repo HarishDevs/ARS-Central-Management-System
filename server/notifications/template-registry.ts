@@ -177,16 +177,22 @@ async function syncCore(actorId: number | null, sessionId: string | null): Promi
     const byName = new Map(provider.filter((item) => item.language.toLowerCase().startsWith("en")).map((item) => [item.name, item]));
     const report: SyncReport = { approved: 0, pending: 0, rejected: 0, paused: 0, notFound: [] };
     const codes = new Set(WHATSAPP_TEMPLATES.map((entry) => entry.code));
-    const rows = (await listTemplateVersions()).filter((row) => codes.has(row.code) && row.providerName && row.status !== "RETIRED");
+    // v1.57.6 (D-349, owner): a RETIRED version that is still APPROVED is the
+    // fallback if the live one is paused, so its verdict is kept fresh too
+    // (a pause at Meta clears its approval). It is not counted in the report.
+    const rows = (await listTemplateVersions()).filter(
+      (row) => codes.has(row.code) && row.providerName && (row.status !== "RETIRED" || row.approvalStatus === "APPROVED"),
+    );
     await withTransaction(async (db) => {
       for (const row of rows) {
+        const fallbackOnly = row.status === "RETIRED";
         const found = byName.get(row.providerName!);
         if (!found) {
-          if (row.submittedAt) report.notFound.push(row.providerName!);
+          if (row.submittedAt && !fallbackOnly) report.notFound.push(row.providerName!);
           continue;
         }
         const outcome = outcomeOf(found.status);
-        report[outcome === "APPROVED" ? "approved" : outcome === "REJECTED" ? "rejected" : outcome === "PAUSED" ? "paused" : "pending"] += 1;
+        if (!fallbackOnly) report[outcome === "APPROVED" ? "approved" : outcome === "REJECTED" ? "rejected" : outcome === "PAUSED" ? "paused" : "pending"] += 1;
         await applyTemplateVerdict(row, { outcome, metaStatus: found.status, reason: found.rejectedReason }, db);
       }
       await recordAudit({ actorUserId: actorId, action: "WHATSAPP_TEMPLATES_SYNCED", entityType: "WHATSAPP_TEMPLATE", entityId: "all", sessionId, metadata: { ...report, automatic: actorId === null } }, db);

@@ -17,23 +17,23 @@ import { logError } from "@/lib/logging/logger";
 export interface OutboxSenderDeps {
   claim: (id: number) => Promise<OutboxClaim | null>;
   notify: (message: NotifyInput, options: NotifyOptions) => Promise<NotifySummary>;
-  markSent: (id: number) => Promise<void>;
+  markSent: (id: number, claimToken?: string) => Promise<void>; // v1.57.6 (D-348): only the claim holder marks it sent
   release: (id: number, claimToken: string) => Promise<void>;
 }
 
 const defaultDeps: OutboxSenderDeps = {
   claim: (id) => claimOutbox(id),
   notify: (message, options) => notify(message, options),
-  markSent: (id) => markOutboxSent(id),
+  markSent: (id, claimToken) => markOutboxSent(id, claimToken),
   release: (id, claimToken) => releaseOutboxClaim(id, claimToken),
 };
 
 export const outboxReference = (id: number) => `ars-o${id}`;
 
-async function recordSent(deps: OutboxSenderDeps, id: number): Promise<boolean> {
+async function recordSent(deps: OutboxSenderDeps, id: number, claimToken?: string): Promise<boolean> {
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
-      await deps.markSent(id);
+      await deps.markSent(id, claimToken);
       return true;
     } catch (error) {
       logError("outbox: sent, but couldn't record it", error, { outboxId: id, attempt });
@@ -68,7 +68,7 @@ export async function deliverOutboxWithDeps(ids: readonly number[], deps: Outbox
       await deps.release(id, claim.claimToken).catch((error: unknown) => logError("outbox: couldn't give back a claim", error, { outboxId: id }));
       continue;
     }
-    if (await recordSent(deps, id)) sent += 1;
+    if (await recordSent(deps, id, claim.claimToken)) sent += 1;
   }
   return sent;
 }

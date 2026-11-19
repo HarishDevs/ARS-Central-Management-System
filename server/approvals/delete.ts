@@ -10,6 +10,7 @@ import { cancelForDeletion } from "@/server/engine";
 import { deliverOutbox, queueMessages, type Actor, type Result } from "@/server/approvals/service";
 import { isHeld } from "@/server/ops/governance";
 import { mirrorWorkTasks } from "@/server/approvals/work-mirror";
+import { withdrawOpenConsultations } from "@/lib/db/repositories/consult.repository";
 
 // Super Admin deletes a request (S11-08, D-086, F-73). Soft delete: hidden
 // from every screen, queue, job and report; the row, timeline and audit log
@@ -37,6 +38,8 @@ export async function deleteRequest(
     }
     await appendEvents(request.id, result.events, actor.id, db);
     await markRequestDeleted(request.id, actor.id, reason.slice(0, 500), db);
+    // v1.57.6 (D-347, owner): "withdraw on close": a deleted request's open advice questions are withdrawn, in this transaction.
+    await withdrawOpenConsultations(request.id, db);
     const event = result.events[0] as { closedTaskIds: string[] };
     const [names] = await db.query<(RowDataPacket & { name: string })[]>("SELECT name FROM users WHERE id = ?", [request.requesterId]);
     const outboxIds = await queueMessages(

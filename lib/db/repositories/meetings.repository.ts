@@ -600,6 +600,33 @@ export async function closeOpenPoint(id: number, note: string, actorId: number, 
   return result.affectedRows === 1;
 }
 
+// v1.57.6 (D-346, owner): close every OPEN point of a carry chain. The chain is
+// followed both ways along carried_from_id (back to the first meeting, forward into
+// every follow-up, branches included) to any length; the visited set guards against
+// cycles. Only rows still OPEN change. Returns how many were closed.
+export async function closeOpenPointChain(id: number, note: string, actorId: number, db: Queryable): Promise<number> {
+  const seen = new Set<number>([id]);
+  let frontier = [id];
+  while (frontier.length && seen.size < 10_000) {
+    const [rows] = await db.query<Row[]>("SELECT id, carried_from_id FROM meeting_open_points WHERE id IN (?) OR carried_from_id IN (?) FOR UPDATE", [frontier, frontier]);
+    const next: number[] = [];
+    for (const row of rows) {
+      for (const linked of [num(row.id), numOrNull(row.carried_from_id)]) {
+        if (linked === null || seen.has(linked)) continue;
+        seen.add(linked);
+        next.push(linked);
+      }
+    }
+    frontier = next;
+  }
+  const [result] = await db.query<ResultSetHeader>("UPDATE meeting_open_points SET status = 'CLOSED', closed_note = ?, closed_by = ?, closed_at = UTC_TIMESTAMP() WHERE id IN (?) AND status = 'OPEN'", [
+    note,
+    actorId,
+    [...seen],
+  ]);
+  return result.affectedRows;
+}
+
 // ---- events ----------------------------------------------------------------------------
 export interface MeetingEvent {
   id: number;
@@ -684,7 +711,8 @@ export interface MeetingListRow {
 
 export async function listMeetings(scope: MeetingScope, filter: MeetingListFilter, db: Queryable = getDbPool()): Promise<{ rows: MeetingListRow[]; total: number }> {
   const visible = scopeSql(scope);
-  const where = ["m.deleted_at IS NULL", visible.sql];
+  // v1.57.6 (D-346, owner): meetings.deleted_at is never written; no longer filtered here.
+  const where = [visible.sql];
   const params: unknown[] = [...visible.params];
   if (filter.tab === "upcoming") where.push("m.status IN ('SCHEDULED', 'IN_PROGRESS') AND m.scheduled_end >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 DAY)");
   if (filter.tab === "mine") {
@@ -692,7 +720,8 @@ export async function listMeetings(scope: MeetingScope, filter: MeetingListFilte
     params.push(filter.userId, filter.userId);
   }
   if (filter.tab === "approve") {
-    where.push("m.owner_id = ? AND (m.status = 'MOM_SUBMITTED' OR (m.points_status = 'SUBMITTED' AND m.status IN ('SCHEDULED', 'IN_PROGRESS')))");
+    // v1.57.6 (D-346, owner): points stay decidable while the MOM is written or returned.
+    where.push("m.owner_id = ? AND (m.status = 'MOM_SUBMITTED' OR (m.points_status = 'SUBMITTED' AND m.status IN ('SCHEDULED', 'IN_PROGRESS', 'AWAITING_MOM', 'MOM_RETURNED')))");
     params.push(filter.userId);
   }
   if (filter.tab === "past") where.push("(m.status NOT IN ('SCHEDULED', 'IN_PROGRESS') OR m.scheduled_end < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 DAY))");
@@ -770,7 +799,8 @@ export interface FollowUpRow extends MeetingActionItem {
 
 export async function listFollowUps(scope: MeetingScope, filter: { ownerOnly: number | null; q: string; limit: number }, db: Queryable = getDbPool()): Promise<FollowUpRow[]> {
   const visible = scopeSql(scope);
-  const where = ["m.deleted_at IS NULL", visible.sql, "m.status IN ('MOM_APPROVED', 'CLOSED')", "NOT EXISTS (SELECT 1 FROM meeting_actions later WHERE later.carried_from_id = a.id)"];
+  // v1.57.6 (D-346, owner): meetings.deleted_at is never written; no longer filtered here.
+  const where = [visible.sql, "m.status IN ('MOM_APPROVED', 'CLOSED')", "NOT EXISTS (SELECT 1 FROM meeting_actions later WHERE later.carried_from_id = a.id)"];
   const params: unknown[] = [...visible.params];
   if (filter.ownerOnly) {
     where.push("a.owner_id = ?");
@@ -805,11 +835,12 @@ export interface OpenPointRow extends OpenPoint {
   meetingCoordinatorId: number;
 }
 export async function listOpenPointRegister(scope: MeetingScope, limit: number, db: Queryable = getDbPool()): Promise<OpenPointRow[]> {
+  // v1.57.6 (D-346, owner): meetings.deleted_at is never written; dropped from this filter.
   const visible = scopeSql(scope);
   const [rows] = await db.query<Row[]>(
     `SELECT o.*, u.name AS owner_name, m.meeting_no, m.title AS meeting_title, m.owner_id AS meeting_owner_id, m.coordinator_id AS meeting_coordinator_id
        FROM meeting_open_points o JOIN meetings m ON m.id = o.meeting_id LEFT JOIN users u ON u.id = o.owner_id
-      WHERE m.deleted_at IS NULL AND ${visible.sql} AND o.status = 'OPEN' AND m.status IN ('MOM_APPROVED', 'CLOSED')
+      WHERE ${visible.sql} AND o.status = 'OPEN' AND m.status IN ('MOM_APPROVED', 'CLOSED')
         AND NOT EXISTS (SELECT 1 FROM meeting_open_points later WHERE later.carried_from_id = o.id)
       ORDER BY o.review_on IS NULL, o.review_on, o.id LIMIT ?`,
     [...visible.params, limit],
@@ -852,6 +883,7 @@ export interface DashboardMeeting {
 }
 
 export async function dashboardMeetings(scope: MeetingScope, from: Date, to: Date, db: Queryable = getDbPool()): Promise<DashboardMeeting[]> {
+  // v1.57.6 (D-346, owner): meetings.deleted_at is never written; dropped from this filter.
   const visible = scopeSql(scope);
   const [rows] = await db.query<Row[]>(
     `SELECT m.id, m.meeting_no, m.title, t.name AS type_name, d.name AS department_name, m.status, m.scheduled_start, m.scheduled_end, m.actual_start, m.actual_end, m.agenda_due_at, m.points_submitted_at, m.mom_due_at, m.mom_submitted_at, m.points_on_time, m.started_on_time, m.ended_on_time, m.mom_on_time,
@@ -862,7 +894,7 @@ export async function dashboardMeetings(scope: MeetingScope, from: Date, to: Dat
             (SELECT COUNT(*) FROM meeting_actions a LEFT JOIN tasks tk ON tk.id = a.task_id WHERE a.meeting_id = m.id AND a.carried_from_id IS NULL AND (a.confirmed_at IS NOT NULL OR tk.status = 'COMPLETED')) AS actions_done,
             (SELECT COUNT(*) FROM meeting_actions a JOIN tasks tk ON tk.id = a.task_id WHERE a.meeting_id = m.id AND a.carried_from_id IS NULL AND a.confirmed_at IS NULL AND tk.status NOT IN ('COMPLETED', 'CANCELLED') AND tk.due_at < UTC_TIMESTAMP()) AS actions_overdue
        FROM meetings m JOIN meeting_types t ON t.id = m.type_id LEFT JOIN departments d ON d.id = m.department_id
-      WHERE m.deleted_at IS NULL AND ${visible.sql} AND m.scheduled_start >= ? AND m.scheduled_start < ?
+      WHERE ${visible.sql} AND m.scheduled_start >= ? AND m.scheduled_start < ?
       ORDER BY m.scheduled_start DESC LIMIT 2000`,
     [...visible.params, from, to],
   );
@@ -907,13 +939,14 @@ export async function meetingOfTask(taskId: number, db: Queryable = getDbPool())
 
 // Meetings needing a deadline reminder (points or MOM due within the window, not yet submitted).
 export async function meetingsNeedingReminder(db: Queryable = getDbPool()): Promise<{ id: number; meetingNo: string; title: string; coordinatorId: number; kind: "POINTS" | "MOM"; dueAt: Date }[]> {
+  // v1.57.6 (D-346, owner): meetings.deleted_at is never written; dropped from this filter.
   const [rows] = await db.query<Row[]>(
     `SELECT id, meeting_no, title, coordinator_id, 'POINTS' AS kind, agenda_due_at AS due_at FROM meetings
-      WHERE deleted_at IS NULL AND status = 'SCHEDULED' AND points_status IN ('DRAFT', 'RETURNED') AND agenda_due_at IS NOT NULL
+      WHERE status = 'SCHEDULED' AND points_status IN ('DRAFT', 'RETURNED') AND agenda_due_at IS NOT NULL
         AND agenda_due_at BETWEEN UTC_TIMESTAMP() AND DATE_ADD(UTC_TIMESTAMP(), INTERVAL 1 DAY)
       UNION ALL
      SELECT id, meeting_no, title, coordinator_id, 'MOM' AS kind, mom_due_at AS due_at FROM meetings
-      WHERE deleted_at IS NULL AND status IN ('IN_PROGRESS', 'AWAITING_MOM', 'MOM_RETURNED') AND mom_due_at IS NOT NULL
+      WHERE status IN ('IN_PROGRESS', 'AWAITING_MOM', 'MOM_RETURNED') AND mom_due_at IS NOT NULL
         AND mom_due_at BETWEEN DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 DAY) AND DATE_ADD(UTC_TIMESTAMP(), INTERVAL 1 DAY)`,
   );
   return rows.map((row) => ({
@@ -947,10 +980,11 @@ export interface CalendarMeeting {
   link: string | null;
 }
 export async function calendarMeetings(userId: number, from: Date, to: Date, db: Queryable = getDbPool()): Promise<CalendarMeeting[]> {
+  // v1.57.6 (D-346, owner): meetings.deleted_at is never written; dropped from this filter.
   const [rows] = await db.query<Row[]>(
     `SELECT m.id, m.meeting_no, m.title, m.scheduled_start, m.scheduled_end, m.mode, m.venue, m.link
        FROM meetings m
-      WHERE m.deleted_at IS NULL AND m.status <> 'CANCELLED' AND m.scheduled_start >= ? AND m.scheduled_start < ?
+      WHERE m.status <> 'CANCELLED' AND m.scheduled_start >= ? AND m.scheduled_start < ?
         AND (m.owner_id = ? OR m.coordinator_id = ? OR m.created_by = ? OR EXISTS (SELECT 1 FROM meeting_participants mp WHERE mp.meeting_id = m.id AND mp.user_id = ?))
       ORDER BY m.scheduled_start, m.id
       LIMIT 500`,

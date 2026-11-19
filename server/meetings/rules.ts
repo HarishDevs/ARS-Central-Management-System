@@ -72,7 +72,7 @@ export type MeetingAction =
   | "SUBMIT_POINTS"
   | "DECIDE_POINTS"
   | "ENTER_MOM"
-  | "START"
+  // v1.57.6 (D-346, owner): "START" removed; it was never allowed (Enter MOM replaced it in v1.51.2).
   | "END"
   | "MARK_ATTENDANCE"
   | "EDIT_MOM"
@@ -100,7 +100,9 @@ export function allowedActions(meeting: MeetingFacts, viewer: MeetingViewer): Se
   }
   // Approved points can be changed again by the Coordinator before the meeting (they go back to the Owner).
   if (coordinator && s === "SCHEDULED" && meeting.pointsStatus === "APPROVED") out.add("EDIT_POINTS");
-  if (owner && meeting.pointsStatus === "SUBMITTED" && (s === "SCHEDULED" || s === "IN_PROGRESS")) out.add("DECIDE_POINTS");
+  // v1.57.6 (D-346, owner): points sent before the MOM was entered stay decidable
+  // while the MOM is being written or was returned (they were stuck before).
+  if (owner && meeting.pointsStatus === "SUBMITTED" && (s === "SCHEDULED" || s === "IN_PROGRESS" || s === "AWAITING_MOM" || s === "MOM_RETURNED")) out.add("DECIDE_POINTS");
   // v1.51.2 (owner): one step, Enter MOM, before or after the meeting; the
   // MOM form asks whether it started on time and whether it was extended.
   if (coordinator && s === "SCHEDULED" && mayStart(meeting)) out.add("ENTER_MOM");

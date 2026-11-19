@@ -26,6 +26,8 @@ export interface OutboxClaim {
 // may already have been delivered): it waits for IT's Resend
 // (releaseOutboxForResend). Before, a claim older than 10 minutes was taken
 // again, which could send a message twice.
+// v1.57.6 (D-348, owner): the job runner now releases claims older than 15
+// minutes (releaseStaleOutboxClaims, below), so a stopped send is retried.
 export async function claimOutbox(id: number, db: Queryable = getDbPool()): Promise<OutboxClaim | null> {
   const claimToken = randomUUID();
   const [result] = await db.query<ResultSetHeader>(
@@ -40,8 +42,33 @@ export async function claimOutbox(id: number, db: Queryable = getDbPool()): Prom
   return { message: typeof payload === "string" ? (JSON.parse(payload) as NotifyInput) : payload, claimToken };
 }
 
-export async function markOutboxSent(id: number, db: Queryable = getDbPool()): Promise<void> {
-  await db.query<ResultSetHeader>("UPDATE notification_outbox SET sent_at = CURRENT_TIMESTAMP(3), claim_token = NULL WHERE id = ?", [id]);
+// v1.57.6 (D-348, owner): marks a row sent only while it is unsent and, when
+// the sender passes its claim token, still held by that claim (a claim
+// released as stale and taken by another sender belongs to that sender).
+// (Returns nothing, as the sender's deps expect; a write that didn't apply
+// leaves the row as the newer claim has it.)
+export async function markOutboxSent(id: number, claimToken?: string | null, db: Queryable = getDbPool()): Promise<void> {
+  if (claimToken) {
+    await db.query<ResultSetHeader>("UPDATE notification_outbox SET sent_at = CURRENT_TIMESTAMP(3), claim_token = NULL WHERE id = ? AND sent_at IS NULL AND claim_token = ?", [id, claimToken]);
+    return;
+  }
+  await db.query<ResultSetHeader>("UPDATE notification_outbox SET sent_at = CURRENT_TIMESTAMP(3), claim_token = NULL WHERE id = ? AND sent_at IS NULL", [id]);
+}
+
+// v1.57.6 (D-348, owner; supersedes the "never by itself" part of D-243): a
+// claim older than 15 minutes that was never marked sent belongs to a sender
+// that stopped. Its claim is released so the job runner picks the row up
+// again (still at most 5 attempts in all). Emails carry the "ars-o<id>" key,
+// so the provider drops a repeat of one that did go out within 24 hours.
+export const OUTBOX_STALE_CLAIM_MINUTES = 15;
+export async function releaseStaleOutboxClaims(db: Queryable = getDbPool()): Promise<number> {
+  const [result] = await db.query<ResultSetHeader>(
+    `UPDATE notification_outbox SET claimed_at = NULL, claim_token = NULL
+     WHERE sent_at IS NULL AND claimed_at IS NOT NULL AND claimed_at < DATE_SUB(CURRENT_TIMESTAMP(3), INTERVAL ? MINUTE)
+     LIMIT 500`,
+    [OUTBOX_STALE_CLAIM_MINUTES],
+  );
+  return result.affectedRows;
 }
 
 // D-243: the sender knows nothing went out (nothing was recorded, so notify

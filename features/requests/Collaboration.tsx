@@ -44,6 +44,9 @@ export function Advice({ requestId, rows, canAsk, people }: { requestId: number;
                 <p className="mt-2 whitespace-pre-wrap border-l-2 border-success-600 pl-2">
                   <SafeText text={row.answer} />
                 </p>
+              ) : row.status === "WITHDRAWN" ? (
+                // v1.57.6 (D-347): the request closed before an answer came.
+                <p className="mt-1 text-caption text-ink-muted">Closed without an answer (the request has ended).</p>
               ) : row.mine ? (
                 <AnswerAdvice requestId={requestId} consultationId={row.id} />
               ) : (

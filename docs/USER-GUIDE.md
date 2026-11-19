@@ -340,6 +340,8 @@ Switch to it from the account menu → **Switch space**.
 ### Item lists: items to provide (v1.57.0)
 Some approval and ticket forms have an **Item list** (for example stationery): add each item and the **quantity needed** (no rate or GST); **Add an item** for more. On the request or ticket, **Items to provide** shows every item with a **Provided** tick and how many are provided so far. The approvers of the request (or the ticket's coordinators and assignee) and IT tick each item when it is handed over; the tick shows who ticked it and when, and can be undone. The requester sees the ticks.
 
+**Linked tasks (v1.57.6):** the task of a ticket, of a meeting action item or of an approval work step closes through its ticket, meeting or request, so it can't be deleted from the task pages. Reassigning a ticket to someone else while it is in progress puts its task back to Open for the new person.
+
 ### Ticketing set-up (IT)
 - **Admin → Ticket categories:** IT Software, IT Hardware and Admin are ready. Add more, rename them, set each one's number prefix (e.g. `IT-SW`) and digits, or switch one off.
 - **Admin → Ticket categories → Who else sees tickets:** choose departments (e.g. the IT department) and people, and the **categories they see** (none ticked = every category). They see those categories on the Ticket dashboards, the Coordinator board and Ticket analytics, and can open those tickets (read and add remarks; assigning stays with the coordinators). Coordinators see only the categories of the forms they coordinate.

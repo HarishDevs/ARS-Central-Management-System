@@ -59,6 +59,7 @@ import { mayFinishWithoutApprover } from "@/server/workflows/type-settings";
 import type { RoleCode } from "@/types/auth";
 import { appBaseUrl } from "@/lib/http/app-url";
 import { mirrorWorkTasks } from "@/server/approvals/work-mirror";
+import { withdrawOpenConsultations } from "@/lib/db/repositories/consult.repository";
 
 // The multi-level approval service (north star, S2-06, F-11 to F-13). The
 // engine decides; this layer loads, locks, saves and tells people.
@@ -601,6 +602,9 @@ interface MutateHooks {
   afterSave?: (request: RequestRecord, connection: PoolConnection) => Promise<void>;
 }
 
+// v1.57.6 (D-347): the statuses a request ends in.
+const FINAL_STATUSES: ReadonlySet<string> = new Set(["APPROVED", "REJECTED", "CANCELLED"]);
+
 async function mutate(requestId: number, actor: Actor, step: Step, hooks: MutateHooks = {}): Promise<Result<{ status: string }>> {
   let changed: Changed;
   try {
@@ -616,6 +620,8 @@ async function mutate(requestId: number, actor: Actor, step: Step, hooks: Mutate
         throw new ServiceError("CONFLICT", "Someone else just changed this request. Reload and try again.");
       }
       if (hooks.afterSave) await hooks.afterSave(request, connection);
+      // v1.57.6 (D-347, owner): "withdraw on close": advice still asked on a request that has now ended is withdrawn, in this transaction.
+      if (FINAL_STATUSES.has(result.state.status)) await withdrawOpenConsultations(request.id, connection);
       const calendar = await loadWorkingCalendar(connection);
       await syncTasks(request.id, result.state, version.definition.nodes, connection, calendar);
       await appendEvents(request.id, result.events, actor.id, connection);

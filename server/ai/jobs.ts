@@ -4,6 +4,7 @@ import { getDbPool } from "@/lib/db/client";
 import { withTransaction } from "@/lib/db/transaction";
 import { getSettingValue } from "@/server/settings/values";
 import { loadSalesforceConfig, SALESFORCE_KEY, syncSalesforce } from "@/server/ai/connectors/salesforce";
+import { recoverStuckSyncRuns } from "@/lib/db/repositories/ai.repository";
 
 // D-169 (AI module branch): the AI module's background work, on the job
 // runner (every 5 minutes; the Salesforce copy at most hourly):
@@ -38,6 +39,10 @@ export async function runAiStep(): Promise<Record<string, number | string>> {
     }
   }
 
+  // v1.57.6 (D-348, owner): sync runs stuck RUNNING for over an hour (the
+  // process stopped) are closed as FAILED; the checkpoint doesn't move.
+  const syncRunsRecovered = await recoverStuckSyncRuns();
+
   let salesforce = "not set up";
   if (await loadSalesforceConfig().catch(() => null)) {
     const [[last]] = await db.query<RowDataPacket[]>("SELECT TIMESTAMPDIFF(MINUTE, MAX(started_at), CURRENT_TIMESTAMP) AS minutes FROM ai_sync_runs WHERE source_key = ?", [SALESFORCE_KEY]);
@@ -46,5 +51,5 @@ export async function runAiStep(): Promise<Record<string, number | string>> {
       salesforce = summary.ok ? "synced" : "failed";
     } else salesforce = "not due";
   }
-  return { proposalsExpired: expired.affectedRows, conversationsRemoved, salesforce };
+  return { proposalsExpired: expired.affectedRows, conversationsRemoved, syncRunsRecovered, salesforce };
 }

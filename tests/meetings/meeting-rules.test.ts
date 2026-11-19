@@ -64,7 +64,6 @@ describe("what each role may do", () => {
     expect(allowedActions(meeting(), viewer(2, { isParticipant: true })).has("RESPOND")).toBe(false); // the Coordinator always attends
     expect(allowedActions(meeting({ status: "IN_PROGRESS" }), viewer(3, { isParticipant: true })).has("RESPOND")).toBe(false);
     expect(allowedActions(meeting(), viewer(2)).has("ENTER_MOM")).toBe(true);
-    expect(allowedActions(meeting(), viewer(2)).has("START")).toBe(false);
     expect(allowedActions(meeting({ status: "AWAITING_MOM" }), viewer(2)).has("EDIT_DETAILS")).toBe(true); // times stay editable
     expect(allowedActions(meeting({ status: "MOM_SUBMITTED" }), viewer(2)).has("EDIT_DETAILS")).toBe(false);
     expect(allowedActions(meeting({ status: "IN_PROGRESS" }), viewer(2)).has("EDIT_MOM")).toBe(true);

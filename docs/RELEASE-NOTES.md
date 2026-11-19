@@ -1,5 +1,15 @@
 # Release notes
 
+## v1.57.6 (19 Nov 2026): State fixes from the state-machine review (owner)
+The owner decided each of ten risks found in a review of how records move between statuses. All fixed:
+- **Tickets:** a ticket's task can't be deleted from the task pages (reassign it on the ticket). Reassigning an In-progress ticket to someone else puts its task back to Open, so the new person can start it.
+- **Meetings:** an action item's task can't be deleted from the task pages. The Meeting Owner can approve or return the meeting points while the MOM is being written or was returned; points still waiting when the MOM is approved are approved with it. Closing an open point closes it in every meeting of its follow-up chain. Send back on an action always reopens its task, with a history entry and a message to the assignee. Unused code (Start, a never-set "deleted" filter) removed.
+- **Approvals:** a work-step task is updated with the task locked and checked, so it can't clash with the assignee. When a request is approved, rejected, withdrawn or deleted, its open consultations (advice asked) are withdrawn: the person asked is no longer prompted and the request shows "Closed without an answer".
+- **Background jobs:** large exports give up after 3 tries and tell the person; a finished or failed job only counts for the run that claimed it; only one automation run at a time ("Run now" says so if another is going); stuck runs are recovered: the weekly HOD report and scheduled reports interrupted by a crash are marked failed and retried once, stuck AI data syncs are marked failed, and messages picked up but never sent are released and sent.
+- **WhatsApp templates:** only the newest approved version is live; a paused template is no longer shown as approved; if the live version is paused or rejected, the previous approved version goes live again.
+- **Message deliveries:** the darkest cells of the delivery heatmap are readable in dark mode.
+- **Owner steps:** back up, run `database/migrations/202611191200_job_state_recovery.sql` (adds an `attempts` count to export, report and HOD-report runs; rollback inside), publish v1.57.6.
+
 ## v1.57.5 (19 Nov 2026): Group on every list with a table (owner)
 Every list page with a table now has **Group**, and its groups fold from their headings:
 - **Tasks → Assigned to me / Assigned by me / Team tasks / Periodic tasks:** Department, From (or Assignee), Type, Priority, Status, Due date.

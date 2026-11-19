@@ -13,10 +13,24 @@ import { hodReportText, hodWeekDue, type HodWeekStats } from "@/server/reports/h
 // overdue now, and the oldest still waiting. Off until the Super Admin
 // switches it on (Settings → General). Each department is claimed once per
 // week (hod_report_runs) before sending, so nobody gets it twice.
+// v1.57.6 (D-348, owner): a department left SENDING for over an hour (the
+// process stopped mid-send) is closed as FAILED with an INTERRUPTED note.
+export const HOD_STUCK_MINUTES = 60;
+export const HOD_INTERRUPTED = "INTERRUPTED: the send stopped before finishing.";
+export async function recoverStuckHodRuns(): Promise<number> {
+  const [result] = await getDbPool().query<ResultSetHeader>(
+    "UPDATE hod_report_runs SET status = 'FAILED', note = ? WHERE status = 'SENDING' AND updated_at < DATE_SUB(CURRENT_TIMESTAMP, INTERVAL ? MINUTE)",
+    [HOD_INTERRUPTED, HOD_STUCK_MINUTES],
+  );
+  return result.affectedRows;
+}
+
 export async function runHodWeekly(now = new Date()): Promise<Record<string, number | string>> {
   if ((await getSettingValue("general.hod_weekly_report")) !== "ON") return { hodWeekly: "off" };
+  // v1.57.6 (D-348, owner): recover stuck sends first, whether or not a week is due.
+  const recovered = await recoverStuckHodRuns();
   const week = hodWeekDue(now);
-  if (!week) return { hodWeekly: "not due" };
+  if (!week) return recovered ? { hodWeekly: "not due", recovered } : { hodWeekly: "not due" };
   const db = getDbPool();
   const [departments] = await db.query<RowDataPacket[]>(
     `SELECT d.id, d.name, u.id AS hod_id, u.name AS hod_name, u.email AS hod_email
@@ -25,9 +39,22 @@ export async function runHodWeekly(now = new Date()): Promise<Record<string, num
   );
   let sent = 0;
   let failed = 0;
+  let retried = 0;
   for (const department of departments) {
     const [claim] = await db.query<ResultSetHeader>("INSERT IGNORE INTO hod_report_runs (week_start, department_id, hod_user_id) VALUES (?, ?, ?)", [week.weekStart, department.id, department.hod_id]);
-    if (claim.affectedRows === 0) continue; // already sent (or being sent) this week
+    let attempt = 1;
+    if (claim.affectedRows === 0) {
+      // v1.57.6 (D-348, owner): this week's send that a crash interrupted is
+      // retried once (attempts 1 -> 2). Any other row is already sent, being
+      // sent, or failed for a reason the next week's run doesn't repeat.
+      const [again] = await db.query<ResultSetHeader>(
+        "UPDATE hod_report_runs SET status = 'SENDING', attempts = attempts + 1, note = NULL WHERE week_start = ? AND department_id = ? AND status = 'FAILED' AND attempts < 2 AND note = ?",
+        [week.weekStart, department.id, HOD_INTERRUPTED],
+      );
+      if (again.affectedRows !== 1) continue; // already sent (or being sent) this week
+      attempt = 2;
+      retried += 1;
+    }
     try {
       const stats = await departmentWeek(Number(department.id), week.from, week.to, now);
       const text = hodReportText({ department: String(department.name), hodName: String(department.hod_name), weekLabel: week.label, stats, link: `${appBaseUrl()}/admin/analytics` });
@@ -36,16 +63,17 @@ export async function runHodWeekly(now = new Date()): Promise<Record<string, num
         { to: String(department.hod_email), subject: `ARS CMS: ${department.name} weekly report (${week.label})`, text, idempotencyKey: `ars-hod-${week.weekStart}-d${department.id}` },
         emailDeps(),
       );
-      await db.query("UPDATE hod_report_runs SET status = 'SENT' WHERE week_start = ? AND department_id = ?", [week.weekStart, department.id]);
+      // v1.57.6 (D-348, owner): written only while this claim is still SENDING.
+      await db.query("UPDATE hod_report_runs SET status = 'SENT' WHERE week_start = ? AND department_id = ? AND status = 'SENDING' AND attempts = ?", [week.weekStart, department.id, attempt]);
       sent += 1;
     } catch (error) {
       failed += 1;
       logError("weekly HOD report failed", error, { departmentId: department.id });
       const note = error instanceof Error ? `${error.name}: ${error.message}`.slice(0, 500) : "Failed";
-      await db.query("UPDATE hod_report_runs SET status = 'FAILED', note = ? WHERE week_start = ? AND department_id = ?", [note, week.weekStart, department.id]).catch(() => undefined);
+      await db.query("UPDATE hod_report_runs SET status = 'FAILED', note = ? WHERE week_start = ? AND department_id = ? AND status = 'SENDING' AND attempts = ?", [note, week.weekStart, department.id, attempt]).catch(() => undefined);
     }
   }
-  return { hodWeekly: week.weekStart, sent, failed };
+  return { hodWeekly: week.weekStart, sent, failed, retried, recovered };
 }
 
 async function departmentWeek(departmentId: number, from: Date, to: Date, now: Date): Promise<HodWeekStats> {

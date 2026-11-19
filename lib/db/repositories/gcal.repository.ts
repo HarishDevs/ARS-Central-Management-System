@@ -456,27 +456,38 @@ export async function dueJobIds(limit: number, connectionId?: number, db: Querya
   return rows.map((row) => Number(row.id));
 }
 
-export async function finishJob(id: number, result: Record<string, number>, db: Queryable = getDbPool()): Promise<void> {
-  await db.query("UPDATE gcal_jobs SET status = 'DONE', finished_at = UTC_TIMESTAMP(), result_json = ?, error_category = NULL, error_detail = NULL WHERE id = ?", [JSON.stringify(result), id]);
+// v1.57.6 (D-348, owner): only a job that is still RUNNING is finished. A run
+// that was recovered as INTERRUPTED (or retried by someone) meanwhile is left
+// alone; false tells the caller nothing was written, and it just moves on.
+export async function finishJob(id: number, result: Record<string, number>, db: Queryable = getDbPool()): Promise<boolean> {
+  const [updated] = await db.query<ResultSetHeader>("UPDATE gcal_jobs SET status = 'DONE', finished_at = UTC_TIMESTAMP(), result_json = ?, error_category = NULL, error_detail = NULL WHERE id = ? AND status = 'RUNNING'", [JSON.stringify(result), id]);
+  return updated.affectedRows === 1;
 }
 
 // A failure goes back to waiting with backoff, until the retry limit; then
 // it stays as DEAD (the dead-letter state) until someone retries it.
-export async function failJob(job: Pick<JobRow, "id" | "connectionId" | "kind" | "attempts">, input: { category: string; detail: string; retryable: boolean; retryMax: number; backoffSeconds: number }, db: Queryable = getDbPool()): Promise<"RETRY" | "DEAD" | "FAILED"> {
+// v1.57.6 (D-348, owner): every write applies only while the job is still
+// RUNNING under this claim (same attempts count as when it was claimed); when
+// it isn't (recovered as INTERRUPTED, or claimed again), nothing is written
+// and false is returned so the caller just moves on.
+export async function failJob(job: Pick<JobRow, "id" | "connectionId" | "kind" | "attempts">, input: { category: string; detail: string; retryable: boolean; retryMax: number; backoffSeconds: number }, db: Queryable = getDbPool()): Promise<"RETRY" | "DEAD" | "FAILED" | false> {
   const final = !input.retryable || job.attempts >= input.retryMax;
   if (final) {
-    await db.query("UPDATE gcal_jobs SET status = ?, finished_at = UTC_TIMESTAMP(), error_category = ?, error_detail = ? WHERE id = ?", [input.retryable ? "DEAD" : "FAILED", input.category, input.detail.slice(0, 500), job.id]);
+    const [ended] = await db.query<ResultSetHeader>("UPDATE gcal_jobs SET status = ?, finished_at = UTC_TIMESTAMP(), error_category = ?, error_detail = ? WHERE id = ? AND status = 'RUNNING' AND attempts = ?", [input.retryable ? "DEAD" : "FAILED", input.category, input.detail.slice(0, 500), job.id, job.attempts]);
+    if (ended.affectedRows !== 1) return false;
     return input.retryable ? "DEAD" : "FAILED";
   }
   try {
-    await db.query(
-      "UPDATE gcal_jobs SET status = 'PENDING', pending_key = ?, next_run_at = DATE_ADD(UTC_TIMESTAMP(), INTERVAL ? SECOND), error_category = ?, error_detail = ? WHERE id = ?",
-      [`${job.connectionId}:${job.kind}`, input.backoffSeconds, input.category, input.detail.slice(0, 500), job.id],
+    const [again] = await db.query<ResultSetHeader>(
+      "UPDATE gcal_jobs SET status = 'PENDING', pending_key = ?, next_run_at = DATE_ADD(UTC_TIMESTAMP(), INTERVAL ? SECOND), error_category = ?, error_detail = ? WHERE id = ? AND status = 'RUNNING' AND attempts = ?",
+      [`${job.connectionId}:${job.kind}`, input.backoffSeconds, input.category, input.detail.slice(0, 500), job.id, job.attempts],
     );
+    if (again.affectedRows !== 1) return false;
     return "RETRY";
   } catch {
     // A newer job of the same kind is already waiting: it does the retry.
-    await db.query("UPDATE gcal_jobs SET status = 'FAILED', finished_at = UTC_TIMESTAMP(), error_category = ?, error_detail = ? WHERE id = ?", [input.category, input.detail.slice(0, 500), job.id]);
+    const [ended] = await db.query<ResultSetHeader>("UPDATE gcal_jobs SET status = 'FAILED', finished_at = UTC_TIMESTAMP(), error_category = ?, error_detail = ? WHERE id = ? AND status = 'RUNNING' AND attempts = ?", [input.category, input.detail.slice(0, 500), job.id, job.attempts]);
+    if (ended.affectedRows !== 1) return false;
     return "FAILED";
   }
 }

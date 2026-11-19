@@ -218,31 +218,118 @@ export async function markTemplateSubmitted(id: number, actorId: number, db: Que
 // Meta's verdict from a sync. Approved: this version goes live and older
 // live versions of the same event retire. Rejected or paused: it stops (or
 // never starts) sending; an older approved version keeps working.
+// v1.57.6 (D-349, owner): the verdict is now applied with every version of
+// the template_code locked, and one rule settles all of them together:
+// exactly one ACTIVE version per code, the newest that is APPROVED and not
+// paused/rejected at Meta. See nextTemplateStates.
+export type TemplateVerdict = { outcome: "APPROVED" | "PENDING" | "REJECTED" | "PAUSED"; metaStatus: string; reason: string | null };
+
+export interface VersionState {
+  id: number;
+  version: number;
+  status: TemplateVersion["status"];
+  approvalStatus: TemplateVersion["approvalStatus"];
+  providerStatus: string | null;
+}
+
+// v1.57.6 (D-349, owner): Meta statuses that mean "not usable", so a row
+// carrying one is never brought back as the fallback (covers rows paused
+// before this fix, which still say APPROVED).
+const BLOCKED_PROVIDER_STATUSES = new Set(["PAUSED", "DISABLED", "DELETED", "PENDING_DELETION", "REJECTED"]);
+
+const usable = (row: VersionState) =>
+  row.approvalStatus === "APPROVED" && !BLOCKED_PROVIDER_STATUSES.has((row.providerStatus ?? "").toUpperCase());
+
+// v1.57.6 (D-349, owner): pure decision. Given every version of one
+// template_code and Meta's verdict on one of them, returns the new
+// status/approval of each row that changes (the verdict row first if it
+// changes). Rules:
+// - APPROVED: recorded APPROVED. It goes ACTIVE only if it is the newest
+//   usable version; an older one approved late is RETIRED ("Replaced").
+// - PAUSED (Meta PAUSED/DISABLED/DELETED): status DRAFT (sync keeps watching
+//   it, so it comes back if Meta re-approves) and approval cleared to PENDING
+//   (the enum has no PAUSED; provider_status keeps Meta's word).
+// - REJECTED: status DRAFT, approval REJECTED.
+// - PENDING: no status change.
+// Then the newest usable version is ACTIVE and every other ACTIVE one is
+// RETIRED, so pausing or rejecting the live version re-activates the
+// previous approved one. With no usable version nothing else is touched.
+export function nextTemplateStates(
+  rows: readonly VersionState[],
+  targetId: number,
+  verdict: TemplateVerdict,
+): { id: number; status: VersionState["status"]; approvalStatus: VersionState["approvalStatus"] }[] {
+  const next = rows.map((row) => ({ ...row }));
+  const target = next.find((row) => row.id === targetId);
+  if (!target) return [];
+  target.providerStatus = verdict.metaStatus;
+  if (verdict.outcome === "APPROVED") {
+    target.approvalStatus = "APPROVED";
+  } else if (verdict.outcome === "REJECTED") {
+    target.status = "DRAFT";
+    target.approvalStatus = "REJECTED";
+  } else if (verdict.outcome === "PAUSED") {
+    target.status = "DRAFT";
+    if (target.approvalStatus === "APPROVED") target.approvalStatus = "PENDING";
+  }
+  const live = next.filter(usable).sort((a, b) => b.version - a.version)[0];
+  if (live) {
+    for (const row of next) {
+      if (row === live) row.status = "ACTIVE";
+      else if (row.status === "ACTIVE") row.status = "RETIRED";
+    }
+    if (verdict.outcome === "APPROVED" && target !== live && target.status !== "RETIRED") target.status = "RETIRED";
+  }
+  const before = new Map(rows.map((row) => [row.id, row]));
+  return next
+    .filter((row) => row.status !== before.get(row.id)!.status || row.approvalStatus !== before.get(row.id)!.approvalStatus)
+    .sort((a, b) => (a.id === targetId ? -1 : b.id === targetId ? 1 : a.version - b.version))
+    .map((row) => ({ id: row.id, status: row.status, approvalStatus: row.approvalStatus }));
+}
+
+interface StateRow extends RowDataPacket {
+  id: number;
+  version: number;
+  status: VersionState["status"];
+  approval_status: VersionState["approvalStatus"];
+  provider_status: string | null;
+}
+
+// `db` must be a transaction connection (callers use withTransaction) so the
+// FOR UPDATE lock holds until commit.
 export async function applyTemplateVerdict(
   row: Pick<TemplateVersion, "id" | "code" | "version">,
-  verdict: { outcome: "APPROVED" | "PENDING" | "REJECTED" | "PAUSED"; metaStatus: string; reason: string | null },
+  verdict: TemplateVerdict,
   db: Queryable,
 ): Promise<void> {
-  if (verdict.outcome === "APPROVED") {
-    await db.query<ResultSetHeader>(
-      "UPDATE whatsapp_templates SET status = 'ACTIVE', approval_status = 'APPROVED', provider_status = ?, rejection_reason = NULL, synced_at = CURRENT_TIMESTAMP WHERE id = ?",
-      [verdict.metaStatus, row.id],
-    );
-    await db.query<ResultSetHeader>(
-      "UPDATE whatsapp_templates SET status = 'RETIRED' WHERE template_code = ? AND language = 'en' AND version < ? AND status = 'ACTIVE'",
-      [row.code, row.version],
-    );
-  } else if (verdict.outcome === "REJECTED") {
-    await db.query<ResultSetHeader>(
-      "UPDATE whatsapp_templates SET status = 'DRAFT', approval_status = 'REJECTED', provider_status = ?, rejection_reason = ?, synced_at = CURRENT_TIMESTAMP WHERE id = ?",
-      [verdict.metaStatus, verdict.reason, row.id],
-    );
-  } else if (verdict.outcome === "PAUSED") {
-    await db.query<ResultSetHeader>(
-      "UPDATE whatsapp_templates SET status = 'DRAFT', provider_status = ?, rejection_reason = ?, synced_at = CURRENT_TIMESTAMP WHERE id = ?",
-      [verdict.metaStatus, verdict.reason, row.id],
-    );
-  } else {
-    await db.query<ResultSetHeader>("UPDATE whatsapp_templates SET provider_status = ?, synced_at = CURRENT_TIMESTAMP WHERE id = ?", [verdict.metaStatus, row.id]);
+  // v1.57.6 (D-349, owner): lock every version of this code first, so two
+  // syncs can never leave two ACTIVE versions.
+  const [locked] = await db.query<StateRow[]>(
+    "SELECT id, version, status, approval_status, provider_status FROM whatsapp_templates WHERE template_code = ? AND language = 'en' ORDER BY version FOR UPDATE",
+    [row.code],
+  );
+  const states: VersionState[] = locked.map((item) => ({
+    id: item.id,
+    version: item.version,
+    status: item.status,
+    approvalStatus: item.approval_status,
+    providerStatus: item.provider_status,
+  }));
+  if (!states.some((item) => item.id === row.id)) return; // version gone: nothing to apply
+  const changes = nextTemplateStates(states, row.id, verdict);
+  const own = changes.find((change) => change.id === row.id);
+  // Meta's words always land on the verdict row; a rejection reason only on
+  // REJECTED/PAUSED, cleared on approval, untouched while pending.
+  const reasonSql = verdict.outcome === "PENDING" ? "" : ", rejection_reason = ?";
+  const reasonArgs = verdict.outcome === "PENDING" ? [] : [verdict.outcome === "APPROVED" ? null : verdict.reason];
+  const stateSql = own ? ", status = ?, approval_status = ?" : "";
+  const stateArgs = own ? [own.status, own.approvalStatus] : [];
+  await db.query<ResultSetHeader>(
+    `UPDATE whatsapp_templates SET provider_status = ?${reasonSql}${stateSql}, synced_at = CURRENT_TIMESTAMP WHERE id = ?`,
+    [verdict.metaStatus, ...reasonArgs, ...stateArgs, row.id],
+  );
+  for (const change of changes) {
+    if (change.id === row.id) continue;
+    await db.query<ResultSetHeader>("UPDATE whatsapp_templates SET status = ?, approval_status = ? WHERE id = ?", [change.status, change.approvalStatus, change.id]);
   }
 }
