@@ -1,5 +1,10 @@
 # Release notes
 
+## v1.57.7 (19 Nov 2026): WhatsApp fallback versions deleted at Meta (owner)
+- An older approved WhatsApp template version that Meta no longer lists at all (deleted there without a status) loses its approval at the next sync, so it can never be brought back as the fallback when the live version is paused or rejected. It still shows as Replaced. Nothing changes if Meta returns an empty list (treated as a provider hiccup).
+- A test now covers the v1.57.6 rule that a meeting action item's task can't be deleted from the task pages.
+- **Owner steps:** no migration; publish v1.57.7 (run v1.57.6's migration first if not done yet).
+
 ## v1.57.6 (19 Nov 2026): State fixes from the state-machine review (owner)
 The owner decided each of ten risks found in a review of how records move between statuses. All fixed:
 - **Tickets:** a ticket's task can't be deleted from the task pages (reassign it on the ticket). Reassigning an In-progress ticket to someone else puts its task back to Open, so the new person can start it.

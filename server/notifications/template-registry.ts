@@ -189,6 +189,10 @@ async function syncCore(actorId: number | null, sessionId: string | null): Promi
         const found = byName.get(row.providerName!);
         if (!found) {
           if (row.submittedAt && !fallbackOnly) report.notFound.push(row.providerName!);
+          // v1.57.7 (D-350, owner): a retired approved fallback that Meta no longer lists
+          // at all was deleted there; it loses its approval so it is never brought back.
+          // Only when Meta returned a list (an empty list could be a provider hiccup).
+          if (fallbackOnly && provider.length > 0) await applyTemplateVerdict(row, { outcome: "GONE", metaStatus: "DELETED", reason: "No longer listed at Meta" }, db);
           continue;
         }
         const outcome = outcomeOf(found.status);

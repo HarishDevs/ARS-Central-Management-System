@@ -4,6 +4,7 @@ import { getDbPool } from "@/lib/db/client";
 import * as meetings from "@/server/meetings/service";
 import * as repo from "@/lib/db/repositories/meetings.repository";
 import { findTask } from "@/lib/db/repositories/tasks.repository";
+import { deleteTask } from "@/server/work/service";
 import { createDepartment, createUser } from "./helpers";
 
 // v1.57.6 (D-346, owner): meeting state-machine gaps, end to end against MySQL.
@@ -133,6 +134,28 @@ describe("v1.57.6 (D-346) meeting states", () => {
       const closed = (await repo.findOpenPoint(point!.id))!;
       expect({ status: closed.status, note: closed.closedNote }).toEqual({ status: "CLOSED", note: "Tariff revised" });
     }
+  });
+
+  // v1.57.6 (D-345, owner: "Block the delete"): an action item's task closes through the meeting.
+  it("an action item's task can't be deleted from the task pages, by the person who gave it or by IT", async () => {
+    const id = await approvedMeeting({ title: `Delete guard ${tag}` }, { actions: [{ title: `Book the venue ${tag}`, description: "", ownerId: member, priority: "NORMAL", dueOn: "" }] });
+    const [action] = await repo.listActions(id);
+    expect(action!.taskId).not.toBeNull();
+    const admin = await createUser({ name: `Admin ${tag}`, roles: ["USER", "IT_ADMIN"] });
+    for (const actor of [who(coordinator), who(owner), who(admin, ["USER", "IT_ADMIN"])]) {
+      const result = await deleteTask(action!.taskId!, { ...actor, sessionId: null } as never);
+      expect(result.ok).toBe(false);
+      expect(!result.ok && result.message).toMatch(/action item of meeting|can't be deleted|Not found|Only the task's creator/);
+    }
+    // At least IT reaches the meeting guard (IT may edit any task), and nothing changed.
+    const asIt = await deleteTask(action!.taskId!, { ...who(admin, ["USER", "IT_ADMIN"]), sessionId: null } as never);
+    expect(!asIt.ok && asIt.message).toMatch(/action item of meeting/);
+    const [[row]] = await getDbPool().query<RowDataPacket[]>("SELECT status, deleted_at FROM tasks WHERE id = ?", [action!.taskId]);
+    expect(row!.deleted_at).toBeNull();
+    expect(row!.status).not.toBe("CANCELLED");
+    // The follow-up still sees it, so the meeting isn't blocked from closing by a vanished task.
+    const [after] = await repo.listActions(id);
+    expect(after!.taskNo).not.toBeNull();
   });
 
   it("Send back reopens the completed task (locked, row_version), writes a REOPEN task event and tells the assignee", async () => {

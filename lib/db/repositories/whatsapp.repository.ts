@@ -222,7 +222,9 @@ export async function markTemplateSubmitted(id: number, actorId: number, db: Que
 // the template_code locked, and one rule settles all of them together:
 // exactly one ACTIVE version per code, the newest that is APPROVED and not
 // paused/rejected at Meta. See nextTemplateStates.
-export type TemplateVerdict = { outcome: "APPROVED" | "PENDING" | "REJECTED" | "PAUSED"; metaStatus: string; reason: string | null };
+// v1.57.7 (D-350, owner): GONE = Meta no longer lists this version at all (deleted
+// with no status reported); it can't be used as a fallback any more.
+export type TemplateVerdict = { outcome: "APPROVED" | "PENDING" | "REJECTED" | "PAUSED" | "GONE"; metaStatus: string; reason: string | null };
 
 export interface VersionState {
   id: number;
@@ -270,6 +272,9 @@ export function nextTemplateStates(
     target.approvalStatus = "REJECTED";
   } else if (verdict.outcome === "PAUSED") {
     target.status = "DRAFT";
+    if (target.approvalStatus === "APPROVED") target.approvalStatus = "PENDING";
+  } else if (verdict.outcome === "GONE") {
+    // Keeps its status (e.g. RETIRED, "Replaced"); only loses its approval.
     if (target.approvalStatus === "APPROVED") target.approvalStatus = "PENDING";
   }
   const live = next.filter(usable).sort((a, b) => b.version - a.version)[0];

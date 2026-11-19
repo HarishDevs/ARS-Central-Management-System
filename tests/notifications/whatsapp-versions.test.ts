@@ -97,3 +97,16 @@ describe("nextTemplateStates", () => {
     expect(nextTemplateStates([v(1, "ACTIVE", "APPROVED", "APPROVED")], 99, paused)).toEqual([]);
   });
 });
+
+// v1.57.7 (D-350, owner): a retired approved version that Meta no longer lists.
+describe("a fallback version deleted at Meta", () => {
+  const gone: TemplateVerdict = { outcome: "GONE", metaStatus: "DELETED", reason: "No longer listed at Meta" };
+  it("loses its approval but stays Replaced (RETIRED); the live version is untouched", () => {
+    const rows = [v(1, "RETIRED", "APPROVED", "APPROVED"), v(2, "ACTIVE", "APPROVED", "APPROVED")];
+    expect(nextTemplateStates(rows, 10, gone)).toEqual([{ id: 10, status: "RETIRED", approvalStatus: "PENDING" }]);
+  });
+  it("is never brought back when the live version is later paused", () => {
+    const rows = [v(1, "RETIRED", "PENDING", "DELETED"), v(2, "ACTIVE", "APPROVED", "APPROVED")];
+    expect(nextTemplateStates(rows, 20, paused)).toEqual([{ id: 20, status: "DRAFT", approvalStatus: "PENDING" }]);
+  });
+});
