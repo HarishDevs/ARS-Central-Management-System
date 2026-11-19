@@ -3,7 +3,9 @@ import Link from "next/link";
 import { Ticket } from "lucide-react";
 import { PageHeader } from "@/features/shell/PageHeader";
 import { EmptyState } from "@/features/ui/Display";
-import { TicketTable } from "@/features/tickets/TicketParts";
+import { TICKET_GROUP_LABEL, TICKET_GROUPS, TicketTable } from "@/features/tickets/TicketParts";
+import { ListToolbar } from "@/features/ui/ListToolbar";
+import { pickGroup } from "@/server/lists/group-rows";
 import { ticketsPage } from "@/server/tickets/page-context";
 import { listTickets, TICKET_PAGE_SIZE } from "@/lib/db/repositories/tickets.repository";
 
@@ -21,9 +23,15 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
   const view = params.view === "assigned" ? "assigned" : "mine";
   const state = params.state === "closed" || params.state === "all" ? params.state : "open";
   const page = Math.max(1, Math.min(1000, Number(params.page) || 1));
-  const { items, total } = await listTickets({ scope: view, categoryId: null, status: state === "all" ? null : state, q: (params.q ?? "").trim().slice(0, 100), page }, { id: user.id, isAdmin });
+  // v1.57.5 (D-344): Group (kept in the address).
+  const group = pickGroup(params.group, TICKET_GROUPS);
+  const q = (params.q ?? "").trim().slice(0, 100);
+  const { items, total } = await listTickets({ scope: view, categoryId: null, status: state === "all" ? null : state, q, page }, { id: user.id, isAdmin });
   const pages = Math.max(1, Math.ceil(total / TICKET_PAGE_SIZE));
-  const href = (change: Record<string, string | number>) => `/users/tickets?${new URLSearchParams({ view, state, ...Object.fromEntries(Object.entries(change).map(([key, value]) => [key, String(value)])) }).toString()}`;
+  const href = (change: Record<string, string | number | null>) => {
+    const merged: Record<string, string | number | null> = { view, state, ...(group ? { group } : {}), ...(q ? { q } : {}), ...change };
+    return `/users/tickets?${new URLSearchParams(Object.entries(merged).filter(([, value]) => value !== null && value !== "").map(([key, value]) => [key, String(value)])).toString()}`;
+  };
   return (
     <>
       <PageHeader title="My tickets" icon={Ticket} description="Tickets you raised, and tickets assigned to you (work on them in your Tasks).">
@@ -47,11 +55,27 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
         <span className="text-label text-ink-muted" role="status">
           {total.toLocaleString("en-IN")} ticket{total === 1 ? "" : "s"}
         </span>
+        <div className="ml-auto">
+          <ListToolbar
+            id="ticket-list"
+            path="/users/tickets"
+            label="Find tickets"
+            keep={{ view, state, group: group ?? undefined }}
+            search={{ name: "q", value: q, placeholder: "Ticket number or subject" }}
+            filterCount={0}
+            clearHref={q ? href({ q: null, page: 1 }) : null}
+            group={{
+              label: group ? TICKET_GROUP_LABEL[group] : null,
+              clearHref: href({ group: null, page: 1 }),
+              choices: TICKET_GROUPS.map((value) => ({ label: TICKET_GROUP_LABEL[value], href: href({ group: value, page: 1 }), active: group === value })),
+            }}
+          />
+        </div>
       </div>
       {items.length === 0 ? (
         <EmptyState title="No tickets here" body={view === "mine" ? "Tickets you raise appear here." : "Tickets assigned to you appear here."} />
       ) : (
-        <TicketTable items={items} caption={VIEWS[view]} withTask={view === "assigned"} />
+        <TicketTable items={items} caption={VIEWS[view]} withTask={view === "assigned"} group={group} />
       )}
       {pages > 1 && (
         <nav aria-label="Pages" className="mt-4 flex items-center justify-between text-label">

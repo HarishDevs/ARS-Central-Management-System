@@ -4,7 +4,8 @@ import { notFound } from "next/navigation";
 import { LayoutDashboard } from "lucide-react";
 import { PageHeader } from "@/features/shell/PageHeader";
 import { Breadcrumbs, EmptyState } from "@/features/ui/Display";
-import { TicketTable } from "@/features/tickets/TicketParts";
+import { TICKET_GROUP_LABEL, TICKET_GROUPS, TicketTable } from "@/features/tickets/TicketParts";
+import { pickGroup } from "@/server/lists/group-rows";
 import { ticketsPage } from "@/server/tickets/page-context";
 import { findTicketCategory, listTickets, ticketCounts, TICKET_PAGE_SIZE, type TicketListFilter } from "@/lib/db/repositories/tickets.repository";
 import { listDepartments } from "@/lib/db/repositories/organisation.repository";
@@ -47,7 +48,9 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   const viewer = { id: user.id, isAdmin, categoryIds: viewerCategoryIds };
   const [counts, list, departments, people] = await Promise.all([ticketCounts(filter, viewer), listTickets(filter, viewer), listDepartments(), listPeopleFacts()]);
   const base = `/users/tickets/dashboards/${category.id}`;
-  const keep = { from: filter.from, to: filter.to, dept: filter.departmentId, priority: filter.priority, assignee: filter.assigneeId, status: filter.status };
+  // v1.57.5 (D-344): Group by, kept with the filters.
+  const group = pickGroup(query.group, TICKET_GROUPS);
+  const keep = { from: filter.from, to: filter.to, dept: filter.departmentId, priority: filter.priority, assignee: filter.assigneeId, status: filter.status, group };
   const href = (change: Record<string, string | number | null>) => {
     const next = Object.entries({ ...keep, ...change }).filter(([, value]) => value !== null && value !== undefined && value !== "");
     return `${base}${next.length ? `?${new URLSearchParams(next.map(([key, value]) => [key, String(value)])).toString()}` : ""}`;
@@ -143,6 +146,19 @@ export default async function Page({ params, searchParams }: { params: Promise<{
             ))}
           </select>
         </div>
+        <div>
+          <label htmlFor="tf-group" className="field-label">
+            Group by
+          </label>
+          <select id="tf-group" name="group" defaultValue={group ?? ""} className={select}>
+            <option value="">None</option>
+            {TICKET_GROUPS.map((value) => (
+              <option key={value} value={value}>
+                {TICKET_GROUP_LABEL[value]}
+              </option>
+            ))}
+          </select>
+        </div>
         <button type="submit" className="btn-primary btn-compact">
           Apply
         </button>
@@ -156,7 +172,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
         {list.total.toLocaleString("en-IN")} ticket{list.total === 1 ? "" : "s"}
         {filter.status ? ` · ${STATUS_FILTER_LABEL[filter.status] ?? filter.status}` : ""}
       </p>
-      {list.items.length === 0 ? <EmptyState title="No tickets match" body="Change or clear the filters." /> : <TicketTable items={list.items} caption={`${category.name} tickets`} />}
+      {list.items.length === 0 ? <EmptyState title="No tickets match" body="Change or clear the filters." /> : <TicketTable items={list.items} caption={`${category.name} tickets`} group={group} />}
       {pages > 1 && (
         <nav aria-label="Pages" className="mt-4 flex items-center justify-between text-label">
           {filter.page > 1 ? <Link href={href({ page: filter.page - 1 })} className="link">← Previous</Link> : <span />}

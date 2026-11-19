@@ -229,12 +229,14 @@ export interface InfoListItem {
   read: number;
   acknowledged: number;
   formData: Record<string, unknown>;
+  senderDepartment?: string | null; // v1.57.5 (D-344): Group by Department
 }
 
 export async function listInfo(where: string[], params: unknown[], orderBy: string, limit: number, offset: number, viewerId: number, db: Queryable = getDbPool()): Promise<{ rows: InfoListItem[]; total: number }> {
   const clause = where.length ? `WHERE ${where.join(" AND ")}` : "";
-  const [rows] = await db.query<(InfoRow & { my_read: Date | null; my_ack: Date | null; recipients: number; read_count: number; ack_count: number })[]>(
+  const [rows] = await db.query<(InfoRow & { my_read: Date | null; my_ack: Date | null; recipients: number; read_count: number; ack_count: number; sender_department: string | null })[]>(
     `SELECT i.*, v.type_id, mt.name AS type_name, c.name AS created_by_name, me.read_at AS my_read, me.acknowledged_at AS my_ack,
+       (SELECT dc.name FROM departments dc WHERE dc.id = c.department_id) AS sender_department,
        (SELECT COUNT(*) FROM info_recipients x WHERE x.info_id = i.id) AS recipients,
        (SELECT COUNT(*) FROM info_recipients x WHERE x.info_id = i.id AND x.read_at IS NOT NULL) AS read_count,
        (SELECT COUNT(*) FROM info_recipients x WHERE x.info_id = i.id AND x.acknowledged_at IS NOT NULL) AS ack_count
@@ -255,6 +257,7 @@ export async function listInfo(where: string[], params: unknown[], orderBy: stri
       recipients: Number(row.recipients),
       read: Number(row.read_count),
       acknowledged: Number(row.ack_count),
+      senderDepartment: row.sender_department ?? null,
     })),
     total: Number(count[0]?.total ?? 0),
   };

@@ -1,5 +1,16 @@
 # Release notes
 
+## v1.57.5 (19 Nov 2026): Group on every list with a table (owner)
+Every list page with a table now has **Group**, and its groups fold from their headings:
+- **Tasks → Assigned to me / Assigned by me / Team tasks / Periodic tasks:** Department, From (or Assignee), Type, Priority, Status, Due date.
+- **Information inbox / Sent by me:** Department (sender's), Sent by, Type, Importance, Status.
+- **Meetings:** Department, Type, Status, Meeting Owner, Coordinator, Priority, Mode.
+- **Meeting follow-ups:** Department (responsible person's), Responsible, Meeting, Status, Due date.
+- **My tickets:** Department, Category, Ticket form, Priority, Status, Assigned to, Requestor (with a search box too).
+- **A category's ticket dashboard:** the same choices under **Group by** in its filters.
+(Request lists, Waiting for me, task tables, project lists and the Coordinator board already had grouping.) The choice is kept in the address, so a grouped view can be bookmarked.
+- **Owner steps:** no migration; publish v1.57.5.
+
 ## v1.57.4 (19 Nov 2026): Folding groups; Group on Waiting for me (owner)
 - **Every group folds:** when a list is grouped, click a group's heading (▾ / ▸, with its count) to fold its rows away and again to open them: request lists (table and phone cards), Waiting for me, and the Coordinator board's status groups. Task tables, project lists and My Tasks on a phone already folded.
 - **Waiting for me → Group:** Department (of who raised it), Raised by, Approval type, Your step, Priority and Due date (Overdue, Due today, Later, No due date). It is kept in the address, in saved views and across pages.

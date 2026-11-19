@@ -15,6 +15,10 @@ import { indiaDateTimeText, INFO_PRIORITIES, INFO_PRIORITY_LABEL, type InfoPrior
 import { PAGE_SIZES } from "@/server/modules/task-lists";
 import { indiaToday } from "@/server/modules/information";
 import { ListToolbar } from "@/features/ui/ListToolbar";
+import { FoldTbody } from "@/features/ui/GroupFold";
+import { departmentBucket, groupRows } from "@/server/lists/group-rows";
+import { INFO_LIST_GROUPS, type InfoListGroup } from "@/server/modules/info-lists";
+import type { InfoListItem } from "@/lib/db/repositories/info.repository";
 import { PersonSelect } from "@/features/ui/PersonSelect";
 import { personLabel } from "@/lib/people/label";
 import { NoResults } from "@/features/ui/Display";
@@ -31,6 +35,23 @@ const PATH: Record<InfoBase, string> = { INBOX: "/users/information", SENT: "/us
 export const INFO_STATE_TONE: Record<InfoState, Tone> = { DRAFT: "warning", PUBLISHED: "success", WITHDRAWN: "neutral", ARCHIVED: "neutral", EXPIRED: "neutral" };
 export const INFO_PRIORITY_TONE: Record<InfoPriority, Tone> = { NORMAL: "neutral", ELEVATED: "info", IMPORTANT: "warning", HIGH: "warning", URGENT: "danger" };
 
+// v1.57.5 (D-344, owner: "add group by option for all the pages where table is available").
+const INFO_GROUP_LABEL: Record<InfoListGroup, string> = { dept: "Department (sender's)", sender: "Sent by", type: "Type", priority: "Importance", state: "Status" };
+const INFO_PRIORITY_ORDER: Record<string, number> = { URGENT: 0, HIGH: 1, IMPORTANT: 2, ELEVATED: 3, NORMAL: 4 };
+function infoBucket(item: InfoListItem, today: string, group: InfoListGroup | null | undefined): [string, number] {
+  switch (group) {
+    case "dept":
+      return departmentBucket(item.senderDepartment);
+    case "sender":
+      return [item.createdByName, 0];
+    case "type":
+      return [item.typeName, 0];
+    case "priority":
+      return [INFO_PRIORITY_LABEL[item.priority] ?? item.priority, INFO_PRIORITY_ORDER[item.priority] ?? 9];
+    default:
+      return [INFO_STATE_LABEL[infoState(item, today)], 0];
+  }
+}
 export async function InfoListScreen({ base, query }: { base: InfoBase; query: Record<string, string | string[] | undefined> }) {
   const { user } = await requireArea("users");
   if (!(await featureOn("information", user))) notFound();
@@ -129,7 +150,7 @@ export async function InfoListScreen({ base, query }: { base: InfoBase; query: R
         id="info-filters"
         path={path}
         label="Filter information"
-        keep={{ tab: filters.tab, sort: filters.sort !== "newest" ? filters.sort : undefined, size: filters.size !== 25 ? String(filters.size) : undefined }}
+        keep={{ tab: filters.tab, sort: filters.sort !== "newest" ? filters.sort : undefined, size: filters.size !== 25 ? String(filters.size) : undefined, group: filters.group ?? undefined }}
         search={{ name: "q", value: filters.q, placeholder: "Number, subject or message" }}
         filterCount={[filters.typeId, filters.priority, filters.senderId, filters.from || filters.to].filter(Boolean).length}
         clearHref={filters.q || filters.typeId || filters.priority || filters.senderId || filters.from || filters.to ? `${path}?tab=${filters.tab}` : null}
@@ -185,6 +206,11 @@ export async function InfoListScreen({ base, query }: { base: InfoBase; query: R
           changed: filters.sort !== "newest",
           choices: INFO_SORTS.map((sort) => ({ label: INFO_SORT_LABEL[sort], href: `${path}${infoQuery(filters, base, { sort })}`, active: filters.sort === sort })),
         }}
+        group={{
+          label: filters.group ? INFO_GROUP_LABEL[filters.group] : null,
+          clearHref: `${path}${infoQuery(filters, base, { group: null })}`,
+          choices: INFO_LIST_GROUPS.map((group) => ({ label: INFO_GROUP_LABEL[group], href: `${path}${infoQuery(filters, base, { group })}`, active: filters.group === group })),
+        }}
         sizes={PAGE_SIZES.map((size) => ({ label: `${size} per page`, href: `${path}${infoQuery(filters, base, { size })}`, active: filters.size === size }))}
       />
       {list.rows.length === 0 ? (
@@ -207,8 +233,8 @@ export async function InfoListScreen({ base, query }: { base: InfoBase; query: R
                 <th scope="col">{base === "INBOX" ? "Published" : "Status"}</th>
               </tr>
             </thead>
-            <tbody>
-              {list.rows.map((item) => {
+            {(filters.group ? groupRows(list.rows, (item: InfoListItem): [string, number] => infoBucket(item, today, filters.group)) : [{ key: "all", label: "", items: list.rows }]).map((group) => {
+              const rows = group.items.map((item) => {
                 const state = infoState(item, today);
                 const unread = base === "INBOX" && !item.readAt;
                 return (
@@ -244,8 +270,16 @@ export async function InfoListScreen({ base, query }: { base: InfoBase; query: R
                     </td>
                   </tr>
                 );
-              })}
-            </tbody>
+              });
+              // v1.57.5 (D-344): groups fold from their heading.
+              return group.label ? (
+                <FoldTbody key={group.key} label={group.label} count={group.items.length} colSpan={6}>
+                  {rows}
+                </FoldTbody>
+              ) : (
+                <tbody key={group.key}>{rows}</tbody>
+              );
+            })}
           </table>
         </div>
       )}

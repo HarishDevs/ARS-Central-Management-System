@@ -13,6 +13,11 @@ export type TaskSort = (typeof TASK_SORTS)[number];
 export const TASK_SORT_LABEL: Record<TaskSort, string> = { due: "Due first", newest: "Newest", oldest: "Oldest", priority: "Priority", updated: "Recently updated" };
 export const PAGE_SIZES = [25, 50, 100] as const;
 
+// v1.57.5 (D-344): Group on the task lists. "dept" and "person" follow the list:
+// on Assigned to me the person who gave it; elsewhere the assignee.
+export const TASK_LIST_GROUPS = ["dept", "person", "type", "priority", "status", "due"] as const;
+export type TaskListGroup = (typeof TASK_LIST_GROUPS)[number];
+
 export interface TaskFilters {
   tab: TaskTab;
   q: string;
@@ -27,6 +32,7 @@ export interface TaskFilters {
   sort: TaskSort;
   size: number;
   page: number;
+  group?: TaskListGroup | null;
 }
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
@@ -57,6 +63,7 @@ export function parseTaskFilters(query: Record<string, string | string[] | undef
     sort: (TASK_SORTS as readonly string[]).includes(sort) ? sort : "due",
     size: (PAGE_SIZES as readonly number[]).includes(size) ? size : 25,
     page: Math.min(1000, Math.max(1, Number(one(query.page)) || 1)),
+    group: (TASK_LIST_GROUPS as readonly string[]).includes(one(query.group)) ? (one(query.group) as TaskListGroup) : null,
   };
 }
 
@@ -76,6 +83,7 @@ export function taskQuery(filters: TaskFilters, change: Partial<TaskFilters> = {
   if (f.createdTo) params.set("createdTo", f.createdTo);
   if (f.sort !== "due") params.set("sort", f.sort);
   if (f.size !== 25) params.set("size", String(f.size));
+  if (f.group) params.set("group", f.group);
   if (f.page > 1) params.set("page", String(f.page));
   const text = params.toString();
   return text ? `?${text}` : "";

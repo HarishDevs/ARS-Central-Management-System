@@ -20,6 +20,10 @@ export const INFO_TAB_LABEL: Record<InfoTab, string> = {
 };
 export const tabsFor = (base: InfoBase): readonly InfoTab[] => (base === "INBOX" ? INBOX_TABS : SENT_TABS);
 
+// v1.57.5 (D-344): Group on the information lists.
+export const INFO_LIST_GROUPS = ["dept", "sender", "type", "priority", "state"] as const;
+export type InfoListGroup = (typeof INFO_LIST_GROUPS)[number];
+
 export interface InfoFilters {
   tab: InfoTab;
   q: string;
@@ -31,6 +35,7 @@ export interface InfoFilters {
   sort: "newest" | "oldest" | "expiry";
   size: number;
   page: number;
+  group?: InfoListGroup | null;
 }
 
 const one = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value) ?? "";
@@ -55,6 +60,7 @@ export function parseInfoFilters(query: Record<string, string | string[] | undef
     sort: sort === "oldest" || sort === "expiry" ? sort : "newest",
     size: (PAGE_SIZES as readonly number[]).includes(size) ? size : 25,
     page: Math.min(1000, Math.max(1, Number(one(query.page)) || 1)),
+    group: (INFO_LIST_GROUPS as readonly string[]).includes(one(query.group)) ? (one(query.group) as InfoListGroup) : null,
   };
 }
 
@@ -70,6 +76,7 @@ export function infoQuery(filters: InfoFilters, base: InfoBase, change: Partial<
   if (f.to) params.set("to", f.to);
   if (f.sort !== "newest") params.set("sort", f.sort);
   if (f.size !== 25) params.set("size", String(f.size));
+  if (f.group) params.set("group", f.group);
   if (f.page > 1) params.set("page", String(f.page));
   return `?${params.toString()}`;
 }

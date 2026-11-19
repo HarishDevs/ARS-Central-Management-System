@@ -126,6 +126,7 @@ const toTask = (row: TaskRow): TaskRecord => ({
 });
 
 export const TASK_SELECT = `SELECT t.*, v.type_id, mt.name AS type_name, c.name AS created_by_name, a.name AS assignee_name, a.reporting_manager_id AS assignee_manager_id,
+    (SELECT dd.name FROM departments dd WHERE dd.id = a.department_id) AS assignee_department, (SELECT dc.name FROM departments dc WHERE dc.id = c.department_id) AS created_by_department,
     ab.name AS assigned_by_name, cb.name AS completed_by_name, r.request_no AS related_request_no
   FROM tasks t
   JOIN module_type_versions v ON v.id = t.type_version_id
@@ -244,6 +245,9 @@ export interface TaskListItem {
   createdAt: Date;
   updatedAt: Date;
   formData: Record<string, unknown>;
+  // v1.57.5 (D-344): for Group by Department.
+  assigneeDepartment?: string | null;
+  createdByDepartment?: string | null;
 }
 
 export async function listTasks(where: string[], params: unknown[], orderBy: string, limit: number, offset: number, db: Queryable = getDbPool()): Promise<{ rows: TaskListItem[]; total: number }> {
@@ -254,7 +258,9 @@ export async function listTasks(where: string[], params: unknown[], orderBy: str
     params,
   );
   return {
-    rows: rows.map(toTask).map((task) => ({
+    rows: rows.map((row) => ({ task: toTask(row), row })).map(({ task, row }) => ({
+      assigneeDepartment: (row as { assignee_department?: string | null }).assignee_department ?? null,
+      createdByDepartment: (row as { created_by_department?: string | null }).created_by_department ?? null,
       id: task.id,
       taskNo: task.taskNo,
       title: task.title,

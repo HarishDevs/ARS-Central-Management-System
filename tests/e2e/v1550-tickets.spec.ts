@@ -122,7 +122,8 @@ test("the assignee starts and completes the task with remarks; the ticket awaits
   await expect(page.getByText(/Done: /).first()).toBeVisible();
   await page.getByRole("textbox", { name: "Remarks" }).fill("Replaced the SSD and reinstalled Windows");
   await page.getByRole("button", { name: "Complete", exact: true }).click();
-  await expect(page.getByText(/Done: /).first()).toBeVisible();
+  // Wait for the completion itself (the Start message also says "Done:").
+  await expect(page.getByText("Completed", { exact: true }).first()).toBeVisible();
   await page.goto(ticketPath);
   await expect(page.locator("main")).toContainText(/Waiting for Ravi Requester to confirm/);
 });

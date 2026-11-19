@@ -433,9 +433,10 @@ export interface MeetingActionItem {
   confirmedByName: string | null;
   confirmedAt: Date | null;
   reviewNote: string | null;
+  ownerDepartment?: string | null; // v1.57.5 (D-344): Group by Department
 }
 
-const ACTION_SELECT = `SELECT a.*, u.name AS owner_name, t.task_no, t.status AS task_status, t.due_at AS task_due_at, t.completed_at AS task_completed_at, cb.name AS confirmed_by_name
+const ACTION_SELECT = `SELECT a.*, u.name AS owner_name, (SELECT od.name FROM departments od WHERE od.id = u.department_id) AS owner_department, t.task_no, t.status AS task_status, t.due_at AS task_due_at, t.completed_at AS task_completed_at, cb.name AS confirmed_by_name
   FROM meeting_actions a JOIN users u ON u.id = a.owner_id
   LEFT JOIN tasks t ON t.id = a.task_id AND t.deleted_at IS NULL
   LEFT JOIN users cb ON cb.id = a.confirmed_by`;
@@ -461,6 +462,7 @@ function toAction(row: Row): MeetingActionItem {
     confirmedByName: strOrNull(row.confirmed_by_name),
     confirmedAt: dateOrNull(row.confirmed_at),
     reviewNote: strOrNull(row.review_note),
+    ownerDepartment: strOrNull(row.owner_department),
   };
 }
 

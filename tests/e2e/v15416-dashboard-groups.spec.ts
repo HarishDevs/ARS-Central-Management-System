@@ -67,3 +67,20 @@ test("Group by: form fields on My requests; Department on a list with people", a
   await expect(page).toHaveURL(/group=dept/);
   await expect(page.getByTestId("group-menu").locator("summary")).toContainText("Department");
 });
+
+// v1.57.5 (D-344, owner: "add group by option for all the pages where table is available").
+test("every list with a table offers Group and keeps it in the address", async ({ page, context }) => {
+  await context.addCookies([await sessionCookie("E2E_SUPER")]);
+  const lists: [string, string][] = [
+    ["/users/tasks?group=dept", "Department"],
+    ["/users/tasks/assigned?group=type", "Type"],
+    ["/users/information?group=sender", "Sent by"],
+    ["/users/meetings?tab=all&group=dept", "Department"],
+    ["/users/meetings/follow-ups?view=all&group=status", "Status"],
+    ["/users/tickets?state=all&group=status", "Status"],
+  ];
+  for (const [path, label] of lists) {
+    await page.goto(path);
+    await expect(page.getByTestId("group-menu").locator("summary"), path).toContainText(label);
+  }
+});

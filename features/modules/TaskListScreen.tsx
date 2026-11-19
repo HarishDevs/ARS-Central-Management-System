@@ -18,6 +18,10 @@ import { isAdminActor } from "@/server/modules/tasks";
 import { TaskCheck } from "@/features/work/client";
 import { teamOf } from "@/server/work/task-access";
 import { ListToolbar } from "@/features/ui/ListToolbar";
+import { FoldTbody } from "@/features/ui/GroupFold";
+import { departmentBucket, dueBucket, groupRows, indiaDayOf } from "@/server/lists/group-rows";
+import { TASK_LIST_GROUPS, type TaskListGroup } from "@/server/modules/task-lists";
+import type { TaskListItem } from "@/lib/db/repositories/tasks.repository";
 import { PersonSelect } from "@/features/ui/PersonSelect";
 import { personLabel } from "@/lib/people/label";
 import { NoResults } from "@/features/ui/Display";
@@ -66,6 +70,29 @@ export async function TaskListScreen({ base, query }: { base: TaskBase; query: R
     ),
   ]);
   const repeats = base === "PERIODIC" ? await periodicDetails(list.rows.map((task) => task.id)) : null;
+  // v1.57.5 (D-344, owner: "add group by option for all the pages where table is available").
+  const fromSide = base === "MINE";
+  const groupLabel: Record<TaskListGroup, string> = { dept: fromSide ? "Department (who gave it)" : "Department", person: fromSide ? "From" : "Assignee", type: "Type", priority: "Priority", status: "Status", due: "Due date" };
+  const PRIORITY_ORDER: Record<string, number> = { URGENT: 0, HIGH: 1, IMPORTANT: 2, ELEVATED: 3, NORMAL: 4, LOW: 5 };
+  const STATUS_ORDER: Record<string, number> = { OPEN: 0, IN_PROGRESS: 1, BLOCKED: 2, COMPLETED: 3, CANCELLED: 4 };
+  const todayDay = indiaDayOf(now);
+  const bucket = (task: TaskListItem): [string, number] => {
+    switch (filters.group) {
+      case "dept":
+        return departmentBucket(fromSide ? task.createdByDepartment : task.assigneeDepartment);
+      case "person":
+        return [fromSide ? task.createdByName : task.assigneeName, 0];
+      case "type":
+        return [task.typeName, 0];
+      case "priority":
+        return [PRIORITY_LABEL[task.priority] ?? task.priority, PRIORITY_ORDER[task.priority] ?? 9];
+      case "status":
+        return [TASK_STATUS_LABEL[task.status], STATUS_ORDER[task.status] ?? 9];
+      default:
+        return dueBucket(task.dueAt ? indiaDayOf(task.dueAt) : null, todayDay, task.status !== "COMPLETED" && task.status !== "CANCELLED");
+    }
+  };
+  const groups = filters.group ? groupRows(list.rows, bucket) : [{ key: "all", label: "", items: list.rows }];
   const pages = Math.max(1, Math.ceil(list.total / filters.size));
   const names = new Map(people.map((person) => [person.id, person.name]));
   const path = PATH[base];
@@ -97,7 +124,7 @@ export async function TaskListScreen({ base, query }: { base: TaskBase; query: R
             id="task-filters"
             path={path}
             label="Filter tasks"
-            keep={{ tab: filters.tab !== "open" ? filters.tab : undefined, sort: filters.sort !== "due" ? filters.sort : undefined, size: filters.size !== 25 ? String(filters.size) : undefined }}
+            keep={{ tab: filters.tab !== "open" ? filters.tab : undefined, sort: filters.sort !== "due" ? filters.sort : undefined, size: filters.size !== 25 ? String(filters.size) : undefined, group: filters.group ?? undefined }}
             search={{ name: "q", value: filters.q, placeholder: "Number, title or description" }}
             filterCount={[filters.typeId, filters.priorities.length, filters.statuses.length, filters.personId, filters.dueFrom || filters.dueTo, filters.createdFrom || filters.createdTo].filter(Boolean).length}
             clearHref={
@@ -174,6 +201,11 @@ export async function TaskListScreen({ base, query }: { base: TaskBase; query: R
               changed: filters.sort !== "due",
               choices: TASK_SORTS.map((sort) => ({ label: TASK_SORT_LABEL[sort], href: `${path}${taskQuery(filters, { sort })}`, active: filters.sort === sort })),
             }}
+            group={{
+              label: filters.group ? groupLabel[filters.group] : null,
+              clearHref: `${path}${taskQuery(filters, { group: null })}`,
+              choices: TASK_LIST_GROUPS.map((group) => ({ label: groupLabel[group], href: `${path}${taskQuery(filters, { group })}`, active: filters.group === group })),
+            }}
             sizes={PAGE_SIZES.map((size) => ({ label: `${size} per page`, href: `${path}${taskQuery(filters, { size })}`, active: filters.size === size }))}
           />
           {list.rows.length === 0 ? (
@@ -213,8 +245,8 @@ export async function TaskListScreen({ base, query }: { base: TaskBase; query: R
                     ))}
                   </tr>
                 </thead>
-                <tbody>
-                  {list.rows.map((task) => {
+                {groups.map((group) => {
+                  const rows = group.items.map((task) => {
                     const late = isOverdue(task, now);
                     return (
                       <tr key={task.id}>
@@ -258,8 +290,15 @@ export async function TaskListScreen({ base, query }: { base: TaskBase; query: R
                         ))}
                       </tr>
                     );
-                  })}
-                </tbody>
+                  });
+                  return group.label ? (
+                    <FoldTbody key={group.key} label={group.label} count={group.items.length} colSpan={7 + (repeats ? 3 : 0) + columns.length}>
+                      {rows}
+                    </FoldTbody>
+                  ) : (
+                    <tbody key={group.key}>{rows}</tbody>
+                  );
+                })}
               </table>
             </div>
           )}

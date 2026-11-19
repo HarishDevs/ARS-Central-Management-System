@@ -9,7 +9,10 @@ import { TaskPriorityPill } from "@/features/ui/ChoicePill";
 import { MeetingSections, MeetingStatusBadge, PointsBadge, whenText } from "@/features/meetings/MeetingParts";
 import { listMeetings, listMeetingTypes, type MeetingListFilter } from "@/lib/db/repositories/meetings.repository";
 import { scopeFor } from "@/server/meetings/service";
-import { MEETING_STATUSES, MODE_LABEL, STATUS_LABEL } from "@/server/meetings/rules";
+import { MEETING_STATUSES, MODE_LABEL, PRIORITY_LABEL as MEETING_PRIORITY_LABEL, STATUS_LABEL } from "@/server/meetings/rules";
+import { FoldTbody } from "@/features/ui/GroupFold";
+import { departmentBucket, groupRows, pickGroup } from "@/server/lists/group-rows";
+import type { MeetingListRow } from "@/lib/db/repositories/meetings.repository";
 
 export const metadata: Metadata = { title: "Meetings" };
 export const dynamic = "force-dynamic";
@@ -23,6 +26,29 @@ const TABS = [
 ] as const;
 type Tab = (typeof TABS)[number]["key"];
 const PAGE_SIZE = 25;
+// v1.57.5 (D-344, owner: "add group by option for all the pages where table is available").
+const MEETING_GROUPS = ["dept", "type", "status", "owner", "coordinator", "priority", "mode"] as const;
+type MeetingGroup = (typeof MEETING_GROUPS)[number];
+const MEETING_GROUP_LABEL: Record<MeetingGroup, string> = { dept: "Department", type: "Type", status: "Status", owner: "Meeting Owner", coordinator: "Coordinator", priority: "Priority", mode: "Mode" };
+const PRIORITY_ORDER: Record<string, number> = { URGENT: 0, HIGH: 1, IMPORTANT: 2, ELEVATED: 3, NORMAL: 4 };
+function meetingBucket(row: MeetingListRow, group: MeetingGroup): [string, number] {
+  switch (group) {
+    case "dept":
+      return departmentBucket(row.departmentName);
+    case "type":
+      return [row.typeName, 0];
+    case "status":
+      return [STATUS_LABEL[row.status], MEETING_STATUSES.indexOf(row.status)];
+    case "owner":
+      return [row.ownerName, 0];
+    case "coordinator":
+      return [row.coordinatorName, 0];
+    case "priority":
+      return [MEETING_PRIORITY_LABEL[row.priority] ?? row.priority, PRIORITY_ORDER[row.priority] ?? 9];
+    default:
+      return [MODE_LABEL[row.mode], 0];
+  }
+}
 
 // v1.51.0 (D-300): the meetings the person is on (and, for HODs, their
 // departments' meetings; ED, MD and IT see all).
@@ -35,6 +61,7 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
   const typeId = /^\d{1,10}$/.test(one("type")) ? Number(one("type")) : null;
   const status = (MEETING_STATUSES as readonly string[]).includes(one("status")) ? one("status") : null;
   const page = /^\d{1,4}$/.test(one("page")) ? Math.max(1, Number(one("page"))) : 1;
+  const group = pickGroup(one("group"), MEETING_GROUPS);
   const scope = await scopeFor(user);
   const base: Omit<MeetingListFilter, "tab"> = { userId: user.id, q, typeId, departmentId: null, status, from: null, to: null, page, pageSize: PAGE_SIZE };
   const [list, types, approveCount] = await Promise.all([
@@ -45,7 +72,7 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
   const pages = Math.max(1, Math.ceil(list.total / PAGE_SIZE));
   const href = (changes: Record<string, string | number | null>) => {
     const params = new URLSearchParams();
-    const merged = { tab, q, type: typeId, status, page, ...changes };
+    const merged = { tab, q, type: typeId, status, group, page, ...changes };
     for (const [key, value] of Object.entries(merged))
       if (value !== null && value !== "" && !(key === "page" && value === 1) && !(key === "tab" && value === "upcoming")) params.set(key, String(value));
     const text = params.toString();
@@ -78,10 +105,15 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
         id="meeting-filters"
         path="/users/meetings"
         label="Filter meetings"
-        keep={{ tab: tab !== "upcoming" ? tab : undefined }}
+        keep={{ tab: tab !== "upcoming" ? tab : undefined, group: group ?? undefined }}
         search={{ name: "q", value: q, placeholder: "Title or meeting number" }}
         filterCount={[typeId, status].filter(Boolean).length}
         clearHref={filtered ? href({ q: "", type: null, status: null, page: 1 }) : null}
+        group={{
+          label: group ? MEETING_GROUP_LABEL[group] : null,
+          clearHref: href({ group: null, page: 1 }),
+          choices: MEETING_GROUPS.map((value) => ({ label: MEETING_GROUP_LABEL[value], href: href({ group: value, page: 1 }), active: group === value })),
+        }}
         filters={
           <>
             <div>
@@ -141,8 +173,8 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
                 <th scope="col">Status</th>
               </tr>
             </thead>
-            <tbody>
-              {list.rows.map((row) => (
+            {(group ? groupRows(list.rows, (row) => meetingBucket(row, group)) : [{ key: "all", label: "", items: list.rows }]).map((section) => {
+              const rows = section.items.map((row) => (
                 <tr key={row.id}>
                   <td className="whitespace-nowrap font-mono text-label">
                     <Link href={`/users/meetings/${row.id}`} className="link">
@@ -182,8 +214,15 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
                     </span>
                   </td>
                 </tr>
-              ))}
-            </tbody>
+              ));
+              return section.label ? (
+                <FoldTbody key={section.key} label={section.label} count={section.items.length} colSpan={10}>
+                  {rows}
+                </FoldTbody>
+              ) : (
+                <tbody key={section.key}>{rows}</tbody>
+              );
+            })}
           </table>
         </div>
       )}

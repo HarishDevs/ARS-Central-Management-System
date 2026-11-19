@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { FoldTbody } from "@/features/ui/GroupFold";
+import { departmentBucket, groupRows } from "@/server/lists/group-rows";
+import { TICKET_STATUS_LABEL } from "@/server/tickets/rules";
 import { Badge, type Tone } from "@/features/ui/Display";
 import { statusText, isOverdue, type TicketStatus } from "@/server/tickets/rules";
 import { TICKET_PRIORITY_LABEL, type TicketPriority } from "@/server/modules/settings";
@@ -21,7 +24,32 @@ const day = (value: Date | null) => (value ? value.toLocaleDateString("en-IN", {
 // priority, assigned employee, created, target date, status.
 // v1.57.2 (D-340, owner: "an option to navigate to the tasks from tickets assigned to
 // me so that the assignee can complete directly"): withTask adds a Task column.
-export function TicketTable({ items, caption, testId = "ticket-table", withTask = false }: { items: readonly TicketListItem[]; caption: string; testId?: string; withTask?: boolean }) {
+// v1.57.5 (D-344, owner: "add group by option for all the pages where table is available").
+export const TICKET_GROUPS = ["dept", "category", "form", "priority", "status", "assignee", "requester"] as const;
+export type TicketGroup = (typeof TICKET_GROUPS)[number];
+export const TICKET_GROUP_LABEL: Record<TicketGroup, string> = { dept: "Department", category: "Category", form: "Ticket form", priority: "Priority", status: "Status", assignee: "Assigned to", requester: "Requestor" };
+const TICKET_PRIORITY_ORDER: Record<string, number> = { URGENT: 0, HIGH: 1, IMPORTANT: 2, ELEVATED: 3, NORMAL: 4 };
+const TICKET_STATUS_ORDER: Record<string, number> = { NEW: 0, REOPENED: 1, ASSIGNED: 2, IN_PROGRESS: 3, AWAITING_CONFIRMATION: 4, CLOSED: 5 };
+function ticketBucket(item: TicketListItem, group: TicketGroup): [string, number] {
+  switch (group) {
+    case "dept":
+      return departmentBucket(item.departmentName);
+    case "category":
+      return [item.categoryName, 0];
+    case "form":
+      return [`${item.categoryName} · ${item.typeName}`, 0];
+    case "priority":
+      return [TICKET_PRIORITY_LABEL[item.priority] ?? item.priority, TICKET_PRIORITY_ORDER[item.priority] ?? 9];
+    case "status":
+      return [item.closeKind === "AUTO" ? "Closed – auto closed" : TICKET_STATUS_LABEL[item.status], TICKET_STATUS_ORDER[item.status] ?? 9];
+    case "assignee":
+      return item.assigneeName ? [item.assigneeName, 0] : ["Not assigned", 9];
+    default:
+      return [item.requesterName, 0];
+  }
+}
+
+export function TicketTable({ items, caption, testId = "ticket-table", withTask = false, group = null }: { items: readonly TicketListItem[]; caption: string; testId?: string; withTask?: boolean; group?: TicketGroup | null }) {
   const now = new Date();
   return (
     <div className="card overflow-x-auto">
@@ -41,8 +69,8 @@ export function TicketTable({ items, caption, testId = "ticket-table", withTask 
             {withTask && <th scope="col">Task</th>}
           </tr>
         </thead>
-        <tbody>
-          {items.map((item) => {
+        {(group ? groupRows(items, (item) => ticketBucket(item, group)) : [{ key: "all", label: "", items: [...items] }]).map((section) => {
+          const rows = section.items.map((item) => {
             const late = isOverdue({ status: item.status, dueAt: item.dueAt }, now);
             return (
               <tr key={item.id}>
@@ -86,8 +114,15 @@ export function TicketTable({ items, caption, testId = "ticket-table", withTask 
                 )}
               </tr>
             );
-          })}
-        </tbody>
+          });
+          return section.label ? (
+            <FoldTbody key={section.key} label={section.label} count={section.items.length} colSpan={withTask ? 10 : 9}>
+              {rows}
+            </FoldTbody>
+          ) : (
+            <tbody key={section.key}>{rows}</tbody>
+          );
+        })}
       </table>
     </div>
   );

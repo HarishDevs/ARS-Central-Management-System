@@ -10,6 +10,14 @@ import { listFollowUps, listOpenPointRegister } from "@/lib/db/repositories/meet
 import { scopeFor } from "@/server/meetings/service";
 import { actionState, FOLLOW_UP_LABEL, type FollowUpState } from "@/server/meetings/rules";
 import { indiaDateTimeText } from "@/server/modules/settings";
+import { FoldTbody } from "@/features/ui/GroupFold";
+import { departmentBucket, dueBucket, groupRows, indiaDayOf, pickGroup } from "@/server/lists/group-rows";
+
+// v1.57.5 (D-344, owner: "add group by option for all the pages where table is available").
+const FOLLOW_GROUPS = ["dept", "responsible", "meeting", "status", "due"] as const;
+type FollowGroup = (typeof FOLLOW_GROUPS)[number];
+const FOLLOW_GROUP_LABEL: Record<FollowGroup, string> = { dept: "Department (responsible)", responsible: "Responsible", meeting: "Meeting", status: "Status", due: "Due date" };
+const STATE_ORDER: Record<string, number> = { OVERDUE: 0, OPEN: 1, DONE_UNCONFIRMED: 2, NO_TASK: 3, CONFIRMED: 4, CANCELLED: 5 };
 import { isAdminActor } from "@/server/modules/tasks";
 
 export const metadata: Metadata = { title: "Meeting follow-ups" };
@@ -31,6 +39,8 @@ export default async function FollowUpsPage({ searchParams }: { searchParams: Pr
   const query = await searchParams;
   const view: View = (VIEWS.find((item) => item.key === query.view)?.key ?? "open") as View;
   const q = typeof query.q === "string" ? query.q.trim().slice(0, 100) : "";
+  const group = pickGroup(query.group, FOLLOW_GROUPS);
+  const groupHref = (value: FollowGroup | null) => `/users/meetings/follow-ups?view=${view}${q ? `&q=${encodeURIComponent(q)}` : ""}${value ? `&group=${value}` : ""}`;
   const scope = await scopeFor(user);
   const [rows, openPoints] = await Promise.all([listFollowUps(scope, { ownerOnly: view === "mine" ? user.id : null, q, limit: 500 }), listOpenPointRegister(scope, 300)]);
   const now = new Date();
@@ -73,10 +83,15 @@ export default async function FollowUpsPage({ searchParams }: { searchParams: Pr
           id="follow-up-filters"
           path="/users/meetings/follow-ups"
           label="Find follow-ups"
-          keep={{ view }}
+          keep={{ view, group: group ?? undefined }}
           search={{ name: "q", value: q, placeholder: "Action or meeting" }}
           filterCount={0}
-          clearHref={q ? `/users/meetings/follow-ups?view=${view}` : null}
+          clearHref={q ? `/users/meetings/follow-ups?view=${view}${group ? `&group=${group}` : ""}` : null}
+          group={{
+            label: group ? FOLLOW_GROUP_LABEL[group] : null,
+            clearHref: groupHref(null),
+            choices: FOLLOW_GROUPS.map((value) => ({ label: FOLLOW_GROUP_LABEL[value], href: groupHref(value), active: group === value })),
+          }}
         />
       </div>
       {shown.length === 0 ? (
@@ -94,8 +109,18 @@ export default async function FollowUpsPage({ searchParams }: { searchParams: Pr
                 <th scope="col">Follow-up</th>
               </tr>
             </thead>
-            <tbody>
-              {shown.map(({ row, state }) => (
+            {(group
+              ? groupRows(shown, ({ row, state }): [string, number] => {
+                  const today = indiaDayOf(new Date());
+                  if (group === "dept") return departmentBucket(row.ownerDepartment);
+                  if (group === "responsible") return [row.ownerName, 0];
+                  if (group === "meeting") return [`${row.meetingNo} ${row.meetingTitle}`, 0];
+                  if (group === "status") return [FOLLOW_UP_LABEL[state], STATE_ORDER[state] ?? 9];
+                  return dueBucket(row.taskDueAt ? indiaDayOf(row.taskDueAt) : row.dueOn, today, state !== "CONFIRMED" && state !== "CANCELLED");
+                })
+              : [{ key: "all", label: "", items: shown }]
+            ).map((section) => {
+              const rows = section.items.map(({ row, state }) => (
                 <tr key={row.id}>
                   <td>
                     {row.taskId && (
@@ -123,8 +148,15 @@ export default async function FollowUpsPage({ searchParams }: { searchParams: Pr
                     ) : null}
                   </td>
                 </tr>
-              ))}
-            </tbody>
+              ));
+              return section.label ? (
+                <FoldTbody key={section.key} label={section.label} count={section.items.length} colSpan={6}>
+                  {rows}
+                </FoldTbody>
+              ) : (
+                <tbody key={section.key}>{rows}</tbody>
+              );
+            })}
           </table>
         </div>
       )}
