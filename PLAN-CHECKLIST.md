@@ -17,6 +17,9 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 **Multi-level approvals in any custom manner.** The engine must support any number of levels in any combination: sequential, parallel, any-one, any-N-of-M, conditional and hybrid. Approvers can come from any source, and levels can be added or skipped by rules. Build the engine for this from the first engine phase (P2). The drag-and-drop designer (P3) is only the screen for building it. Check every task against this.
 
 ## Now / Next
+- **Now (19 Nov 2026):** **v1.57.4** folding groups everywhere (D-342) and Group on Waiting for me (D-343). **Owner:** publish (no migration).
+- [x] LIST-31 (19 Nov 2026) Every grouped list folds from its group heading
+- [x] LIST-32 (19 Nov 2026) Waiting for me: Group (Department, Raised by, Approval type, Your step, Priority, Due date)
 - **Now (19 Nov 2026):** **v1.57.3** Group by Department in every Group option (D-341). **Owner:** publish (no migration).
 - [x] LIST-30 (19 Nov 2026) Department in every Group option (requests, task tables, project list, mobile My Tasks)
 - **Now (18 Nov 2026):** **v1.57.2** ticket and task show each other's remarks, files and activity (D-339); Open task on Assigned to me (D-340). **Owner:** publish (no migration).

@@ -9,6 +9,7 @@ import type {
   QueueItem,
 } from "@/lib/db/repositories/approvals.repository";
 import { SafeText } from "@/features/ui/SafeText";
+import { FoldListGroup, FoldTbody } from "@/features/ui/GroupFold";
 import { PriorityPill } from "@/features/ui/ChoicePill";
 import type { ShownPriority } from "@/server/approvals/priority";
 
@@ -24,7 +25,9 @@ const QUEUE_HEADER: Record<QueueColumn, HeaderColumn> = {
   since: { key: "since", label: "Waiting since" },
   due: { key: "due", label: "Due date" },
 };
-export function QueueTable({ items, priority, order: savedOrder, formDue = {} }: { items: QueueItem[]; priority?: Record<number, ShownPriority>; order?: string[]; formDue?: Record<number, string> }) {
+// v1.57.4 (D-343): `groups` (label + the items in it, in order) shows the rows
+// in folding groups; without it, one plain list as before.
+export function QueueTable({ items, priority, order: savedOrder, formDue = {}, groups }: { items: QueueItem[]; priority?: Record<number, ShownPriority>; order?: string[]; formDue?: Record<number, string>; groups?: { key: string; label: string; items: QueueItem[] }[] }) {
   // v1.53.0: the request's own due date (its form's Due date field), India day.
   const todayDay = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
   const dayText = (day: string) => new Date(`${day}T00:00:00Z`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
@@ -90,7 +93,8 @@ export function QueueTable({ items, priority, order: savedOrder, formDue = {} }:
     <>
       {/* Phones (spec #5): one card per item, the whole card is the link. */}
       <ul className="card divide-y divide-line sm:hidden">
-        {items.map((item) => (
+        {(groups ?? [{ key: "all", label: "", items }]).map((group) => {
+          const cards = group.items.map((item) => (
           <li key={item.taskKey + item.requestId}>
             <Link
               href={`/users/requests/${item.requestId}`}
@@ -135,7 +139,15 @@ export function QueueTable({ items, priority, order: savedOrder, formDue = {} }:
               )}
             </Link>
           </li>
-        ))}
+          ));
+          return group.label ? (
+            <FoldListGroup key={group.key} label={group.label} count={group.items.length}>
+              {cards}
+            </FoldListGroup>
+          ) : (
+            <Fragment key={group.key}>{cards}</Fragment>
+          );
+        })}
       </ul>
       <div className="card hidden overflow-x-auto sm:block">
         <table className="data-table">
@@ -151,8 +163,8 @@ export function QueueTable({ items, priority, order: savedOrder, formDue = {} }:
               </tr>
             )}
           </thead>
-          <tbody>
-            {items.map((item) => (
+          {(groups ?? [{ key: "all", label: "", items }]).map((group) => {
+            const rows = group.items.map((item) => (
               <tr key={item.taskKey + item.requestId}>
                 <td>
                   <Link
@@ -171,8 +183,15 @@ export function QueueTable({ items, priority, order: savedOrder, formDue = {} }:
                   <Fragment key={column}>{cellFor(item, column)}</Fragment>
                 ))}
               </tr>
-            ))}
-          </tbody>
+            ));
+            return group.label ? (
+              <FoldTbody key={group.key} label={group.label} count={group.items.length} colSpan={order.length + 1}>
+                {rows}
+              </FoldTbody>
+            ) : (
+              <tbody key={group.key}>{rows}</tbody>
+            );
+          })}
         </table>
       </div>
     </>

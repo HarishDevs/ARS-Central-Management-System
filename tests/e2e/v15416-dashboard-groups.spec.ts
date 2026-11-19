@@ -44,6 +44,20 @@ test("Group by: form fields on My requests; Department on a list with people", a
   await expect(page).toHaveURL(/group=f%3Aamount|group=f:amount/);
   await expect(page.getByTestId("group-menu").locator("summary")).toContainText("Amount");
   await page.screenshot({ path: "test-results/v15416-group-field.png", fullPage: false });
+  // v1.57.4 (D-342, owner): a group folds away from its heading and opens again.
+  const table = page.getByTestId("request-table");
+  const fold = table.getByTestId("group-fold").first();
+  const firstRow = table.locator("tbody").first().locator("tr").nth(1);
+  await expect(firstRow).toBeVisible();
+  await fold.click();
+  await expect(fold).toHaveAttribute("aria-expanded", "false");
+  await expect(firstRow).toBeHidden();
+  await fold.click();
+  await expect(firstRow).toBeVisible();
+
+  // v1.57.4 (D-343, owner: "add group"): Waiting for me has Group too.
+  await page.goto("/users/queue?group=dept");
+  await expect(page).toHaveURL(/group=dept/);
 
   await context.clearCookies();
   await context.addCookies([await sessionCookie("E2E_MGR")]);

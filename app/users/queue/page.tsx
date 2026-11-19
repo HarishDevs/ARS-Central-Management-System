@@ -18,7 +18,8 @@ import { ListToolbar } from "@/features/ui/ListToolbar";
 import { NoResults } from "@/features/ui/Display";
 import { PersonSelect } from "@/features/ui/PersonSelect";
 import { personLabel } from "@/lib/people/label";
-import { QUEUE_SHOW_LABEL, QUEUE_SHOWS, QUEUE_SIZES, QUEUE_SORT_LABEL, QUEUE_SORTS, parseQueueFilter, queueFiltered, queueHref, type QueueFilter } from "@/server/approvals/queue-filters";
+import { QUEUE_GROUP_LABEL, QUEUE_GROUPS, QUEUE_SHOW_LABEL, QUEUE_SHOWS, QUEUE_SIZES, QUEUE_SORT_LABEL, QUEUE_SORTS, parseQueueFilter, queueFiltered, queueHref, type QueueFilter } from "@/server/approvals/queue-filters";
+import type { QueueItem } from "@/lib/db/repositories/approvals.repository";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
 export const metadata: Metadata = { title: "Waiting for me" };
@@ -67,6 +68,44 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
     filter.waitingFrom || filter.waitingTo ? { label: `Waiting since ${filter.waitingFrom ?? "…"} to ${filter.waitingTo ?? "…"}`, href: without({ waitingFrom: null, waitingTo: null }) } : null,
   ].filter((chip): chip is { label: string; href: string } => chip !== null);
   const select = "field-input h-10";
+  // v1.57.4 (D-343, owner: "add group"): the page's rows in folding groups.
+  const formDue = await formDueDays(queue.map((item) => item.requestId));
+  const todayDay = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
+  const groupOf = (item: QueueItem): [string, number] => {
+    switch (filter.group) {
+      case "dept":
+        return item.requesterDepartment ? [item.requesterDepartment, 0] : ["No department", 9];
+      case "raiser":
+        return [item.requesterName, 0];
+      case "type":
+        return [item.typeName || "Custom approval", 0];
+      case "step":
+        return [item.nodeLabel, 0];
+      case "priority": {
+        const shown = priority[item.requestId];
+        return shown && !shown.hidden ? [shown.label, shown.rank] : shown?.hidden ? ["Hidden", 98] : ["No priority", 99];
+      }
+      default: {
+        const day = formDue[item.requestId] ?? (item.dueAt ? new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(item.dueAt) : null);
+        if (!day) return ["No due date", 9];
+        if (day < todayDay) return ["Overdue", 0];
+        if (day === todayDay) return ["Due today", 1];
+        return ["Later", 2];
+      }
+    }
+  };
+  const groups = filter.group
+    ? (() => {
+        const map = new Map<string, { order: number; items: QueueItem[] }>();
+        for (const item of queue) {
+          const [label, order] = groupOf(item);
+          const entry = map.get(label) ?? { order, items: [] };
+          entry.items.push(item);
+          map.set(label, entry);
+        }
+        return [...map.entries()].sort((a, b) => a[1].order - b[1].order || a[0].localeCompare(b[0])).map(([label, entry]) => ({ key: label, label, items: entry.items }));
+      })()
+    : undefined;
   return (
     <>
       <PageHeader title="Waiting for me" icon={Hourglass} description="Every request that needs your decision, and work given to you. Keys: J/K to move, Enter to open, ? for all shortcuts." />
@@ -75,7 +114,7 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
           id="queue-filters"
           path="/users/queue"
           label="Filter what is waiting"
-          keep={{ sort: filter.sort !== "oldest" ? filter.sort : undefined, size: filter.size && filter.size !== 25 ? String(filter.size) : undefined }}
+          keep={{ sort: filter.sort !== "oldest" ? filter.sort : undefined, size: filter.size && filter.size !== 25 ? String(filter.size) : undefined, group: filter.group ?? undefined }}
           search={{ name: "q", value: filter.q ?? "", placeholder: "Number, title or who raised it" }}
           filterCount={chips.length - (filter.q ? 1 : 0)}
           clearHref={filtered ? queueHref({ sort: filter.sort, size: filter.size }) : null}
@@ -202,6 +241,11 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
             changed: filter.sort !== "oldest",
             choices: QUEUE_SORTS.map((sort) => ({ label: QUEUE_SORT_LABEL[sort], href: queueHref({ ...filter, sort }), active: filter.sort === sort })),
           }}
+          group={{
+            label: filter.group ? QUEUE_GROUP_LABEL[filter.group] : null,
+            clearHref: queueHref({ ...filter, group: null }),
+            choices: QUEUE_GROUPS.map((group) => ({ label: QUEUE_GROUP_LABEL[group], href: queueHref({ ...filter, group }), active: filter.group === group })),
+          }}
           sizes={QUEUE_SIZES.map((size) => ({ label: `${size} per page`, href: queueHref({ ...filter, size }), active: (filter.size ?? 25) === size }))}
           options={<SaveViewForm target="queue" query={Object.fromEntries(new URLSearchParams(queueHref(filter).split("?")[1] ?? ""))} />}
         />
@@ -250,7 +294,7 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
         <NoResults what="items waiting" query={filter.q} clearSearchHref={without({ q: "" })} resetHref="/users/queue" />
       ) : (
         <QueueKeyboard>
-          <QueueTable items={queue} priority={priority} order={queueOrder} formDue={await formDueDays(queue.map((item) => item.requestId))} />
+          <QueueTable items={queue} priority={priority} order={queueOrder} formDue={formDue} groups={groups} />
         </QueueKeyboard>
       )}
       {pages > 1 && (

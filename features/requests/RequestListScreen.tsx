@@ -1,6 +1,7 @@
 import { groupOrder, NO_VALUE, type ListGroupData } from "@/server/requests/list-groups";
 import Link from "next/link";
 import { Fragment } from "react";
+import { FoldListGroup, FoldTbody } from "@/features/ui/GroupFold";
 import { AlarmClock, Ban, CheckCircle2, ClipboardList, FileText, FolderOpen, Hourglass, Layers, PauseCircle, ShieldCheck, Undo2, UserCheck, X, XCircle, type LucideIcon } from "lucide-react";
 import { RoadMini } from "@/features/requests/RoadMini";
 import { RequestRowMenu, type RowAction } from "@/features/requests/RequestRowMenu";
@@ -580,13 +581,9 @@ export function RequestListScreen({
       ) : (
         <>
           <ul className="card divide-y divide-line sm:hidden" data-testid="request-cards">
-            {grouped.map((group) => [
-              group.label ? (
-                <li key={`group-${group.key}`} className="bg-surface-muted px-4 py-1.5 text-label font-semibold">
-                  {group.label} <span className="font-normal text-ink-muted">{group.items.length}</span>
-                </li>
-              ) : null,
-              ...group.items.map((item) => (
+            {grouped.map((group) => {
+              // v1.57.4 (D-342): a group folds away from its heading.
+              const cards = group.items.map((item) => (
                 <li key={item.id} className="relative">
                   {show("actions") && (
                     <div className="absolute right-2 top-2 z-[1]">
@@ -617,8 +614,15 @@ export function RequestListScreen({
                     </div>
                   )}
                 </li>
-              )),
-            ])}
+              ));
+              return group.label ? (
+                <FoldListGroup key={`group-${group.key}`} label={group.label} count={group.items.length}>
+                  {cards}
+                </FoldListGroup>
+              ) : (
+                <Fragment key={`group-${group.key}`}>{cards}</Fragment>
+              );
+            })}
           </ul>
           <div className="card hidden overflow-x-auto sm:block">
             <table className="data-table" data-testid="request-table">
@@ -627,16 +631,8 @@ export function RequestListScreen({
                 {/* v1.52.3 (owner): drag a column title to move it; the order is saved for the person. */}
                 <ReorderHeader list={VIEW_TARGET[base]} lead="Request" columns={order.map((column) => HEADER[column])} />
               </thead>
-              {grouped.map((group) => (
-                <tbody key={group.key}>
-                  {group.label && (
-                    <tr className="bg-surface-muted">
-                      <th scope="rowgroup" colSpan={columnCount} className="text-left text-label font-semibold">
-                        {group.label} <span className="font-normal text-ink-muted">{group.items.length}</span>
-                      </th>
-                    </tr>
-                  )}
-                  {group.items.map((item) => (
+              {grouped.map((group) => {
+                const rows = group.items.map((item) => (
                     <tr key={item.id}>
                       <td className="max-w-96">
                         <div className="flex items-start gap-3">
@@ -659,9 +655,16 @@ export function RequestListScreen({
                         <Fragment key={column}>{cellFor(item, column)}</Fragment>
                       ))}
                     </tr>
-                  ))}
-                </tbody>
-              ))}
+                  ));
+                // v1.57.4 (D-342): a group folds away from its heading.
+                return group.label ? (
+                  <FoldTbody key={group.key} label={group.label} count={group.items.length} colSpan={columnCount}>
+                    {rows}
+                  </FoldTbody>
+                ) : (
+                  <tbody key={group.key}>{rows}</tbody>
+                );
+              })}
             </table>
           </div>
         </>

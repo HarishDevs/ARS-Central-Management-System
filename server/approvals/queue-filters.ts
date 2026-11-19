@@ -11,6 +11,11 @@ export const QUEUE_FOR = ["me", "covering"] as const;
 export type QueueShow = (typeof QUEUE_SHOWS)[number];
 export type QueueSort = (typeof QUEUE_SORTS)[number];
 
+// v1.57.4 (D-343, owner: "add group" on Waiting for me): group the page's rows.
+export const QUEUE_GROUPS = ["dept", "raiser", "type", "step", "priority", "due"] as const;
+export type QueueGroup = (typeof QUEUE_GROUPS)[number];
+export const QUEUE_GROUP_LABEL: Record<QueueGroup, string> = { dept: "Department", raiser: "Raised by", type: "Approval type", step: "Your step", priority: "Priority", due: "Due date" };
+
 export interface QueueFilter {
   show: QueueShow;
   typeId: number | null;
@@ -27,6 +32,7 @@ export interface QueueFilter {
   waitingFrom?: string | null;
   waitingTo?: string | null;
   size?: (typeof QUEUE_SIZES)[number];
+  group?: QueueGroup | null;
 }
 
 export const QUEUE_SHOW_LABEL: Record<QueueShow, string> = {
@@ -68,6 +74,7 @@ export function parseQueueFilter(params: Record<string, unknown>): QueueFilter {
     waitingFrom,
     waitingTo,
     size: QUEUE_SIZES.find((value) => String(value) === str(params.size)) ?? 25,
+    group: (QUEUE_GROUPS as readonly string[]).includes(str(params.group) ?? "") ? (str(params.group) as QueueGroup) : null,
   };
 }
 
@@ -161,6 +168,7 @@ export function queueHref(filter: Partial<QueueFilter>, page?: number): string {
   for (const key of ["raisedFrom", "raisedTo", "waitingFrom", "waitingTo"] as const) if (filter[key]) query.set(key, filter[key]!);
   if (filter.sort && filter.sort !== "oldest") query.set("sort", filter.sort);
   if (filter.size && filter.size !== 25) query.set("size", String(filter.size));
+  if (filter.group) query.set("group", filter.group);
   if (page && page > 1) query.set("page", String(page));
   const text = query.toString();
   return text ? `/users/queue?${text}` : "/users/queue";

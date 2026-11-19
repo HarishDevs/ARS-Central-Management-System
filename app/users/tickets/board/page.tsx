@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Columns3 } from "lucide-react";
 import { PageHeader } from "@/features/shell/PageHeader";
 import { EmptyState } from "@/features/ui/Display";
+import { FoldTbody } from "@/features/ui/GroupFold";
 import { TicketPriorityBadge } from "@/features/tickets/TicketParts";
 import { ticketsPage } from "@/server/tickets/page-context";
 import { listTicketCategories, ticketBoard, type TicketBoardItem } from "@/lib/db/repositories/tickets.repository";
@@ -155,13 +156,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
               const rows = byStatus.get(status) ?? [];
               const label = TICKET_STATUS_LABEL[status];
               return (
-                <tbody key={status} aria-label={`${label}: ${rows.length}`} data-testid={`board-column-${status}`}>
-                  <tr className="bg-surface-muted">
-                    <th scope="colgroup" colSpan={COLUMN_COUNT} className={`border-l-4 text-left ${ACCENT[status]}`}>
-                      <span className="font-semibold">{label}</span> <span className="rounded-full bg-surface px-2 text-caption tabular-nums">{rows.length}</span>
-                      <span className="ml-2 text-caption font-normal text-ink-muted">{hint}</span>
-                    </th>
-                  </tr>
+                // v1.57.4 (D-342): each status group folds away from its heading.
+                <FoldTbody key={status} label={label} count={rows.length} hint={hint} colSpan={COLUMN_COUNT} headClass={`border-l-4 ${ACCENT[status]}`} testId={`board-column-${status}`}>
                   {rows.length === 0 ? (
                     <tr>
                       <td colSpan={COLUMN_COUNT} className="text-caption text-ink-muted">
@@ -209,7 +205,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
                       );
                     })
                   )}
-                </tbody>
+                </FoldTbody>
               );
             })}
           </table>
