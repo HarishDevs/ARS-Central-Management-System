@@ -13,6 +13,7 @@ export function toGridTask(item: WorkTaskItem, meId: number, canEdit: boolean, s
     priority: item.priority,
     assigneeId: item.assigneeId,
     assigneeName: item.assigneeName,
+    assigneeDepartment: item.assigneeDepartment ?? null,
     createdBy: item.createdBy,
     createdByName: item.createdByName,
     dueAt: item.dueAt?.toISOString() ?? null,

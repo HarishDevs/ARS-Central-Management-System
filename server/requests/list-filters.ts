@@ -18,7 +18,9 @@ export const LIST_GROUPS = ["status", "type", "month", "raiser", "dept", "priori
 export type ListGroup = (typeof LIST_GROUPS)[number];
 export type ListGroupKey = ListGroup | `f:${string}`;
 export const GROUP_LABEL: Record<ListGroup, string> = { status: "Status", type: "Approval type", month: "Month raised", raiser: "Raised by", dept: "Department", priority: "Priority" };
-export const groupsFor = (base: ListBase): ListGroup[] => LIST_GROUPS.filter((group) => (group !== "raiser" && group !== "dept") || BASE_FEATURES[base].people);
+// v1.57.3 (D-341, owner: "in all the Group option add department wise Group by"):
+// Department (the requester's) on every request list; Raised by only where others' requests show.
+export const groupsFor = (base: ListBase): ListGroup[] => LIST_GROUPS.filter((group) => group !== "raiser" || BASE_FEATURES[base].people);
 export const FIELD_GROUP = /^f:[a-z0-9_]{1,60}$/;
 export const VALIDITY = ["valid", "expiring", "expired"] as const;
 // MINE: raised by me. COLLAB: I'm a collaborator. APPROVED_MINE: raised by me

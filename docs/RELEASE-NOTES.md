@@ -1,5 +1,14 @@
 # Release notes
 
+## v1.57.3 (19 Nov 2026): Group by Department everywhere (owner)
+- **Department** is now a choice in every **Group** option:
+  - every request list (My pending requests, My approved requests, Collaborating, Approved by me), by the requester's department (before: only lists of other people's requests);
+  - every task table (Task Summary, Assigned to me, Assigned by me, Team tasks, Task search, Periodic tasks, a project's table), by the assignee's department;
+  - a project's List view (Group: Sections, Assignee, **Department**, Due date, Priority);
+  - My Tasks on a phone (Group by).
+- People without a department are grouped last as "No department".
+- **Owner steps:** no migration; publish v1.57.3.
+
 ## v1.57.2 (18 Nov 2026): Ticket and task show each other's remarks, files and activity; Open task (owner)
 - **Ticket and its task in step:** the ticket page's **Remarks** also show the task's comments (marked "on task TSK-…"), its **Timeline** also shows the task's activity ("Task TSK-…: Started / Completed / …"), and its attachments include the task's files (as before). The task page shows the ticket's remarks under its comments (**Remarks on ticket …**), the ticket's files under Attachments, and the ticket's timeline in **All activity**. Nothing is copied: each is kept once and shown in both places. Internal ticket remarks stay hidden from the requester.
 - **My tickets → Assigned to me** has a **Task** column with **Open task**, so the assignee goes straight to the task to start or complete it.

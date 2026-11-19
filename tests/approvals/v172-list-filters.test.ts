@@ -78,9 +78,10 @@ describe("Waiting for me filters (v1.7.2)", () => {
 // v1.54.16 (owner): Group by Department and by any form field.
 import { fieldGroupId, groupOrder } from "@/server/requests/list-groups";
 describe("v1.54.16 groups", () => {
-  it("parses Department on lists with people, and form-field groups anywhere; drops anything else", () => {
+  it("parses Department on every list (v1.57.3, D-341), and form-field groups anywhere; drops anything else", () => {
     expect(parseListFilters({ group: "dept" }, "APPROVED_BY_ME").group).toBe("dept");
-    expect(parseListFilters({ group: "dept" }, "MINE").group).toBeNull();
+    expect(parseListFilters({ group: "dept" }, "MINE").group).toBe("dept");
+    expect(parseListFilters({ group: "raiser" }, "MINE").group).toBeNull();
     expect(parseListFilters({ group: "f:vendor_name" }, "MINE").group).toBe("f:vendor_name");
     for (const bad of ["f:", "f:Vendor", "f:a b", "f:x;drop", "field"]) expect(parseListFilters({ group: bad }, "MINE").group).toBeNull();
   });

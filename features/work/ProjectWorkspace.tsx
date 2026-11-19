@@ -30,6 +30,7 @@ export interface BoardTask {
   priority: "LOW" | "NORMAL" | "ELEVATED" | "IMPORTANT" | "HIGH" | "URGENT";
   assigneeId: number;
   assigneeName: string;
+  assigneeDepartment?: string | null; // v1.57.3 (D-341)
   dueAt: string | null;
   sectionId: number;
   position: number;
@@ -48,7 +49,7 @@ export interface BoardSection {
   name: string;
 }
 type Sort = "manual" | "due" | "priority" | "title" | "assignee";
-type GroupBy = "section" | "assignee" | "due" | "priority";
+type GroupBy = "section" | "assignee" | "department" | "due" | "priority";
 const PRIORITY_NAME = { URGENT: "Critical", HIGH: "Most Important", IMPORTANT: "Important", ELEVATED: "High", NORMAL: "Normal", LOW: "Low" } as const;
 const shiftDay = (day: string, days: number) => {
   const date = new Date(`${day}T00:00:00Z`);
@@ -139,6 +140,8 @@ export function ProjectWorkspace({
     const today = indiaDayOf(now);
     const bucket = (task: BoardTask): [string, number] => {
       if (group === "assignee") return [task.assigneeName, 0];
+      // v1.57.3 (D-341, owner: "in all the Group option add department wise Group by").
+      if (group === "department") return task.assigneeDepartment ? [task.assigneeDepartment, 0] : ["No department", 9];
       if (group === "priority") return [PRIORITY_NAME[task.priority], PRIORITY_RANK[task.priority]];
       if (!task.dueAt) return ["No due date", 6];
       const day = indiaDayOf(new Date(task.dueAt));
@@ -244,6 +247,7 @@ export function ProjectWorkspace({
           <select aria-label="Group" value={group} onChange={(event) => setGroup(event.target.value as GroupBy)} className="field-input h-8 w-auto py-0 text-label">
             <option value="section">Sections</option>
             <option value="assignee">Assignee</option>
+            <option value="department">Department</option>
             <option value="due">Due date</option>
             <option value="priority">Priority</option>
           </select>

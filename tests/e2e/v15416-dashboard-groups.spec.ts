@@ -38,7 +38,8 @@ test("Group by: form fields on My requests; Department on a list with people", a
   await group.locator("summary").click();
   const fieldChoice = group.getByRole("link", { name: /^Form: Amount/ }).first();
   await expect(fieldChoice).toBeVisible();
-  await expect(group.getByRole("link", { name: "Department" })).toHaveCount(0); // all yours
+  // v1.57.3 (D-341, owner): Department is on every list, your own included.
+  await expect(group.getByRole("link", { name: "Department" })).toHaveCount(1);
   await fieldChoice.click();
   await expect(page).toHaveURL(/group=f%3Aamount|group=f:amount/);
   await expect(page.getByTestId("group-menu").locator("summary")).toContainText("Amount");

@@ -209,6 +209,7 @@ export default async function ProjectPage({
               priority: task.priority,
               assigneeId: task.assigneeId,
               assigneeName: task.assigneeName,
+              assigneeDepartment: task.assigneeDepartment ?? null,
               dueAt: task.dueAt?.toISOString() ?? null,
               sectionId: task.sectionId ?? sections[0]?.id ?? 0,
               position: task.position,

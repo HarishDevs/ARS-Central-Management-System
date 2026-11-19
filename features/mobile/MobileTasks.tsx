@@ -29,7 +29,8 @@ const SORTS = {
   newest: { label: "Newest first", sql: "t.created_at DESC, t.id DESC" },
 } as const;
 type Sort = keyof typeof SORTS;
-const GROUPS = { none: "None", due: "Due date", project: "Project" } as const;
+// v1.57.3 (D-341): Department = the assignee's department.
+const GROUPS = { none: "None", due: "Due date", project: "Project", department: "Department" } as const;
 type Group = keyof typeof GROUPS;
 const PRIORITY: Record<string, { label: string; dot: string } | null> = {
   URGENT: { label: "Critical", dot: "bg-[color:var(--m-red)]" },
@@ -164,6 +165,8 @@ function groupTasks(items: WorkTaskItem[], group: Group, now: Date, today: strin
     if (group === "project") {
       const project = task.projects[0];
       put(project ? `p${project.id}` : "none", project ? project.name : "No project", task);
+    } else if (group === "department") {
+      put(task.assigneeDepartment ? `d${task.assigneeDepartment}` : "~none", task.assigneeDepartment ?? "No department", task);
     } else {
       const day = task.dueAt ? indiaDayOf(new Date(task.dueAt)) : null;
       const open = task.status !== "COMPLETED" && task.status !== "CANCELLED";

@@ -210,6 +210,8 @@ Comments on a request can't be edited or removed. To tell someone in particular,
 - **Comments / All activity:** Comments is the thread (reply, like, pin); All activity is the full history, oldest or newest first.
 - **Choosing a person** anywhere: type a name, code or department; each choice shows **Name - Employee code** and the department below. Lists open where they fit on the screen and close with ×, Esc or a click outside.
 
+**Group by Department (v1.57.3):** every Group option has **Department**: request lists group by the requester's department, task tables, project lists and My Tasks on a phone by the assignee's department ("No department" last).
+
 ### Tickets (IT Software, IT Hardware, Admin)
 Ask for help: a software problem, a hardware fault, an Admin request. Tickets appear in the sidebar once IT gives you the **Ticketing** module (Users & roles → Module access).
 - **Raise a ticket:** choose the ticket type (each category has its own forms), then fill it in.

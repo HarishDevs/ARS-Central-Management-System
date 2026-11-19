@@ -31,9 +31,10 @@ export const SORT_LABEL: Record<GridSort, string> = {
   alpha: "Alphabetical",
   priority: "Priority",
 };
-export const GROUPS = ["none", "section", "assignee", "createdBy", "project", "due", "priority", "kind"] as const;
+// v1.57.3 (D-341): "department" = the assignee's department.
+export const GROUPS = ["none", "section", "assignee", "department", "createdBy", "project", "due", "priority", "kind"] as const;
 export type GridGroup = (typeof GROUPS)[number];
-export const GROUP_LABEL: Record<GridGroup, string> = { none: "None", section: "Sections", assignee: "Assignee", createdBy: "Created by", project: "Project", due: "Due date", priority: "Priority", kind: "Periodic or ad hoc" };
+export const GROUP_LABEL: Record<GridGroup, string> = { none: "None", section: "Sections", assignee: "Assignee", department: "Department", createdBy: "Created by", project: "Project", due: "Due date", priority: "Priority", kind: "Periodic or ad hoc" };
 export const FILTER_FIELDS = ["completion", "assignee", "createdBy", "project", "priority", "kind", "due", "tag"] as const;
 export type FilterField = (typeof FILTER_FIELDS)[number];
 export const FILTER_LABEL: Record<FilterField, string> = {
@@ -74,6 +75,7 @@ export interface GridTask {
   priority: "LOW" | "NORMAL" | "ELEVATED" | "IMPORTANT" | "HIGH" | "URGENT";
   assigneeId: number;
   assigneeName: string;
+  assigneeDepartment?: string | null; // v1.57.3 (D-341)
   createdBy: number;
   createdByName: string;
   dueAt: string | null; // ISO
@@ -210,6 +212,8 @@ export function applyGrid(rows: readonly GridTask[], config: GridConfig, context
     switch (config.group) {
       case "assignee":
         return [[task.assigneeName, 0, task.assigneeName]];
+      case "department":
+        return task.assigneeDepartment ? [[task.assigneeDepartment, 0, null]] : [["No department", 9, null]];
       case "createdBy":
         return [[task.createdByName, 0, task.createdByName]];
       case "project":
