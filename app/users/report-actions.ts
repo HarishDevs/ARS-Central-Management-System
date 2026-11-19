@@ -12,6 +12,7 @@ import type { ActionResult } from "@/lib/http/action-result";
 import { canUseReports, featureOn } from "@/server/settings/features";
 import { after } from "next/server";
 import { requestExport, runExportJob } from "@/server/reports/background";
+import { cleanListQuery, isListPath, isListTarget } from "@/server/lists/views";
 
 const OFF: ActionResult = { ok: false, message: "Scheduled reports and alerts are switched off at the moment." };
 const NOT_FOUND: ActionResult = { ok: false, message: "Not found." };
@@ -61,11 +62,22 @@ export async function saveViewAction(_previous: ActionResult | null, formData: F
   if (!user) return { ok: false, message: "Not found." };
   const target = text(formData.get("target"), 60);
   const name = text(formData.get("viewName"), 80);
+  // v1.58.0 (D-353): any list's view (target list_…), private to the person.
+  // (also the request lists' own targets: their views keep group, sort, search and every filter)
+  if (isListTarget(target) || LIST_TARGETS.includes(target)) {
+    const path = text(formData.get("path"), 120);
+    if (!isListPath(path)) return { ok: false, message: "Not found." };
+    if (name.length < 2) return { ok: false, message: "Give the view a name.", fieldErrors: { viewName: "Use 2 to 80 characters." } };
+    const query = cleanListQuery(Object.fromEntries([...formData.entries()].filter(([key]) => key.startsWith("q_")).map(([key, value]) => [key.slice(2), value])));
+    if ((await saveView({ userId: user.id, target, name, query, shared: false })) === "TOO_MANY") return { ok: false, message: "You have 100 saved views. Delete one first." };
+    revalidatePath(path);
+    return { ok: true, message: `Saved "${name}".` };
+  }
   if (!/^(DASHBOARD|[a-z_]{3,60})$/.test(target)) return { ok: false, message: "Not found." };
   // v1.7.2: personal list pages keep their own views; anything else is a report (IT only).
   if (!LIST_TARGETS.includes(target) && target !== "DASHBOARD" && !(await canUseReports(user))) return NOT_FOUND;
   if (name.length < 2) return { ok: false, message: "Give the view a name.", fieldErrors: { viewName: "Use 2 to 80 characters." } };
-  if ((await saveView({ userId: user.id, target, name, query: queryFrom(formData) as Record<string, string>, shared: formData.get("shared") === "on" })) === "TOO_MANY") return { ok: false, message: "You have 100 saved views. Delete one first." };
+  if ((await saveView({ userId: user.id, target, name, query: queryFrom(formData) as Record<string, string>, shared: false })) === "TOO_MANY") return { ok: false, message: "You have 100 saved views. Delete one first." };
   revalidatePath(target === "DASHBOARD" ? "/users/analytics" : target === "my_requests" ? "/users/requests" : target === "collaborating" ? "/users/collaborating" : target === "my_approved" ? "/users/approved" : target === "approved_by_me" ? "/users/approved-by-me" : `/admin/reports/${target}`);
   return { ok: true, message: `Saved "${name}".` };
 }
@@ -82,6 +94,7 @@ export async function deleteViewAction(_previous: ActionResult | null, formData:
   revalidatePath("/users/approved");
   revalidatePath("/users/approved-by-me");
   revalidatePath("/admin/reports", "layout");
+  revalidatePath("/", "layout"); // v1.58.0 (D-353): list views live on many pages
   return { ok: true, message: "View deleted." };
 }
 
@@ -192,6 +205,7 @@ export async function shareViewAction(_previous: ActionResult | null, formData: 
   revalidatePath("/users/approved");
   revalidatePath("/users/approved-by-me");
   revalidatePath("/admin/reports", "layout");
+  revalidatePath("/", "layout"); // v1.58.0 (D-353): list views live on many pages
   return { ok: true, message: shared ? "Shared: everyone can open it and sees their own numbers." : "No longer shared." };
 }
 
@@ -208,6 +222,7 @@ export async function defaultViewAction(_previous: ActionResult | null, formData
   revalidatePath("/users/approved");
   revalidatePath("/users/approved-by-me");
   revalidatePath("/admin/reports", "layout");
+  revalidatePath("/", "layout"); // v1.58.0 (D-353): list views live on many pages
   return { ok: true, message: isDefault ? "Opens with this view from now on." : "Default cleared." };
 }
 

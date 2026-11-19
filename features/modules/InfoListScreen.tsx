@@ -15,9 +15,13 @@ import { indiaDateTimeText, INFO_PRIORITIES, INFO_PRIORITY_LABEL, type InfoPrior
 import { PAGE_SIZES } from "@/server/modules/task-lists";
 import { indiaToday } from "@/server/modules/information";
 import { ListToolbar } from "@/features/ui/ListToolbar";
-import { FoldTbody } from "@/features/ui/GroupFold";
+import { FoldScope, FoldTbody } from "@/features/ui/GroupFold";
+import { SortTh } from "@/features/ui/SortTh";
+import { ListViews } from "@/features/lists/ListViews";
+import { applyDefaultListView } from "@/server/lists/views";
+import { nextDir } from "@/server/lists/sorting";
 import { departmentBucket, groupRows } from "@/server/lists/group-rows";
-import { INFO_LIST_GROUPS, type InfoListGroup } from "@/server/modules/info-lists";
+import { INFO_LIST_GROUPS, type InfoListGroup, type InfoSortColumn } from "@/server/modules/info-lists";
 import type { InfoListItem } from "@/lib/db/repositories/info.repository";
 import { PersonSelect } from "@/features/ui/PersonSelect";
 import { personLabel } from "@/lib/people/label";
@@ -33,6 +37,11 @@ const INFO_SORT_LABEL: Record<(typeof INFO_SORTS)[number], string> = { newest: "
 const TITLE: Record<InfoBase, string> = { INBOX: "Information inbox", SENT: "Information sent by me" };
 const PATH: Record<InfoBase, string> = { INBOX: "/users/information", SENT: "/users/information/sent" };
 export const INFO_STATE_TONE: Record<InfoState, Tone> = { DRAFT: "warning", PUBLISHED: "success", WITHDRAWN: "neutral", ARCHIVED: "neutral", EXPIRED: "neutral" };
+// v1.58.0 (D-354, owner): saved views (private) per list, kept under these targets.
+const VIEW_TARGET: Record<InfoBase, string> = { INBOX: "list_info_inbox", SENT: "list_info_sent" };
+// v1.58.0 (D-354): the column titles (every column sorts both ways).
+const SORT_LABEL: Record<InfoSortColumn, string> = { subject: "Subject", type: "Type", from: "From", recipients: "Recipients", importance: "Importance", you: "You", read: "Read / acknowledged", published: "Published", status: "Status" };
+const COLUMNS: Record<InfoBase, InfoSortColumn[]> = { INBOX: ["subject", "type", "from", "importance", "you", "published"], SENT: ["subject", "type", "recipients", "importance", "read", "status"] };
 export const INFO_PRIORITY_TONE: Record<InfoPriority, Tone> = { NORMAL: "neutral", ELEVATED: "info", IMPORTANT: "warning", HIGH: "warning", URGENT: "danger" };
 
 // v1.57.5 (D-344, owner: "add group by option for all the pages where table is available").
@@ -55,6 +64,8 @@ function infoBucket(item: InfoListItem, today: string, group: InfoListGroup | nu
 export async function InfoListScreen({ base, query }: { base: InfoBase; query: Record<string, string | string[] | undefined> }) {
   const { user } = await requireArea("users");
   if (!(await featureOn("information", user))) notFound();
+  // v1.58.0 (D-354): an empty address opens the person's default saved view.
+  await applyDefaultListView(user.id, VIEW_TARGET[base], PATH[base], query);
   const filters = parseInfoFilters(query, base);
   const today = indiaToday();
   const [types, people] = await Promise.all([listModuleTypes("INFO"), listActiveUserOptions()]);
@@ -98,13 +109,18 @@ export async function InfoListScreen({ base, query }: { base: InfoBase; query: R
     });
     const keep: Record<string, string> = { tab: filters.tab };
     if (filters.sort !== "newest") keep.sort = filters.sort;
+    // v1.58.0 (D-354): a column sort chosen on a larger screen is kept by the search.
+    if (filters.sortBy) {
+      keep.sortBy = filters.sortBy;
+      keep.dir = filters.dir ?? "asc";
+    }
     return (
       <MobileInfoList
         title={base === "INBOX" ? "Information" : "Sent by me"}
         sent={base === "SENT"}
         rows={rows}
         views={counts.map(([tab, count]) => ({ href: `${path}${infoQuery(filters, base, { tab, page: 1 })}`, label: INFO_TAB_LABEL[tab], current: filters.tab === tab, count }))}
-        sorts={INFO_SORTS.map((sort) => ({ href: `${path}${infoQuery({ ...filters, sort }, base, { page: 1 })}`, label: INFO_SORT_LABEL[sort], current: filters.sort === sort }))}
+        sorts={INFO_SORTS.map((sort) => ({ href: `${path}${infoQuery({ ...filters, sort }, base, { page: 1, sortBy: null })}`, label: INFO_SORT_LABEL[sort], current: !filters.sortBy && filters.sort === sort }))}
         search={{ action: path, value: filters.q, keep }}
         canNew
         pages={
@@ -150,7 +166,15 @@ export async function InfoListScreen({ base, query }: { base: InfoBase; query: R
         id="info-filters"
         path={path}
         label="Filter information"
-        keep={{ tab: filters.tab, sort: filters.sort !== "newest" ? filters.sort : undefined, size: filters.size !== 25 ? String(filters.size) : undefined, group: filters.group ?? undefined }}
+        keep={{
+          tab: filters.tab,
+          sort: filters.sort !== "newest" ? filters.sort : undefined,
+          size: filters.size !== 25 ? String(filters.size) : undefined,
+          group: filters.group ?? undefined,
+          // v1.58.0 (D-354): searching and filtering keep the column sort.
+          sortBy: filters.sortBy ?? undefined,
+          dir: filters.sortBy ? (filters.dir ?? "asc") : undefined,
+        }}
         search={{ name: "q", value: filters.q, placeholder: "Number, subject or message" }}
         filterCount={[filters.typeId, filters.priority, filters.senderId, filters.from || filters.to].filter(Boolean).length}
         clearHref={filters.q || filters.typeId || filters.priority || filters.senderId || filters.from || filters.to ? `${path}?tab=${filters.tab}` : null}
@@ -202,9 +226,10 @@ export async function InfoListScreen({ base, query }: { base: InfoBase; query: R
           </>
         }
         sort={{
-          label: INFO_SORT_LABEL[filters.sort],
-          changed: filters.sort !== "newest",
-          choices: INFO_SORTS.map((sort) => ({ label: INFO_SORT_LABEL[sort], href: `${path}${infoQuery(filters, base, { sort })}`, active: filters.sort === sort })),
+          // v1.58.0 (D-354): a column sort shows here; a preset clears it.
+          label: filters.sortBy ? `${SORT_LABEL[filters.sortBy]} ${filters.dir === "desc" ? "↓" : "↑"}` : INFO_SORT_LABEL[filters.sort],
+          changed: filters.sort !== "newest" || Boolean(filters.sortBy),
+          choices: INFO_SORTS.map((sort) => ({ label: INFO_SORT_LABEL[sort], href: `${path}${infoQuery(filters, base, { sort, sortBy: null })}`, active: !filters.sortBy && filters.sort === sort })),
         }}
         group={{
           label: filters.group ? INFO_GROUP_LABEL[filters.group] : null,
@@ -213,6 +238,8 @@ export async function InfoListScreen({ base, query }: { base: InfoBase; query: R
         }}
         sizes={PAGE_SIZES.map((size) => ({ label: `${size} per page`, href: `${path}${infoQuery(filters, base, { size })}`, active: filters.size === size }))}
       />
+      {/* v1.58.0 (D-354, owner): save tab, filters, search, group and sort as a named view (only mine). */}
+      <ListViews userId={user.id} target={VIEW_TARGET[base]} path={path} query={Object.fromEntries(new URLSearchParams(infoQuery(filters, base)).entries())} />
       {list.rows.length === 0 ? (
         filters.q || filters.typeId || filters.priority || filters.senderId || filters.from || filters.to ? (
           <NoResults what="information" query={filters.q} clearSearchHref={`${path}${infoQuery(filters, base, { q: "" })}`} resetHref={`${path}?tab=${filters.tab}`} />
@@ -220,17 +247,24 @@ export async function InfoListScreen({ base, query }: { base: InfoBase; query: R
           <EmptyState title="Nothing here" body="Nothing in this tab yet. Try another tab." />
         )
       ) : (
+        // v1.58.0 (D-354, owner): groups start folded; Expand all / Collapse all.
+        <FoldScope enabled={Boolean(filters.group)}>
         <div className="card overflow-x-auto">
           <table className="data-table" data-testid="info-table">
             <caption className="sr-only">{TITLE[base]}</caption>
             <thead>
               <tr>
-                <th scope="col">Subject</th>
-                <th scope="col">Type</th>
-                <th scope="col">{base === "INBOX" ? "From" : "Recipients"}</th>
-                <th scope="col">Importance</th>
-                <th scope="col">{base === "INBOX" ? "You" : "Read / acknowledged"}</th>
-                <th scope="col">{base === "INBOX" ? "Published" : "Status"}</th>
+                {/* v1.58.0 (D-354, owner): every column sorts, A→Z then Z→A. */}
+                {COLUMNS[base].map((column) => (
+                  <SortTh
+                    key={column}
+                    label={SORT_LABEL[column]}
+                    column={column}
+                    sortBy={filters.sortBy ?? null}
+                    dir={filters.dir ?? "asc"}
+                    href={`${path}${infoQuery(filters, base, { sortBy: column, dir: nextDir({ sortBy: filters.sortBy ?? null, dir: filters.dir ?? "asc" }, column) })}`}
+                  />
+                ))}
               </tr>
             </thead>
             {(filters.group ? groupRows(list.rows, (item: InfoListItem): [string, number] => infoBucket(item, today, filters.group)) : [{ key: "all", label: "", items: list.rows }]).map((group) => {
@@ -282,6 +316,7 @@ export async function InfoListScreen({ base, query }: { base: InfoBase; query: R
             })}
           </table>
         </div>
+        </FoldScope>
       )}
       {pages > 1 && (
         <nav aria-label="Pages" className="mt-4 flex items-center justify-between text-label">

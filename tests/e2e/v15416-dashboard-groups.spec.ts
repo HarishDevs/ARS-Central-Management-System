@@ -48,12 +48,14 @@ test("Group by: form fields on My requests; Department on a list with people", a
   const table = page.getByTestId("request-table");
   const fold = table.getByTestId("group-fold").first();
   const firstRow = table.locator("tbody").first().locator("tr").nth(1);
-  await expect(firstRow).toBeVisible();
-  await fold.click();
+  // v1.58.0 (D-352, owner): a group starts folded; its heading opens and closes it.
   await expect(fold).toHaveAttribute("aria-expanded", "false");
   await expect(firstRow).toBeHidden();
   await fold.click();
+  await expect(fold).toHaveAttribute("aria-expanded", "true");
   await expect(firstRow).toBeVisible();
+  await fold.click();
+  await expect(firstRow).toBeHidden();
 
   // v1.57.4 (D-343, owner: "add group"): Waiting for me has Group too.
   await page.goto("/users/queue?group=dept");

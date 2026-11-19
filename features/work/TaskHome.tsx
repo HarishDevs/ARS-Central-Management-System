@@ -5,6 +5,7 @@ import Link from "next/link";
 import { getDbPool } from "@/lib/db/client";
 import type { RowDataPacket } from "mysql2/promise";
 import { Badge } from "@/features/ui/Display";
+import { TeamWorkloadTable } from "@/features/work/TeamWorkloadTable";
 import { CreateTaskButton, ProjectDot, TaskCheck } from "@/features/work/client";
 import { hasModule } from "@/server/modules/modules";
 import { ComingSoonCard } from "@/features/ui/ComingSoon";
@@ -137,33 +138,8 @@ export async function TaskHome({
             </span>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-label" data-testid="team-workload">
-              <thead className="text-left text-caption uppercase tracking-wide text-ink-faint">
-                <tr>
-                  <th className="py-1 pr-3">Person</th>
-                  <th className="py-1 pr-3">Reports to</th>
-                  <th className="py-1 pr-3 text-right">Open</th>
-                  <th className="py-1 pr-3 text-right">Overdue</th>
-                  <th className="py-1 text-right">Done (7 days)</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line">
-                {team.slice(0, 25).map((person) => (
-                  <tr key={person.id}>
-                    <td className="py-1.5 pr-3">
-                      <Link href={`/users/work/search?assignee=${person.id}`} className="link">
-                        {person.name}
-                      </Link>
-                      {person.direct && <span className="ml-1 text-caption text-ink-muted">(direct)</span>}
-                    </td>
-                    <td className="py-1.5 pr-3 text-ink-muted">{person.managerName ?? "—"}</td>
-                    <td className="py-1.5 pr-3 text-right">{person.open}</td>
-                    <td className={`py-1.5 pr-3 text-right ${person.overdue ? "font-semibold text-danger-600" : ""}`}>{person.overdue}</td>
-                    <td className="py-1.5 text-right">{person.doneWeek}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            {/* v1.58.0 (D-354): every column sorts (client side, all people are on the page). */}
+            <TeamWorkloadTable rows={team} />
           </div>
         </section>
       )}

@@ -4,6 +4,14 @@ import { dashboardPage, type DashboardSearch } from "@/features/admin/dashboards
 import { loadApprovers } from "@/lib/db/repositories/dashboards.repository";
 import { hoursText, percent } from "@/server/dashboards/filters";
 import { requireArea } from "@/server/authorization/guards";
+import { departmentBucket } from "@/server/lists/group-rows";
+
+// v1.58.0 (D-354, owner): every column sorts both ways; Group by Department or
+// Overdue now (folded at first); saved views (list_admin_dash_approvers).
+const GROUPS = [
+  { key: "department", label: "Department" },
+  { key: "overdue", label: "Overdue now" },
+] as const;
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
 export const metadata: Metadata = { title: "Approvers dashboard" };
@@ -13,7 +21,8 @@ export default async function ApproversDashboardPage({ searchParams }: { searchP
   // D-244 (audit SEC-02): the page checks its own area too (not only the
   // screen it renders, nor the layout).
   await requireArea("admin");
-  const { today, filter, choices } = await dashboardPage(searchParams);
+  const { today, filter, choices, query, userId } = await dashboardPage(searchParams, "approvers");
+  const group = GROUPS.find((choice) => choice.key === query.group)?.key ?? null;
   const rows = await loadApprovers(filter);
   const assigned = rows.reduce((sum, row) => sum + row.assigned, 0);
   const pending = rows.reduce((sum, row) => sum + row.pending, 0);
@@ -30,6 +39,9 @@ export default async function ApproversDashboardPage({ searchParams }: { searchP
       today={today}
       choices={choices}
       departmentNote="Department = the approver's department. A delegate's decision counts for the approver."
+      query={query}
+      userId={userId}
+      groups={GROUPS}
     >
       <KpiTiles
         tiles={[
@@ -40,6 +52,10 @@ export default async function ApproversDashboardPage({ searchParams }: { searchP
         ]}
       />
       <DashboardTable
+        path="/admin/dashboards/approvers"
+        query={query}
+        values={rows.map((row) => [row.name, row.assigned, row.approved, row.rejected, row.changes, row.notNeeded, row.pending, row.overdue, row.avgDecideHours, row.onTimePercent])}
+        groupOf={group ? (index) => (group === "department" ? departmentBucket(rows[index]!.department) : rows[index]!.overdue ? ["Has overdue", 0] : ["Nothing overdue", 1]) : null}
         empty="No approvals were given in this period."
         head={[
           { label: "Approver" },

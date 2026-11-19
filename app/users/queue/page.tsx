@@ -12,13 +12,15 @@ import { priorityRecord } from "@/server/approvals/priority-lookup";
 import { PendingLink } from "@/features/ui/PendingLink";
 import { QueueKeyboard } from "@/features/requests/QueueKeyboard";
 import { countPendingTasksFor, listPendingTasksFor, queueChoicesFor, queueTypesFor } from "@/lib/db/repositories/approvals.repository";
-import { listViews } from "@/lib/db/repositories/analytics-views.repository";
+// v1.58.0 (D-354, owner: saved views are "Only mine"): only the person's own views show and set the default.
+import { myListViews } from "@/server/lists/views";
 import { SavedViews, SaveViewForm } from "@/features/analytics/ReportForms";
 import { ListToolbar } from "@/features/ui/ListToolbar";
 import { NoResults } from "@/features/ui/Display";
 import { PersonSelect } from "@/features/ui/PersonSelect";
 import { personLabel } from "@/lib/people/label";
-import { QUEUE_GROUP_LABEL, QUEUE_GROUPS, QUEUE_SHOW_LABEL, QUEUE_SHOWS, QUEUE_SIZES, QUEUE_SORT_LABEL, QUEUE_SORTS, parseQueueFilter, queueFiltered, queueHref, type QueueFilter } from "@/server/approvals/queue-filters";
+import { nextDir } from "@/server/lists/sorting";
+import { QUEUE_GROUP_LABEL, QUEUE_GROUPS, QUEUE_SORT_COLUMNS, QUEUE_SHOW_LABEL, QUEUE_SHOWS, QUEUE_SIZES, QUEUE_SORT_LABEL, QUEUE_SORTS, parseQueueFilter, queueFiltered, queueHref, type QueueFilter } from "@/server/approvals/queue-filters";
 import type { QueueItem } from "@/lib/db/repositories/approvals.repository";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
@@ -31,7 +33,7 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
   const params = await searchParams;
   // D-234 (Default effect): no filters in the address → your default view, as on the other lists.
   if (Object.keys(params).length === 0) {
-    const preferred = (await listViews(user.id, "queue")).find((view) => view.isDefault && Object.keys(view.query).length > 0);
+    const preferred = (await myListViews(user.id, "queue")).find((view) => view.isDefault && Object.keys(view.query).length > 0);
     if (preferred) redirect(`/users/queue?${new URLSearchParams(preferred.query).toString()}`);
   }
   const filter = parseQueueFilter(params);
@@ -41,7 +43,7 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
     countPendingTasksFor(user.id),
     queueTypesFor(user.id),
     queueChoicesFor(user.id),
-    listViews(user.id, "queue"),
+    myListViews(user.id, "queue"),
   ]);
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const page = Math.min(Math.max(1, Number(params.page) || 1), pages);
@@ -68,6 +70,12 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
     filter.waitingFrom || filter.waitingTo ? { label: `Waiting since ${filter.waitingFrom ?? "…"} to ${filter.waitingTo ?? "…"}`, href: without({ waitingFrom: null, waitingTo: null }) } : null,
   ].filter((chip): chip is { label: string; href: string } => chip !== null);
   const select = "field-input h-10";
+  // v1.58.0 (D-354, owner: "sorting in all the tables asc to desc or vice versa in all
+  // columns"): each column title links to its next direction; a preset clears it.
+  const columnSort = { sortBy: filter.sortBy ?? null, dir: filter.dir ?? "asc" } as const;
+  const sortHrefs = Object.fromEntries(QUEUE_SORT_COLUMNS.map((column) => [column, queueHref({ ...filter, sortBy: column, dir: nextDir(columnSort, column) })]));
+  const COLUMN_SORT_LABEL: Record<string, string> = { title: "Request", priority: "Priority", from: "From", step: "Your step", since: "Waiting since", due: "Due date" };
+  const columnSortLabel = filter.sortBy ? `${COLUMN_SORT_LABEL[filter.sortBy]}, ${filter.dir === "desc" ? "descending" : "ascending"}` : null;
   // v1.57.4 (D-343, owner: "add group"): the page's rows in folding groups.
   const formDue = await formDueDays(queue.map((item) => item.requestId));
   const todayDay = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
@@ -114,10 +122,10 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
           id="queue-filters"
           path="/users/queue"
           label="Filter what is waiting"
-          keep={{ sort: filter.sort !== "oldest" ? filter.sort : undefined, size: filter.size && filter.size !== 25 ? String(filter.size) : undefined, group: filter.group ?? undefined }}
+          keep={{ sort: filter.sort !== "oldest" ? filter.sort : undefined, sortBy: filter.sortBy ?? undefined, dir: filter.sortBy ? (filter.dir ?? "asc") : undefined, size: filter.size && filter.size !== 25 ? String(filter.size) : undefined, group: filter.group ?? undefined }}
           search={{ name: "q", value: filter.q ?? "", placeholder: "Number, title or who raised it" }}
           filterCount={chips.length - (filter.q ? 1 : 0)}
-          clearHref={filtered ? queueHref({ sort: filter.sort, size: filter.size }) : null}
+          clearHref={filtered ? queueHref({ sort: filter.sort, sortBy: filter.sortBy, dir: filter.dir, size: filter.size }) : null}
           filters={
             <>
               <div>
@@ -237,9 +245,9 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
             </>
           }
           sort={{
-            label: QUEUE_SORT_LABEL[filter.sort],
-            changed: filter.sort !== "oldest",
-            choices: QUEUE_SORTS.map((sort) => ({ label: QUEUE_SORT_LABEL[sort], href: queueHref({ ...filter, sort }), active: filter.sort === sort })),
+            label: columnSortLabel ?? QUEUE_SORT_LABEL[filter.sort],
+            changed: Boolean(filter.sortBy) || filter.sort !== "oldest",
+            choices: QUEUE_SORTS.map((sort) => ({ label: QUEUE_SORT_LABEL[sort], href: queueHref({ ...filter, sort, sortBy: null }), active: !filter.sortBy && filter.sort === sort })),
           }}
           group={{
             label: filter.group ? QUEUE_GROUP_LABEL[filter.group] : null,
@@ -247,7 +255,7 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
             choices: QUEUE_GROUPS.map((group) => ({ label: QUEUE_GROUP_LABEL[group], href: queueHref({ ...filter, group }), active: filter.group === group })),
           }}
           sizes={QUEUE_SIZES.map((size) => ({ label: `${size} per page`, href: queueHref({ ...filter, size }), active: (filter.size ?? 25) === size }))}
-          options={<SaveViewForm target="queue" query={Object.fromEntries(new URLSearchParams(queueHref(filter).split("?")[1] ?? ""))} />}
+          options={<SaveViewForm target="queue" path="/users/queue" query={Object.fromEntries(new URLSearchParams(queueHref(filter).split("?")[1] ?? ""))} />}
         />
       )}
       {(total > 0 || filtered) && (
@@ -268,7 +276,7 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
             </Link>
           ))}
           {chips.length > 1 && (
-            <Link href={queueHref({ sort: filter.sort })} className="link text-caption">
+            <Link href={queueHref({ sort: filter.sort, sortBy: filter.sortBy, dir: filter.dir })} className="link text-caption">
               Clear all
             </Link>
           )}
@@ -281,8 +289,8 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
               id: view.id,
               name: view.name,
               href: `/users/queue?${new URLSearchParams(view.query).toString()}`,
-              mine: view.mine,
-              shared: view.shared,
+              mine: true,
+              shared: false,
               isDefault: view.isDefault,
               ownerName: view.ownerName,
             }))}
@@ -294,7 +302,7 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
         <NoResults what="items waiting" query={filter.q} clearSearchHref={without({ q: "" })} resetHref="/users/queue" />
       ) : (
         <QueueKeyboard>
-          <QueueTable items={queue} priority={priority} order={queueOrder} formDue={formDue} groups={groups} />
+          <QueueTable items={queue} priority={priority} order={queueOrder} formDue={formDue} groups={groups} sort={{ sortBy: columnSort.sortBy, dir: columnSort.dir, hrefs: sortHrefs, leadKey: "title" }} />
         </QueueKeyboard>
       )}
       {pages > 1 && (

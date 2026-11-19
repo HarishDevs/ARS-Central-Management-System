@@ -228,6 +228,7 @@ export interface AdminDeviceRow {
   id: number;
   person: string;
   loginId: string;
+  departmentName: string | null; // v1.58.0 (D-354): for Group by Department
   deviceType: string;
   browser: string | null;
   operatingSystem: string | null;
@@ -243,8 +244,8 @@ export interface AdminDeviceRow {
 // service's host.
 export async function listAllDevices(limit = 300): Promise<AdminDeviceRow[]> {
   const [rows] = await getDbPool().query<RowDataPacket[]>(
-    `SELECT s.id, u.name, u.login_id, s.device_type, s.browser, s.operating_system, s.installed, s.status, s.endpoint, s.created_at, s.last_used_at, s.last_failure_code
-     FROM push_subscriptions s JOIN users u ON u.id = s.user_id WHERE s.status <> 'REMOVED' ORDER BY s.last_seen_at DESC LIMIT ?`,
+    `SELECT s.id, u.name, u.login_id, dp.name AS department_name, s.device_type, s.browser, s.operating_system, s.installed, s.status, s.endpoint, s.created_at, s.last_used_at, s.last_failure_code
+     FROM push_subscriptions s JOIN users u ON u.id = s.user_id LEFT JOIN departments dp ON dp.id = u.department_id WHERE s.status <> 'REMOVED' ORDER BY s.last_seen_at DESC LIMIT ?`,
     [limit],
   );
   return rows.map((row) => {
@@ -258,6 +259,7 @@ export async function listAllDevices(limit = 300): Promise<AdminDeviceRow[]> {
       id: row.id,
       person: row.name,
       loginId: row.login_id,
+      departmentName: row.department_name ?? null,
       deviceType: row.device_type,
       browser: row.browser,
       operatingSystem: row.operating_system,

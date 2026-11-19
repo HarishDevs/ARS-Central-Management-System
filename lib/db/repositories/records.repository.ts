@@ -3,7 +3,7 @@ import type { RowDataPacket } from "mysql2/promise";
 import { getDbPool, type Queryable } from "@/lib/db/client";
 import { requestAmount, type RecordAmount } from "@/server/records/amount";
 import { requestPriorityFromJson, type RequestPriority } from "@/server/approvals/priority";
-import { indiaDayStartUtc, likeOf, nextIndiaDayStartUtc, SORTS, type RecordFilter, type RecordKind } from "@/server/records/filters";
+import { indiaDayStartUtc, likeOf, nextIndiaDayStartUtc, recordGroupSql, SORTS, type RecordFilter, type RecordKind } from "@/server/records/filters";
 
 // D-191 (owner): the Admin registers. Read-only; every request, task and
 // information item whoever raised it, for the IT team (the pages and the
@@ -174,7 +174,11 @@ function mapRow(kind: RecordKind, row: RowDataPacket): RequestRecord | TaskRecor
   return { id: row.id, no: row.info_no, title: row.title, type: row.type_name, priority: row.priority, status: row.status, createdBy: row.creator_name, department: row.department_name, ackRequired: Boolean(row.ack_required), created: row.created_at, published: row.published_at, effectiveOn: row.effective_on, expiresOn: row.expires_on, recipients: Number(row.recipients), read: Number(row.read_count), acknowledged: Number(row.ack_count) };
 }
 
-const orderBy = (kind: RecordKind, filter: RecordFilter) => `${SORTS[kind][filter.sort] ?? SORTS[kind].no} ${filter.dir === "asc" ? "ASC" : "DESC"}, ${kind === "requests" ? "r" : kind === "tasks" ? "t" : "i"}.id DESC`;
+// v1.58.0 (D-354): a Group by orders by the group first (fixed SQL, never the address's text).
+const orderBy = (kind: RecordKind, filter: RecordFilter) => {
+  const group = filter.group ? recordGroupSql(kind, filter.group) : null;
+  return `${group ? `${group}, ` : ""}${SORTS[kind][filter.sort] ?? SORTS[kind].no} ${filter.dir === "asc" ? "ASC" : "DESC"}, ${kind === "requests" ? "r" : kind === "tasks" ? "t" : "i"}.id DESC`;
+};
 
 export async function listRecords<K extends RecordKind>(kind: K, filter: RecordFilter, db: Queryable = getDbPool()): Promise<{ rows: RecordRow<K>[]; total: number; page: number; pages: number }> {
   const query = sql(kind, filter);

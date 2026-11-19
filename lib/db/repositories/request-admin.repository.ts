@@ -2,6 +2,8 @@ import "server-only";
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { getDbPool, type Queryable } from "@/lib/db/client";
 import type { InstanceStatus } from "@/server/engine/types";
+import type { ColumnSort } from "@/server/lists/sorting";
+import { orderBySql, requestOrder, type RequestColumn } from "@/server/lists/superadmin-lists";
 
 // Super Admin view of every request, and soft delete (S11, D-086, F-73).
 export const ALL_REQUESTS_PAGE_SIZE = 25;
@@ -22,8 +24,17 @@ export interface AdminRequestItem {
   validUntil: Date | null; // DR-05: shown as Expired once past
 }
 
+// v1.58.0 (D-354, owner: "sorting in all the tables"): a column sort from the
+// whitelist (Priority sorts on the page instead), else newest first.
+function requestSql(filter: { deleted?: boolean; sort?: ColumnSort<RequestColumn> }): string {
+  const fallback = `${filter.deleted ? "r.deleted_at" : "r.id"} DESC`;
+  const sort = filter.sort;
+  if (!sort || !sort.sortBy || sort.sortBy === "priority") return `ORDER BY ${fallback}`;
+  return orderBySql(requestOrder(Boolean(filter.deleted)), { sortBy: sort.sortBy, dir: sort.dir }, fallback, "r.id DESC");
+}
+
 export async function listAllRequests(
-  filter: { q?: string; status?: string; deleted?: boolean; page?: number },
+  filter: { q?: string; status?: string; deleted?: boolean; page?: number; sort?: ColumnSort<RequestColumn> },
   db: Queryable = getDbPool(),
 ): Promise<{ items: AdminRequestItem[]; total: number; page: number; pages: number }> {
   const where = [filter.deleted ? "r.deleted_at IS NOT NULL" : "r.deleted_at IS NULL"];
@@ -68,7 +79,7 @@ export async function listAllRequests(
     `SELECT r.id, r.request_no, r.title, w.name AS workflow_name, u.name AS requester_name, d.name AS department_name, r.status, r.submitted_at,
             r.deleted_at, x.name AS deleted_by_name, r.delete_reason, r.valid_until
      ${from}
-     ORDER BY ${filter.deleted ? "r.deleted_at" : "r.id"} DESC LIMIT ? OFFSET ?`,
+     ${requestSql(filter)} LIMIT ? OFFSET ?`,
     [...params, ALL_REQUESTS_PAGE_SIZE, (page - 1) * ALL_REQUESTS_PAGE_SIZE],
   );
   return {

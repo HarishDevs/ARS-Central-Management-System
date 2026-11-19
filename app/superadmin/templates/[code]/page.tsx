@@ -9,16 +9,22 @@ import { loadTemplateBoard } from "@/server/notifications/template-registry";
 import { defaultDraft, toNamedBody } from "@/server/notifications/template-authoring";
 import { templateLabel } from "@/server/notifications/templates";
 import { SubmitTemplateButton, SyncTemplatesButton, TemplateEditor, TestTemplateButton } from "@/features/superadmin/TemplateForm";
-import { StatusBadge } from "@/features/superadmin/template-status";
+import { StatusBadge, versionStatus } from "@/features/superadmin/template-status";
+import { sortHeads } from "@/features/superadmin/sort-heads";
+import { parseColumnSort, sortRows } from "@/server/lists/sorting";
+
+// v1.58.0 (D-354, owner: "sorting in all the tables ... in all columns"): the Versions table sorts by any column.
+const VERSION_COLUMNS = ["version", "name", "status", "submitted", "message"] as const;
 import { formatIndiaTime } from "@/server/notifications/security-messages";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
 export const metadata: Metadata = { title: "Message template" };
 
 // One WhatsApp message's template: write, submit, sync, test, history.
-export default async function TemplatePage({ params }: { params: Promise<{ code: string }> }) {
+export default async function TemplatePage({ params, searchParams }: { params: Promise<{ code: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const { user } = await requireArea("superadmin");
   const { code } = await params;
+  const query = await searchParams;
   const item = (await loadTemplateBoard()).find((candidate) => candidate.entry.code === code);
   if (!item) notFound();
   const { entry, versions, live, latest } = item;
@@ -28,6 +34,17 @@ export default async function TemplatePage({ params }: { params: Promise<{ code:
     ? { name: latest.providerName ?? entry.name, category: latest.category, body: toNamedBody(latest.body, keysOf(latest.variableKeys)), footer: latest.footer ?? "" }
     : defaultDraft(entry);
   const canSubmit = latest !== null && !latest.submittedAt && Boolean(latest.body);
+  const sort = parseColumnSort(query, VERSION_COLUMNS);
+  const newestFirst = [...versions].reverse();
+  const value: Record<(typeof VERSION_COLUMNS)[number], (version: (typeof versions)[number]) => unknown> = {
+    version: (version) => version.version,
+    name: (version) => version.providerName,
+    status: (version) => versionStatus(version).label,
+    submitted: (version) => version.submittedAt,
+    message: (version) => version.body,
+  };
+  const shownVersions = sort.sortBy ? sortRows(newestFirst, value[sort.sortBy], sort.dir) : newestFirst;
+  const head = sortHeads(`/superadmin/templates/${encodeURIComponent(entry.code)}`, query, sort);
 
   return (
     <>
@@ -84,15 +101,15 @@ export default async function TemplatePage({ params }: { params: Promise<{ code:
           <table className="data-table">
             <thead>
               <tr>
-                <th>Version</th>
-                <th>Name</th>
-                <th>Status</th>
-                <th>Submitted</th>
-                <th>Message</th>
+                {head("Version", "version")}
+                {head("Name", "name")}
+                {head("Status", "status")}
+                {head("Submitted", "submitted")}
+                {head("Message", "message")}
               </tr>
             </thead>
             <tbody>
-              {[...versions].reverse().map((version) => (
+              {shownVersions.map((version) => (
                 <tr key={version.id}>
                   <td>{version.version}</td>
                   <td className="font-mono">{version.providerName ?? "—"}</td>

@@ -1,5 +1,15 @@
 # Release notes
 
+## v1.58.0 (19 Nov 2026): Sort every column, saved views everywhere, groups start folded (owner)
+- **Sort any column, both ways, in every table** (user lists, Admin and Super Admin): click a column title for A→Z (oldest, smallest), again for Z→A. Empty values always go last. Paged lists (requests, Waiting for me, tasks, information, meetings, tickets, Admin users and records, audit, sign-ins) sort on the server, so the order covers every page, not just the one shown; short tables sort in place. The sort is in the address, so it survives reloads and bookmarks.
+- **Saved views on every list** with filters, sort or group: **Save this view** keeps what is on screen (filters, search, group, sort, tab) under a name; your views show as chips (open, make default, delete). Views are **yours only** (sharing removed; a view shared before can still be unshared). A default view opens when you arrive at the list with nothing chosen; pressing Clear on the list stays clear.
+- **Groups start folded**: when a Group by is chosen, every group starts collapsed; open one by its heading, or use **Expand all / Collapse all** above the table. The Coordinator board (always by status) and a project's own Sections start open.
+- **More Group by** on Admin and Super Admin lists (Department wherever people are listed): users, workload, needs attention, notifications, AI analytics, dashboards, records, task/information types and ticket forms; audit, sign-ins, requests, deliveries, templates, AI history and automation runs.
+- **Select all** on bulk lists ticks only the rows you can see (not those in a folded group).
+- **Fixed:** **New task** clicked inside the app (sidebar, Classic tabs) now opens the Create task window every time (it only opened on a fresh page load); a request row's **⋮ menu** stays open and follows its row when the page scrolls (a row just below the fold closed it straight away).
+- Also: report saved views keep a column sort; the Admin records registers start ascending on a first click like every other table.
+- **Owner steps:** no migration; publish v1.58.0.
+
 ## v1.57.7 (19 Nov 2026): WhatsApp fallback versions deleted at Meta (owner)
 - An older approved WhatsApp template version that Meta no longer lists at all (deleted there without a status) loses its approval at the next sync, so it can never be brought back as the fallback when the live version is paused or rejected. It still shows as Replaced. Nothing changes if Meta returns an empty list (treated as a provider hiccup).
 - A test now covers the v1.57.6 rule that a meeting action item's task can't be deleted from the task pages.

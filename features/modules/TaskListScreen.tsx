@@ -11,14 +11,18 @@ import { listActiveUserOptions } from "@/lib/db/repositories/admin-users.reposit
 import { parseTaskFilters, PAGE_SIZES, TASK_SORT_LABEL, TASK_SORTS, TASK_TAB_LABEL, TASK_TABS, taskListSql, taskQuery, type TaskBase } from "@/server/modules/task-lists";
 import { isOverdue, TASK_STATUS_LABEL, TASK_STATUSES, type TaskStatus } from "@/server/modules/task-rules";
 import { indiaDateTimeText, PRIORITY_LABEL, TASK_PRIORITIES, type TaskPriority } from "@/server/modules/settings";
-import { displayValue, OPTION_TYPES, type FormField } from "@/server/forms/fields";
+import { displayValue, NUMERIC_TYPES, OPTION_TYPES, type FormField } from "@/server/forms/fields";
 import { ChoicePills, TaskPriorityPill } from "@/features/ui/ChoicePill";
 import { choiceValues } from "@/features/modules/RecordParts";
 import { isAdminActor } from "@/server/modules/tasks";
 import { TaskCheck } from "@/features/work/client";
 import { teamOf } from "@/server/work/task-access";
 import { ListToolbar } from "@/features/ui/ListToolbar";
-import { FoldTbody } from "@/features/ui/GroupFold";
+import { FoldScope, FoldTbody } from "@/features/ui/GroupFold";
+import { SortTh } from "@/features/ui/SortTh";
+import { ListViews } from "@/features/lists/ListViews";
+import { applyDefaultListView } from "@/server/lists/views";
+import { nextDir } from "@/server/lists/sorting";
 import { departmentBucket, dueBucket, groupRows, indiaDayOf } from "@/server/lists/group-rows";
 import { TASK_LIST_GROUPS, type TaskListGroup } from "@/server/modules/task-lists";
 import type { TaskListItem } from "@/lib/db/repositories/tasks.repository";
@@ -40,12 +44,20 @@ const DESCRIPTION: Record<TaskBase, string> = {
   PERIODIC: "Tasks that repeat. When one is completed the next one is made. Make any task periodic from its Repeats box.",
   TEAM: "Tasks of everyone below you in the reporting line, at every level (IT sees everyone's).",
 };
+// v1.58.0 (D-353, owner: "all the changes like filters, group, sort can be saved
+// as a view ... along with names"; views are the person's own).
+const VIEW_TARGET: Record<TaskBase, string> = { MINE: "list_tasks_mine", CREATED: "list_tasks_created", TEAM: "list_tasks_team", PERIODIC: "list_tasks_periodic" };
+// v1.58.0 (D-354): listed fields whose stored value is a list, a file or a
+// person/record id: their column can't be sorted in a meaningful order.
+const UNSORTABLE_FIELD_TYPES: readonly string[] = ["LINE_ITEMS", "ITEM_LIST", "ATTACHMENT", "PERSON", "LOOKUP", "SECTION"];
 export const STATUS_TONE: Record<TaskStatus, Tone> = { OPEN: "info", IN_PROGRESS: "primary", BLOCKED: "warning", COMPLETED: "success", CANCELLED: "neutral" };
 export const PRIORITY_TONE: Record<TaskPriority, Tone> = { LOW: "neutral", NORMAL: "neutral", ELEVATED: "info", IMPORTANT: "warning", HIGH: "warning", URGENT: "danger" };
 
 export async function TaskListScreen({ base, query }: { base: TaskBase; query: Record<string, string | string[] | undefined> }) {
   const { user } = await requireArea("users");
   if (!(await featureOn("tasks", user))) notFound();
+  // v1.58.0 (D-353): opening the list with nothing in the address shows the person's default view.
+  await applyDefaultListView(user.id, VIEW_TARGET[base], PATH[base], query);
   const filters = parseTaskFilters(query);
   // D-216: Team tasks covers the whole reporting line below the person.
   const viewer = { id: user.id, isAdmin: isAdminActor(user), teamIds: base === "TEAM" && !isAdminActor(user) ? await teamOf(user.id) : undefined };
@@ -56,10 +68,15 @@ export async function TaskListScreen({ base, query }: { base: TaskBase; query: R
   const searchable = [...new Set(versions.flatMap((version) => version.form.filter((field) => field.searchable).map((field) => field.key)))];
   const chosen = filters.typeId ? versions.find((version) => version.typeId === filters.typeId && version.status === "PUBLISHED") : undefined;
   const columns: FormField[] = chosen ? chosen.form.filter((field) => field.listed && field.type !== "SECTION").slice(0, 4) : [];
+  // v1.58.0 (D-354): a field column sorts only while that field is on screen.
+  const sortableFields = columns.filter((field) => !UNSORTABLE_FIELD_TYPES.includes(field.type));
+  if (filters.sortBy?.startsWith("f_") && !sortableFields.some((field) => `f_${field.key}` === filters.sortBy)) filters.sortBy = null;
+  if ((filters.sortBy === "repeats" || filters.sortBy === "done") && base !== "PERIODIC") filters.sortBy = null;
+  const numericKeys = sortableFields.filter((field) => NUMERIC_TYPES.includes(field.type)).map((field) => field.key);
 
   // v1.54.7 (owner): Periodic tasks uses this list too (tabs, Filter, Sort, Options).
   const visible = base === "PERIODIC" ? visibleTaskClause(await workViewer(user)) : undefined;
-  const sql = taskListSql(filters, base, viewer, searchable, now, undefined, visible);
+  const sql = taskListSql(filters, base, viewer, searchable, now, undefined, visible, numericKeys);
   const [list, counts] = await Promise.all([
     listTasks(sql.where, sql.params, sql.orderBy, filters.size, (filters.page - 1) * filters.size),
     Promise.all(
@@ -96,6 +113,22 @@ export async function TaskListScreen({ base, query }: { base: TaskBase; query: R
   const pages = Math.max(1, Math.ceil(list.total / filters.size));
   const names = new Map(people.map((person) => [person.id, person.name]));
   const path = PATH[base];
+  // v1.58.0 (D-354, owner: "sorting in all the tables asc to desc or vice versa
+  // in all columns"): each column title sorts the whole list (every page).
+  const current = { sortBy: filters.sortBy ?? null, dir: filters.dir ?? "asc" };
+  const sortLink = (column: string) => `${path}${taskQuery(filters, { sortBy: column, dir: nextDir(current, column) })}`;
+  const sortTh = (column: string, label: string) => <SortTh key={column} label={label} column={column} sortBy={current.sortBy} dir={current.dir} href={sortLink(column)} />;
+  const columnLabel: Record<string, string> = {
+    task: "Task",
+    type: "Type",
+    person: base === "MINE" ? "From" : "Assignee",
+    priority: "Priority",
+    status: "Status",
+    due: "Due",
+    repeats: "Repeats",
+    done: "Done so far",
+    ...Object.fromEntries(columns.map((field) => [`f_${field.key}`, field.label])),
+  };
 
   return (
     <>
@@ -124,7 +157,14 @@ export async function TaskListScreen({ base, query }: { base: TaskBase; query: R
             id="task-filters"
             path={path}
             label="Filter tasks"
-            keep={{ tab: filters.tab !== "open" ? filters.tab : undefined, sort: filters.sort !== "due" ? filters.sort : undefined, size: filters.size !== 25 ? String(filters.size) : undefined, group: filters.group ?? undefined }}
+            keep={{
+              tab: filters.tab !== "open" ? filters.tab : undefined,
+              sort: filters.sort !== "due" ? filters.sort : undefined,
+              size: filters.size !== 25 ? String(filters.size) : undefined,
+              group: filters.group ?? undefined,
+              sortBy: filters.sortBy ?? undefined, // v1.58.0 (D-354): a column sort stays when filtering
+              dir: filters.sortBy ? filters.dir : undefined,
+            }}
             search={{ name: "q", value: filters.q, placeholder: "Number, title or description" }}
             filterCount={[filters.typeId, filters.priorities.length, filters.statuses.length, filters.personId, filters.dueFrom || filters.dueTo, filters.createdFrom || filters.createdTo].filter(Boolean).length}
             clearHref={
@@ -197,9 +237,11 @@ export async function TaskListScreen({ base, query }: { base: TaskBase; query: R
               </>
             }
             sort={{
-              label: TASK_SORT_LABEL[filters.sort],
-              changed: filters.sort !== "due",
-              choices: TASK_SORTS.map((sort) => ({ label: TASK_SORT_LABEL[sort], href: `${path}${taskQuery(filters, { sort })}`, active: filters.sort === sort })),
+              // v1.58.0 (D-354): a column title's sort shows here too; a menu choice replaces it.
+              label: filters.sortBy ? `${columnLabel[filters.sortBy] ?? "Column"} (${filters.dir === "desc" ? "descending" : "ascending"})` : TASK_SORT_LABEL[filters.sort],
+              changed: filters.sort !== "due" || Boolean(filters.sortBy),
+              choices: TASK_SORTS.map((sort) => ({ label: TASK_SORT_LABEL[sort], href: `${path}${taskQuery(filters, { sort, sortBy: null })}`, active: !filters.sortBy && filters.sort === sort })),
+              clearHref: filters.sort !== "due" || filters.sortBy ? `${path}${taskQuery(filters, { sort: "due", sortBy: null })}` : undefined,
             }}
             group={{
               label: filters.group ? groupLabel[filters.group] : null,
@@ -208,6 +250,7 @@ export async function TaskListScreen({ base, query }: { base: TaskBase; query: R
             }}
             sizes={PAGE_SIZES.map((size) => ({ label: `${size} per page`, href: `${path}${taskQuery(filters, { size })}`, active: filters.size === size }))}
           />
+          <ListViews userId={user.id} target={VIEW_TARGET[base]} path={path} query={Object.fromEntries(new URLSearchParams(taskQuery(filters)).entries())} />
           {list.rows.length === 0 ? (
             filters.q || filters.typeId || filters.priorities.length || filters.statuses.length || filters.personId || filters.dueFrom || filters.dueTo || filters.createdFrom || filters.createdTo ? (
               <NoResults what="tasks" query={filters.q} clearSearchHref={`${path}${taskQuery(filters, { q: "" })}`} resetHref={`${path}${taskQuery({ ...filters, q: "", typeId: null, priorities: [], statuses: [], personId: null, dueFrom: null, dueTo: null, createdFrom: null, createdTo: null })}`} />
@@ -215,6 +258,8 @@ export async function TaskListScreen({ base, query }: { base: TaskBase; query: R
               <EmptyState title="No tasks here" body={filters.tab === "open" ? "Nothing open here. Try another tab." : "Nothing in this tab. Try another tab."} />
             )
           ) : (
+            // v1.58.0 (D-352): groups start folded; Expand all / Collapse all above them.
+            <FoldScope enabled={Boolean(filters.group)}>
             <div className="card overflow-x-auto">
               <table className="data-table" data-testid={base === "PERIODIC" ? "periodic-table" : "task-table"}>
                 <caption className="sr-only">{TITLE[base]}</caption>
@@ -223,26 +268,30 @@ export async function TaskListScreen({ base, query }: { base: TaskBase; query: R
                     <th scope="col">
                       <span className="sr-only">Done</span>
                     </th>
-                    <th scope="col">Task</th>
-                    <th scope="col">Type</th>
-                    <th scope="col">{base === "MINE" ? "From" : "Assignee"}</th>
-                    <th scope="col">Priority</th>
-                    <th scope="col">Status</th>
-                    <th scope="col">Due</th>
+                    {sortTh("task", columnLabel.task!)}
+                    {sortTh("type", columnLabel.type!)}
+                    {sortTh("person", columnLabel.person!)}
+                    {sortTh("priority", columnLabel.priority!)}
+                    {sortTh("status", columnLabel.status!)}
+                    {sortTh("due", columnLabel.due!)}
                     {repeats && (
                       <>
-                        <th scope="col">Repeats</th>
-                        <th scope="col">Done so far</th>
+                        {sortTh("repeats", columnLabel.repeats!)}
+                        {sortTh("done", columnLabel.done!)}
                         <th scope="col">
                           <span className="sr-only">Stop</span>
                         </th>
                       </>
                     )}
-                    {columns.map((field) => (
-                      <th key={field.key} scope="col">
-                        {field.label}
-                      </th>
-                    ))}
+                    {columns.map((field) =>
+                      sortableFields.includes(field) ? (
+                        sortTh(`f_${field.key}`, field.label)
+                      ) : (
+                        <th key={field.key} scope="col" title="This column holds a list, a file or a person, so it can't be sorted.">
+                          {field.label}
+                        </th>
+                      ),
+                    )}
                   </tr>
                 </thead>
                 {groups.map((group) => {
@@ -301,6 +350,7 @@ export async function TaskListScreen({ base, query }: { base: TaskBase; query: R
                 })}
               </table>
             </div>
+            </FoldScope>
           )}
           {pages > 1 && (
             <nav aria-label="Pages" className="mt-4 flex items-center justify-between text-label">

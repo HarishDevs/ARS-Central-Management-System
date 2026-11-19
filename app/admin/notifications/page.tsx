@@ -1,6 +1,5 @@
 import { TaskPriorityPill } from "@/features/ui/ChoicePill";
 import type { Metadata } from "next";
-import { PagedRows } from "@/features/ui/PagedRows";
 import { Send } from "lucide-react";
 import { requireArea } from "@/server/authorization/guards";
 import { PageHeader } from "@/features/shell/PageHeader";
@@ -12,6 +11,35 @@ import { CATEGORY_TEXT, listAllDevices, listBroadcasts, pushOverview } from "@/s
 import { getPushConfig, pushReady } from "@/server/push/service";
 import { formatIndiaTime } from "@/server/notifications/security-messages";
 import { personLabel } from "@/lib/people/label";
+import { ListToolbar } from "@/features/ui/ListToolbar";
+import { ListViews } from "@/features/lists/ListViews";
+import { FoldScope } from "@/features/ui/GroupFold";
+import { SortHead } from "@/features/admin/SortHead";
+import { GroupedRows } from "@/features/admin/GroupedRows";
+import { applyDefaultListView } from "@/server/lists/views";
+import { parseColumnSort, sortRows } from "@/server/lists/sorting";
+import { departmentBucket, groupRows, pickGroup } from "@/server/lists/group-rows";
+import { groupMenu, monthBucket } from "@/server/admin/lists";
+
+// v1.58.0 (D-354, owner): History and Devices: every column sorts both ways,
+// Group by (folded at first; Devices by Department too), saved views
+// (list_admin_notifications; the tab is part of the view).
+const PATH = "/admin/notifications";
+const HISTORY_COLUMNS = ["title", "audience", "sent", "inbox", "devices"] as const;
+const HISTORY_GROUPS = [
+  { key: "category", label: "Kind" },
+  { key: "priority", label: "Priority" },
+  { key: "month", label: "Month sent" },
+  { key: "sender", label: "Sent by" },
+] as const;
+const DEVICE_COLUMNS = ["person", "device", "service", "status", "added", "lastUsed"] as const;
+const DEVICE_GROUPS = [
+  { key: "department", label: "Department" },
+  { key: "status", label: "Status" },
+  { key: "service", label: "Push service" },
+  { key: "deviceType", label: "Device type" },
+] as const;
+type Query = Record<string, string | undefined>;
 
 export const metadata: Metadata = { title: "Notifications" };
 export const dynamic = "force-dynamic";
@@ -26,9 +54,11 @@ const TABS = [
 // people's Inbox and devices, what happened to it, and which devices are
 // registered. Push "accepted" means the push service took it, not that the
 // person saw it.
-export default async function AdminNotificationsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
-  await requireArea("admin");
-  const wanted = (await searchParams).tab;
+export default async function AdminNotificationsPage({ searchParams }: { searchParams: Promise<Query> }) {
+  const { user } = await requireArea("admin");
+  const query = await searchParams;
+  await applyDefaultListView(user.id, "list_admin_notifications", PATH, query);
+  const wanted = query.tab;
   const tab = TABS.find((item) => item.key === wanted)?.key ?? "send";
   const [overview, config] = await Promise.all([pushOverview(), getPushConfig()]);
   const cards = [
@@ -72,8 +102,22 @@ export default async function AdminNotificationsPage({ searchParams }: { searchP
         </ul>
       </nav>
       {tab === "send" && <SendTab />}
-      {tab === "history" && <HistoryTab />}
-      {tab === "devices" && <DevicesTab />}
+      {tab !== "send" && (
+        <>
+          <ListToolbar
+            id="notifications-view"
+            path={PATH}
+            label="Notifications view"
+            keep={{}}
+            filterCount={0}
+            clearHref={null}
+            group={groupMenu(PATH, query, tab === "history" ? HISTORY_GROUPS : DEVICE_GROUPS, pickGroup(query.group, (tab === "history" ? HISTORY_GROUPS : DEVICE_GROUPS).map((choice) => choice.key)))}
+          />
+          <ListViews userId={user.id} target="list_admin_notifications" path={PATH} query={query} />
+        </>
+      )}
+      {tab === "history" && <HistoryTab query={query} />}
+      {tab === "devices" && <DevicesTab query={query} />}
     </>
   );
 }
@@ -91,23 +135,40 @@ async function SendTab() {
   );
 }
 
-async function HistoryTab() {
-  const rows = await listBroadcasts(100);
-  if (!rows.length) return <p className="card px-5 py-4 text-label text-ink-muted">Nothing sent yet.</p>;
+async function HistoryTab({ query }: { query: Query }) {
+  const loaded = await listBroadcasts(100);
+  if (!loaded.length) return <p className="card px-5 py-4 text-label text-ink-muted">Nothing sent yet.</p>;
+  const sort = parseColumnSort(query, HISTORY_COLUMNS);
+  const group = pickGroup(query.group, HISTORY_GROUPS.map((choice) => choice.key));
+  const rows = sort.sortBy
+    ? sortRows(loaded, (row) => (sort.sortBy === "title" ? row.title : sort.sortBy === "audience" ? row.audienceText : sort.sortBy === "sent" ? row.createdAt : sort.sortBy === "inbox" ? row.inboxed : row.pushSent), sort.dir)
+    : loaded;
+  const groups = group
+    ? groupRows(rows, (row): [string, number] => (group === "category" ? [CATEGORY_TEXT[row.category], 0] : group === "priority" ? (row.priority === "HIGH" ? ["High priority", 0] : ["Normal", 1]) : group === "month" ? monthBucket(row.createdAt) : [row.createdBy, 0]))
+    : null;
+  const head = "px-4 py-2 font-medium";
   return (
+    <FoldScope enabled={Boolean(group)}>
     <div className="card overflow-x-auto" data-testid="broadcast-history">
       <table className="w-full min-w-[760px] text-left text-label">
-        <thead className="border-b border-line text-caption text-ink-muted">
-          <tr>
-            <th className="px-4 py-2 font-medium">Notification</th>
-            <th className="px-4 py-2 font-medium">Audience</th>
-            <th className="px-4 py-2 font-medium">Sent</th>
-            <th className="px-4 py-2 text-right font-medium">Inbox</th>
-            <th className="px-4 py-2 font-medium">Devices</th>
-          </tr>
-        </thead>
-        <PagedRows colSpan={5}>
-          {rows.map((row) => (
+        <SortHead
+          className="border-b border-line text-caption text-ink-muted"
+          path={PATH}
+          query={query}
+          sort={sort}
+          columns={[
+            { key: "title", label: "Notification", className: head },
+            { key: "audience", label: "Audience", className: head },
+            { key: "sent", label: "Sent", className: head },
+            { key: "inbox", label: "Inbox", className: `${head} text-right` },
+            { key: "devices", label: "Devices", className: head },
+          ]}
+        />
+        <GroupedRows
+          rows={rows}
+          groups={groups}
+          colSpan={5}
+          render={(row) => (
             <tr key={row.id}>
               <td className="px-4 py-3">
                 <p className="font-medium">{row.title}</p>
@@ -137,39 +198,57 @@ async function HistoryTab() {
                 {row.failureCodes && <p className="text-ink-muted">{row.failureCodes}</p>}
               </td>
             </tr>
-          ))}
-        </PagedRows>
+          )}
+        />
       </table>
     </div>
+    </FoldScope>
   );
 }
 
-async function DevicesTab() {
-  const rows = await listAllDevices(300);
-  if (!rows.length) return <p className="card px-5 py-4 text-label text-ink-muted">No device registered yet. People turn notifications on in Profile → App & devices.</p>;
+async function DevicesTab({ query }: { query: Query }) {
+  const loaded = await listAllDevices(300);
+  if (!loaded.length) return <p className="card px-5 py-4 text-label text-ink-muted">No device registered yet. People turn notifications on in Profile → App & devices.</p>;
+  const deviceText = (row: (typeof loaded)[number]) => `${[row.browser, row.operatingSystem].filter(Boolean).join(" on ") || "A browser"} · ${row.deviceType.toLowerCase()}${row.installed ? " · app" : ""}`;
+  const sort = parseColumnSort(query, DEVICE_COLUMNS);
+  const group = pickGroup(query.group, DEVICE_GROUPS.map((choice) => choice.key));
+  const rows = sort.sortBy
+    ? sortRows(loaded, (row) => (sort.sortBy === "person" ? row.person : sort.sortBy === "device" ? deviceText(row) : sort.sortBy === "service" ? row.service : sort.sortBy === "status" ? row.status : sort.sortBy === "added" ? row.createdAt : row.lastUsedAt), sort.dir)
+    : loaded;
+  const groups = group
+    ? groupRows(rows, (row): [string, number] => (group === "department" ? departmentBucket(row.departmentName) : group === "status" ? (row.status === "ACTIVE" ? ["Active", 0] : ["Expired", 1]) : group === "service" ? [row.service, 0] : [row.deviceType.charAt(0) + row.deviceType.slice(1).toLowerCase(), 0]))
+    : null;
+  const head = "px-4 py-2 font-medium";
   return (
+    <FoldScope enabled={Boolean(group)}>
     <div className="card overflow-x-auto" data-testid="admin-devices">
       <table className="w-full min-w-[760px] text-left text-label">
-        <thead className="border-b border-line text-caption text-ink-muted">
-          <tr>
-            <th className="px-4 py-2 font-medium">Person</th>
-            <th className="px-4 py-2 font-medium">Device</th>
-            <th className="px-4 py-2 font-medium">Push service</th>
-            <th className="px-4 py-2 font-medium">Status</th>
-            <th className="px-4 py-2 font-medium">Added</th>
-            <th className="px-4 py-2 font-medium">Last accepted</th>
-          </tr>
-        </thead>
-        <PagedRows colSpan={6}>
-          {rows.map((row) => (
+        <SortHead
+          className="border-b border-line text-caption text-ink-muted"
+          path={PATH}
+          query={query}
+          sort={sort}
+          columns={[
+            { key: "person", label: "Person", className: head },
+            { key: "device", label: "Device", className: head },
+            { key: "service", label: "Push service", className: head },
+            { key: "status", label: "Status", className: head },
+            { key: "added", label: "Added", className: head },
+            { key: "lastUsed", label: "Last accepted", className: head },
+          ]}
+        />
+        <GroupedRows
+          rows={rows}
+          groups={groups}
+          colSpan={6}
+          render={(row) => (
             <tr key={row.id}>
               <td className="px-4 py-3">
                 {row.person}
                 <p className="text-caption text-ink-muted">{row.loginId}</p>
               </td>
               <td className="px-4 py-3">
-                {[row.browser, row.operatingSystem].filter(Boolean).join(" on ") || "A browser"} · {row.deviceType.toLowerCase()}
-                {row.installed ? " · app" : ""}
+                {deviceText(row)}
               </td>
               <td className="px-4 py-3 text-ink-muted">{row.service}</td>
               <td className="px-4 py-3">
@@ -179,9 +258,10 @@ async function DevicesTab() {
               <td className="px-4 py-3 whitespace-nowrap">{formatIndiaTime(row.createdAt)}</td>
               <td className="px-4 py-3 whitespace-nowrap">{row.lastUsedAt ? formatIndiaTime(row.lastUsedAt) : "Not yet"}</td>
             </tr>
-          ))}
-        </PagedRows>
+          )}
+        />
       </table>
     </div>
+    </FoldScope>
   );
 }

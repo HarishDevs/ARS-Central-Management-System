@@ -1,4 +1,6 @@
 import "server-only";
+import { adminUserOrderBy, type UserGroup, type UserSortColumn } from "@/server/admin/lists";
+import type { ColumnSort } from "@/server/lists/sorting";
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { getDbPool, type Queryable } from "@/lib/db/client";
 import type { RoleCode, SignInMethod, ModuleCode } from "@/types/auth";
@@ -49,6 +51,8 @@ export async function listUsersForAdmin(
   filter: { search?: string; status?: "active" | "inactive" | "all"; module?: ModuleCode; departmentId?: number | null },
   page: { limit: number; offset: number },
   db: Queryable = getDbPool(),
+  // v1.58.0 (D-354, owner): column sort (both ways) and Group by, from the fixed list in server/admin/lists.ts.
+  order: { sort: ColumnSort<UserSortColumn>; group: UserGroup | null } = { sort: { sortBy: null, dir: "asc" }, group: null },
 ): Promise<{ items: AdminUserListItem[]; total: number }> {
   const where: string[] = [];
   const params: unknown[] = [];
@@ -97,7 +101,7 @@ export async function listUsersForAdmin(
             (u.password_hash IS NOT NULL) AS has_password
      FROM users u LEFT JOIN departments d ON d.id = u.department_id
      ${whereSql}
-     ORDER BY u.active DESC, u.name
+     ORDER BY ${adminUserOrderBy(order.sort, order.group)}
      LIMIT ? OFFSET ?`,
     [...params, page.limit, page.offset],
   );

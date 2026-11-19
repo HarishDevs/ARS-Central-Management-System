@@ -5,7 +5,9 @@ import { KpiGrid, pct, TallyTable, tallyMeetings } from "@/features/meetings/Mee
 import { PeriodPicker } from "@/features/home/HomeClient";
 import { dashboardMeetings, listFollowUps, listMeetings, type MeetingListFilter } from "@/lib/db/repositories/meetings.repository";
 import { scopeFor } from "@/server/meetings/service";
-import { actionState, durationBand, minutesBetween, MODE_LABEL } from "@/server/meetings/rules";
+import { actionState, durationBand, MEETING_STATUSES, minutesBetween, MODE_LABEL } from "@/server/meetings/rules";
+import { SortTh } from "@/features/ui/SortTh";
+import { nextDir, parseColumnSort, sortHref, sortRows } from "@/server/lists/sorting";
 import { indiaDateTimeText } from "@/server/modules/settings";
 import { parsePeriod } from "@/server/work/period";
 import { indiaDayOf } from "@/features/work/format";
@@ -16,6 +18,19 @@ import { indiaDayOf } from "@/features/work/format";
 // then the period's figures, insights, by type and department, and the
 // register. Every list is limited to the meetings the person may see; the
 // figures follow the "Meetings: dashboard figures" page access.
+// v1.58.0 (D-354, owner: "sorting in all the tables asc to desc or vice versa in
+// all columns"): the Register sorts on every column (?sortBy=mr.<column>); the
+// two tally tables use mt. and md., so the three tables never clash.
+const REGISTER_SORTS = ["mr.meeting", "mr.type", "mr.dept", "mr.duration", "mr.present", "mr.actions", "mr.status"] as const;
+const REGISTER_LABEL: Record<(typeof REGISTER_SORTS)[number], string> = {
+  "mr.meeting": "Meeting",
+  "mr.type": "Type",
+  "mr.dept": "Department",
+  "mr.duration": "Duration",
+  "mr.present": "Present",
+  "mr.actions": "Actions",
+  "mr.status": "Status",
+};
 type Attention = { key: string; text: string; detail: string; href: string; danger: boolean };
 
 export async function MeetingHome({
@@ -74,6 +89,34 @@ export async function MeetingHome({
 
   const { total, byType, byDepartment } = tallyMeetings(periodRows);
   const insights = figures ? insightsOf(periodRows, total, byDepartment) : [];
+  // v1.58.0 (D-354): the latest 100 (as the note says), in the chosen column order.
+  const sortQuery: Record<string, unknown> = { ...query, ...base };
+  const registerSort = parseColumnSort(sortQuery, REGISTER_SORTS);
+  const latest = periodRows.slice(0, 100);
+  const registerRows = registerSort.sortBy
+    ? sortRows(
+        latest,
+        (row) => {
+          switch (registerSort.sortBy) {
+            case "mr.meeting":
+              return row.meetingNo;
+            case "mr.type":
+              return row.typeName;
+            case "mr.dept":
+              return row.departmentName;
+            case "mr.duration":
+              return minutesBetween(row.actualStart, row.actualEnd);
+            case "mr.present":
+              return row.present;
+            case "mr.actions":
+              return row.actionsDone;
+            default:
+              return (MEETING_STATUSES as readonly string[]).indexOf(row.status);
+          }
+        },
+        registerSort.dir,
+      )
+    : latest;
   const tiles = [
     { label: "Upcoming meetings", note: "Scheduled, not yet held", value: upcoming.total, href: "/users/meetings", icon: CalendarClock, tone: "bg-primary-50 text-primary-700", alert: false, danger: false },
     { label: "To approve", note: "Points and MOM sent to you", value: toApprove.total, href: "/users/meetings?tab=approve", icon: ClipboardCheck, tone: "bg-warning-50 text-warning-600", alert: toApprove.total > 0, danger: false },
@@ -274,25 +317,21 @@ export async function MeetingHome({
           {periodRows.length > 0 && (
             <>
               <div className="grid gap-6 2xl:grid-cols-2">
-                <TallyTable caption="By meeting type" rows={byType} />
-                <TallyTable caption="By department" rows={byDepartment} />
+                <TallyTable caption="By meeting type" rows={byType} sort={{ prefix: "mt", path: "/users", query: sortQuery }} />
+                <TallyTable caption="By department" rows={byDepartment} sort={{ prefix: "md", path: "/users", query: sortQuery }} />
               </div>
               <div className="card overflow-x-auto">
                 <table className="data-table" data-testid="meeting-register">
                   <caption className="px-4 py-2 text-left font-semibold">Register</caption>
                   <thead>
                     <tr>
-                      <th scope="col">Meeting</th>
-                      <th scope="col">Type</th>
-                      <th scope="col">Department</th>
-                      <th scope="col">Duration</th>
-                      <th scope="col">Present</th>
-                      <th scope="col">Actions</th>
-                      <th scope="col">Status</th>
+                      {REGISTER_SORTS.map((column) => (
+                        <SortTh key={column} label={REGISTER_LABEL[column]} column={column} sortBy={registerSort.sortBy} dir={registerSort.dir} href={sortHref("/users", sortQuery, column, nextDir(registerSort, column))} />
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {periodRows.slice(0, 100).map((row) => {
+                    {registerRows.map((row) => {
                       const minutes = minutesBetween(row.actualStart, row.actualEnd);
                       return (
                         <tr key={row.id}>

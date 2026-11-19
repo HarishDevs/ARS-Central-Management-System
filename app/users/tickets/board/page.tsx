@@ -4,8 +4,12 @@ import { notFound } from "next/navigation";
 import { Columns3 } from "lucide-react";
 import { PageHeader } from "@/features/shell/PageHeader";
 import { EmptyState } from "@/features/ui/Display";
-import { FoldTbody } from "@/features/ui/GroupFold";
-import { TicketPriorityBadge } from "@/features/tickets/TicketParts";
+import { FoldScope, FoldTbody } from "@/features/ui/GroupFold";
+import { SortTh } from "@/features/ui/SortTh";
+import { BOARD_SORT_COLUMNS, boardSortValue, TicketPriorityBadge, type BoardSortColumn } from "@/features/tickets/TicketParts";
+import { ListViews } from "@/features/lists/ListViews";
+import { applyDefaultListView } from "@/server/lists/views";
+import { nextDir, parseColumnSort, sortHref, sortRows } from "@/server/lists/sorting";
 import { ticketsPage } from "@/server/tickets/page-context";
 import { listTicketCategories, ticketBoard, type TicketBoardItem } from "@/lib/db/repositories/tickets.repository";
 import { TICKET_STATUS_LABEL, isOverdue, type TicketStatus } from "@/server/tickets/rules";
@@ -37,6 +41,21 @@ const ACCENT: Record<TicketStatus, string> = {
   CLOSED: "border-l-success-600",
 };
 const COLUMN_COUNT = 10;
+// v1.58.0 (D-354, owner: sorting on every column, both directions). Notes is a
+// mix of reminders, not a value, so it has no sort.
+const BOARD_COLUMN_LABEL: Record<BoardSortColumn, string> = {
+  ticket: "Ticket",
+  subject: "Subject",
+  requestor: "Requestor",
+  department: "Department",
+  priority: "Priority",
+  assignee: "Assigned to",
+  since: "In this status",
+  target: "Target date",
+  needed: "Needed by",
+};
+const BOARD_PATH = "/users/tickets/board";
+const VIEW_TARGET = "list_ticket_board";
 
 const dayText = (value: Date) => value.toLocaleDateString("en-IN", { day: "2-digit", month: "short", timeZone: "Asia/Kolkata" });
 const isoDayText = (value: string) => new Date(`${value}T00:00:00Z`).toLocaleDateString("en-IN", { day: "2-digit", month: "short", timeZone: "UTC" });
@@ -55,6 +74,9 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
   // v1.57.1 (D-338): only the categories this person coordinates (or was named for); IT sees all.
   if (!isAdmin && !categoryIds?.length) notFound();
   const query = await searchParams;
+  // v1.58.0 (D-354, owner: saved views, private): the default view opens on a bare address.
+  await applyDefaultListView(user.id, VIEW_TARGET, BOARD_PATH, query);
+  const sort = parseColumnSort(query, BOARD_SORT_COLUMNS);
   const categories = (await listTicketCategories(true)).filter((category) => isAdmin || categoryIds!.includes(category.id));
   const categoryId = categories.some((category) => String(category.id) === query.category) ? Number(query.category) : null;
   const q = (query.q ?? "").trim().slice(0, 100);
@@ -64,6 +86,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
   const now = new Date();
   const byStatus = new Map<TicketStatus, TicketBoardItem[]>();
   for (const item of items) byStatus.set(item.status, [...(byStatus.get(item.status) ?? []), item]);
+  // v1.58.0 (D-354): the board isn't paged, so a column sort orders the rows inside each status.
+  if (sort.sortBy) for (const [status, rows] of byStatus) byStatus.set(status, sortRows(rows, (item) => boardSortValue(item, sort.sortBy!), sort.dir));
   const overdueCount = items.filter((item) => isOverdue(item, now)).length;
   const filtered = Boolean(categoryId || q || overdueOnly);
   const hrefWith = (status: TicketStatus | null) => {
@@ -72,10 +96,18 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
     if (q) params.set("q", q);
     if (overdueOnly) params.set("overdue", "1");
     if (status) params.set("status", status);
+    if (sort.sortBy) {
+      params.set("sortBy", sort.sortBy);
+      params.set("dir", sort.dir);
+    }
     const text = params.toString();
     return `/users/tickets/board${text ? `?${text}` : ""}`;
   };
   const shown = STATUSES.filter((item) => !statusFilter || item.status === statusFilter);
+  // The address without the sort (each column title adds its own), and the whole
+  // address for "Save this view".
+  const filterQuery: Record<string, string> = { ...(categoryId ? { category: String(categoryId) } : {}), ...(q ? { q } : {}), ...(overdueOnly ? { overdue: "1" } : {}), ...(statusFilter ? { status: statusFilter } : {}) };
+  const viewQuery = { ...filterQuery, ...(sort.sortBy ? { sortBy: sort.sortBy, dir: sort.dir } : {}) };
 
   return (
     <>
@@ -108,10 +140,12 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
           <input type="checkbox" name="overdue" value="1" defaultChecked={overdueOnly} /> Only overdue
         </label>
         {statusFilter && <input type="hidden" name="status" value={statusFilter} />}
+        {sort.sortBy && <input type="hidden" name="sortBy" value={sort.sortBy} />}
+        {sort.sortBy && <input type="hidden" name="dir" value={sort.dir} />}
         <button type="submit" className="btn-secondary btn-compact">
           Apply
         </button>
-        {(filtered || statusFilter) && (
+        {(filtered || statusFilter || sort.sortBy) && (
           <Link href="/users/tickets/board" className="link text-label">
             Clear
           </Link>
@@ -132,84 +166,85 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
         ))}
       </nav>
 
+      {/* v1.58.0 (D-354): saved views (private): category, search, overdue, status, sort. */}
+      <ListViews userId={user.id} target={VIEW_TARGET} path={BOARD_PATH} query={viewQuery} />
       {items.length === 0 ? (
         <EmptyState title={filtered ? "No tickets match" : "No tickets yet"} body={filtered ? "Change or clear the filters." : "Tickets of the forms you coordinate show here as soon as they are raised."} />
       ) : (
-        <div className="card overflow-x-auto">
-          <table className="data-table" data-testid="ticket-board">
-            <caption className="sr-only">Tickets by status</caption>
-            <thead>
-              <tr>
-                <th scope="col">Ticket</th>
-                <th scope="col">Subject</th>
-                <th scope="col">Requestor</th>
-                <th scope="col">Department</th>
-                <th scope="col">Priority</th>
-                <th scope="col">Assigned to</th>
-                <th scope="col">In this status</th>
-                <th scope="col">Target date</th>
-                <th scope="col">Needed by</th>
-                <th scope="col">Notes</th>
-              </tr>
-            </thead>
-            {shown.map(({ status, hint }) => {
-              const rows = byStatus.get(status) ?? [];
-              const label = TICKET_STATUS_LABEL[status];
-              return (
-                // v1.57.4 (D-342): each status group folds away from its heading.
-                <FoldTbody key={status} label={label} count={rows.length} hint={hint} colSpan={COLUMN_COUNT} headClass={`border-l-4 ${ACCENT[status]}`} testId={`board-column-${status}`}>
-                  {rows.length === 0 ? (
-                    <tr>
-                      <td colSpan={COLUMN_COUNT} className="text-caption text-ink-muted">
-                        None
-                      </td>
-                    </tr>
-                  ) : (
-                    rows.map((item) => {
-                      const overdue = isOverdue(item, now);
-                      return (
-                        <tr key={item.id} data-testid="board-card">
-                          <td className="whitespace-nowrap font-mono text-label">
-                            <Link href={`/users/tickets/${item.id}`} className="link">
-                              {item.ticketNo}
-                            </Link>
-                          </td>
-                          <td>
-                            <Link href={`/users/tickets/${item.id}`} className="link font-medium">
-                              {item.title}
-                            </Link>
-                            <p className="text-caption text-ink-muted">
-                              {item.categoryName} · {item.typeName}
-                            </p>
-                          </td>
-                          <td className="text-label">{item.requesterName}</td>
-                          <td className="text-label">{item.departmentName ?? "—"}</td>
-                          <td>
-                            <TicketPriorityBadge priority={item.priority} />
-                          </td>
-                          <td className="text-label">
-                            {item.assigneeName ?? <span className="text-ink-muted">Not assigned</span>}
-                            {item.taskNo && <span className="block font-mono text-caption text-ink-muted">{item.taskNo}</span>}
-                          </td>
-                          <td className="whitespace-nowrap text-label">{status === "CLOSED" ? `${item.closeKind === "AUTO" ? "Auto closed" : "Closed"} ${dayText(item.statusSince)}` : ago(item.statusSince, now)}</td>
-                          <td className={`whitespace-nowrap text-label ${overdue ? "font-semibold text-danger-600" : ""}`}>
-                            {item.dueAt ? dayText(item.dueAt) : "—"}
-                            {overdue && <span className="block text-caption">Overdue</span>}
-                          </td>
-                          <td className="whitespace-nowrap text-label">{item.requiredOn ? isoDayText(item.requiredOn) : "—"}</td>
-                          <td className="text-caption text-ink-muted">
-                            {status === "AWAITING_CONFIRMATION" && item.confirmDueOn && <span className="block">Auto-closes after {isoDayText(item.confirmDueOn)}</span>}
-                            {item.reopenCount > 0 && <span className="block text-danger-600">Reopened {item.reopenCount}×</span>}
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </FoldTbody>
-              );
-            })}
-          </table>
-        </div>
+        // v1.58.0 (D-354, owner: "expand or collapse individually and all option"): the board is
+        // always grouped by status, so it gets Expand all / Collapse all too. It starts OPEN (not
+        // folded like a chosen Group by): its purpose is to see at a glance where every ticket is.
+        <FoldScope defaultOpen testId="board-fold-all">
+          <div className="card overflow-x-auto">
+            <table className="data-table" data-testid="ticket-board">
+              <caption className="sr-only">Tickets by status</caption>
+              <thead>
+                <tr>
+                  {BOARD_SORT_COLUMNS.map((column) => (
+                    <SortTh key={column} label={BOARD_COLUMN_LABEL[column]} column={column} sortBy={sort.sortBy} dir={sort.dir} href={sortHref(BOARD_PATH, filterQuery, column, nextDir(sort, column))} />
+                  ))}
+                  <th scope="col">Notes</th>
+                </tr>
+              </thead>
+              {shown.map(({ status, hint }) => {
+                const rows = byStatus.get(status) ?? [];
+                const label = TICKET_STATUS_LABEL[status];
+                return (
+                  // v1.57.4 (D-342): each status group folds away from its heading.
+                  <FoldTbody key={status} label={label} count={rows.length} hint={hint} colSpan={COLUMN_COUNT} headClass={`border-l-4 ${ACCENT[status]}`} testId={`board-column-${status}`}>
+                    {rows.length === 0 ? (
+                      <tr>
+                        <td colSpan={COLUMN_COUNT} className="text-caption text-ink-muted">
+                          None
+                        </td>
+                      </tr>
+                    ) : (
+                      rows.map((item) => {
+                        const overdue = isOverdue(item, now);
+                        return (
+                          <tr key={item.id} data-testid="board-card">
+                            <td className="whitespace-nowrap font-mono text-label">
+                              <Link href={`/users/tickets/${item.id}`} className="link">
+                                {item.ticketNo}
+                              </Link>
+                            </td>
+                            <td>
+                              <Link href={`/users/tickets/${item.id}`} className="link font-medium">
+                                {item.title}
+                              </Link>
+                              <p className="text-caption text-ink-muted">
+                                {item.categoryName} · {item.typeName}
+                              </p>
+                            </td>
+                            <td className="text-label">{item.requesterName}</td>
+                            <td className="text-label">{item.departmentName ?? "—"}</td>
+                            <td>
+                              <TicketPriorityBadge priority={item.priority} />
+                            </td>
+                            <td className="text-label">
+                              {item.assigneeName ?? <span className="text-ink-muted">Not assigned</span>}
+                              {item.taskNo && <span className="block font-mono text-caption text-ink-muted">{item.taskNo}</span>}
+                            </td>
+                            <td className="whitespace-nowrap text-label">{status === "CLOSED" ? `${item.closeKind === "AUTO" ? "Auto closed" : "Closed"} ${dayText(item.statusSince)}` : ago(item.statusSince, now)}</td>
+                            <td className={`whitespace-nowrap text-label ${overdue ? "font-semibold text-danger-600" : ""}`}>
+                              {item.dueAt ? dayText(item.dueAt) : "—"}
+                              {overdue && <span className="block text-caption">Overdue</span>}
+                            </td>
+                            <td className="whitespace-nowrap text-label">{item.requiredOn ? isoDayText(item.requiredOn) : "—"}</td>
+                            <td className="text-caption text-ink-muted">
+                              {status === "AWAITING_CONFIRMATION" && item.confirmDueOn && <span className="block">Auto-closes after {isoDayText(item.confirmDueOn)}</span>}
+                              {item.reopenCount > 0 && <span className="block text-danger-600">Reopened {item.reopenCount}×</span>}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </FoldTbody>
+                );
+              })}
+            </table>
+          </div>
+        </FoldScope>
       )}
     </>
   );

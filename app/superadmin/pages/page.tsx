@@ -11,6 +11,17 @@ import { personLabel } from "@/lib/people/label";
 import { effectiveLevel, LEVEL_LABEL, PAGES } from "@/server/authorization/pages";
 import { getDbPool } from "@/lib/db/client";
 import type { RowDataPacket } from "mysql2/promise";
+import { ListViews } from "@/features/lists/ListViews";
+import { sortHeads } from "@/features/superadmin/sort-heads";
+import { applyDefaultListView } from "@/server/lists/views";
+import { parseColumnSort, sortRows } from "@/server/lists/sorting";
+
+// v1.58.0 (D-354, owner: "sorting in all the tables ... in all columns"): each
+// area's table sorts by any column (one sort on the page at a time); views save
+// it. No Group by: each table is already one area's pages.
+const AREA_COLUMNS = { users: ["users_page", "users_everyone", "users_rules"], admin: ["admin_page", "admin_everyone", "admin_rules"] } as const;
+const PATH = "/superadmin/pages";
+const TARGET = "list_super_pages";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
 export const metadata: Metadata = { title: "Page access" };
@@ -21,9 +32,11 @@ export const dynamic = "force-dynamic";
 // My approvals and the Admin space: Full, View only or Hidden, for everyone,
 // a department or a person (the most specific rule wins). The Super Admin
 // is never limited, and the Super Admin pages aren't on this list.
-export default async function PageAccessPage({ searchParams }: { searchParams: Promise<{ person?: string }> }) {
-  await requireArea("superadmin");
-  const { person } = await searchParams;
+export default async function PageAccessPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const { user } = await requireArea("superadmin");
+  const query = await searchParams;
+  await applyDefaultListView(user.id, TARGET, PATH, query);
+  const person = Array.isArray(query.person) ? query.person[0] : query.person;
   const [rules, people] = await Promise.all([listAccessRules(), listActiveUserOptions()]);
   const personId = /^\d{1,10}$/.test(person ?? "") ? Number(person) : null;
   let checked: { name: string; levels: Map<string, string>; roles: string[] } | null = null;
@@ -43,12 +56,21 @@ export default async function PageAccessPage({ searchParams }: { searchParams: P
   }
   const everyone = (key: string) => rules.find((rule) => rule.pageKey === key && rule.scope === "EVERYONE")?.level ?? null;
   const count = (key: string, scope: "DEPARTMENT" | "USER") => rules.filter((rule) => rule.pageKey === key && rule.scope === scope).length;
+  const areaPages = (area: "users" | "admin") => {
+    const sort = parseColumnSort(query, AREA_COLUMNS[area]);
+    const list = PAGES.filter((page) => page.area === area);
+    const [pageCol, everyoneCol] = AREA_COLUMNS[area];
+    const value = (page: (typeof list)[number]) =>
+      sort.sortBy === pageCol ? page.label : sort.sortBy === everyoneCol ? (LEVEL_LABEL[(everyone(page.key) ?? "FULL") as "FULL"] ?? everyone(page.key)) : count(page.key, "DEPARTMENT") + count(page.key, "USER");
+    return { pages: sort.sortBy ? sortRows(list, value, sort.dir) : list, head: sortHeads(PATH, query, sort) };
+  };
   const tone = (level: string) => (level === "HIDDEN" ? "text-danger-600" : level === "VIEW" ? "text-warning-600" : "text-success-600");
 
   return (
     <>
       <PageHeader title="Page access" description="Who can open each page of My approvals and the Admin space, and who can only look. Set it for everyone, then for a department or a person: the most specific rule wins. The Super Admin is never limited." />
 
+      <ListViews userId={user.id} target={TARGET} path={PATH} query={query} />
       <form method="get" className="card mb-6 flex flex-wrap items-end gap-3 px-4 py-3" aria-label="Check a person">
         <div>
           <label htmlFor="person" className="field-label">
@@ -93,7 +115,7 @@ export default async function PageAccessPage({ searchParams }: { searchParams: P
         </section>
       )}
 
-      {(["users", "admin"] as const).map((area) => (
+      {(["users", "admin"] as const).map((area) => ({ area, ...areaPages(area) })).map(({ area, pages, head }) => (
         <section key={area} aria-labelledby={`area-${area}`} className="card mb-6 overflow-x-auto">
           <h2 id={`area-${area}`} className="border-b border-line px-5 py-3 font-semibold">
             {area === "users" ? "My approvals (everyone)" : "Admin space (IT team)"}
@@ -101,13 +123,13 @@ export default async function PageAccessPage({ searchParams }: { searchParams: P
           <table className="data-table">
             <thead>
               <tr>
-                <th scope="col">Page</th>
-                <th scope="col">For everyone</th>
-                <th scope="col">Departments and people</th>
+                {head("Page", AREA_COLUMNS[area][0])}
+                {head("For everyone", AREA_COLUMNS[area][1])}
+                {head("Departments and people", AREA_COLUMNS[area][2])}
               </tr>
             </thead>
             <tbody>
-              {PAGES.filter((page) => page.area === area).map((page) => (
+              {pages.map((page) => (
                 <tr key={page.key}>
                   <td className="max-w-80">
                     <span className="flex items-center gap-1.5 font-medium">

@@ -2,6 +2,8 @@ import "server-only";
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { getDbPool, type Queryable } from "@/lib/db/client";
 import type { Attendance, Confidentiality, MeetingMode, MeetingPriority, MeetingStatus, PointsPolicy, PointsStatus } from "@/server/meetings/rules";
+import { meetingOrderSql, type MeetingSortColumn } from "@/server/meetings/list-sort";
+import type { SortDir } from "@/server/lists/sorting";
 
 // v1.51.0 (D-300): Meeting Management storage. Raw SQL; every change to a
 // meeting row is guarded by row_version read under the lock.
@@ -681,6 +683,9 @@ export interface MeetingListFilter {
   to: Date | null;
   page: number;
   pageSize: number;
+  // v1.58.0 (D-354, owner): a column sort (whitelisted in server/meetings/list-sort).
+  sortBy?: MeetingSortColumn | null;
+  dir?: SortDir;
 }
 
 export interface MeetingListRow {
@@ -751,13 +756,14 @@ export async function listMeetings(scope: MeetingScope, filter: MeetingListFilte
   }
   const whereSql = where.join(" AND ");
   const [countRows] = await db.query<Row[]>(`SELECT COUNT(*) AS total FROM meetings m WHERE ${whereSql}`, params);
-  const order = filter.tab === "upcoming" ? "m.scheduled_start ASC" : "m.scheduled_start DESC";
+  // v1.58.0 (D-354): the chosen column (fixed expressions only) or the tab's order.
+  const order = meetingOrderSql(filter.tab, filter.sortBy, filter.dir);
   const [rows] = await db.query<Row[]>(
     `SELECT m.id, m.meeting_no, m.title, t.name AS type_name, d.name AS department_name, o.name AS owner_name, c.name AS coordinator_name, m.status, m.points_status, m.mode, m.priority, m.scheduled_start, m.scheduled_end, m.owner_id, m.coordinator_id, m.agenda_due_at, m.mom_due_at, m.link, m.venue,
             (SELECT COUNT(*) FROM meeting_actions a LEFT JOIN tasks tk ON tk.id = a.task_id WHERE a.meeting_id = m.id AND a.confirmed_at IS NULL AND (tk.status IS NULL OR tk.status <> 'CANCELLED')) AS open_actions,
             (SELECT COUNT(*) FROM meeting_participants p WHERE p.meeting_id = m.id) AS participants
        FROM meetings m JOIN meeting_types t ON t.id = m.type_id JOIN users o ON o.id = m.owner_id JOIN users c ON c.id = m.coordinator_id LEFT JOIN departments d ON d.id = m.department_id
-      WHERE ${whereSql} ORDER BY ${order}, m.id DESC LIMIT ? OFFSET ?`,
+      WHERE ${whereSql} ORDER BY ${order} LIMIT ? OFFSET ?`,
     [...params, filter.pageSize, (filter.page - 1) * filter.pageSize],
   );
   return {

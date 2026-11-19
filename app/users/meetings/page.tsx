@@ -10,7 +10,12 @@ import { MeetingSections, MeetingStatusBadge, PointsBadge, whenText } from "@/fe
 import { listMeetings, listMeetingTypes, type MeetingListFilter } from "@/lib/db/repositories/meetings.repository";
 import { scopeFor } from "@/server/meetings/service";
 import { MEETING_STATUSES, MODE_LABEL, PRIORITY_LABEL as MEETING_PRIORITY_LABEL, STATUS_LABEL } from "@/server/meetings/rules";
-import { FoldTbody } from "@/features/ui/GroupFold";
+import { FoldScope, FoldTbody } from "@/features/ui/GroupFold";
+import { SortTh } from "@/features/ui/SortTh";
+import { ListViews } from "@/features/lists/ListViews";
+import { applyDefaultListView } from "@/server/lists/views";
+import { nextDir, parseColumnSort } from "@/server/lists/sorting";
+import { MEETING_SORT_COLUMNS, MEETING_SORT_LABEL } from "@/server/meetings/list-sort";
 import { departmentBucket, groupRows, pickGroup } from "@/server/lists/group-rows";
 import type { MeetingListRow } from "@/lib/db/repositories/meetings.repository";
 
@@ -55,6 +60,8 @@ function meetingBucket(row: MeetingListRow, group: MeetingGroup): [string, numbe
 export default async function MeetingsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const { user } = await requireArea("users");
   const query = await searchParams;
+  // v1.58.0 (D-354, owner): an empty address opens the person's default saved view (private).
+  await applyDefaultListView(user.id, "list_meetings", "/users/meetings", query);
   const one = (key: string) => (typeof query[key] === "string" ? (query[key] as string) : "");
   const tab: Tab = (TABS.find((item) => item.key === one("tab"))?.key ?? "upcoming") as Tab;
   const q = one("q").trim().slice(0, 100);
@@ -62,8 +69,10 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
   const status = (MEETING_STATUSES as readonly string[]).includes(one("status")) ? one("status") : null;
   const page = /^\d{1,4}$/.test(one("page")) ? Math.max(1, Number(one("page"))) : 1;
   const group = pickGroup(one("group"), MEETING_GROUPS);
+  // v1.58.0 (D-354, owner: "sorting in all the tables asc to desc or vice versa in all columns").
+  const sort = parseColumnSort(query, MEETING_SORT_COLUMNS);
   const scope = await scopeFor(user);
-  const base: Omit<MeetingListFilter, "tab"> = { userId: user.id, q, typeId, departmentId: null, status, from: null, to: null, page, pageSize: PAGE_SIZE };
+  const base: Omit<MeetingListFilter, "tab"> = { userId: user.id, q, typeId, departmentId: null, status, from: null, to: null, page, pageSize: PAGE_SIZE, sortBy: sort.sortBy, dir: sort.dir };
   const [list, types, approveCount] = await Promise.all([
     listMeetings(scope, { ...base, tab }),
     listMeetingTypes(true),
@@ -72,7 +81,7 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
   const pages = Math.max(1, Math.ceil(list.total / PAGE_SIZE));
   const href = (changes: Record<string, string | number | null>) => {
     const params = new URLSearchParams();
-    const merged = { tab, q, type: typeId, status, group, page, ...changes };
+    const merged = { tab, q, type: typeId, status, group, sortBy: sort.sortBy, dir: sort.sortBy ? sort.dir : null, page, ...changes };
     for (const [key, value] of Object.entries(merged))
       if (value !== null && value !== "" && !(key === "page" && value === 1) && !(key === "tab" && value === "upcoming")) params.set(key, String(value));
     const text = params.toString();
@@ -105,7 +114,7 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
         id="meeting-filters"
         path="/users/meetings"
         label="Filter meetings"
-        keep={{ tab: tab !== "upcoming" ? tab : undefined, group: group ?? undefined }}
+        keep={{ tab: tab !== "upcoming" ? tab : undefined, group: group ?? undefined, sortBy: sort.sortBy ?? undefined, dir: sort.sortBy ? sort.dir : undefined }}
         search={{ name: "q", value: q, placeholder: "Title or meeting number" }}
         filterCount={[typeId, status].filter(Boolean).length}
         clearHref={filtered ? href({ q: "", type: null, status: null, page: 1 }) : null}
@@ -145,6 +154,8 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
           </>
         }
       />
+      {/* v1.58.0 (D-354, owner): save tab, filters, search, group and sort as a named view (only mine). */}
+      <ListViews userId={user.id} target="list_meetings" path="/users/meetings" query={{ ...Object.fromEntries(new URLSearchParams(href({ page: 1 }).split("?")[1] ?? "").entries()), tab }} />
       {list.rows.length === 0 ? (
         filtered ? (
           <NoResults query={q || null} resetHref={href({ q: "", type: null, status: null, page: 1 })} what="meetings" />
@@ -156,21 +167,17 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
         )
       ) : (
         // v1.56.0 (D-333, owner: "i want the meeting to be like table format like the tickets").
+        // v1.58.0 (D-354, owner): groups start folded; Expand all / Collapse all.
+        <FoldScope enabled={Boolean(group)}>
         <div className="card overflow-x-auto">
           <table className="data-table" data-testid="meeting-list">
             <caption className="sr-only">Meetings</caption>
             <thead>
               <tr>
-                <th scope="col">Meeting</th>
-                <th scope="col">Title</th>
-                <th scope="col">Date and time</th>
-                <th scope="col">Mode / venue</th>
-                <th scope="col">Owner</th>
-                <th scope="col">Coordinator</th>
-                <th scope="col">Department</th>
-                <th scope="col">Priority</th>
-                <th scope="col">Invited</th>
-                <th scope="col">Status</th>
+                {/* v1.58.0 (D-354): every column sorts both ways (in SQL; the list is paged). */}
+                {MEETING_SORT_COLUMNS.map((column) => (
+                  <SortTh key={column} label={MEETING_SORT_LABEL[column]} column={column} sortBy={sort.sortBy} dir={sort.dir} href={href({ sortBy: column, dir: nextDir(sort, column), page: 1 })} />
+                ))}
               </tr>
             </thead>
             {(group ? groupRows(list.rows, (row) => meetingBucket(row, group)) : [{ key: "all", label: "", items: list.rows }]).map((section) => {
@@ -225,6 +232,7 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
             })}
           </table>
         </div>
+        </FoldScope>
       )}
       {pages > 1 && (
         <div className="mt-4">

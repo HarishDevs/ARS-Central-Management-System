@@ -49,7 +49,9 @@ export function SelectAllBox({ formId, label, testId }: { formId: string; label:
         if (element) element.indeterminate = state === "some";
       }}
       onChange={(event) => {
-        for (const box of ticked(formId)) box.checked = event.target.checked;
+        // v1.58.0 (D-352): ticking selects only rows that can be seen (rows in a
+        // folded group stay unticked); unticking clears every row.
+        for (const box of ticked(formId)) box.checked = event.target.checked ? box.getClientRects().length > 0 : false;
         document.dispatchEvent(new Event("change"));
       }}
     />

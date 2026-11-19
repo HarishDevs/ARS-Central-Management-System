@@ -1,7 +1,7 @@
 "use client";
 
 import { CalendarDays, ChevronDown, Paperclip, Plus, Repeat, Sparkles, UserPlus, X } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { followAction, quickAddAction, recurrenceAction, taskFieldsAction } from "@/app/users/work/actions";
 import { taskAction } from "@/app/users/tasks/actions";
@@ -23,15 +23,21 @@ export function TaskCreator({ projects, people, meId, ai = false }: { projects: 
   useEffect(() => {
     const onCreate = (event: Event) => setOpen({ projectId: (event as CustomEvent<{ projectId?: number | null } | null>).detail?.projectId ?? null });
     window.addEventListener(CREATE_TASK_EVENT, onCreate);
-    // v1.48.2: "New task" links (/users/tasks/new) arrive with ?create=task.
+    return () => window.removeEventListener(CREATE_TASK_EVENT, onCreate);
+  }, []);
+  // v1.48.2: "New task" links (/users/tasks/new) arrive with ?create=task.
+  // v1.58.0: checked on every page change, not only the first load (this panel
+  // stays mounted in the layout, so a click inside the app never opened it).
+  const asked = useSearchParams().get("create") === "task";
+  useEffect(() => {
+    if (!asked) return;
     const url = new URL(window.location.href);
     if (url.searchParams.get("create") === "task") {
       setOpen({ projectId: null });
       url.searchParams.delete("create");
       window.history.replaceState(window.history.state, "", url.pathname + (url.search ? url.search : "") + url.hash);
     }
-    return () => window.removeEventListener(CREATE_TASK_EVENT, onCreate);
-  }, []);
+  }, [asked]);
   return open ? <CreateTaskDialog key={String(open.projectId)} onClose={() => setOpen(null)} projects={projects} people={people} meId={meId} defaultProject={open.projectId} ai={ai} /> : null;
 }
 

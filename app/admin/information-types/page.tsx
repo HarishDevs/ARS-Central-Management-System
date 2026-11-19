@@ -8,9 +8,10 @@ export const metadata: Metadata = { title: "Information types" };
 export const dynamic = "force-dynamic";
 
 // v1.9.0 (D-144): Admin → information-types. The screen checks the admin area itself.
-export default async function Page() {
+export default async function Page({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   // D-244 (audit SEC-02): the page checks its own area too (not only the
   // screen it renders, nor the layout).
   await requireArea("admin");
-  return <ModuleTypesListScreen module="INFO" />;
+  // v1.58.0 (D-354): the address carries the sort, group and saved view.
+  return <ModuleTypesListScreen module="INFO" searchParams={await searchParams} />;
 }

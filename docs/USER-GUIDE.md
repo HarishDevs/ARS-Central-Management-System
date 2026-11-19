@@ -210,6 +210,11 @@ Comments on a request can't be edited or removed. To tell someone in particular,
 - **Comments / All activity:** Comments is the thread (reply, like, pin); All activity is the full history, oldest or newest first.
 - **Choosing a person** anywhere: type a name, code or department; each choice shows **Name - Employee code** and the department below. Lists open where they fit on the screen and close with ×, Esc or a click outside.
 
+**Sorting, saved views and folded groups (v1.58.0):**
+- **Sort:** click any column title to sort A→Z (oldest, smallest first); click it again for Z→A. Empty values always go last. On long lists the whole list is sorted, not just the page you see.
+- **Save this view:** keeps the list as it is now (filters, search, group, sort, tab) under a name. Your views appear as chips above the list: click one to open it, **Make default** to open it whenever you come to that list with nothing chosen, **×** to delete it. Views are only yours.
+- **Groups:** after you choose a Group by, every group starts folded. Click a group's heading to open or close it, or use **Expand all** / **Collapse all**.
+
 **Group on every list (v1.57.5):** every list page with a table has **Group**: tasks, information, meetings, follow-ups, My tickets and the ticket dashboards (Department is always one of the choices).
 
 **Folding groups (v1.57.4):** in any grouped list, click a group's heading to fold its rows away, and again to open them. **Waiting for me** has Group too: Department, Raised by, Approval type, Your step, Priority, Due date.

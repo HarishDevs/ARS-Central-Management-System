@@ -39,6 +39,8 @@ import type { workPage } from "@/server/work/page-context";
 import { PeriodPicker, QuietRefresh, WorkloadChart } from "@/features/home/HomeClient";
 import { hasModule } from "@/server/modules/modules";
 import { ComingSoonCard, ComingSoonChip, LockedProjectName } from "@/features/ui/ComingSoon";
+import { SortTh } from "@/features/ui/SortTh";
+import { nextDir, parseColumnSort, sqlDir } from "@/server/lists/sorting";
 
 // D-265 (owner's My Work brief): Home → Task Management. Every figure is
 // counted from the task records with the same rules as My Tasks (India days;
@@ -47,6 +49,27 @@ import { ComingSoonCard, ComingSoonChip, LockedProjectName } from "@/features/ui
 const OPEN = "t.status IN ('OPEN', 'IN_PROGRESS', 'BLOCKED')";
 const IST_DAY = "DATE(DATE_ADD(t.due_at, INTERVAL 330 MINUTE))";
 const PAGE = 6;
+// v1.58.0 (D-354, owner: "i need sorting in all the tables asc to desc or vice
+// versa in all columns"): My Tasks' columns sort every page from their titles.
+// Fixed SQL per column; empty values (no due date, no project) stay last.
+const MW_COLUMNS = ["task", "project", "due", "priority", "status"] as const;
+type MwColumn = (typeof MW_COLUMNS)[number];
+const PROJECT_NAME = "(SELECT MIN(p.name) FROM task_projects tp JOIN projects p ON p.id = tp.project_id AND p.deleted_at IS NULL WHERE tp.task_id = t.id)";
+function myWorkOrder(column: MwColumn, dir: "asc" | "desc"): string {
+  const d = sqlDir(dir);
+  switch (column) {
+    case "task":
+      return `t.title ${d}, t.id ${d}`;
+    case "project":
+      return `${PROJECT_NAME} IS NULL, ${PROJECT_NAME} ${d}, t.id ${d}`;
+    case "due":
+      return `t.due_at IS NULL, t.due_at ${d}, t.id ${d}`;
+    case "priority":
+      return `FIELD(t.priority, 'URGENT', 'HIGH', 'IMPORTANT', 'ELEVATED', 'NORMAL', 'LOW') ${d}, t.id ${d}`;
+    case "status":
+      return `FIELD(t.status, 'OPEN', 'IN_PROGRESS', 'BLOCKED', 'COMPLETED', 'CANCELLED') ${d}, t.id ${d}`;
+  }
+}
 type Tab = "upcoming" | "overdue" | "completed" | "all";
 const STATUS: Record<WorkTaskItem["status"], [string, Tone]> = {
   OPEN: ["Open", "info"],
@@ -84,13 +107,18 @@ export async function MyWorkOverview({
         : which === "all"
           ? [[...mineBase, `(${OPEN} OR ${completedIn})`], [user.id, period.from, period.to], "t.status = 'COMPLETED', t.due_at IS NULL, t.due_at, t.id DESC"]
           : [[...mineBase, OPEN, "t.due_at IS NOT NULL", `${IST_DAY} >= ?`], [user.id, today], "t.due_at, t.id DESC"];
+  const columnSort = parseColumnSort<MwColumn>(query, MW_COLUMNS);
+  const sortedWhere = (which: Tab): [string[], unknown[], string] => {
+    const [where, params, order] = tabWhere(which);
+    return [where, params, columnSort.sortBy ? myWorkOrder(columnSort.sortBy, columnSort.dir) : order];
+  };
   const limit = query.activity === "more" ? 20 : 6;
   // D-307 (owner): Projects is its own module. Without it, project cards are
   // locked ("Coming soon") and a task's project is its name only, no link.
   const projectsOn = hasModule(user, "PROJECT");
   const [summary, list, projects, taskEvents, statusPosts, workload, profile] = await Promise.all([
     workSummary(user.id, today, period),
-    listTaskItems(...tabWhere(tab), PAGE, (page - 1) * PAGE),
+    listTaskItems(...sortedWhere(tab), PAGE, (page - 1) * PAGE),
     projectsOn ? homeProjects(viewer, 4) : Promise.resolve([]),
     workActivity(user.id, limit),
     projectsOn ? recentStatusUpdates(viewer, limit) : Promise.resolve([] as StatusUpdate[]),
@@ -106,7 +134,15 @@ export async function MyWorkOverview({
     .slice(0, limit);
   const total = summary.open + summary.completed;
   const counts: Record<Tab, number> = { upcoming: summary.upcoming, overdue: summary.overdue, completed: summary.completed, all: total };
-  const keep: Record<string, string> = { home: "tasks", ...(period.key !== "week" ? { period: period.key } : {}), ...(period.key === "custom" ? { from: period.fromDay, to: period.toDay } : {}) };
+  const keep: Record<string, string> = {
+    home: "tasks",
+    ...(period.key !== "week" ? { period: period.key } : {}),
+    ...(period.key === "custom" ? { from: period.fromDay, to: period.toDay } : {}),
+    ...(columnSort.sortBy ? { sortBy: columnSort.sortBy, dir: columnSort.dir } : {}), // v1.58.0 (D-354)
+  };
+  const mwSort = (column: MwColumn, label: string) => (
+    <SortTh label={label} column={column} sortBy={columnSort.sortBy} dir={columnSort.dir} href={`/users?${new URLSearchParams({ ...keep, tab, sortBy: column, dir: nextDir(columnSort, column) })}`} className="py-2 pr-3 font-medium" />
+  );
   const href = (extra: Record<string, string>) => `/users?${new URLSearchParams({ ...keep, tab, ...extra })}`;
   const links = paneLinks("/users", { ...keep, tab, ...(page > 1 ? { tp: String(page) } : {}) });
   const paneId = paneTaskId(query.task);
@@ -256,21 +292,11 @@ export async function MyWorkOverview({
                   <thead className="text-left text-caption text-ink-muted">
                     <tr className="border-b border-line">
                       <th scope="col" className="w-8 py-2" />
-                      <th scope="col" className="py-2 pr-3 font-medium">
-                        Task
-                      </th>
-                      <th scope="col" className="py-2 pr-3 font-medium">
-                        Project
-                      </th>
-                      <th scope="col" className="py-2 pr-3 font-medium">
-                        Due date
-                      </th>
-                      <th scope="col" className="py-2 pr-3 font-medium">
-                        Priority
-                      </th>
-                      <th scope="col" className="py-2 pr-3 font-medium">
-                        Status
-                      </th>
+                      {mwSort("task", "Task")}
+                      {mwSort("project", "Project")}
+                      {mwSort("due", "Due date")}
+                      {mwSort("priority", "Priority")}
+                      {mwSort("status", "Status")}
                       <th scope="col" className="py-2">
                         <span className="sr-only">Actions</span>
                       </th>

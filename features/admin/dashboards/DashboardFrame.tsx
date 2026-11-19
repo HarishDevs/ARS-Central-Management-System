@@ -4,6 +4,13 @@ import { PageHeader } from "@/features/shell/PageHeader";
 import { Hint } from "@/features/ui/Hint";
 import { ListToolbar } from "@/features/ui/ListToolbar";
 import { CUSTOM_TYPE, filterQuery, financialYearStart, presets, type DashboardFilter } from "@/server/dashboards/filters";
+import { ListViews } from "@/features/lists/ListViews";
+import { FoldScope } from "@/features/ui/GroupFold";
+import { SortLink } from "@/features/ui/SortTh";
+import { GroupedRows } from "@/features/admin/GroupedRows";
+import { nextDir, parseColumnSort, sortHref, sortRows } from "@/server/lists/sorting";
+import { groupRows } from "@/server/lists/group-rows";
+import { groupMenu, keepListState, type GroupChoice } from "@/server/admin/lists";
 
 // Shared frame of the four admin dashboards (S11-12, F-74): tabs, one filter
 // bar (GET, so every view is a link that can be shared), period presets and
@@ -23,6 +30,9 @@ export function DashboardFrame({
   choices,
   departmentNote,
   children,
+  query,
+  userId,
+  groups,
 }: {
   slug: DashboardSlug;
   filter: DashboardFilter;
@@ -30,15 +40,27 @@ export function DashboardFrame({
   choices: { types: { id: number; name: string }[]; departments: { id: number; name: string }[] };
   departmentNote: string;
   children: React.ReactNode;
+  // v1.58.0 (D-354, owner): the address (sort and group kept by the filters
+  // and the quick periods), saved views (list_admin_dash_<slug>), Group by choices.
+  query?: Record<string, string | undefined>;
+  userId?: number;
+  groups?: readonly GroupChoice[];
 }) {
   const current = DASHBOARDS.find((item) => item.slug === slug)!;
-  const query = filterQuery(filter);
+  const filterText = filterQuery(filter);
   // Filters in use: a period other than this financial year to date, a type, a department.
   const filterCount = [filter.from !== financialYearStart(today) || filter.to !== today, filter.workflowId !== null, filter.departmentId !== null].filter(Boolean).length;
+  const keep = keepListState(query ?? {});
+  const listState = Object.entries(keep)
+    .filter((entry): entry is [string, string] => Boolean(entry[1]))
+    .map(([key, value]) => `&${key}=${encodeURIComponent(value)}`)
+    .join("");
+  const path = `/admin/dashboards/${slug}`;
+  const group = groups?.find((choice) => choice.key === keep.group)?.key ?? null;
   return (
     <>
       <PageHeader title={current.title} description={current.description}>
-        <a href={`/api/admin/dashboards/${slug}?${query}`} className="btn-secondary btn-compact" download>
+        <a href={`/api/admin/dashboards/${slug}?${filterText}`} className="btn-secondary btn-compact" download>
           Download CSV
         </a>
       </PageHeader>
@@ -46,7 +68,7 @@ export function DashboardFrame({
         {DASHBOARDS.map((item) => (
           <Link
             key={item.slug}
-            href={`/admin/dashboards/${item.slug}?${query}`}
+            href={`/admin/dashboards/${item.slug}?${filterText}`}
             aria-current={item.slug === slug ? "page" : undefined}
             className={`rounded-full border px-4 py-1.5 text-label font-semibold transition-colors ${
               item.slug === slug ? "border-primary-solid bg-primary-solid text-on-solid" : "border-line bg-surface text-ink hover:bg-surface-muted"
@@ -61,7 +83,8 @@ export function DashboardFrame({
         id="dashboard-filters"
         path={`/admin/dashboards/${slug}`}
         label="Filters"
-        keep={{}}
+        keep={keep}
+        group={groups?.length ? groupMenu(path, query ?? {}, groups, group) : undefined}
         filterCount={filterCount}
         clearHref={filterCount ? `/admin/dashboards/${slug}` : null}
         filters={
@@ -112,12 +135,13 @@ export function DashboardFrame({
         <span>Quick:</span>
         {/* Plain links with a pending spinner: the last click always wins (QA DEF-04). */}
         {presets(today).map((preset) => (
-          <PendingLink key={preset.label} className="link font-normal" href={`/admin/dashboards/${slug}?${filterQuery({ ...filter, from: preset.from, to: preset.to })}`}>
+          <PendingLink key={preset.label} className="link font-normal" href={`/admin/dashboards/${slug}?${filterQuery({ ...filter, from: preset.from, to: preset.to })}${listState}`}>
             {preset.label}
           </PendingLink>
         ))}
         <Hint text={`${departmentNote} Deleted requests are never counted.`} align="end" />
       </p>
+      {userId !== undefined && query && <ListViews userId={userId} target={`list_admin_dash_${slug}`} path={path} query={query} />}
       {children}
     </>
   );
@@ -190,7 +214,46 @@ export function MeasureBar({ value, max }: { value: number; max: number }) {
 }
 
 // A column's `hint` explains it on hover (D-179).
-export function DashboardTable({ title, empty, head, rows, legend }: { title?: string; empty: string; head: { label: string; numeric?: boolean; hint?: string }[]; rows: React.ReactNode[][]; legend?: boolean }) {
+// v1.58.0 (D-354, owner): with `path`, `query` and `values` (the sortable value
+// of each cell, row by row) every column sorts both ways; `groupOf` gives a
+// row's group when the address has a Group by (folded at first).
+export function DashboardTable({
+  title,
+  empty,
+  head,
+  rows,
+  legend,
+  path,
+  query,
+  values,
+  groupOf,
+}: {
+  title?: string;
+  empty: string;
+  head: { label: string; numeric?: boolean; hint?: string; key?: string }[];
+  rows: React.ReactNode[][];
+  legend?: boolean;
+  path?: string;
+  query?: Record<string, unknown>;
+  values?: unknown[][];
+  groupOf?: ((index: number) => [string, number]) | null;
+}) {
+  const keys = head.map((cell, index) => cell.key ?? `c${index}`);
+  const sorting = Boolean(path && query && values);
+  const sort = parseColumnSort(query ?? {}, keys);
+  const column = sorting && sort.sortBy ? keys.indexOf(sort.sortBy) : -1;
+  const order = rows.map((_, index) => index);
+  const sorted = column >= 0 ? sortRows(order, (index) => values?.[index]?.[column], sort.dir) : order;
+  const groups = groupOf ? groupRows(sorted, groupOf) : null;
+  const renderRow = (rowIndex: number) => (
+    <tr key={rowIndex}>
+      {rows[rowIndex]!.map((cell, index) => (
+        <td key={index} className={head[index]?.numeric ? "text-right tabular-nums" : index === 0 ? "min-w-48" : undefined}>
+          {cell}
+        </td>
+      ))}
+    </tr>
+  );
   return (
     <section className="card overflow-x-auto">
       {title && <h2 className="border-b border-line px-5 py-4 font-semibold">{title}</h2>}
@@ -198,29 +261,38 @@ export function DashboardTable({ title, empty, head, rows, legend }: { title?: s
       {rows.length === 0 ? (
         <p className="px-5 py-4 text-label text-ink-muted">{empty}</p>
       ) : (
+        <FoldScope enabled={Boolean(groups)}>
         <table className="data-table">
-          <thead>
-            <tr>
-              {head.map((cell) => (
-                <th key={cell.label} className={cell.numeric ? "text-right" : undefined}>
-                  {cell.label}
-                  {cell.hint && <Hint text={cell.hint} align={cell.numeric ? "end" : "start"} className="ml-0.5" />}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, rowIndex) => (
-              <tr key={rowIndex}>
-                {row.map((cell, index) => (
-                  <td key={index} className={head[index]?.numeric ? "text-right tabular-nums" : index === 0 ? "min-w-48" : undefined}>
-                    {cell}
-                  </td>
+          {sorting ? (
+            <thead>
+              <tr>
+                {head.map((cell, index) => {
+                  const key = keys[index]!;
+                  const active = sort.sortBy === key;
+                  return (
+                    <th key={key} scope="col" aria-sort={active ? (sort.dir === "asc" ? "ascending" : "descending") : "none"} data-sort-column={key} className={cell.numeric ? "text-right" : undefined}>
+                      <SortLink label={cell.label} active={active} dir={sort.dir} href={sortHref(path!, query!, key, nextDir(sort, key))} />
+                      {cell.hint && <Hint text={cell.hint} align={cell.numeric ? "end" : "start"} className="ml-0.5" />}
+                    </th>
+                  );
+                })}
+              </tr>
+            </thead>
+          ) : (
+            <thead>
+              <tr>
+                {head.map((cell) => (
+                  <th key={cell.label} className={cell.numeric ? "text-right" : undefined}>
+                    {cell.label}
+                    {cell.hint && <Hint text={cell.hint} align={cell.numeric ? "end" : "start"} className="ml-0.5" />}
+                  </th>
                 ))}
               </tr>
-            ))}
-          </tbody>
+            </thead>
+          )}
+          <GroupedRows rows={sorted} groups={groups} colSpan={head.length} paged={false} render={renderRow} />
         </table>
+        </FoldScope>
       )}
     </section>
   );

@@ -164,6 +164,21 @@ flowchart LR
   M --> K[Calendar: Meetings kind, start–end, Join]
 ```
 
+## F-TABLES Sort, saved views and folded groups on every table (v1.58.0, D-351 to D-354)
+```mermaid
+flowchart LR
+  H[Click a column title] --> A[?sortBy=col&dir=asc] --> D[Click again: dir=desc]
+  A --> S{Paged list?}
+  S -- yes --> Q[Server ORDER BY from the list's whitelist; empty values last; every page]
+  S -- no --> R[Rows sorted in place]
+  G[Group by chosen] --> F[Every group starts folded] --> O[Open one by its heading, or Expand all / Collapse all]
+  V[Save this view + name] --> P[(analytics_views target list_<name>, private)] --> C[Chip above the list: open / make default / delete]
+  C --> X{Arriving at the list with nothing chosen, from another page?}
+  X -- yes --> Y[Default view opens]
+  X -- no, e.g. Clear on the same list --> Z[List stays as asked]
+```
+Not sortable on purpose: button columns, records Amount and a request's form Priority (could reveal confidential values), the calendar grid, editors, chart data tables. The Coordinator board and a project's Sections start open.
+
 ## F-ITEMS Item list: requested → provided (v1.57.0, D-335)
 ```mermaid
 flowchart LR

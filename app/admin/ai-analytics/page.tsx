@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { PagedRows } from "@/features/ui/PagedRows";
 import Link from "next/link";
 import { PageHeader } from "@/features/shell/PageHeader";
 import { BarList, Heatmap, LineChart } from "@/features/analytics/Charts";
@@ -13,6 +12,26 @@ import { aiByDepartment, aiByMode, aiByPerson, aiByProvider, aiDaily, aiEnabledP
 import { change, compact, costEstimate, duration, groupFailures, MODE_NAME, percent, toolLabel, WEEKDAYS } from "@/server/ai/analytics";
 import { PROVIDER_LABEL } from "@/server/ai/providers";
 import { formatIndiaTime } from "@/server/notifications/security-messages";
+import { ListViews } from "@/features/lists/ListViews";
+import { FoldScope } from "@/features/ui/GroupFold";
+import { SortHead } from "@/features/admin/SortHead";
+import { GroupedRows } from "@/features/admin/GroupedRows";
+import { applyDefaultListView } from "@/server/lists/views";
+import { parseColumnSort, sortRows } from "@/server/lists/sorting";
+import { departmentBucket, groupRows, pickGroup } from "@/server/lists/group-rows";
+import { groupMenu, keepListState } from "@/server/admin/lists";
+
+// v1.58.0 (D-354, owner): both tables sort on every column, both ways
+// ("p_" Providers, "u_" Top users; one table at a time); Group by Department
+// (Top users) or Provider (Providers and models), folded at first; saved
+// views (list_admin_ai_analytics).
+const PATH = "/admin/ai-analytics";
+const PROVIDER_COLUMNS = ["p_provider", "p_model", "p_answers", "p_failures", "p_rate", "p_time", "p_tokens", "p_cost"] as const;
+const PEOPLE_COLUMNS = ["u_name", "u_department", "u_questions", "u_conversations", "u_failures", "u_tokens", "u_last"] as const;
+const GROUPS = [
+  { key: "department", label: "Department (Top users)" },
+  { key: "provider", label: "Provider (Providers and models)" },
+] as const;
 
 export const metadata: Metadata = { title: "AI Analytics" };
 export const dynamic = "force-dynamic";
@@ -25,13 +44,16 @@ export const dynamic = "force-dynamic";
 const PERIODS = ["7d", "30d", "90d", "this_month", "last_month", "this_quarter", "this_fy"] as const;
 const range = (period: Period): Range => ({ from: indiaDayStartUtc(period.from), to: nextIndiaDayStartUtc(period.to) });
 
-export default async function AiAnalyticsPage({ searchParams }: { searchParams: Promise<{ period?: string; from?: string; to?: string }> }) {
-  await requireArea("admin");
+export default async function AiAnalyticsPage({ searchParams }: { searchParams: Promise<{ period?: string; from?: string; to?: string; sortBy?: string; dir?: string; group?: string }> }) {
+  const { user } = await requireArea("admin");
   const query = await searchParams;
+  await applyDefaultListView(user.id, "list_admin_ai_analytics", PATH, query);
+  const sort = parseColumnSort(query, [...PROVIDER_COLUMNS, ...PEOPLE_COLUMNS]);
+  const group = pickGroup(query.group, GROUPS.map((choice) => choice.key));
   const period = resolvePeriod({ key: query.period, from: query.from, to: query.to }, indiaToday(new Date()));
   const before = previousPeriod(period);
   const now = range(period);
-  const [totals, previous, enabled, daily, modes, providers, people, departments, weekHours, tools, failures, dailyLimit, priceIn, priceOut] = await Promise.all([
+  const [totals, previous, enabled, daily, modes, providerRows, peopleRows, departments, weekHours, tools, failures, dailyLimit, priceIn, priceOut] = await Promise.all([
     aiTotals(now),
     aiTotals(range(before)),
     aiEnabledPeople(),
@@ -48,6 +70,22 @@ export default async function AiAnalyticsPage({ searchParams }: { searchParams: 
     getSettingValue("ai.price_out_per_million").then((value) => (value ? Number(value) : null)),
   ]);
   const limitDays = await aiLimitDays(now, dailyLimit);
+  const providerName = (provider: string) => PROVIDER_LABEL[provider as keyof typeof PROVIDER_LABEL] ?? provider;
+  const providerSort = sort.sortBy?.startsWith("p_") ? sort.sortBy : null;
+  const providers = providerSort
+    ? sortRows(
+        providerRows,
+        (row) =>
+          providerSort === "p_provider" ? providerName(row.provider) : providerSort === "p_model" ? row.model : providerSort === "p_answers" ? row.answers : providerSort === "p_failures" ? row.failures : providerSort === "p_rate" ? (percent(row.failures, row.answers + row.failures) ?? 0) : providerSort === "p_time" ? row.avgLatencyMs : providerSort === "p_tokens" ? row.inputTokens + row.outputTokens : costEstimate(row.inputTokens, row.outputTokens, priceIn, priceOut),
+        sort.dir,
+      )
+    : providerRows;
+  const peopleSort = sort.sortBy?.startsWith("u_") ? sort.sortBy : null;
+  const people = peopleSort
+    ? sortRows(peopleRows, (row) => (peopleSort === "u_name" ? row.name : peopleSort === "u_department" ? row.department : peopleSort === "u_questions" ? row.questions : peopleSort === "u_conversations" ? row.conversations : peopleSort === "u_failures" ? row.failures : peopleSort === "u_tokens" ? row.tokens : row.lastAt), sort.dir)
+    : peopleRows;
+  const providerGroups = group === "provider" ? groupRows(providers, (row): [string, number] => [providerName(row.provider), 0]) : null;
+  const peopleGroups = group === "department" ? groupRows(people, (row) => departmentBucket(row.department)) : null;
   const finished = totals.answers + totals.failures;
   const finishedBefore = previous.answers + previous.failures;
   const cost = costEstimate(totals.inputTokens, totals.outputTokens, priceIn, priceOut);
@@ -78,7 +116,8 @@ export default async function AiAnalyticsPage({ searchParams }: { searchParams: 
         id="ai-analytics-period"
         path="/admin/ai-analytics"
         label="Filter AI analytics period"
-        keep={{}}
+        keep={keepListState(query)}
+        group={groupMenu(PATH, query, GROUPS, group)}
         filterCount={period.key !== "30d" ? 1 : 0}
         clearHref={period.key !== "30d" ? "/admin/ai-analytics" : null}
         filters={
@@ -111,6 +150,8 @@ export default async function AiAnalyticsPage({ searchParams }: { searchParams: 
           </>
         }
       />
+
+      <ListViews userId={user.id} target="list_admin_ai_analytics" path={PATH} query={query} />
 
       <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4" data-testid="ai-kpis">
         <Tile label="Questions asked" value={compact(totals.questions)} delta={change(totals.questions, previous.questions)} hint="Questions people sent to Pico Bot in this period." />
@@ -151,25 +192,32 @@ export default async function AiAnalyticsPage({ searchParams }: { searchParams: 
         {providers.length === 0 ? (
           <p className="px-5 py-4 text-label text-ink-muted">No answers in this period.</p>
         ) : (
+          <FoldScope enabled={Boolean(providerGroups)}>
           <table className="data-table" data-testid="ai-analytics-providers">
-            <thead>
-              <tr>
-                <th scope="col">Provider</th>
-                <th scope="col">Model</th>
-                <th scope="col">Answers</th>
-                <th scope="col">Failed</th>
-                <th scope="col">Failure rate</th>
-                <th scope="col">Average time</th>
-                <th scope="col">Tokens in / out</th>
-                <th scope="col">Estimated cost</th>
-              </tr>
-            </thead>
-            <PagedRows colSpan={8}>
-              {providers.map((row) => {
+            <SortHead
+              path={PATH}
+              query={query}
+              sort={sort}
+              columns={[
+                { key: "p_provider", label: "Provider" },
+                { key: "p_model", label: "Model" },
+                { key: "p_answers", label: "Answers" },
+                { key: "p_failures", label: "Failed" },
+                { key: "p_rate", label: "Failure rate" },
+                { key: "p_time", label: "Average time" },
+                { key: "p_tokens", label: "Tokens in / out" },
+                { key: "p_cost", label: "Estimated cost" },
+              ]}
+            />
+            <GroupedRows
+              rows={providers}
+              groups={providerGroups}
+              colSpan={8}
+              render={(row) => {
                 const rowCost = costEstimate(row.inputTokens, row.outputTokens, priceIn, priceOut);
                 return (
                   <tr key={`${row.provider}:${row.model}`}>
-                    <td className="font-medium">{PROVIDER_LABEL[row.provider as keyof typeof PROVIDER_LABEL] ?? row.provider}</td>
+                    <td className="font-medium">{providerName(row.provider)}</td>
                     <td className="text-label">{row.model}</td>
                     <td className="tabular-nums">{row.answers}</td>
                     <td className="tabular-nums">{row.failures}</td>
@@ -181,9 +229,10 @@ export default async function AiAnalyticsPage({ searchParams }: { searchParams: 
                     <td className="tabular-nums">{rowCost === null ? "—" : `₹${rowCost.toLocaleString("en-IN")}`}</td>
                   </tr>
                 );
-              })}
-            </PagedRows>
+              }}
+            />
           </table>
+          </FoldScope>
         )}
       </section>
 
@@ -195,20 +244,27 @@ export default async function AiAnalyticsPage({ searchParams }: { searchParams: 
         {people.length === 0 ? (
           <p className="px-5 py-4 text-label text-ink-muted">No questions in this period.</p>
         ) : (
+          <FoldScope enabled={Boolean(peopleGroups)}>
           <table className="data-table" data-testid="ai-analytics-people">
-            <thead>
-              <tr>
-                <th scope="col">Person</th>
-                <th scope="col">Department</th>
-                <th scope="col">Questions</th>
-                <th scope="col">Conversations</th>
-                <th scope="col">Failed answers</th>
-                <th scope="col">Tokens</th>
-                <th scope="col">Last used</th>
-              </tr>
-            </thead>
-            <PagedRows colSpan={7}>
-              {people.map((row) => (
+            <SortHead
+              path={PATH}
+              query={query}
+              sort={sort}
+              columns={[
+                { key: "u_name", label: "Person" },
+                { key: "u_department", label: "Department" },
+                { key: "u_questions", label: "Questions" },
+                { key: "u_conversations", label: "Conversations" },
+                { key: "u_failures", label: "Failed answers" },
+                { key: "u_tokens", label: "Tokens" },
+                { key: "u_last", label: "Last used" },
+              ]}
+            />
+            <GroupedRows
+              rows={people}
+              groups={peopleGroups}
+              colSpan={7}
+              render={(row) => (
                 <tr key={row.userId}>
                   <td className="font-medium">
                     <Link href={`/admin/users/${row.userId}`} className="link">
@@ -222,9 +278,10 @@ export default async function AiAnalyticsPage({ searchParams }: { searchParams: 
                   <td className="tabular-nums">{compact(row.tokens)}</td>
                   <td className="text-label text-ink-muted">{row.lastAt ? formatIndiaTime(row.lastAt) : "—"}</td>
                 </tr>
-              ))}
-            </PagedRows>
+              )}
+            />
           </table>
+          </FoldScope>
         )}
       </section>
 

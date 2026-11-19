@@ -1,5 +1,6 @@
 import { INFO_PRIORITIES, type InfoPriority } from "@/server/modules/settings";
 import { indiaDayStartUtc, PAGE_SIZES } from "@/server/modules/task-lists";
+import { parseColumnSort, sqlDir, type SortDir } from "@/server/lists/sorting";
 
 // v1.9.0: Information inbox and Sent by me: tabs, search, filters, sorting.
 // Pure; values reach SQL only as bound parameters.
@@ -24,6 +25,37 @@ export const tabsFor = (base: InfoBase): readonly InfoTab[] => (base === "INBOX"
 export const INFO_LIST_GROUPS = ["dept", "sender", "type", "priority", "state"] as const;
 export type InfoListGroup = (typeof INFO_LIST_GROUPS)[number];
 
+// v1.58.0 (D-354, owner: "sorting in all the tables asc to desc or vice versa in
+// all columns"): every column of the inbox and Sent tables sorts both ways in
+// SQL (the list is paged). Only these keys reach ORDER BY; each maps to a fixed
+// expression (nothing from the address is put in the SQL).
+export const INBOX_SORT_COLUMNS = ["subject", "type", "from", "importance", "you", "published"] as const;
+export const SENT_SORT_COLUMNS = ["subject", "type", "recipients", "importance", "read", "status"] as const;
+export type InfoSortColumn = (typeof INBOX_SORT_COLUMNS)[number] | (typeof SENT_SORT_COLUMNS)[number];
+export const infoSortColumns = (base: InfoBase): readonly InfoSortColumn[] => (base === "INBOX" ? INBOX_SORT_COLUMNS : SENT_SORT_COLUMNS);
+const INDIA_TODAY_SQL = "DATE(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 330 MINUTE))";
+// [expression, may be empty] per column; empty values stay last in both directions.
+const INFO_SORT_SQL: Record<InfoSortColumn, [string, boolean][]> = {
+  subject: [["i.title", false]],
+  type: [["mt.name", false]],
+  from: [["c.name", false]],
+  recipients: [["recipients", false]],
+  // Importance from lowest (Normal) to highest (Critical).
+  importance: [["FIELD(i.priority, 'NORMAL', 'ELEVATED', 'IMPORTANT', 'HIGH', 'URGENT')", false]],
+  // "You": the words shown in the column (Acknowledged, Read, To acknowledge, Unread).
+  you: [["CASE WHEN i.ack_required = TRUE THEN (CASE WHEN me.acknowledged_at IS NULL THEN 'To acknowledge' ELSE 'Acknowledged' END) ELSE (CASE WHEN me.read_at IS NULL THEN 'Unread' ELSE 'Read' END) END", false]],
+  read: [["read_count", false], ["ack_count", false]],
+  published: [["i.published_at", true]],
+  // Status in its life order: Draft, Published, Expired, Withdrawn, Archived.
+  status: [[`FIELD(CASE WHEN i.status = 'PUBLISHED' AND i.expires_on < ${INDIA_TODAY_SQL} THEN 'EXPIRED' ELSE i.status END, 'DRAFT', 'PUBLISHED', 'EXPIRED', 'WITHDRAWN', 'ARCHIVED')`, false]],
+};
+
+// The ORDER BY for a column sort (ties: newest first).
+export function infoColumnOrderSql(column: InfoSortColumn, dir: SortDir): string {
+  const parts = (INFO_SORT_SQL[column] ?? INFO_SORT_SQL.subject).flatMap(([expr, nullable]) => (nullable ? [`${expr} IS NULL`, `${expr} ${sqlDir(dir)}`] : [`${expr} ${sqlDir(dir)}`]));
+  return [...parts, "i.id DESC"].join(", ");
+}
+
 export interface InfoFilters {
   tab: InfoTab;
   q: string;
@@ -36,6 +68,9 @@ export interface InfoFilters {
   size: number;
   page: number;
   group?: InfoListGroup | null;
+  // v1.58.0 (D-354): a column sort (?sortBy=&dir=) wins over the preset sort.
+  sortBy?: InfoSortColumn | null;
+  dir?: SortDir;
 }
 
 const one = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value) ?? "";
@@ -61,6 +96,7 @@ export function parseInfoFilters(query: Record<string, string | string[] | undef
     size: (PAGE_SIZES as readonly number[]).includes(size) ? size : 25,
     page: Math.min(1000, Math.max(1, Number(one(query.page)) || 1)),
     group: (INFO_LIST_GROUPS as readonly string[]).includes(one(query.group)) ? (one(query.group) as InfoListGroup) : null,
+    ...parseColumnSort(query, infoSortColumns(base)),
   };
 }
 
@@ -77,6 +113,11 @@ export function infoQuery(filters: InfoFilters, base: InfoBase, change: Partial<
   if (f.sort !== "newest") params.set("sort", f.sort);
   if (f.size !== 25) params.set("size", String(f.size));
   if (f.group) params.set("group", f.group);
+  // v1.58.0 (D-354): the column sort travels with every link (a preset sort clears it).
+  if (f.sortBy && (infoSortColumns(base) as readonly string[]).includes(f.sortBy)) {
+    params.set("sortBy", f.sortBy);
+    params.set("dir", f.dir === "desc" ? "desc" : "asc");
+  }
   if (f.page > 1) params.set("page", String(f.page));
   return `?${params.toString()}`;
 }
@@ -157,6 +198,8 @@ export function infoListSql(f: InfoFilters, base: InfoBase, viewerId: number, to
     where.push(`${column} < ?`);
     params.push(indiaDayStartUtc(nextDay(f.to)));
   }
+  // v1.58.0 (D-354): a column sort (whitelisted) first; otherwise the preset.
+  if (f.sortBy && (infoSortColumns(base) as readonly string[]).includes(f.sortBy)) return { where, params, orderBy: infoColumnOrderSql(f.sortBy, f.dir ?? "asc") };
   const orderBy = f.sort === "oldest" ? "i.id ASC" : f.sort === "expiry" ? "i.expires_on IS NULL, i.expires_on, i.id DESC" : "COALESCE(i.published_at, i.created_at) DESC, i.id DESC";
   return { where, params, orderBy };
 }

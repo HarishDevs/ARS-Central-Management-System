@@ -10,6 +10,8 @@ import type { AnalyticsFilter } from "@/lib/db/repositories/analytics.repository
 // re-resolved for the viewer: a saved query can't widen what they may see.
 export interface ReportQuery {
   scope?: string;
+  sortBy?: string; // v1.58.0 (D-351)
+  dir?: string;
   period?: string;
   from?: string;
   to?: string;
@@ -17,7 +19,8 @@ export interface ReportQuery {
   department?: string;
 }
 
-export const QUERY_KEYS = ["scope", "period", "from", "to", "type", "department"] as const;
+// v1.58.0 (D-351): report views keep a column sort too.
+export const QUERY_KEYS = ["scope", "period", "from", "to", "type", "department", "sortBy", "dir"] as const;
 
 export function cleanQuery(raw: Record<string, unknown>): ReportQuery {
   const out: ReportQuery = {};

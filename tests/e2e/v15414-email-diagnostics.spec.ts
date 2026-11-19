@@ -22,7 +22,7 @@ test("Email diagnostics panel and the deliveries' Provider column", async ({ pag
   await page.getByRole("button", { name: "Send test email" }).click();
   await expect(page.getByText(/EMAIL_NOT_CONFIGURED|Test email sent/).first()).toBeVisible();
   await page.goto("/superadmin/deliveries");
-  await expect(page.getByRole("columnheader", { name: "Provider" })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Provider", exact: true })).toBeVisible();
 });
 
 test("a plain user can't reach the diagnostic", async ({ page, context }) => {

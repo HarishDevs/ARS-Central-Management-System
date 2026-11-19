@@ -8,7 +8,8 @@ import { OwnershipTabs } from "@/features/requests/OwnershipTabs";
 import { listExtras } from "@/server/requests/list-extras";
 import { ClipboardList, Plus } from "lucide-react";
 import { baseTotal, listChoices, listRequests, tabCounts } from "@/lib/db/repositories/request-lists.repository";
-import { listViews } from "@/lib/db/repositories/analytics-views.repository";
+// v1.58.0 (D-354, owner: saved views are "Only mine"): only the person's own views show and set the default.
+import { myListViews } from "@/server/lists/views";
 import { parseListFilters } from "@/server/requests/list-filters";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
@@ -24,7 +25,7 @@ export default async function MyRequestsPage({ searchParams }: { searchParams: P
   if (params.tab === "shared") redirect("/users/collaborating");
   // D-234 (Default effect): no filters in the address → your default view, as on the other lists.
   if (Object.keys(params).length === 0) {
-    const preferred = (await listViews(user.id, "my_requests")).find((view) => view.isDefault && Object.keys(view.query).length > 0);
+    const preferred = (await myListViews(user.id, "my_requests")).find((view) => view.isDefault && Object.keys(view.query).length > 0);
     if (preferred) redirect(`/users/requests?${new URLSearchParams(preferred.query).toString()}`);
   }
   const filters = parseListFilters(params, "MINE");
@@ -32,7 +33,7 @@ export default async function MyRequestsPage({ searchParams }: { searchParams: P
     listRequests("MINE", user.id, filters),
     tabCounts("MINE", user.id, filters),
     listChoices("MINE", user.id),
-    listViews(user.id, "my_requests"),
+    myListViews(user.id, "my_requests"),
     baseTotal("MINE", user.id),
     baseTotal("COLLAB", user.id),
   ]);
@@ -53,7 +54,7 @@ export default async function MyRequestsPage({ searchParams }: { searchParams: P
         result={result}
         counts={counts}
         choices={choices}
-        views={views.map((view) => ({ id: view.id, name: view.name, href: `/users/requests?${new URLSearchParams(view.query).toString()}`, mine: view.mine, shared: view.shared, isDefault: view.isDefault, ownerName: view.ownerName }))}
+        views={views.map((view) => ({ id: view.id, name: view.name, href: `/users/requests?${new URLSearchParams(view.query).toString()}`, mine: true, shared: false, isDefault: view.isDefault, ownerName: view.ownerName }))}
         empty="You haven't raised any requests yet."
         userId={user.id}
         progress={extras.progress}

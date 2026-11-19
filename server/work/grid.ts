@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { sortRows, type SortDir } from "@/server/lists/sorting";
 
 // D-220 (owner: "the compact screen like this, table format… filters, sort,
 // groups like Asana in all the screens"): one task table for every list in
@@ -17,7 +18,10 @@ export const COLUMN_LABEL: Record<GridColumn, string> = {
   priority: "Priority",
   tags: "Tags",
 };
-export const SORTS = ["none", "due", "start", "assignee", "createdBy", "createdOn", "completedOn", "likes", "alpha", "priority"] as const;
+// v1.58.0 (D-354, owner: "sorting in all the tables asc to desc or vice versa in
+// all columns"): + collaborators, projects, visibility and tags, so every column
+// of the table sorts from its title (with `dir`).
+export const SORTS = ["none", "due", "start", "assignee", "createdBy", "createdOn", "completedOn", "likes", "alpha", "priority", "collaborators", "projects", "visibility", "tags"] as const;
 export type GridSort = (typeof SORTS)[number];
 export const SORT_LABEL: Record<GridSort, string> = {
   none: "None",
@@ -30,6 +34,10 @@ export const SORT_LABEL: Record<GridSort, string> = {
   likes: "Likes",
   alpha: "Alphabetical",
   priority: "Priority",
+  collaborators: "Collaborators",
+  projects: "Projects",
+  visibility: "Task visibility",
+  tags: "Tags",
 };
 // v1.57.3 (D-341): "department" = the assignee's department.
 export const GROUPS = ["none", "section", "assignee", "department", "createdBy", "project", "due", "priority", "kind"] as const;
@@ -56,6 +64,11 @@ export const gridConfigSchema = z.object({
   dueNextWeek: z.boolean().default(false),
   filters: z.array(z.object({ field: z.enum(FILTER_FIELDS), value: z.string().max(100) })).max(10).default([]),
   sort: z.enum(SORTS).default("none"),
+  // v1.58.0 (D-354): the direction of the sort ("desc" reverses the sort's own
+  // order), and a project field's id when the sort is by one of its own columns.
+  // Both are kept in saved tabs with the rest of the view.
+  dir: z.enum(["asc", "desc"]).default("asc"),
+  sortField: z.number().int().positive().nullable().default(null),
   group: z.enum(GROUPS).default("none"),
   hidden: z.array(z.enum(GRID_COLUMNS)).max(8).default([]),
   search: z.string().max(100).default(""),
@@ -164,30 +177,92 @@ function passes(task: GridTask, config: GridConfig, today: string, meId: number)
   return words.every((word) => `${task.title} ${task.taskNo} ${task.assigneeName} ${task.tags.map((tag) => tag.name).join(" ")} ${task.projects.map((project) => project.name).join(" ")}`.toLowerCase().includes(word));
 }
 
-function sorter(sort: GridSort): (a: GridTask, b: GridTask) => number {
-  const text = (value: string | null) => value ?? "￿";
-  switch (sort) {
-    case "none":
-      return (a, b) => a.position - b.position || a.id - b.id;
-    case "due":
-      return (a, b) => text(a.dueAt).localeCompare(text(b.dueAt));
-    case "start":
-      return (a, b) => text(a.startsOn).localeCompare(text(b.startsOn));
-    case "assignee":
-      return (a, b) => a.assigneeName.localeCompare(b.assigneeName);
-    case "createdBy":
-      return (a, b) => a.createdByName.localeCompare(b.createdByName);
-    case "createdOn":
-      return (a, b) => b.createdAt.localeCompare(a.createdAt);
-    case "completedOn":
-      return (a, b) => text(b.completedAt).localeCompare(text(a.completedAt));
-    case "likes":
-      return (a, b) => b.likes - a.likes;
-    case "alpha":
-      return (a, b) => a.title.localeCompare(b.title);
-    case "priority":
-      return (a, b) => PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority];
+// v1.58.0 (D-354): each sort reads one value of the row; empty values stay last
+// in both directions (sortRows). Created on, Completed on and Likes read
+// newest / most first by themselves; "desc" reverses every sort's own order.
+const SORT_VALUE: Record<Exclude<GridSort, "none">, (task: GridTask) => unknown> = {
+  due: (task) => task.dueAt,
+  start: (task) => task.startsOn,
+  assignee: (task) => task.assigneeName,
+  createdBy: (task) => task.createdByName,
+  createdOn: (task) => task.createdAt,
+  completedOn: (task) => task.completedAt,
+  likes: (task) => task.likes,
+  alpha: (task) => task.title,
+  priority: (task) => PRIORITY_RANK[task.priority],
+  collaborators: (task) => task.followers.map((person) => person.name).join(", "),
+  projects: (task) => task.projects.map((project) => project.name).join(", "),
+  visibility: (task) => (task.projects.length ? `${task.projects[0]!.name} members` : "Collaborators"),
+  tags: (task) => task.tags.map((tag) => tag.name).join(", "),
+};
+const NATURAL_DESC: ReadonlySet<GridSort> = new Set(["createdOn", "completedOn", "likes"]);
+
+export function sortGridRows(rows: readonly GridTask[], config: Pick<GridConfig, "sort" | "dir" | "sortField">, values?: Record<number, Record<number, string>>): GridTask[] {
+  const manual = [...rows].sort((a, b) => a.position - b.position || a.id - b.id);
+  if (config.sortField) {
+    const field = config.sortField;
+    return sortRows(manual, (task) => values?.[task.id]?.[field] ?? "", config.dir);
   }
+  if (config.sort === "none") return manual;
+  const natural: SortDir = NATURAL_DESC.has(config.sort) ? "desc" : "asc";
+  const dir: SortDir = config.dir === "desc" ? (natural === "asc" ? "desc" : "asc") : natural;
+  return sortRows(manual, SORT_VALUE[config.sort], dir);
+}
+
+// v1.58.0 (D-354): a column title sorts by that column: first A→Z, again Z→A.
+// "name" is the task's own column; a number is a project field's id.
+export type SortableColumn = GridColumn | "name" | number;
+const COLUMN_SORT: Record<GridColumn | "name", Exclude<GridSort, "none">> = {
+  name: "alpha",
+  due: "due",
+  assignee: "assignee",
+  collaborators: "collaborators",
+  createdBy: "createdBy",
+  projects: "projects",
+  visibility: "visibility",
+  priority: "priority",
+  tags: "tags",
+};
+export function columnSortState(config: Pick<GridConfig, "sort" | "dir" | "sortField">, column: SortableColumn): SortDir | null {
+  if (typeof column === "number") return config.sortField === column ? config.dir : null;
+  return !config.sortField && config.sort === COLUMN_SORT[column] ? config.dir : null;
+}
+export function nextColumnSort(config: Pick<GridConfig, "sort" | "dir" | "sortField">, column: SortableColumn): Pick<GridConfig, "sort" | "dir" | "sortField"> {
+  const current = columnSortState(config, column);
+  const dir: SortDir = current === "asc" ? "desc" : "asc";
+  return typeof column === "number" ? { sort: "none", dir, sortField: column } : { sort: COLUMN_SORT[column], dir, sortField: null };
+}
+
+// v1.58.0 (D-354, owner: "by default when a group by is selected it should
+// collapse all the group"): a chosen grouping starts folded. Sections are the
+// list's own structure (a project's sections, My Tasks' sections), not a chosen
+// Group by, so they stay open.
+export function groupsStartFolded(group: GridGroup): boolean {
+  return group !== "none" && group !== "section";
+}
+
+// v1.58.0 (D-354): the sort and grouping in the address (search results), so a
+// saved view keeps them. Only known values are read back.
+export function gridUrlState(config: GridConfig): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (config.sortField) out.gfield = String(config.sortField);
+  else if (config.sort !== "none") out.gsort = config.sort;
+  if ((config.sortField || config.sort !== "none") && config.dir === "desc") out.gdir = "desc";
+  if (config.group !== "none") out.ggroup = config.group;
+  return out;
+}
+export function gridFromUrl(query: Record<string, unknown>, base: GridConfig): GridConfig {
+  const one = (value: unknown) => (Array.isArray(value) ? value[0] : value);
+  const sort = String(one(query.gsort) ?? "");
+  const group = String(one(query.ggroup) ?? "");
+  const field = String(one(query.gfield) ?? "");
+  return {
+    ...base,
+    sort: (SORTS as readonly string[]).includes(sort) ? (sort as GridSort) : base.sort,
+    dir: one(query.gdir) === "desc" ? "desc" : base.dir,
+    sortField: /^\d{1,9}$/.test(field) && Number(field) > 0 ? Number(field) : base.sortField,
+    group: (GROUPS as readonly string[]).includes(group) ? (group as GridGroup) : base.group,
+  };
 }
 
 export interface GridGroupOut {
@@ -199,8 +274,9 @@ export interface GridGroupOut {
 }
 
 // Filter, sort and group the rows. `sections` keeps empty sections visible.
-export function applyGrid(rows: readonly GridTask[], config: GridConfig, context: { today: string; meId: number; sections?: readonly { id: number; name: string }[] }): GridGroupOut[] {
-  const kept = rows.filter((task) => passes(task, config, context.today, context.meId)).sort(sorter(config.sort));
+// v1.58.0 (D-354): `values` (a project's own fields) lets a field's column sort.
+export function applyGrid(rows: readonly GridTask[], config: GridConfig, context: { today: string; meId: number; sections?: readonly { id: number; name: string }[]; values?: Record<number, Record<number, string>> }): GridGroupOut[] {
+  const kept = sortGridRows(rows.filter((task) => passes(task, config, context.today, context.meId)), config, context.values);
   if (config.group === "none") return [{ key: "all", name: "", sectionId: null, person: null, rows: kept }];
   if (config.group === "section") {
     const sections = context.sections ?? [];

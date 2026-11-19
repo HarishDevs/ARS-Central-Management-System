@@ -17,6 +17,10 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 **Multi-level approvals in any custom manner.** The engine must support any number of levels in any combination: sequential, parallel, any-one, any-N-of-M, conditional and hybrid. Approvers can come from any source, and levels can be added or skipped by rules. Build the engine for this from the first engine phase (P2). The drag-and-drop designer (P3) is only the screen for building it. Check every task against this.
 
 ## Now / Next
+- **Now (19 Nov 2026):** **v1.58.0** sort every column, saved views everywhere, groups start folded (D-351 to D-354). **Owner:** publish (no migration). Later, if wanted: server-side sort for Task search (sorts the shown page today); groups across all pages of a paged list (grouping is per page).
+- [x] TBL-01 (19 Nov 2026) Column sorting both ways on every table (user, Admin, Super Admin, Analytics)
+- [x] TBL-02 (19 Nov 2026) Private saved views on every list (filters, group, sort, search)
+- [x] TBL-03 (19 Nov 2026) Groups start folded; Expand all / Collapse all; individual toggles
 - **Now (19 Nov 2026):** **v1.57.7** WhatsApp fallback versions deleted at Meta lose their approval (D-350); test for the meeting-task delete block. **Owner:** publish (no new migration).
 - [x] STATE-06 (19 Nov 2026) Test: a meeting action item's task can't be deleted
 - [x] STATE-07 (19 Nov 2026) WhatsApp: a retired fallback deleted at Meta is never re-activated

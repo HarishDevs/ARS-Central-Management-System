@@ -1,3 +1,4 @@
+import { ClientSortTable } from "@/features/ui/ClientSortTable";
 import { TicketBoard } from "@/features/analytics/TicketBoard";
 import { ComingSoonCard } from "@/features/ui/ComingSoon";
 import { TaskPriorityPill } from "@/features/ui/ChoicePill";
@@ -125,48 +126,9 @@ function Alerts({ alerts }: { alerts: Alert[] }) {
   );
 }
 
+// v1.58.0 (D-351, owner): every column sorts both ways (ClientSortTable).
 function Table({ caption, head, rows, testid }: { caption: string; head: string[]; rows: React.ReactNode[][]; testid?: string }) {
-  return (
-    <div className="card overflow-x-auto">
-      <table className="w-full min-w-[640px] text-label" data-testid={testid}>
-        <caption className="sr-only">{caption}</caption>
-        <thead className="text-left text-caption text-ink-muted">
-          <tr>
-            {head.map((cell, index) => (
-              <th key={cell} scope="col" className={`px-3 py-2 ${index > 0 ? "text-right" : ""}`}>
-                {cell}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-line">
-          {rows.length === 0 ? (
-            <tr>
-              <td colSpan={head.length} className="px-3 py-3 text-ink-muted">
-                Nothing for this selection.
-              </td>
-            </tr>
-          ) : (
-            rows.map((row, index) => (
-              <tr key={index}>
-                {row.map((cell, column) =>
-                  column === 0 ? (
-                    <th key={column} scope="row" className="px-3 py-2 text-left font-normal">
-                      {cell}
-                    </th>
-                  ) : (
-                    <td key={column} className="px-3 py-2 text-right tabular-nums">
-                      {cell}
-                    </td>
-                  ),
-                )}
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-    </div>
-  );
+  return <ClientSortTable caption={caption} head={head} rows={rows} testid={testid} minWidth="min-w-[640px]" />;
 }
 
 export async function CenterScreen({ base, board, boards, soon = [], modules, query, scope, scopes, viewer, canExport }: { base: Base; board: Exclude<BoardKey, "approvals">; boards: readonly BoardKey[]; soon?: readonly BoardKey[]; modules: BoardAccess["modules"]; query: Query; scope: Scope; scopes: Scope[]; viewer: Viewer; canExport: boolean }) {

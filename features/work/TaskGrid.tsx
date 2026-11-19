@@ -2,12 +2,13 @@
 
 import { TaskPriorityPill, priorityControlProps } from "@/features/ui/ChoicePill";
 import { ApprovalBadge, approvalRowClass } from "@/features/work/ApprovalLink";
-import { ArrowUpDown, CalendarDays, ChevronDown, ChevronRight, Filter, GitBranch, Layers, Lock, MessageSquare, Plus, Repeat, Search, Settings2, Users, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, CalendarDays, ChevronDown, ChevronRight, Filter, GitBranch, Layers, Lock, MessageSquare, Plus, Repeat, Search, Settings2, Users, X } from "lucide-react";
 import Link from "next/link";
 import { useProjectsOn } from "@/features/work/projects-access";
 import { LockedProjectName } from "@/features/ui/ComingSoon";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { FoldAllButtons } from "@/features/ui/GroupFold";
 import { deleteViewAction, saveViewAction, taskFieldsAction, updateViewAction } from "@/app/users/work/actions";
 import { initials } from "@/features/ui/Display";
 import { Drop } from "@/features/ui/Drop";
@@ -19,12 +20,16 @@ import { AddTask } from "@/features/work/ProjectWorkspace";
 import { CollaboratorsCell, TagsCell } from "@/features/work/GridCellEditors";
 import {
   applyGrid,
+  columnSortState,
   COLUMN_LABEL,
   COMPLETED_RANGES,
   FILTER_FIELDS,
   FILTER_LABEL,
   filterCount,
   GROUP_LABEL,
+  gridUrlState,
+  groupsStartFolded,
+  nextColumnSort,
   SORT_LABEL,
   SORTS,
   type FilterField,
@@ -32,6 +37,7 @@ import {
   type GridConfig,
   type GridGroup,
   type GridTask,
+  type SortableColumn,
 } from "@/server/work/grid";
 
 // D-220 (owner's Asana screenshots): the one task table of the Tasks area.
@@ -72,6 +78,7 @@ export function TaskGrid({
   editAssignee = true,
   editPriority = true,
   emptyText = "No tasks here.",
+  syncUrl = false,
 }: {
   rows: GridTask[];
   initial: GridConfig;
@@ -93,6 +100,9 @@ export function TaskGrid({
   editAssignee?: boolean;
   editPriority?: boolean;
   emptyText?: string;
+  // v1.58.0 (D-354): keep the sort and grouping in the address (a page whose
+  // saved views are its address, e.g. search results).
+  syncUrl?: boolean;
 }) {
   const projectsOn = useProjectsOn();
   const { call } = useWorkCall();
@@ -100,25 +110,70 @@ export function TaskGrid({
   const paneLink = usePaneLink();
   const [config, setConfig] = useState<GridConfig>(initial);
   const [saved, setSaved] = useState(JSON.stringify(initial));
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  // v1.58.0 (D-354, owner: "expand or collapse individually and all option ...
+  // by default when a group by is selected it should collapse all the group"):
+  // a chosen grouping starts with every group folded (sections stay open, see
+  // groupsStartFolded); a heading opens one group; Expand all / Collapse all.
+  // `toggled` holds the groups opened or closed one by one against `closed`.
+  const [fold, setFold] = useState(() => ({ group: initial.group, closed: groupsStartFolded(initial.group), toggled: new Set<string>() }));
   const [selected, setSelected] = useState<number[]>([]);
   const [dragging, setDragging] = useState<number | null>(null);
   const [searching, setSearching] = useState(Boolean(initial.search));
   const openTask = useSearchParams().get("task");
+  const lastInitial = useRef(JSON.stringify(initial));
   useEffect(() => {
+    // v1.58.0 (D-354): with syncUrl the page comes back with the sort and group
+    // just put in the address; the filters and search typed here are kept then.
+    const key = JSON.stringify(initial);
+    if (syncUrl) {
+      if (key === lastInitial.current) return;
+      lastInitial.current = key;
+      setConfig((current) => (JSON.stringify(gridUrlState(current)) === JSON.stringify(gridUrlState(initial)) ? current : initial));
+      return;
+    }
     setConfig(initial);
-    setSaved(JSON.stringify(initial));
-  }, [initial]);
+    setSaved(key);
+  }, [initial, syncUrl]);
+  const urlState = JSON.stringify(gridUrlState(config));
+  useEffect(() => {
+    if (!syncUrl) return;
+    const url = new URL(window.location.href);
+    for (const name of ["gsort", "gdir", "ggroup", "gfield"]) url.searchParams.delete(name);
+    for (const [name, value] of Object.entries(JSON.parse(urlState) as Record<string, string>)) url.searchParams.set(name, value);
+    if (url.search !== window.location.search) router.replace(`${url.pathname}${url.search}`, { scroll: false });
+  }, [syncUrl, urlState, router]);
+  if (fold.group !== config.group) setFold({ group: config.group, closed: groupsStartFolded(config.group), toggled: new Set() });
+  const isClosed = (key: string) => fold.closed !== fold.toggled.has(key);
+  const toggleGroup = (key: string) => setFold((value) => ({ ...value, toggled: new Set(value.toggled.has(key) ? [...value.toggled].filter((item) => item !== key) : [...value.toggled, key]) }));
+  const foldAll = (open: boolean) => setFold((value) => ({ ...value, closed: !open, toggled: new Set() }));
   const today = indiaDayOf(new Date(nowIso));
   const now = useMemo(() => new Date(nowIso), [nowIso]);
-  const groups = useMemo(() => applyGrid(rows, config, { today, meId, sections }), [rows, config, today, meId, sections]);
+  const groups = useMemo(() => applyGrid(rows, config, { today, meId, sections, values }), [rows, config, today, meId, sections, values]);
   const shown = config.hidden.length ? columns.filter((column) => !config.hidden.includes(column)) : columns;
-  const canDrag = Boolean(onMove) && config.group === "section" && config.sort === "none" && filterCount(config) === 0 && !config.search;
+  const canDrag = Boolean(onMove) && config.group === "section" && config.sort === "none" && !config.sortField && filterCount(config) === 0 && !config.search;
   const gridColumns = { gridTemplateColumns: `40px minmax(260px,1fr)${shown.map((column) => ` ${WIDTH[column]}`).join("")}${fields.map(() => " 150px").join("")}` };
   const set = (changes: Partial<GridConfig>) => setConfig((value) => ({ ...value, ...changes }));
   const dirty = JSON.stringify(config) !== saved;
   const count = filterCount(config);
   const allShown = groups.flatMap((group) => group.rows);
+  // v1.58.0 (D-354, owner: "sorting in all the tables asc to desc or vice versa
+  // in all columns"): every column title sorts by it, first A to Z, again Z to A.
+  // The sort is part of the view (saved with Save view / Save as a new tab).
+  const sorting = Boolean(config.sortField) || config.sort !== "none";
+  const sortName = config.sortField ? (fields.find((field) => field.id === config.sortField)?.name ?? "Field") : SORT_LABEL[config.sort];
+  const sortHead = (column: SortableColumn, label: string, className: string) => {
+    const state = columnSortState(config, column);
+    const Icon = state === "asc" ? ArrowUp : state === "desc" ? ArrowDown : ArrowUpDown;
+    const next = state === "asc" ? "descending" : "ascending";
+    return (
+      <span key={String(column)} role="columnheader" aria-sort={state === "asc" ? "ascending" : state === "desc" ? "descending" : "none"} className={className}>
+        <button type="button" onClick={() => set(nextColumnSort(config, column))} title={`Sort by ${label}, ${next}`} className={`inline-flex max-w-full items-center gap-1 hover:text-ink ${state ? "text-ink" : ""}`} data-testid="grid-sort">
+          <span className="truncate">{label}</span>
+          <Icon aria-hidden="true" className={`h-3.5 w-3.5 shrink-0 ${state ? "" : "opacity-40"}`} />
+        </button>
+      </span>
+    );
+  };
   // v1.54.2 (owner: "no check boxes; select with Ctrl + click or Shift + click on
   // the task"): Ctrl (or Cmd) + click adds or removes a task; Shift + click
   // selects every task between the last one clicked and this one, in the order
@@ -195,12 +250,12 @@ export function TaskGrid({
               </button>
             )}
           </span>
-          <span className={config.sort !== "none" ? "tb-pill" : "inline-flex items-center"}>
+          <span className={sorting ? "tb-pill" : "inline-flex items-center"}>
             <Drop
               label="Sort"
               icon={
                 <>
-                  <ArrowUpDown aria-hidden="true" className="h-4 w-4" /> {config.sort === "none" ? "Sort" : `Sort: ${SORT_LABEL[config.sort]}`}
+                  <ArrowUpDown aria-hidden="true" className="h-4 w-4" /> {sorting ? `Sort: ${sortName}${config.dir === "desc" ? " (descending)" : ""}` : "Sort"}
                 </>
               }
               buttonClass="tb-btn"
@@ -208,12 +263,23 @@ export function TaskGrid({
             >
               {SORTS.map((sort) => (
                 <label key={sort} className="flex items-center gap-2 rounded px-2 py-1 text-label hover:bg-surface-muted">
-                  <input type="radio" name={`${testId}-sort`} checked={config.sort === sort} onChange={() => set({ sort })} /> {SORT_LABEL[sort]}
+                  <input type="radio" name={`${testId}-sort`} checked={!config.sortField && config.sort === sort} onChange={() => set({ sort, sortField: null })} /> {SORT_LABEL[sort]}
                 </label>
               ))}
+              {/* v1.58.0 (D-354): the direction of the chosen sort. */}
+              {sorting && (
+                <div className="mt-1 border-t border-line pt-1" role="radiogroup" aria-label="Order">
+                  <label className="flex items-center gap-2 rounded px-2 py-1 text-label hover:bg-surface-muted">
+                    <input type="radio" name={`${testId}-dir`} checked={config.dir === "asc"} onChange={() => set({ dir: "asc" })} /> <ArrowUp aria-hidden="true" className="h-3.5 w-3.5" /> Ascending
+                  </label>
+                  <label className="flex items-center gap-2 rounded px-2 py-1 text-label hover:bg-surface-muted">
+                    <input type="radio" name={`${testId}-dir`} checked={config.dir === "desc"} onChange={() => set({ dir: "desc" })} /> <ArrowDown aria-hidden="true" className="h-3.5 w-3.5" /> Descending
+                  </label>
+                </div>
+              )}
             </Drop>
-            {config.sort !== "none" && (
-              <button type="button" aria-label="Default order" onClick={() => set({ sort: "none" })} className="tb-x">
+            {sorting && (
+              <button type="button" aria-label="Default order" onClick={() => set({ sort: "none", sortField: null, dir: "asc" })} className="tb-x">
                 <X aria-hidden="true" className="h-3.5 w-3.5" />
               </button>
             )}
@@ -236,6 +302,18 @@ export function TaskGrid({
                   <input type="radio" name={`${testId}-group`} checked={config.group === group} onChange={() => set({ group })} /> {GROUP_LABEL[group]}
                 </label>
               ))}
+              {/* v1.58.0 (D-354, owner's screenshot "Expand or collapse groups"): both choices, plainly. */}
+              {config.group !== "none" && (
+                <div className="mt-2 border-t border-line pt-2">
+                  <p className="mb-1 px-2 text-caption font-semibold text-ink-muted">Expand or collapse groups</p>
+                  <button type="button" className="block w-full rounded px-2 py-1 text-left text-label hover:bg-surface-muted" onClick={() => foldAll(true)} data-testid="grid-expand-all">
+                    Expand all groups
+                  </button>
+                  <button type="button" className="block w-full rounded px-2 py-1 text-left text-label hover:bg-surface-muted" onClick={() => foldAll(false)} data-testid="grid-collapse-all">
+                    Collapse all groups
+                  </button>
+                </div>
+              )}
             </Drop>
             {config.group !== "none" && (
               <button type="button" aria-label="Remove grouping" onClick={() => set({ group: "none" })} className="tb-x">
@@ -306,29 +384,21 @@ export function TaskGrid({
         </span>
       </div>
 
+      {config.group !== "none" && groups.length > 0 && <FoldAllButtons onAll={foldAll} testId={`${testId}-fold-all`} />}
       <div className="overflow-x-auto rounded-lg border border-line bg-surface">
         <div role="table" aria-label="Tasks" className="min-w-max">
           <div role="row" style={gridColumns} className="sticky top-0 z-10 grid border-b border-line bg-surface text-caption font-medium text-ink-muted">
             <span role="columnheader" className="px-2 py-2">
               #
             </span>
-            <span role="columnheader" className="border-r border-line px-2 py-2">
-              Name
-            </span>
-            {shown.map((column) => (
-              <span key={column} role="columnheader" className="truncate border-r border-line px-2 py-2">
-                {COLUMN_LABEL[column]}
-              </span>
-            ))}
-            {fields.map((field) => (
-              <span key={field.id} role="columnheader" className="truncate border-r border-line px-2 py-2">
-                {field.name}
-              </span>
-            ))}
+            {sortHead("name", "Name", "border-r border-line px-2 py-2")}
+            {shown.map((column) => sortHead(column, COLUMN_LABEL[column], "truncate border-r border-line px-2 py-2"))}
+            {fields.map((field) => sortHead(field.id, field.name, "truncate border-r border-line px-2 py-2"))}
           </div>
           {allShown.length === 0 && !(config.group === "section" && sections?.length) && <p className="px-4 py-8 text-center text-label text-ink-muted">{emptyText}</p>}
           {groups.map((group) => {
-            const closed = collapsed.has(group.key);
+            // A list without groups (one nameless group) is never folded.
+            const closed = Boolean(group.name) && isClosed(group.key);
             const section = group.sectionId !== null ? (sections?.find((item) => item.id === group.sectionId) ?? null) : null;
             return (
               <div
@@ -350,7 +420,7 @@ export function TaskGrid({
                       type="button"
                       aria-expanded={!closed}
                       aria-label={`${closed ? "Show" : "Hide"} ${group.name}`}
-                      onClick={() => setCollapsed((value) => new Set(value.has(group.key) ? [...value].filter((item) => item !== group.key) : [...value, group.key]))}
+                      onClick={() => toggleGroup(group.key)}
                       className="rounded p-0.5 text-ink-muted hover:bg-surface-muted"
                     >
                       {closed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}

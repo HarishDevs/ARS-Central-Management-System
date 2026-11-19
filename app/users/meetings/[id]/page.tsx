@@ -15,6 +15,8 @@ import { actionState, ATTENDANCE_LABEL, durationBand, extendedBy, onTime, isCoor
 import { indiaDateTimeText } from "@/server/modules/settings";
 import { personLabel } from "@/lib/people/label";
 import { RichText } from "@/features/work/RichText";
+import { SortTh } from "@/features/ui/SortTh";
+import { nextDir, parseColumnSort, sortHref, sortRows } from "@/server/lists/sorting";
 
 export const metadata: Metadata = { title: "Meeting" };
 export const dynamic = "force-dynamic";
@@ -44,6 +46,13 @@ const EVENT_TEXT: Record<string, string> = {
   REMINDER_POINTS: "Points reminder sent",
   REMINDER_MOM: "MOM reminder sent",
 };
+// v1.58.0 (D-354, owner: "sorting in all the tables ... in all columns"): the
+// action items table sorts on every column but Follow-up (buttons only), via
+// ?sortBy=act.<column>&dir= (prefixed so another table here never clashes).
+const ACTION_SORTS = ["act.action", "act.responsible", "act.due", "act.status"] as const;
+const ACTION_SORT_LABEL: Record<(typeof ACTION_SORTS)[number], string> = { "act.action": "Action", "act.responsible": "Responsible", "act.due": "Due", "act.status": "Status" };
+const ACTION_STATE_ORDER: Record<string, number> = { OVERDUE: 0, OPEN: 1, DONE_UNCONFIRMED: 2, NO_TASK: 3, CONFIRMED: 4, CANCELLED: 5 };
+
 const RESPONSE_LABEL: Record<string, string> = { PENDING: "No answer yet", ACCEPTED: "Attending", DECLINED: "Can't attend", TENTATIVE: "Maybe" };
 const yesNo = (value: boolean | null) => (value === null ? "Not answered" : value ? "✓ Yes" : "✗ No");
 
@@ -59,7 +68,7 @@ function Fact({ label, value }: { label: string; value: React.ReactNode }) {
 // v1.51.0 (D-300, D-301): one meeting. The Coordinator runs it (points,
 // attendance, MOM); the Meeting Owner approves the points and the MOM;
 // participants see everything once shared. Anyone else gets "not found".
-export default async function MeetingPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ scheduled?: string; updated?: string }> }) {
+export default async function MeetingPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ scheduled?: string; updated?: string; sortBy?: string; dir?: string }> }) {
   const { user } = await requireArea("users");
   const { id } = await params;
   if (!/^\d{1,10}$/.test(id)) notFound();
@@ -95,6 +104,24 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
   const present = participants.filter((person) => person.attendance === "PRESENT" || person.attendance === "LATE").length;
   const blocked = meeting.status === "SCHEDULED" && coordinator && !can.has("ENTER_MOM");
   const extraMinutes = extendedBy(meeting.scheduledEnd, meeting.actualEnd);
+  // v1.58.0 (D-354): action items in the chosen column order (the MOM's order otherwise).
+  const actionSort = parseColumnSort(query, ACTION_SORTS);
+  const shownActions = actionSort.sortBy
+    ? sortRows(
+        actionItems,
+        (action) =>
+          actionSort.sortBy === "act.action"
+            ? `${action.taskNo ?? ""} ${action.title}`.trim()
+            : actionSort.sortBy === "act.responsible"
+              ? action.ownerName
+              : actionSort.sortBy === "act.due"
+                ? (action.taskDueAt ? action.taskDueAt.toISOString() : action.dueOn)
+                : (ACTION_STATE_ORDER[actionState({ taskStatus: action.taskStatus, dueAt: action.taskDueAt, confirmedAt: action.confirmedAt })] ?? 9),
+        actionSort.dir,
+      )
+    : actionItems;
+  // The banners (?scheduled, ?updated) are not carried into a sort link.
+  const actionSortHref = (column: string) => `${sortHref(`/users/meetings/${meeting.id}`, { sortBy: query.sortBy, dir: query.dir }, column, nextDir(actionSort, column))}#follow`;
   const panelHasItems = Boolean(
     (can.has("RESPOND") && me) ||
     can.has("ENTER_MOM") ||
@@ -300,15 +327,14 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
                   <table className="data-table" data-testid="meeting-actions">
                     <thead>
                       <tr>
-                        <th scope="col">Action</th>
-                        <th scope="col">Responsible</th>
-                        <th scope="col">Due</th>
-                        <th scope="col">Status</th>
+                        {ACTION_SORTS.map((column) => (
+                          <SortTh key={column} label={ACTION_SORT_LABEL[column]} column={column} sortBy={actionSort.sortBy} dir={actionSort.dir} href={actionSortHref(column)} />
+                        ))}
                         {can.has("CONFIRM_ACTIONS") && <th scope="col">Follow-up</th>}
                       </tr>
                     </thead>
                     <tbody>
-                      {actionItems.map((action) => {
+                      {shownActions.map((action) => {
                         const state = actionState({ taskStatus: action.taskStatus, dueAt: action.taskDueAt, confirmedAt: action.confirmedAt });
                         return (
                           <tr key={action.id}>

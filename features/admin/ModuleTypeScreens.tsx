@@ -17,6 +17,28 @@ import { TicketFormSetup } from "@/features/tickets/TicketFormSetup";
 import { ticketFormSetup } from "@/lib/db/repositories/tickets.repository";
 import { indiaDateTimeText } from "@/server/modules/settings";
 import { personLabel } from "@/lib/people/label";
+import { ListToolbar } from "@/features/ui/ListToolbar";
+import { ListViews } from "@/features/lists/ListViews";
+import { FoldScope } from "@/features/ui/GroupFold";
+import { SortHead } from "@/features/admin/SortHead";
+import { GroupedRows } from "@/features/admin/GroupedRows";
+import { applyDefaultListView } from "@/server/lists/views";
+import { parseColumnSort, sortRows } from "@/server/lists/sorting";
+import { groupRows, pickGroup } from "@/server/lists/group-rows";
+import { groupMenu } from "@/server/admin/lists";
+
+// v1.58.0 (D-354, owner): the types list: every column sorts both ways, Group
+// by Status, Live version or Draft (folded at first), saved views
+// (list_admin_task_types, list_admin_information_types, list_admin_ticket_forms).
+// A type's Versions table sorts too (no group or views: one type's few versions).
+const TYPE_COLUMNS = ["name", "code", "live", "draft", "records", "status"] as const;
+const TYPE_GROUPS = [
+  { key: "status", label: "Status" },
+  { key: "live", label: "Live version" },
+  { key: "draft", label: "Draft" },
+] as const;
+const VERSION_COLUMNS = ["version", "status", "fields", "published"] as const;
+type Query = Record<string, string | undefined>;
 
 // v1.9.0 (D-144): Admin → Task types / Information types. Server screens
 // shared by both modules; every page checks the admin area itself.
@@ -31,10 +53,20 @@ const ACTION_TEXT: Record<string, string> = {
   MODULE_TYPE_REACTIVATED: "Reactivated",
 };
 
-export async function ModuleTypesListScreen({ module }: { module: ModuleKind }) {
-  await requireArea("admin");
-  const types = await listModuleTypes(module);
+export async function ModuleTypesListScreen({ module, searchParams = {} }: { module: ModuleKind; searchParams?: Query }) {
+  const { user } = await requireArea("admin");
   const base = MODULE_ADMIN_PATH[module];
+  const target = `list_admin_${base.split("/").pop()!.replace(/-/g, "_")}`;
+  await applyDefaultListView(user.id, target, base, searchParams);
+  const loaded = await listModuleTypes(module);
+  const sort = parseColumnSort(searchParams, TYPE_COLUMNS);
+  const group = pickGroup(searchParams.group, TYPE_GROUPS.map((choice) => choice.key));
+  const types = sort.sortBy
+    ? sortRows(loaded, (type) => (sort.sortBy === "name" ? type.name : sort.sortBy === "code" ? type.code : sort.sortBy === "live" ? type.liveVersion : sort.sortBy === "draft" ? type.hasDraft : sort.sortBy === "records" ? type.records : type.active), sort.dir)
+    : loaded;
+  const groups = group
+    ? groupRows(types, (type): [string, number] => (group === "status" ? (type.active ? ["Active", 0] : ["Retired", 1]) : group === "live" ? (type.liveVersion ? ["Live", 0] : ["Not published", 1]) : type.hasDraft ? ["Has a draft", 0] : ["No draft", 1]))
+    : null;
   return (
     <>
       <PageHeader
@@ -53,23 +85,37 @@ export async function ModuleTypesListScreen({ module }: { module: ModuleKind }) 
         </h2>
         <NewModuleTypeForm module={module} />
       </section>
+      {types.length > 0 && (
+        <>
+          <ListToolbar id="module-types-view" path={base} label={`${PLURAL[module]} view`} keep={{}} filterCount={0} clearHref={null} group={groupMenu(base, searchParams, TYPE_GROUPS, group)} />
+          <ListViews userId={user.id} target={target} path={base} query={searchParams} />
+        </>
+      )}
       {types.length === 0 ? (
         <EmptyState title={`No ${PLURAL[module].toLowerCase()} yet`} body="Create the first one above, then set up its form and publish it." />
       ) : (
+        <FoldScope enabled={Boolean(group)}>
         <div className="card overflow-x-auto">
           <table className="data-table" data-testid="module-types">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Code</th>
-                <th>Live version</th>
-                <th>Draft</th>
-                <th>Records</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {types.map((type) => (
+            <SortHead
+              path={base}
+              query={searchParams}
+              sort={sort}
+              columns={[
+                { key: "name", label: "Name" },
+                { key: "code", label: "Code" },
+                { key: "live", label: "Live version" },
+                { key: "draft", label: "Draft" },
+                { key: "records", label: "Records" },
+                { key: "status", label: "Status" },
+              ]}
+            />
+            <GroupedRows
+              rows={types}
+              groups={groups}
+              colSpan={6}
+              paged={false}
+              render={(type) => (
                 <tr key={type.id}>
                   <td>
                     <Link href={`${base}/${type.id}`} className="link font-medium">
@@ -83,16 +129,17 @@ export async function ModuleTypesListScreen({ module }: { module: ModuleKind }) 
                   <td className="tabular-nums">{type.records}</td>
                   <td>{type.active ? <Badge tone="success">Active</Badge> : <Badge>Retired</Badge>}</td>
                 </tr>
-              ))}
-            </tbody>
+              )}
+            />
           </table>
         </div>
+        </FoldScope>
       )}
     </>
   );
 }
 
-export async function ModuleTypeDetailScreen({ module, id, view }: { module: ModuleKind; id: string; view?: string }) {
+export async function ModuleTypeDetailScreen({ module, id, view, searchParams = {} }: { module: ModuleKind; id: string; view?: string; searchParams?: Query }) {
   await requireArea("admin");
   if (!/^\d{1,10}$/.test(id)) notFound();
   const type = await findModuleType(Number(id));
@@ -109,6 +156,10 @@ export async function ModuleTypeDetailScreen({ module, id, view }: { module: Mod
   const live = versions.find((version) => version.status === "PUBLISHED") ?? null;
   const viewed = view && /^\d+$/.test(view) ? (versions.find((version) => version.versionNo === Number(view)) ?? null) : null;
   const base = MODULE_ADMIN_PATH[module];
+  const versionSort = parseColumnSort(searchParams, VERSION_COLUMNS);
+  const sortedVersions = versionSort.sortBy
+    ? sortRows(versions, (version) => (versionSort.sortBy === "version" ? version.versionNo : versionSort.sortBy === "status" ? version.status : versionSort.sortBy === "fields" ? version.form.length : version.publishedAt), versionSort.dir)
+    : versions;
   const personOptions = people.map((person) => ({ id: person.id, label: personLabel(person), detail: person.departmentName ?? undefined }));
   const parse = module === "TASK" ? parseTaskSettings : module === "TICKET" ? parseTicketSettings : parseInfoSettings;
   // v1.55.0 (D-327): a ticket form's category and coordinators (kept with the form, not a version).
@@ -175,17 +226,20 @@ export async function ModuleTypeDetailScreen({ module, id, view }: { module: Mod
         </h2>
         <div className="card overflow-x-auto">
           <table className="data-table" data-testid="type-versions">
-            <thead>
-              <tr>
-                <th>Version</th>
-                <th>Status</th>
-                <th>Fields</th>
-                <th>Published</th>
-                <th />
-              </tr>
-            </thead>
+            <SortHead
+              path={`${base}/${type.id}`}
+              query={searchParams}
+              sort={versionSort}
+              columns={[
+                { key: "version", label: "Version" },
+                { key: "status", label: "Status" },
+                { key: "fields", label: "Fields" },
+                { key: "published", label: "Published" },
+                { label: "Form", srOnly: true },
+              ]}
+            />
             <tbody>
-              {versions.map((version) => (
+              {sortedVersions.map((version) => (
                 <tr key={version.id}>
                   <td>v{version.versionNo}</td>
                   <td>{version.status === "PUBLISHED" ? <Badge tone="success">Live</Badge> : version.status === "DRAFT" ? <Badge tone="warning">Draft</Badge> : <Badge>Earlier</Badge>}</td>

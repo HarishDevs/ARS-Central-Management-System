@@ -10,13 +10,16 @@ import { Hint } from "@/features/ui/Hint";
 // Saved views, schedules and alerts (Addendum A, D-123).
 const hidden = (query: Record<string, string>) => Object.entries(query).map(([key, value]) => <input key={key} type="hidden" name={`q_${key}`} value={value} />);
 
-export function SaveViewForm({ target, query }: { target: string; query: Record<string, string> }) {
+// v1.58.0 (D-353, owner: views are "Only mine"): no sharing; `path` (list views)
+// says which page to refresh.
+export function SaveViewForm({ target, query, path }: { target: string; query: Record<string, string>; path?: string }) {
   const { result, pending, formRef, onSubmit } = useActionForm(saveViewAction, { resetOnSuccess: true });
   return (
     <details className="text-label">
-      <summary className="cursor-pointer font-semibold text-primary-600">Save these filters</summary>
+      <summary className="cursor-pointer font-semibold text-primary-600" data-testid="save-view">Save this view</summary>
       <form ref={formRef} onSubmit={onSubmit} className="mt-2 flex flex-wrap items-start gap-2">
         <input type="hidden" name="target" value={target} />
+        {path && <input type="hidden" name="path" value={path} />}
         {hidden(query)}
         <div>
           <label htmlFor={`view-${target}`} className="sr-only">
@@ -25,10 +28,6 @@ export function SaveViewForm({ target, query }: { target: string; query: Record<
           <input id={`view-${target}`} name="viewName" maxLength={80} placeholder="e.g. Purchase, this quarter" className="field-input h-9 w-56" />
           <FieldError result={result} name="viewName" />
         </div>
-        <label className="flex h-9 items-center gap-1.5 text-label">
-          <input type="checkbox" name="shared" />
-          Share with everyone
-        </label>
         <SubmitButton pending={pending} variant="secondary" className="btn-compact">
           Save view
         </SubmitButton>
@@ -43,7 +42,7 @@ export function DeleteViewButton({ viewId, name }: { viewId: number; name: strin
   return (
     <form onSubmit={onSubmit} className="inline">
       <input type="hidden" name="viewId" value={viewId} />
-      <button type="submit" disabled={pending} aria-label={`Delete view ${name}`} className="ml-1 text-caption text-ink-muted hover:text-danger-600">
+      <button type="submit" disabled={pending} aria-label={`Delete view ${name}`} className="ml-1 inline-flex h-6 min-w-6 items-center justify-center rounded text-caption text-ink-muted hover:text-danger-600">
         ×
       </button>
     </form>
@@ -91,7 +90,8 @@ export function SavedViews({ views }: { views: ViewChip[] }) {
           {view.mine && (
             <>
               <ChipToggle action={defaultViewAction} viewId={view.id} field="isDefault" on={view.isDefault} label={view.isDefault ? "Clear default" : "Make default"} />
-              <ChipToggle action={shareViewAction} viewId={view.id} field="shared" on={view.shared} label={view.shared ? "Stop sharing" : "Share"} />
+              {/* v1.58.0 (D-353): views are private; a view shared before can still be unshared. */}
+              {view.shared && <ChipToggle action={shareViewAction} viewId={view.id} field="shared" on={view.shared} label="Stop sharing" />}
               <DeleteViewButton viewId={view.id} name={view.name} />
             </>
           )}

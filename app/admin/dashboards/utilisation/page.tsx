@@ -14,7 +14,9 @@ export default async function UtilisationPage({ searchParams }: { searchParams: 
   // D-244 (audit SEC-02): the page checks its own area too (not only the
   // screen it renders, nor the layout).
   await requireArea("admin");
-  const { today, filter, choices } = await dashboardPage(searchParams);
+  // v1.58.0 (D-354, owner): every column sorts both ways; Group by Status; saved views.
+  const { today, filter, choices, query, userId } = await dashboardPage(searchParams, "utilisation");
+  const group = query.group === "status" ? "status" : null;
   const rows = await loadUtilisation(filter);
   const live = rows.filter((row) => row.workflowId !== null && row.active && row.published);
   const used = live.filter((row) => row.raised > 0);
@@ -26,7 +28,7 @@ export default async function UtilisationPage({ searchParams }: { searchParams: 
   const max = Math.max(0, ...rows.map((row) => row.raised));
   const rate = approvalRate(approved, rejected);
   return (
-    <DashboardFrame slug="utilisation" filter={filter} today={today} choices={choices} departmentNote="Department = the raiser's department.">
+    <DashboardFrame slug="utilisation" filter={filter} today={today} choices={choices} departmentNote="Department = the raiser's department." query={query} userId={userId} groups={[{ key: "status", label: "Status" }]}>
       <KpiTiles
         tiles={[
           { label: "Requests raised", value: total.toLocaleString("en-IN") },
@@ -37,6 +39,17 @@ export default async function UtilisationPage({ searchParams }: { searchParams: 
       />
       <DashboardTable
         legend
+        path="/admin/dashboards/utilisation"
+        query={query}
+        values={rows.map((row) => [row.name, row.raised, approvalRate(row.approved, row.rejected), row.approved, row.rejected, row.open, row.withdrawn, approvalRate(row.approved, row.rejected), row.avgCloseHours, row.lastRaisedAt])}
+        groupOf={
+          group
+            ? (index) => {
+                const row = rows[index]!;
+                return row.workflowId === null ? ["Custom approvals", 3] : !row.active ? ["Inactive", 2] : !row.published ? ["Not published", 1] : ["Live", 0];
+              }
+            : null
+        }
         empty="No approval types yet."
         head={[
           { label: "Approval type" },

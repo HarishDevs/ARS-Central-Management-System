@@ -4,6 +4,18 @@ import Link from "next/link";
 import { PageHeader } from "@/features/shell/PageHeader";
 import { requireArea } from "@/server/authorization/guards";
 import { loadInsights } from "@/lib/db/repositories/insights.repository";
+import { ListViews } from "@/features/lists/ListViews";
+import { SortHead } from "@/features/admin/SortHead";
+import { applyDefaultListView } from "@/server/lists/views";
+import { parseColumnSort, sortRows, type ColumnSort } from "@/server/lists/sorting";
+
+// v1.58.0 (D-354, owner): every column of every table sorts both ways (one
+// table at a time: the column keys are "<table>_<column number>"); saved
+// views (list_admin_insights). No Group by: these tables are already totals
+// (by level, person and month).
+const PATH = "/admin/insights";
+const TABLES = { step: 3, speed: 5, overdue: 4, person: 5, month: 6 } as const;
+const COLUMNS = Object.entries(TABLES).flatMap(([id, count]) => Array.from({ length: count }, (_, index) => `${id}_${index}`));
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
 export const metadata: Metadata = { title: "Insights" };
@@ -23,7 +35,11 @@ function monthLabel(month: string): string {
   return new Date(Date.UTC(Number(year), Number(m) - 1, 1)).toLocaleString("en-IN", { month: "short", year: "numeric", timeZone: "UTC" });
 }
 
-function Table({ title, empty, head, rows }: { title: string; empty: string; head: string[]; rows: React.ReactNode[][] }) {
+function Table({ id, title, empty, head, rows, values, query, sort }: { id: keyof typeof TABLES; title: string; empty: string; head: string[]; rows: React.ReactNode[][]; values: unknown[][]; query: Record<string, unknown>; sort: ColumnSort }) {
+  // This table's sort (another table's column leaves it in its own order).
+  const column = sort.sortBy?.startsWith(`${id}_`) ? Number(sort.sortBy.slice(id.length + 1)) : null;
+  const order = rows.map((_, index) => index);
+  const sorted = column === null ? order : sortRows(order, (index) => values[index]?.[column], sort.dir);
   return (
     <section className="card overflow-x-auto">
       <h2 className="border-b border-line px-5 py-4 font-semibold">{title}</h2>
@@ -31,19 +47,11 @@ function Table({ title, empty, head, rows }: { title: string; empty: string; hea
         <p className="px-5 py-4 text-label text-ink-muted">{empty}</p>
       ) : (
         <table className="data-table">
-          <thead>
-            <tr>
-              {head.map((cell, index) => (
-                <th key={cell} className={index > 1 ? "text-right" : undefined}>
-                  {cell}
-                </th>
-              ))}
-            </tr>
-          </thead>
+          <SortHead path={PATH} query={query} sort={sort} columns={head.map((cell, index) => ({ key: `${id}_${index}`, label: cell, className: index > 1 ? "text-right" : undefined }))} />
           <PagedRows colSpan={1}>
-            {rows.map((row, rowIndex) => (
+            {sorted.map((rowIndex) => (
               <tr key={rowIndex}>
-                {row.map((cell, index) => (
+                {rows[rowIndex]!.map((cell, index) => (
                   <td key={index} className={index > 1 ? "text-right tabular-nums" : undefined}>
                     {cell}
                   </td>
@@ -57,8 +65,11 @@ function Table({ title, empty, head, rows }: { title: string; empty: string; hea
   );
 }
 
-export default async function InsightsPage() {
-  await requireArea("admin");
+export default async function InsightsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
+  const { user } = await requireArea("admin");
+  const query = await searchParams;
+  await applyDefaultListView(user.id, "list_admin_insights", PATH, query);
+  const sort = parseColumnSort(query, COLUMNS);
   const data = await loadInsights();
   const tiles = [
     { label: "Open requests", value: data.totals.open.toLocaleString("en-IN") },
@@ -78,18 +89,27 @@ export default async function InsightsPage() {
           </div>
         ))}
       </div>
+      <ListViews userId={user.id} target="list_admin_insights" path={PATH} query={query} />
       <div className="grid gap-6 xl:grid-cols-2">
         <Table
           title="Waiting now, by level"
           empty="Nothing is waiting."
           head={["Approval type", "Level", "Requests"]}
           rows={data.openByStep.map((row) => [row.workflow, row.level, row.requests])}
+          values={data.openByStep.map((row) => [row.workflow, row.level, row.requests])}
+          id="step"
+          query={query}
+          sort={sort}
         />
         <Table
           title="Time to decide, per level (last 90 days)"
           empty="No decisions yet."
           head={["Approval type", "Level", "Decisions", "Average", "Slowest"]}
           rows={data.speedByLevel.map((row) => [row.workflow, row.level, row.decisions, hours(row.avgHours), hours(row.maxHours)])}
+          values={data.speedByLevel.map((row) => [row.workflow, row.level, row.decisions, row.avgHours, row.maxHours])}
+          id="speed"
+          query={query}
+          sort={sort}
         />
         <Table
           title="Overdue approvals"
@@ -103,18 +123,30 @@ export default async function InsightsPage() {
             row.approver,
             hours(row.hoursOverdue),
           ])}
+          values={data.overdue.map((row) => [row.requestNo, row.level, row.approver, row.hoursOverdue])}
+          id="overdue"
+          query={query}
+          sort={sort}
         />
         <Table
           title="Decisions by person (last 30 days)"
           empty="No decisions in the last 30 days."
           head={["Person", "Approved", "Rejected", "Changes asked", "Average time"]}
           rows={data.byPerson.map((row) => [row.name, row.approved, row.rejected, row.changes, hours(row.avgHours)])}
+          values={data.byPerson.map((row) => [row.name, row.approved, row.rejected, row.changes, row.avgHours])}
+          id="person"
+          query={query}
+          sort={sort}
         />
         <Table
           title="Requests by month (last 6 months)"
           empty="No requests yet."
           head={["Month", "Raised", "Approved", "Rejected", "Withdrawn", "Still open"]}
           rows={data.byMonth.map((row) => [monthLabel(row.month), row.raised, row.approved, row.rejected, row.withdrawn, row.open])}
+          values={data.byMonth.map((row) => [row.month, row.raised, row.approved, row.rejected, row.withdrawn, row.open])}
+          id="month"
+          query={query}
+          sort={sort}
         />
       </div>
     </>

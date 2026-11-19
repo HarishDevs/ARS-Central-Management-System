@@ -4,6 +4,16 @@ import { PageHeader, EmptyState } from "@/features/shell/PageHeader";
 import { requireArea } from "@/server/authorization/guards";
 import { findPublishedVersion, listWorkflows } from "@/lib/db/repositories/approvals.repository";
 import { deriveDoaTable, type DoaTable } from "@/server/workflows/doa";
+import { ListViews } from "@/features/lists/ListViews";
+import { SortHead } from "@/features/admin/SortHead";
+import { applyDefaultListView } from "@/server/lists/views";
+import { parseColumnSort, sortRows } from "@/server/lists/sorting";
+
+// v1.58.0 (D-354, owner): Amount and Levels sort both ways in every type's
+// table; saved views (list_admin_doa). No Group by: each table is already one
+// approval type and holds a few amount bands.
+const PATH = "/admin/doa";
+const COLUMNS = ["amount", "levels"] as const;
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
 export const metadata: Metadata = { title: "Approval authority (DoA)" };
@@ -17,8 +27,11 @@ function bandLabel(from: number, to: number | null): string {
   return `${rupees(from)} to ${rupees(to)}`;
 }
 
-export default async function DoaPage() {
-  await requireArea("admin");
+export default async function DoaPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
+  const { user } = await requireArea("admin");
+  const query = await searchParams;
+  await applyDefaultListView(user.id, "list_admin_doa", PATH, query);
+  const sort = parseColumnSort(query, COLUMNS);
   const workflows = (await listWorkflows({ kind: "PREDEFINED" })).filter((workflow) => workflow.active && workflow.publishedVersionNo);
   const tables: { id: number; name: string; versionNo: number; table: DoaTable }[] = [];
   for (const workflow of workflows) {
@@ -31,6 +44,7 @@ export default async function DoaPage() {
         title="Approval authority (DoA)"
         description="Approvers by amount, from live approval types. Edit the type to change a limit."
       />
+      {tables.length > 0 && <ListViews userId={user.id} target="list_admin_doa" path={PATH} query={query} />}
       {tables.length === 0 ? (
         <EmptyState title="No live approval types" body="Publish one with an amount field to see its limits." />
       ) : (
@@ -41,14 +55,17 @@ export default async function DoaPage() {
                 {name} <span className="text-label font-normal text-ink-muted">· version {versionNo}</span>
               </h2>
               <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Amount</th>
-                    <th>Levels needed, in order</th>
-                  </tr>
-                </thead>
+                <SortHead
+                  path={PATH}
+                  query={query}
+                  sort={sort}
+                  columns={[
+                    { key: "amount", label: "Amount" },
+                    { key: "levels", label: "Levels needed, in order" },
+                  ]}
+                />
                 <PagedRows colSpan={2}>
-                  {table.bands.map((band) => (
+                  {(sort.sortBy ? sortRows(table.bands, (band) => (sort.sortBy === "amount" ? band.from : band.levels.join(" → ")), sort.dir) : table.bands).map((band) => (
                     <tr key={band.from}>
                       <td className="whitespace-nowrap">{bandLabel(band.from, band.to)}</td>
                       <td>{band.levels.join(" → ")}</td>

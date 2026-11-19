@@ -16,6 +16,47 @@ export const SORTS: Record<RecordKind, Record<string, string>> = {
   tasks: { no: "t.id", title: "t.title", type: "type_name", priority: "FIELD(t.priority, 'LOW', 'NORMAL', 'ELEVATED', 'IMPORTANT', 'HIGH', 'URGENT')", status: "t.status", assignee: "assignee_name", department: "department_name", created: "t.created_at", due: "t.due_at", completed: "t.completed_at" },
   information: { no: "i.id", title: "i.title", type: "type_name", priority: "FIELD(i.priority, 'NORMAL', 'ELEVATED', 'IMPORTANT', 'HIGH', 'URGENT')", status: "i.status", createdBy: "creator_name", department: "department_name", created: "i.created_at", published: "i.published_at" },
 };
+// v1.58.0 (D-354, owner: "sorting ... in all columns"): the remaining columns.
+// Amount and a request's Priority are not sortable: they are read from each
+// request's form and may be confidential (sorting would give hidden values away).
+Object.assign(SORTS.requests, { step: "current_step", waiting: "waiting_on", approvals: "approvals", round: "r.round", age: "TIMESTAMPDIFF(SECOND, r.submitted_at, COALESCE(r.closed_at, UTC_TIMESTAMP()))" });
+Object.assign(SORTS.tasks, { overdue: "overdue", assignedBy: "assigned_by_name", related: "related_request" });
+Object.assign(SORTS.information, { effective: "i.effective_on", expires: "i.expires_on", recipients: "recipients", read: "read_count", ack: "ack_count" });
+
+// v1.58.0 (D-354, owner): Group by. A grouped page is ordered by the group
+// first (then the column sort), so each group's rows stay together.
+export const RECORD_GROUPS: Record<RecordKind, readonly { key: string; label: string }[]> = {
+  requests: [
+    { key: "department", label: "Department" },
+    { key: "status", label: "Status" },
+    { key: "type", label: "Approval type" },
+    { key: "month", label: "Month submitted" },
+  ],
+  tasks: [
+    { key: "department", label: "Department" },
+    { key: "status", label: "Status" },
+    { key: "priority", label: "Priority" },
+    { key: "type", label: "Task type" },
+    { key: "month", label: "Month created" },
+  ],
+  information: [
+    { key: "department", label: "Department" },
+    { key: "status", label: "Status" },
+    { key: "priority", label: "Priority" },
+    { key: "type", label: "Information type" },
+    { key: "month", label: "Month created" },
+  ],
+};
+const ALIAS: Record<RecordKind, string> = { requests: "r", tasks: "t", information: "i" };
+export function recordGroupSql(kind: RecordKind, group: string): string | null {
+  const alias = ALIAS[kind];
+  if (group === "department") return "(d.name IS NULL), d.name";
+  if (group === "status") return `${alias}.status`;
+  if (group === "type") return "type_name";
+  if (group === "month") return `${kind === "requests" ? "r.submitted_at" : `${alias}.created_at`} DESC`;
+  if (group === "priority" && kind !== "requests") return `${SORTS[kind].priority} DESC`;
+  return null;
+}
 
 export interface RecordFilter {
   q: string;
@@ -30,6 +71,7 @@ export interface RecordFilter {
   to: string | null;
   sort: string;
   dir: "asc" | "desc";
+  group: string | null; // v1.58.0 (D-354): a key of RECORD_GROUPS
   page: number;
 }
 
@@ -56,6 +98,7 @@ export function readRecordFilter(kind: RecordKind, query: Record<string, string 
     to: from && to && to < from ? from : to,
     sort,
     dir: query.dir === "asc" ? "asc" : "desc",
+    group: RECORD_GROUPS[kind].some((choice) => choice.key === query.group) ? query.group! : null,
     page: Math.max(1, Math.min(100_000, Number(query.page) || 1)),
   };
 }
@@ -75,6 +118,7 @@ export function recordQuery(filter: RecordFilter, changes: Partial<Record<string
     to: filter.to,
     sort: filter.sort === "no" ? null : filter.sort,
     dir: filter.dir === "desc" ? null : filter.dir,
+    group: filter.group ?? null,
     page: filter.page > 1 ? filter.page : null,
     ...changes,
   };

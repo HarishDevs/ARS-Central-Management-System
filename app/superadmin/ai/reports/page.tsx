@@ -5,6 +5,16 @@ import { getSettingValue } from "@/server/settings/values";
 import { PROVIDER_LABEL } from "@/server/ai/providers";
 import { formatIndiaTime } from "@/server/notifications/security-messages";
 import { requireArea } from "@/server/authorization/guards";
+import { ListViews } from "@/features/lists/ListViews";
+import { sortHeads } from "@/features/superadmin/sort-heads";
+import { applyDefaultListView } from "@/server/lists/views";
+import { parseColumnSort, sortRows } from "@/server/lists/sorting";
+
+// v1.58.0 (D-354, owner: "sorting in all the tables ... in all columns"): the
+// Usage by person table sorts by any column; views save it. (The other panels are lists, not tables.)
+const PEOPLE_COLUMNS = ["person", "questions", "failed", "tokens", "last"] as const;
+const PATH = "/superadmin/ai/reports";
+const TARGET = "list_super_ai_reports";
 
 export const metadata: Metadata = { title: "AI Reports" };
 export const dynamic = "force-dynamic";
@@ -12,18 +22,31 @@ export const dynamic = "force-dynamic";
 // D-180 (owner): AI usage for the Super Admin (moved from AI settings):
 // by person and provider over 30 days, failed answers with their technical
 // reason, and security and setting events. Super Admin only (layout).
-export default async function AiReportsPage() {
+export default async function AiReportsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   // D-244 (audit SEC-02): every page checks its own area. The layout's
   // check alone isn't enough: a client-navigation request (RSC) renders the
   // page without waiting for the layout.
-  await requireArea("superadmin");
-  const [usage, people, failures, events, priceIn, priceOut] = await Promise.all([usageByProvider(30), usageByPerson(30, 100), recentFailures(30), recentAiEvents(40), getSettingValue("ai.price_in_per_million"), getSettingValue("ai.price_out_per_million")]);
+  const { user } = await requireArea("superadmin");
+  const query = await searchParams;
+  await applyDefaultListView(user.id, TARGET, PATH, query);
+  const [usage, allPeople, failures, events, priceIn, priceOut] = await Promise.all([usageByProvider(30), usageByPerson(30, 100), recentFailures(30), recentAiEvents(40), getSettingValue("ai.price_in_per_million"), getSettingValue("ai.price_out_per_million")]);
   // An estimate only, from the prices entered in AI settings; the provider's bill is the real figure.
   const cost = (inTokens: number, outTokens: number) =>
     priceIn && priceOut ? `≈ ₹${((inTokens / 1e6) * Number(priceIn) + (outTokens / 1e6) * Number(priceOut)).toFixed(2)} (estimate)` : null;
+  const sort = parseColumnSort(query, PEOPLE_COLUMNS);
+  const value: Record<(typeof PEOPLE_COLUMNS)[number], (row: (typeof allPeople)[number]) => unknown> = {
+    person: (row) => row.name,
+    questions: (row) => row.questions,
+    failed: (row) => row.failures,
+    tokens: (row) => row.inputTokens + row.outputTokens,
+    last: (row) => row.lastAt,
+  };
+  const people = sort.sortBy ? sortRows(allPeople, value[sort.sortBy], sort.dir) : allPeople;
+  const head = sortHeads(PATH, query, sort);
   return (
     <>
       <PageHeader title="AI Reports" description="AI usage over the last 30 days, failed answers and security events." />
+      <ListViews userId={user.id} target={TARGET} path={PATH} query={query} />
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
         <div className="space-y-6">
           <section className="card" aria-labelledby="ai-people">
@@ -37,11 +60,11 @@ export default async function AiReportsPage() {
                 <table className="data-table" data-testid="ai-usage-people">
                   <thead>
                     <tr>
-                      <th scope="col">Person</th>
-                      <th scope="col">Questions</th>
-                      <th scope="col">Failed</th>
-                      <th scope="col">Tokens in / out</th>
-                      <th scope="col">Last</th>
+                      {head("Person", "person")}
+                      {head("Questions", "questions")}
+                      {head("Failed", "failed")}
+                      {head("Tokens in / out", "tokens")}
+                      {head("Last", "last")}
                     </tr>
                   </thead>
                   <tbody>

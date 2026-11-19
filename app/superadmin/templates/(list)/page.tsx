@@ -6,7 +6,15 @@ import { requireArea } from "@/server/authorization/guards";
 import { loadTemplateBoard } from "@/server/notifications/template-registry";
 import { EMAIL_ONLY_EVENTS, EXISTING_OTP_TEMPLATE, templateLabel } from "@/server/notifications/templates";
 import { SyncTemplatesButton } from "@/features/superadmin/TemplateForm";
-import { StatusBadge } from "@/features/superadmin/template-status";
+import { StatusBadge, versionStatus } from "@/features/superadmin/template-status";
+import { ListToolbar } from "@/features/ui/ListToolbar";
+import { FoldScope, FoldTbody } from "@/features/ui/GroupFold";
+import { ListViews } from "@/features/lists/ListViews";
+import { groupMenu, sortHeads } from "@/features/superadmin/sort-heads";
+import { applyDefaultListView } from "@/server/lists/views";
+import { parseColumnSort, sortRows } from "@/server/lists/sorting";
+import { groupRows, pickGroup } from "@/server/lists/group-rows";
+import { TEMPLATE_COLUMNS, TEMPLATE_GROUP_LABEL, TEMPLATE_GROUPS, templateBucket, type TemplateColumn } from "@/server/lists/superadmin-lists";
 import { formatIndiaTime } from "@/server/notifications/security-messages";
 import { templatesNeedingAttention } from "@/server/notifications/template-reminder";
 
@@ -17,9 +25,58 @@ export const metadata: Metadata = { title: "Message templates" };
 // app sends, its live version, and the newest version in the works.
 // S9-14/15: one status panel (live count, last sync, Sync), short row
 // titles with the purpose behind a "?" hint, uniform right-aligned actions.
-export default async function TemplatesPage() {
-  await requireArea("superadmin");
+const PATH = "/superadmin/templates";
+const TARGET = "list_super_templates";
+
+export default async function TemplatesPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const { user } = await requireArea("superadmin");
+  const query = await searchParams;
+  // v1.58.0 (D-354, owner): the person's default saved view when nothing is chosen.
+  await applyDefaultListView(user.id, TARGET, PATH, query);
   const board = await loadTemplateBoard();
+  // v1.58.0 (D-354, owner: "sorting in all the tables ... in all columns"): every column sorts both ways.
+  const sort = parseColumnSort(query, TEMPLATE_COLUMNS);
+  const statusLabel = (item: (typeof board)[number]) => (item.latest ? versionStatus(item.latest).label : "Not created");
+  const value: Record<TemplateColumn, (item: (typeof board)[number]) => unknown> = {
+    message: (item) => templateLabel(item.entry.eventType),
+    sent_to: (item) => item.entry.sentTo,
+    live: (item) => item.live?.providerName ?? null,
+    status: statusLabel,
+  };
+  const rows = sort.sortBy ? sortRows(board, value[sort.sortBy], sort.dir) : board;
+  // v1.58.0 (D-354, owner): Group by status or message group (folded by default).
+  const group = pickGroup(query.group, TEMPLATE_GROUPS);
+  const head = sortHeads(PATH, query, sort);
+  const rowOf = ({ entry, live: current, latest }: (typeof board)[number]) => (
+    <tr key={entry.code}>
+      <td>
+        <p className="flex items-center gap-1.5 font-medium">
+          {templateLabel(entry.eventType)}
+          <span
+            title={entry.purpose}
+            className="inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full border border-line text-[length:calc(10px*var(--text-scale,1))] font-semibold text-ink-faint"
+          >
+            <span aria-hidden="true">?</span>
+            <span className="sr-only">{entry.purpose}</span>
+          </span>
+        </p>
+        <p className="font-mono text-caption text-ink-faint">
+          {entry.eventType} · {entry.group}
+        </p>
+      </td>
+      <td className="text-label">{entry.sentTo}</td>
+      <td>{current ? <span className="font-mono text-label">{current.providerName}</span> : <span className="text-ink-faint">—</span>}</td>
+      <td>
+        <StatusBadge version={latest} />
+        {latest && latest !== current && <p className="mt-1 font-mono text-caption text-ink-faint">{latest.providerName}</p>}
+      </td>
+      <td className="text-right">
+        <Link href={`/superadmin/templates/${entry.code}`} className={`${latest ? "btn-secondary" : "btn-primary"} btn-compact inline-flex w-20 justify-center`}>
+          {latest ? "Open" : "Create"}
+        </Link>
+      </td>
+    </tr>
+  );
   const live = board.filter((item) => item.live).length;
   // Q-013 (owner, 2 Nov 2026): the checklist of templates still to switch on.
   const pending = templatesNeedingAttention(board);
@@ -70,53 +127,35 @@ export default async function TemplatesPage() {
           </ul>
         </section>
       )}
-      <section className="card overflow-x-auto">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Message</th>
-              <th>Sent to</th>
-              <th>Live version</th>
-              <th>Status</th>
-              <th className="text-right">
-                <span className="sr-only">Action</span>
-              </th>
-            </tr>
-          </thead>
-          <PagedRows colSpan={5}>
-            {board.map(({ entry, live: current, latest }) => (
-              <tr key={entry.code}>
-                <td>
-                  <p className="flex items-center gap-1.5 font-medium">
-                    {templateLabel(entry.eventType)}
-                    <span
-                      title={entry.purpose}
-                      className="inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full border border-line text-[length:calc(10px*var(--text-scale,1))] font-semibold text-ink-faint"
-                    >
-                      <span aria-hidden="true">?</span>
-                      <span className="sr-only">{entry.purpose}</span>
-                    </span>
-                  </p>
-                  <p className="font-mono text-caption text-ink-faint">
-                    {entry.eventType} · {entry.group}
-                  </p>
-                </td>
-                <td className="text-label">{entry.sentTo}</td>
-                <td>{current ? <span className="font-mono text-label">{current.providerName}</span> : <span className="text-ink-faint">—</span>}</td>
-                <td>
-                  <StatusBadge version={latest} />
-                  {latest && latest !== current && <p className="mt-1 font-mono text-caption text-ink-faint">{latest.providerName}</p>}
-                </td>
-                <td className="text-right">
-                  <Link href={`/superadmin/templates/${entry.code}`} className={`${latest ? "btn-secondary" : "btn-primary"} btn-compact inline-flex w-20 justify-center`}>
-                    {latest ? "Open" : "Create"}
-                  </Link>
-                </td>
+      {/* v1.58.0 (D-354, owner): Group by and saved views for the templates list. */}
+      <ListToolbar id="template-list" path={PATH} label="Templates list" keep={{}} filterCount={0} clearHref={null} group={groupMenu(PATH, query, group, TEMPLATE_GROUPS, TEMPLATE_GROUP_LABEL)} />
+      <ListViews userId={user.id} target={TARGET} path={PATH} query={query} />
+      <FoldScope enabled={Boolean(group)}>
+        <section className="card overflow-x-auto">
+          <table className="data-table">
+            <thead>
+              <tr>
+                {head("Message", "message")}
+                {head("Sent to", "sent_to")}
+                {head("Live version", "live")}
+                {head("Status", "status")}
+                <th className="text-right">
+                  <span className="sr-only">Action</span>
+                </th>
               </tr>
-            ))}
-          </PagedRows>
-        </table>
-      </section>
+            </thead>
+            {group ? (
+              groupRows(rows, (item) => templateBucket(group, { statusLabel: statusLabel(item), group: item.entry.group })).map((section) => (
+                <FoldTbody key={section.key} label={section.label} count={section.items.length} colSpan={5}>
+                  {section.items.map(rowOf)}
+                </FoldTbody>
+              ))
+            ) : (
+              <PagedRows colSpan={5}>{rows.map(rowOf)}</PagedRows>
+            )}
+          </table>
+        </section>
+      </FoldScope>
     </>
   );
 }

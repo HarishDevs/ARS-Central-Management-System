@@ -13,14 +13,16 @@ export default async function DepartmentsDashboardPage({ searchParams }: { searc
   // D-244 (audit SEC-02): the page checks its own area too (not only the
   // screen it renders, nor the layout).
   await requireArea("admin");
-  const { today, filter, choices } = await dashboardPage(searchParams);
+  // v1.58.0 (D-354, owner): every column sorts both ways; saved views. No Group
+  // by: each row is already one department's total.
+  const { today, filter, choices, query, userId } = await dashboardPage(searchParams, "departments");
   const rows = await loadDepartments(filter);
   const total = rows.reduce((sum, row) => sum + row.raised, 0);
   const top = rows[0];
   const max = Math.max(0, ...rows.map((row) => row.raised));
   const open = rows.reduce((sum, row) => sum + row.open, 0);
   return (
-    <DashboardFrame slug="departments" filter={filter} today={today} choices={choices} departmentNote="Department = the raiser's department today.">
+    <DashboardFrame slug="departments" filter={filter} today={today} choices={choices} departmentNote="Department = the raiser's department today." query={query} userId={userId}>
       <KpiTiles
         tiles={[
           { label: "Requests raised", value: total.toLocaleString("en-IN") },
@@ -31,6 +33,9 @@ export default async function DepartmentsDashboardPage({ searchParams }: { searc
       />
       <DashboardTable
         legend
+        path="/admin/dashboards/departments"
+        query={query}
+        values={rows.map((row) => [row.name, row.raised, approvalRate(row.approved, row.rejected), row.raisers, row.approved, row.rejected, row.open, approvalRate(row.approved, row.rejected), row.avgCloseHours, row.topTypes.map((type) => type.name).join(", ")])}
         empty="No requests in this period."
         head={[
           { label: "Department" },

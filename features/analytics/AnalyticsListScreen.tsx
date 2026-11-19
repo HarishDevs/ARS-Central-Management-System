@@ -15,6 +15,11 @@ import { formatIndiaTime } from "@/server/notifications/security-messages";
 import { guardAnalyticsRate } from "@/server/analytics/rate";
 import type { AnalyticsBase } from "@/features/analytics/AnalyticsScreen";
 import type { InstanceStatus } from "@/server/engine/types";
+import { SortTh } from "@/features/ui/SortTh";
+import { nextDir, parseColumnSort, sortHref, sortRows } from "@/server/lists/sorting";
+
+// v1.58.0 (D-351, owner): every column of the drill-down list sorts both ways (on the rows shown, at most 500).
+const DRILL_SORTS = ["request", "type", "raiser", "status", "raised", "closed"] as const;
 
 // v1.7.0 (B01): the requests behind an Analytics number, with the same
 // scope and filters (read the same way as the dashboard), so the list and
@@ -38,7 +43,28 @@ export async function AnalyticsListScreen({ searchParams, base }: { searchParams
       </p>
     );
   }
-  const { rows, truncated } = await loadDrill(kind, scope, viewer, filter);
+  const loaded = await loadDrill(kind, scope, viewer, filter);
+  const truncated = loaded.truncated;
+  const sort = parseColumnSort(query, DRILL_SORTS);
+  const drillValue = (row: (typeof loaded.rows)[number]): unknown => {
+    switch (sort.sortBy) {
+      case "request":
+        return row.requestNo;
+      case "type":
+        return row.workflowName;
+      case "raiser":
+        return row.requesterName;
+      case "status":
+        return row.status;
+      case "raised":
+        return row.submittedAt;
+      default:
+        return row.closedAt;
+    }
+  };
+  const rows = sort.sortBy ? sortRows(loaded.rows, drillValue, sort.dir) : loaded.rows;
+  const drillPath = `${base}/list`;
+  const th = (column: (typeof DRILL_SORTS)[number], label: string) => <SortTh label={label} column={column} sortBy={sort.sortBy} dir={sort.dir} href={sortHref(drillPath, query, column, nextDir(sort, column))} />;
   const conditions = [
     carried.type && (carried.type === "-1" ? "custom approvals" : choices.types.find((type) => String(type.id) === carried.type)?.name),
     carried.department && choices.departments.find((department) => String(department.id) === carried.department)?.name,
@@ -68,12 +94,12 @@ export async function AnalyticsListScreen({ searchParams, base }: { searchParams
             <caption className="sr-only">{DRILL_LABEL[kind]}</caption>
             <thead>
               <tr>
-                <th scope="col">Request</th>
-                <th scope="col">Approval type</th>
-                <th scope="col">Raised by</th>
-                <th scope="col">Status</th>
-                <th scope="col">Raised</th>
-                <th scope="col">Closed</th>
+                {th("request", "Request")}
+                {th("type", "Approval type")}
+                {th("raiser", "Raised by")}
+                {th("status", "Status")}
+                {th("raised", "Raised")}
+                {th("closed", "Closed")}
               </tr>
             </thead>
             <tbody>

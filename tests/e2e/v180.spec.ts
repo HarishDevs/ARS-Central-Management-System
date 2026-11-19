@@ -138,7 +138,7 @@ test("the Super Admin hides a page and makes another view-only", async ({ page, 
   await expect(page.getByTestId("view-only")).toBeVisible();
   // A change on a view-only page is refused by the server.
   await page.getByTestId("options-menu").getByLabel("Options", { exact: true }).click();
-  await page.getByText("Save these filters").click();
+  await page.getByText("Save this view").click();
   await page.getByLabel("View name").fill("Should not save");
   await page.getByRole("button", { name: "Save view" }).click();
   // D-233: the refusal says the page is view-only (not "Not found.").

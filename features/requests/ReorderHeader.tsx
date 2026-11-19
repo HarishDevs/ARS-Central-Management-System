@@ -4,6 +4,8 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { GripVertical } from "lucide-react";
 import { saveListColumnsAction } from "@/app/users/list-actions";
+import { SortLink } from "@/features/ui/SortTh";
+import type { SortDir } from "@/server/lists/sorting";
 
 // v1.52.3 (owner: "make each column of the tables re-arrangeable: drag and
 // rearrange the columns and save it as a view for that user"): the title row
@@ -17,7 +19,20 @@ export interface HeaderColumn {
   srOnly?: boolean;
 }
 
-export function ReorderHeader({ list, lead, columns, hidden = [] }: { list: string; lead: string; columns: HeaderColumn[]; hidden?: string[] }) {
+// v1.58.0 (D-354, owner: "sorting in all the tables asc to desc or vice versa in
+// all columns"): with `sort`, each title (and the lead "Request" title, key
+// `leadKey`) is also a sort link; the grip still drags the column. `hrefs` holds
+// the address for each column's next direction (built on the server).
+export interface HeaderSort {
+  sortBy: string | null;
+  dir: SortDir;
+  hrefs: Record<string, string>;
+  leadKey?: string;
+}
+
+const ariaSort = (sort: HeaderSort | undefined, key: string) => (sort && sort.hrefs[key] ? (sort.sortBy === key ? (sort.dir === "asc" ? "ascending" : "descending") : "none") : undefined);
+
+export function ReorderHeader({ list, lead, columns, hidden = [], sort }: { list: string; lead: string; columns: HeaderColumn[]; hidden?: string[]; sort?: HeaderSort }) {
   const router = useRouter();
   // The order shown is the saved one: titles and cells move together once the
   // page has the new order (a short "Saving…" in between), never apart.
@@ -52,8 +67,8 @@ export function ReorderHeader({ list, lead, columns, hidden = [] }: { list: stri
   };
   return (
     <tr data-testid={`reorder-${list}`} aria-busy={pending || undefined} className={pending ? "opacity-60" : undefined}>
-      <th scope="col">
-        {lead}
+      <th scope="col" aria-sort={sort?.leadKey ? ariaSort(sort, sort.leadKey) : undefined} data-sort-column={sort?.leadKey}>
+        {sort?.leadKey && sort.hrefs[sort.leadKey] ? <SortLink label={lead} active={sort.sortBy === sort.leadKey} dir={sort.dir} href={sort.hrefs[sort.leadKey]!} /> : lead}
         {pending && <span className="ml-2 text-caption font-normal normal-case text-ink-muted">Saving…</span>}
       </th>
       {order.map((key) => {
@@ -69,6 +84,7 @@ export function ReorderHeader({ list, lead, columns, hidden = [] }: { list: stri
             aria-label={`${column.label}. Drag, or Alt and an arrow key, to move this column`}
             title="Drag to move this column"
             data-column={key}
+            aria-sort={ariaSort(sort, key)}
             onDragStart={(event) => {
               setDragging(key);
               event.dataTransfer.effectAllowed = "move";
@@ -105,7 +121,14 @@ export function ReorderHeader({ list, lead, columns, hidden = [] }: { list: stri
           >
             <span className="inline-flex cursor-grab items-center gap-1 active:cursor-grabbing">
               <GripVertical aria-hidden="true" className="h-3.5 w-3.5 text-ink-faint" />
-              {column.srOnly ? <span className="sr-only">{column.label}</span> : column.label}
+              {/* v1.58.0 (D-354): the title sorts; dragging it still moves the column. */}
+              {sort?.hrefs[key] ? (
+                <SortLink label={column.label} active={sort.sortBy === key} dir={sort.dir} href={sort.hrefs[key]!} srOnly={column.srOnly} />
+              ) : column.srOnly ? (
+                <span className="sr-only">{column.label}</span>
+              ) : (
+                column.label
+              )}
             </span>
           </th>
         );

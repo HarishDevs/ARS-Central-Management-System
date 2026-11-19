@@ -89,3 +89,14 @@ export async function listReassignableTasks(filter: { approverId?: number | null
     overdue: Number(row.overdue) === 1,
   }));
 }
+
+// v1.58.0 (D-354, owner): each person's department today, for the Workload
+// table's Department column and Group by (none: "No department").
+export async function departmentNamesOf(userIds: readonly number[], db: Queryable = getDbPool()): Promise<Map<number, string | null>> {
+  if (userIds.length === 0) return new Map();
+  const [rows] = await db.query<(RowDataPacket & { id: number; department_name: string | null })[]>(
+    `SELECT u.id, d.name AS department_name FROM users u LEFT JOIN departments d ON d.id = u.department_id WHERE u.id IN (?)`,
+    [[...userIds]],
+  );
+  return new Map(rows.map((row) => [Number(row.id), row.department_name]));
+}

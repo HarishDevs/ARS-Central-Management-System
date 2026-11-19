@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Fragment } from "react";
-import { ReorderHeader, type HeaderColumn } from "@/features/requests/ReorderHeader";
+import { ReorderHeader, type HeaderColumn, type HeaderSort } from "@/features/requests/ReorderHeader";
+import { SortTh } from "@/features/ui/SortTh";
 import { RequestStatusPill } from "@/features/requests/StatusPill";
 import { EmptyState } from "@/features/shell/PageHeader";
 import { formatIndiaTime } from "@/server/notifications/security-messages";
@@ -9,7 +10,7 @@ import type {
   QueueItem,
 } from "@/lib/db/repositories/approvals.repository";
 import { SafeText } from "@/features/ui/SafeText";
-import { FoldListGroup, FoldTbody } from "@/features/ui/GroupFold";
+import { FoldListGroup, FoldScope, FoldTbody } from "@/features/ui/GroupFold";
 import { PriorityPill } from "@/features/ui/ChoicePill";
 import type { ShownPriority } from "@/server/approvals/priority";
 
@@ -27,7 +28,10 @@ const QUEUE_HEADER: Record<QueueColumn, HeaderColumn> = {
 };
 // v1.57.4 (D-343): `groups` (label + the items in it, in order) shows the rows
 // in folding groups; without it, one plain list as before.
-export function QueueTable({ items, priority, order: savedOrder, formDue = {}, groups }: { items: QueueItem[]; priority?: Record<number, ShownPriority>; order?: string[]; formDue?: Record<number, string>; groups?: { key: string; label: string; items: QueueItem[] }[] }) {
+// v1.58.0 (D-354, owner: "sorting in all the tables ... in all columns"): with
+// `sort` every column title (and Request) is a sort link (hrefs from the page);
+// grouped rows get Expand all / Collapse all (groups start folded).
+export function QueueTable({ items, priority, order: savedOrder, formDue = {}, groups, sort }: { items: QueueItem[]; priority?: Record<number, ShownPriority>; order?: string[]; formDue?: Record<number, string>; groups?: { key: string; label: string; items: QueueItem[] }[]; sort?: HeaderSort }) {
   // v1.53.0: the request's own due date (its form's Due date field), India day.
   const todayDay = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
   const dayText = (day: string) => new Date(`${day}T00:00:00Z`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
@@ -90,7 +94,7 @@ export function QueueTable({ items, priority, order: savedOrder, formDue = {}, g
       />
     );
   return (
-    <>
+    <FoldScope enabled={Boolean(groups)}>
       {/* Phones (spec #5): one card per item, the whole card is the link. */}
       <ul className="card divide-y divide-line sm:hidden">
         {(groups ?? [{ key: "all", label: "", items }]).map((group) => {
@@ -153,13 +157,17 @@ export function QueueTable({ items, priority, order: savedOrder, formDue = {}, g
         <table className="data-table">
           <thead>
             {savedOrder ? (
-              <ReorderHeader list="queue" lead="Request" columns={order.map((column) => QUEUE_HEADER[column])} />
+              <ReorderHeader list="queue" lead="Request" columns={order.map((column) => QUEUE_HEADER[column])} sort={sort} />
             ) : (
               <tr>
-                <th>Request</th>
-                {order.map((column) => (
-                  <th key={column}>{QUEUE_HEADER[column].label}</th>
-                ))}
+                {sort?.hrefs.title ? <SortTh label="Request" column="title" sortBy={sort.sortBy} dir={sort.dir} href={sort.hrefs.title} /> : <th>Request</th>}
+                {order.map((column) =>
+                  sort?.hrefs[column] ? (
+                    <SortTh key={column} label={QUEUE_HEADER[column].label} column={column} sortBy={sort.sortBy} dir={sort.dir} href={sort.hrefs[column]!} />
+                  ) : (
+                    <th key={column}>{QUEUE_HEADER[column].label}</th>
+                  ),
+                )}
               </tr>
             )}
           </thead>
@@ -194,7 +202,7 @@ export function QueueTable({ items, priority, order: savedOrder, formDue = {}, g
           })}
         </table>
       </div>
-    </>
+    </FoldScope>
   );
 }
 

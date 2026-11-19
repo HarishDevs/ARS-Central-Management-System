@@ -78,8 +78,15 @@ for (const role of ROLES) {
         for (const tab of tabs) {
           await page.goto(moduleUrl);
           await page.getByTestId("classic-tabs").getByRole("link", { name: tab.trim(), exact: true }).click();
-          await expect(page.getByTestId("classic-tabs").getByRole("link", { name: tab.trim(), exact: true })).toHaveAttribute("aria-current", "page");
-          await expect(bar(page).getByRole("link", { name: label })).toBeVisible();
+          // New task (v1.48.2) opens My Tasks with the Create task window, so no tab of its own stays lit.
+          if (tab.trim() === "New task") await expect(page.getByTestId("create-dialog")).toBeVisible();
+          else await expect(page.getByTestId("classic-tabs").getByRole("link", { name: tab.trim(), exact: true })).toHaveAttribute("aria-current", "page");
+          await expect(bar(page).getByRole("link", { name: label, exact: true })).toBeVisible();
+          if (tab.trim() === "New task") {
+            // The Create task window keeps a draft through Esc; close it with its button.
+            await page.getByTestId("create-dialog").getByRole("button", { name: "Close", exact: true }).click();
+            await expect(page.getByTestId("create-dialog")).toHaveCount(0);
+          }
           await page.locator("body").click({ position: { x: 2, y: 2 } });
           await page.keyboard.press("Escape");
           await expect(page).toHaveURL(moduleUrl);

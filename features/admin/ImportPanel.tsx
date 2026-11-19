@@ -8,6 +8,8 @@ import type { PlannedRow, RowAction } from "@/server/import/plan";
 import { Spinner } from "@/features/ui/Spinner";
 import { SafeText } from "@/features/ui/SafeText";
 import { Hint } from "@/features/ui/Hint";
+import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
+import { sortRows, type SortDir } from "@/server/lists/sorting";
 
 // Bulk import screen (S10-05/06, F-59): choose what, download the template
 // or the current data (Excel, v1.49.1), upload an Excel or CSV file, check it (nothing saved), then import
@@ -22,6 +24,27 @@ const ACTION_BADGE: Record<RowAction, { label: string; className: string }> = {
   error: { label: "Problem", className: "bg-danger-50 text-danger-600" },
 };
 const SHOW_ROWS = 500;
+
+// v1.58.0 (D-354, owner: "sorting in all the tables asc to desc or vice
+// versa"): the check's rows sort on every column, both ways, in the browser
+// (nothing is saved yet, so there is no address or saved view for them).
+type PreviewColumn = "line" | "key" | "action" | "details";
+const ACTION_ORDER: Record<RowAction, number> = { error: 0, create: 1, update: 2, unchanged: 3 };
+const previewValue = (row: PlannedRow, column: PreviewColumn): unknown =>
+  column === "line" ? row.line : column === "key" ? row.key : column === "action" ? ACTION_ORDER[row.action] : row.problems.length ? row.problems.map((problem) => `${problem.column}: ${problem.message}`).join("; ") : row.changes.join(", ");
+
+function PreviewTh({ column, label, sort, onSort }: { column: PreviewColumn; label: string; sort: { column: PreviewColumn; dir: SortDir } | null; onSort: (column: PreviewColumn) => void }) {
+  const active = sort?.column === column;
+  const Icon = active ? (sort!.dir === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
+  return (
+    <th scope="col" aria-sort={active ? (sort!.dir === "asc" ? "ascending" : "descending") : "none"} data-sort-column={column}>
+      <button type="button" onClick={() => onSort(column)} className={`inline-flex items-center gap-1 hover:text-ink ${active ? "text-ink" : ""}`} title={`Sort by ${label}, ${active && sort!.dir === "asc" ? "descending" : "ascending"}`}>
+        {label}
+        <Icon aria-hidden="true" className={`h-3.5 w-3.5 shrink-0 ${active ? "" : "opacity-40"}`} />
+      </button>
+    </th>
+  );
+}
 
 function saveFile(name: string, blob: Blob) {
   const url = URL.createObjectURL(blob);
@@ -48,6 +71,8 @@ export function ImportPanel({ initialKind }: { initialKind: ImportKind }) {
   const [confirming, setConfirming] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
+  const [previewSort, setPreviewSort] = useState<{ column: PreviewColumn; dir: SortDir } | null>(null);
+  const sortPreview = (column: PreviewColumn) => setPreviewSort((current) => (current?.column === column ? { column, dir: current.dir === "asc" ? "desc" : "asc" } : { column, dir: "asc" }));
   const [, startTransition] = useTransition();
   const input = useRef<HTMLInputElement>(null);
   const spec = IMPORT_SPECS[kind];
@@ -119,9 +144,10 @@ export function ImportPanel({ initialKind }: { initialKind: ImportKind }) {
   const summary = checked?.summary;
   const toWrite = summary ? summary.create + summary.update : 0;
   const canImport = Boolean(result?.ok && checked && !imported && toWrite > 0);
-  const visible = (checked?.rows ?? []).filter((row: PlannedRow) =>
+  const shownRows = (checked?.rows ?? []).filter((row: PlannedRow) =>
     filter === "problems" ? row.action === "error" : filter === "changes" ? row.action === "create" || row.action === "update" : true,
   );
+  const visible = previewSort ? sortRows(shownRows, (row) => previewValue(row, previewSort.column), previewSort.dir) : shownRows;
 
   return (
     <div className="space-y-6" aria-busy={locked}>
@@ -303,10 +329,10 @@ export function ImportPanel({ initialKind }: { initialKind: ImportKind }) {
                 <table className="data-table">
                   <thead>
                     <tr>
-                      <th>Row</th>
-                      <th>{spec.matchBy}</th>
-                      <th>Result</th>
-                      <th>Details</th>
+                      <PreviewTh column="line" label="Row" sort={previewSort} onSort={sortPreview} />
+                      <PreviewTh column="key" label={spec.matchBy} sort={previewSort} onSort={sortPreview} />
+                      <PreviewTh column="action" label="Result" sort={previewSort} onSort={sortPreview} />
+                      <PreviewTh column="details" label="Details" sort={previewSort} onSort={sortPreview} />
                     </tr>
                   </thead>
                   <tbody>

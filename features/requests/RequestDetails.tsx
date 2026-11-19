@@ -32,6 +32,7 @@ import { ChoicePill, ChoicePills } from "@/features/ui/ChoicePill";
 import { AttachmentList, type AttachmentRow } from "@/features/requests/AttachmentList";
 import { fieldIconKind, type FieldIconKind } from "@/features/requests/request-page";
 import { formatPaise } from "@/server/forms/dynamic";
+import { LineItemsTable } from "@/features/requests/LineItemsTable";
 import type { RequestView } from "@/server/approvals/view";
 import { RichText } from "@/features/work/RichText";
 
@@ -91,39 +92,21 @@ function FieldValue({ field, view, files }: { field: Field; view: RequestView; f
   if (field.lines?.length) {
     return (
       <div className="overflow-x-auto rounded-md border border-line">
-        <table className="data-table">
-          <caption className="sr-only">{field.label}</caption>
-          <thead>
-            <tr>
-              <th scope="col">Description</th>
-              <th scope="col" className="text-right">
-                Qty
-              </th>
-              <th scope="col" className="text-right">
-                Rate
-              </th>
-              <th scope="col" className="text-right">
-                GST %
-              </th>
-              <th scope="col" className="text-right">
-                Total
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {field.lines.map((line, index) => (
-              <tr key={index}>
-                <td>
-                  <SafeText text={line.description} />
-                </td>
-                <td className="text-right tabular-nums">{line.quantity}</td>
-                <td className="text-right tabular-nums">{formatPaise(Math.round(Number(line.rate) * 100))}</td>
-                <td className="text-right tabular-nums">{line.gst}</td>
-                <td className="text-right tabular-nums">{formatPaise(line.totalPaise)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {/* v1.58.0 (D-354, owner): line items sort by any column (on the page). */}
+        <LineItemsTable
+          caption={field.label}
+          rows={field.lines.map((line) => ({
+            description: line.description,
+            quantity: Number(line.quantity),
+            quantityText: line.quantity,
+            rate: Number(line.rate),
+            rateText: formatPaise(Math.round(Number(line.rate) * 100)),
+            gst: Number(line.gst),
+            gstText: line.gst,
+            total: line.totalPaise,
+            totalText: formatPaise(line.totalPaise),
+          }))}
+        />
         <p className="border-t border-line px-4 py-2 text-right font-semibold tabular-nums">Total {field.value}</p>
       </div>
     );

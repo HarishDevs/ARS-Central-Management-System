@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { MoreVertical } from "lucide-react";
 import { inside } from "@/features/ui/inside";
@@ -21,12 +21,15 @@ export function RequestRowMenu({ title, actions }: { title: string; actions: Row
   // placed on the page (fixed), under the button or above it near the bottom.
   const [spot, setSpot] = useState<{ top: number; right: number } | null>(null);
   const box = useRef<HTMLDivElement>(null);
+  const count = actions.length;
+  const place = useCallback(() => {
+    if (!box.current) return;
+    const rect = box.current.getBoundingClientRect();
+    const height = 44 * count + 12;
+    setSpot({ top: rect.bottom + height > window.innerHeight ? Math.max(8, rect.top - height - 4) : rect.bottom + 4, right: Math.max(8, window.innerWidth - rect.right) });
+  }, [count]);
   const toggle = () => {
-    if (!open && box.current) {
-      const rect = box.current.getBoundingClientRect();
-      const height = 44 * actions.length + 12;
-      setSpot({ top: rect.bottom + height > window.innerHeight ? Math.max(8, rect.top - height - 4) : rect.bottom + 4, right: Math.max(8, window.innerWidth - rect.right) });
-    }
+    if (!open) place();
     setOpen((value) => !value);
   };
   useEffect(() => {
@@ -34,7 +37,9 @@ export function RequestRowMenu({ title, actions }: { title: string; actions: Row
     box.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus({ preventScroll: true });
     const close = (event: MouseEvent) => box.current && !inside(event, box.current) && setOpen(false);
     const key = (event: KeyboardEvent) => event.key === "Escape" && setOpen(false);
-    const away = () => setOpen(false); // the fixed menu would drift from its row
+    // v1.58.0: the fixed menu follows its row when the page scrolls (it used to
+    // close, and the scroll that brought the row into view closed it on open).
+    const away = () => place();
     document.addEventListener("mousedown", close);
     document.addEventListener("keydown", key);
     window.addEventListener("scroll", away, true);
@@ -43,7 +48,7 @@ export function RequestRowMenu({ title, actions }: { title: string; actions: Row
       document.removeEventListener("keydown", key);
       window.removeEventListener("scroll", away, true);
     };
-  }, [open]);
+  }, [open, place]);
   return (
     <div ref={box} className="relative inline-block">
       <button

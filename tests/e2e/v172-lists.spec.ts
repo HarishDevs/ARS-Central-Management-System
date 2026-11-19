@@ -62,7 +62,7 @@ test("Collaborating is its own screen in the sidebar, with quick tabs and the fu
 
   // Save it, and it comes back as a chip.
   await page.getByTestId("options-menu").getByLabel("Options", { exact: true }).click();
-  await page.getByText("Save these filters").click();
+  await page.getByText("Save this view").click();
   await page.getByLabel("View name").fill("Ravi's requests");
   await page.getByRole("button", { name: "Save view" }).click();
   await expect(page.getByTestId("saved-views").getByRole("link", { name: "Ravi's requests" })).toBeVisible();

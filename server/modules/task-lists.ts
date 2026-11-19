@@ -1,5 +1,6 @@
 import { ALL_TASK_PRIORITIES, type TaskPriority } from "@/server/modules/settings";
 import { TASK_STATUSES, type TaskStatus } from "@/server/modules/task-rules";
+import { sqlDir, type SortDir } from "@/server/lists/sorting";
 
 // v1.9.0: the task lists (My tasks, Assigned by me, Team tasks): quick tabs,
 // search, filters and sorting, all from the address. Pure: the values are
@@ -12,6 +13,17 @@ export const TASK_SORTS = ["due", "newest", "oldest", "priority", "updated"] as 
 export type TaskSort = (typeof TASK_SORTS)[number];
 export const TASK_SORT_LABEL: Record<TaskSort, string> = { due: "Due first", newest: "Newest", oldest: "Oldest", priority: "Priority", updated: "Recently updated" };
 export const PAGE_SIZES = [25, 50, 100] as const;
+
+// v1.58.0 (D-354, owner: "i need sorting in all the tables asc to desc or vice
+// versa in all columns"): a column title sorts the whole list (all pages) by
+// that column, ?sortBy=<column>&dir=asc|desc. Only these names reach SQL, each
+// as a fixed expression; a type's listed field is "f_<key>" and its key must be
+// a plain field key (letters, digits, underscore), so it can sit in the JSON
+// path. "repeats" and "done" are Periodic tasks' own columns.
+export const TASK_COLUMNS = ["task", "type", "person", "priority", "status", "due", "repeats", "done"] as const;
+export type TaskColumn = (typeof TASK_COLUMNS)[number];
+const FIELD_COLUMN = /^f_[a-z][a-z0-9_]{0,49}$/;
+export const isTaskSortColumn = (value: string) => (TASK_COLUMNS as readonly string[]).includes(value) || FIELD_COLUMN.test(value);
 
 // v1.57.5 (D-344): Group on the task lists. "dept" and "person" follow the list:
 // on Assigned to me the person who gave it; elsewhere the assignee.
@@ -33,6 +45,8 @@ export interface TaskFilters {
   size: number;
   page: number;
   group?: TaskListGroup | null;
+  sortBy?: string | null; // v1.58.0 (D-354): a TASK_COLUMNS name or "f_<key>"
+  dir?: SortDir;
 }
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
@@ -64,6 +78,8 @@ export function parseTaskFilters(query: Record<string, string | string[] | undef
     size: (PAGE_SIZES as readonly number[]).includes(size) ? size : 25,
     page: Math.min(1000, Math.max(1, Number(one(query.page)) || 1)),
     group: (TASK_LIST_GROUPS as readonly string[]).includes(one(query.group)) ? (one(query.group) as TaskListGroup) : null,
+    sortBy: isTaskSortColumn(one(query.sortBy)) ? one(query.sortBy) : null,
+    dir: one(query.dir) === "desc" ? "desc" : "asc",
   };
 }
 
@@ -84,6 +100,10 @@ export function taskQuery(filters: TaskFilters, change: Partial<TaskFilters> = {
   if (f.sort !== "due") params.set("sort", f.sort);
   if (f.size !== 25) params.set("size", String(f.size));
   if (f.group) params.set("group", f.group);
+  if (f.sortBy) {
+    params.set("sortBy", f.sortBy);
+    params.set("dir", f.dir === "desc" ? "desc" : "asc");
+  }
   if (f.page > 1) params.set("page", String(f.page));
   const text = params.toString();
   return text ? `?${text}` : "";
@@ -109,6 +129,8 @@ export function taskListSql(
   tabOverride?: TaskTab,
   // v1.54.7: for PERIODIC, which tasks the person can see (the Tasks module's own rule).
   visible?: { sql: string; params: unknown[] },
+  // v1.58.0 (D-354): listed fields that hold numbers (their column sorts by value).
+  numericKeys: readonly string[] = [],
 ): { where: string[]; params: unknown[]; orderBy: string } {
   // D-215: deleted tasks (kept 30 days for Restore) are in no list.
   const where: string[] = ["t.deleted_at IS NULL"];
@@ -195,6 +217,8 @@ export function taskListSql(
     where.push("t.created_at < ?");
     params.push(indiaDayStartUtc(nextDay(f.createdTo)));
   }
+  const columnOrder = f.sortBy ? taskColumnOrder(f.sortBy, f.dir ?? "asc", base, f.sortBy.startsWith("f_") && numericKeys.includes(f.sortBy.slice(2))) : null;
+  if (columnOrder) return { where, params, orderBy: columnOrder };
   const orderBy =
     f.sort === "newest"
       ? "t.id DESC"
@@ -206,4 +230,41 @@ export function taskListSql(
             ? "t.updated_at DESC, t.id DESC"
             : "t.due_at IS NULL, t.due_at, t.id";
   return { where, params, orderBy };
+}
+
+// v1.58.0 (D-354): ORDER BY for a column title. Empty values (no due date, no
+// field value) stay last in both directions; ties fall back to the task number.
+// null: not a column of this list (the Sort menu's order is used instead).
+// `numeric`: the field holds numbers (sorted by value, not as text).
+export function taskColumnOrder(column: string, dir: SortDir, base: TaskBase, numeric = false): string | null {
+  const d = sqlDir(dir);
+  const last = (expression: string) => `${expression} IS NULL, ${expression} ${d}, t.id ${d}`;
+  switch (column) {
+    case "task":
+      return `t.title ${d}, t.id ${d}`;
+    case "type":
+      return `mt.name ${d}, t.id ${d}`;
+    case "person":
+      // Assigned to me shows who gave the task; the other lists the assignee.
+      return `${base === "MINE" ? "c.name" : "a.name"} ${d}, t.id ${d}`;
+    case "priority":
+      return `FIELD(t.priority, 'URGENT', 'HIGH', 'IMPORTANT', 'ELEVATED', 'NORMAL', 'LOW') ${d}, t.id ${d}`;
+    case "status":
+      return `FIELD(t.status, 'OPEN', 'IN_PROGRESS', 'BLOCKED', 'COMPLETED', 'CANCELLED') ${d}, t.id ${d}`;
+    case "due":
+      return last("t.due_at");
+    case "repeats":
+      if (base !== "PERIODIC") return null;
+      return `FIELD(JSON_UNQUOTE(JSON_EXTRACT(t.recurrence_json, '$.kind')), 'DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY', 'AFTER_DONE') ${d}, CAST(JSON_EXTRACT(t.recurrence_json, '$.every') AS UNSIGNED) ${d}, t.id ${d}`;
+    case "done":
+      if (base !== "PERIODIC") return null;
+      return `(SELECT COUNT(*) FROM tasks s WHERE s.series_id = COALESCE(t.series_id, t.id) AND s.status = 'COMPLETED' AND s.deleted_at IS NULL) ${d}, t.id ${d}`;
+    default: {
+      if (!FIELD_COLUMN.test(column)) return null;
+      // The key passed FIELD_COLUMN (letters, digits, underscore only).
+      const text = `NULLIF(JSON_UNQUOTE(JSON_EXTRACT(t.form_data_json, '$.${column.slice(2)}')), '')`;
+      const value = numeric ? `CAST(${text} AS DECIMAL(20, 4))` : text;
+      return `${value} IS NULL, ${value} ${d}, t.id ${d}`;
+    }
+  }
 }

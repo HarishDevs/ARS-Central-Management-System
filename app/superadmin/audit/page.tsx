@@ -9,6 +9,13 @@ import { listAuditActions, listAuditEntries } from "@/lib/db/repositories/audit.
 import { SafeText } from "@/features/ui/SafeText";
 import { formatIndiaTime } from "@/server/notifications/security-messages";
 import { indiaToday } from "@/lib/db/repositories/collab.repository";
+import { FoldScope, FoldTbody } from "@/features/ui/GroupFold";
+import { ListViews } from "@/features/lists/ListViews";
+import { groupMenu, sortHeads } from "@/features/superadmin/sort-heads";
+import { applyDefaultListView } from "@/server/lists/views";
+import { parseColumnSort } from "@/server/lists/sorting";
+import { groupRows, pickGroup } from "@/server/lists/group-rows";
+import { AUDIT_COLUMNS, AUDIT_GROUP_LABEL, AUDIT_GROUPS, auditBucket, listHref } from "@/server/lists/superadmin-lists";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
 export const metadata: Metadata = { title: "Audit log" };
@@ -17,14 +24,45 @@ const PAGE_SIZE = 100;
 
 // P1-57 audit viewer. Read-only: the log is append-only (D-012) and there is
 // no code path that edits it.
-export default async function AuditPage({ searchParams }: { searchParams: Promise<{ action?: string; before?: string }> }) {
-  await requireArea("superadmin");
-  const params = await searchParams;
+const PATH = "/superadmin/audit";
+const TARGET = "list_super_audit";
+
+export default async function AuditPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const { user } = await requireArea("superadmin");
+  const query = await searchParams;
+  // v1.58.0 (D-354, owner): the person's default saved view when nothing is chosen.
+  await applyDefaultListView(user.id, TARGET, PATH, query);
+  const one = (key: string) => (Array.isArray(query[key]) ? query[key]![0] : query[key]) ?? "";
+  const params = { action: one("action"), before: one("before") };
   const actions = await listAuditActions();
   const action = params.action && actions.includes(params.action) ? params.action : undefined;
-  const beforeId = params.before && /^\d+$/.test(params.before) ? Number(params.before) : undefined;
-  const entries = await listAuditEntries({ action, beforeId }, PAGE_SIZE);
+  // v1.58.0 (D-354, owner: "sorting in all the tables ... in all columns"): a
+  // column sort runs in SQL over the whole log and pages by ?page; the default
+  // (newest first) keeps the "Older entries" keyset paging.
+  const sort = parseColumnSort(query, AUDIT_COLUMNS);
+  const page = sort.sortBy ? Math.max(1, Math.min(10_000, Number(one("page")) || 1)) : 1;
+  const beforeId = !sort.sortBy && params.before && /^\d+$/.test(params.before) ? Number(params.before) : undefined;
+  const entries = await listAuditEntries({ action, beforeId, sort, offset: (page - 1) * PAGE_SIZE }, PAGE_SIZE);
   const last = entries.at(-1);
+  // v1.58.0 (D-354, owner): Group by (folded by default; Expand all / Collapse all).
+  const group = pickGroup(query.group, AUDIT_GROUPS);
+  const head = sortHeads(PATH, query, sort);
+  const keep = { group: group ?? undefined, sortBy: sort.sortBy ?? undefined, dir: sort.sortBy ? sort.dir : undefined };
+  const rowOf = (entry: (typeof entries)[number]) => (
+    <tr key={entry.id}>
+      <td className="whitespace-nowrap">{formatIndiaTime(entry.occurredAt)}</td>
+      <td>{entry.actorName ?? "System"}</td>
+      <td className="font-medium">{entry.action}</td>
+      <td className="text-ink-muted">
+        {entry.entityType}
+        {entry.entityId ? ` ${entry.entityId}` : ""}
+      </td>
+      <td>
+        <span className={`badge ${entry.result === "SUCCESS" ? "bg-success-50 text-success-600" : "bg-danger-50 text-danger-600"}`}>{entry.result}</span>
+      </td>
+      <td className="max-w-md break-words font-mono text-caption text-ink-muted">{entry.metadata ? <SafeText text={JSON.stringify(entry.metadata)} /> : ""}</td>
+    </tr>
+  );
   const today = await indiaToday();
   const monthAgo = new Date(Date.parse(`${today}T00:00:00Z`) - 29 * 86_400_000).toISOString().slice(0, 10);
 
@@ -34,11 +72,12 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
       {/* v1.51.1 (owner): toolbar filters instead of a filter form. */}
       <ListToolbar
         id="audit-filters"
-        path="/superadmin/audit"
+        path={PATH}
         label="Filter the audit log"
-        keep={{}}
+        keep={keep}
         filterCount={action ? 1 : 0}
-        clearHref={action ? "/superadmin/audit" : null}
+        clearHref={action ? listHref(PATH, query, { action: null }) : null}
+        group={groupMenu(PATH, query, group, AUDIT_GROUPS, AUDIT_GROUP_LABEL)}
         filters={
           <div className="sm:col-span-2">
             <label htmlFor="action" className="field-label">
@@ -55,6 +94,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
           </div>
         }
       />
+      <ListViews userId={user.id} target={TARGET} path={PATH} query={query} />
       <form className="mb-6 flex flex-wrap items-end gap-3 rounded-md border border-line bg-surface p-3" method="get" action="/api/superadmin/audit">
         <p className="w-full text-label font-semibold">Download as CSV (up to 50,000 entries)</p>
         <div>
@@ -81,44 +121,56 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
           <EmptyState title="No entries" body={beforeId ? "Nothing older than this." : "Nothing has been recorded yet."} />
         )
       ) : (
-        <div className="card overflow-x-auto">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>When</th>
-                <th>Who</th>
-                <th>Action</th>
-                <th>On</th>
-                <th>Result</th>
-                <th>Details</th>
-              </tr>
-            </thead>
-            <PagedRows colSpan={6}>
-              {entries.map((entry) => (
-                <tr key={entry.id}>
-                  <td className="whitespace-nowrap">{formatIndiaTime(entry.occurredAt)}</td>
-                  <td>{entry.actorName ?? "System"}</td>
-                  <td className="font-medium">{entry.action}</td>
-                  <td className="text-ink-muted">
-                    {entry.entityType}
-                    {entry.entityId ? ` ${entry.entityId}` : ""}
-                  </td>
-                  <td>
-                    <span className={`badge ${entry.result === "SUCCESS" ? "bg-success-50 text-success-600" : "bg-danger-50 text-danger-600"}`}>{entry.result}</span>
-                  </td>
-                  <td className="max-w-md break-words font-mono text-caption text-ink-muted">{entry.metadata ? <SafeText text={JSON.stringify(entry.metadata)} /> : ""}</td>
+        <FoldScope enabled={Boolean(group)}>
+          <div className="card overflow-x-auto">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  {head("When", "when")}
+                  {head("Who", "who")}
+                  {head("Action", "action")}
+                  {head("On", "on")}
+                  {head("Result", "result")}
+                  {head("Details", "details")}
                 </tr>
-              ))}
-            </PagedRows>
-          </table>
-        </div>
+              </thead>
+              {group ? (
+                groupRows(entries, (entry) => auditBucket(group, entry)).map((section) => (
+                  <FoldTbody key={section.key} label={section.label} count={section.items.length} colSpan={6}>
+                    {section.items.map(rowOf)}
+                  </FoldTbody>
+                ))
+              ) : (
+                <PagedRows colSpan={6}>{entries.map(rowOf)}</PagedRows>
+              )}
+            </table>
+          </div>
+        </FoldScope>
       )}
-      {entries.length === PAGE_SIZE && last && (
-        <div className="mt-4">
-          <Link className="link" href={`/superadmin/audit?${new URLSearchParams({ ...(action ? { action } : {}), before: String(last.id) })}`}>
-            Older entries →
-          </Link>
-        </div>
+      {sort.sortBy ? (
+        (page > 1 || entries.length === PAGE_SIZE) && (
+          <nav aria-label="Pages" className="mt-4 flex items-center gap-3 text-label">
+            {page > 1 && (
+              <Link className="link" href={listHref(PATH, query, { page: page - 1 })}>
+                ← Previous
+              </Link>
+            )}
+            {entries.length === PAGE_SIZE && (
+              <Link className="link" href={listHref(PATH, query, { page: page + 1 })}>
+                Next →
+              </Link>
+            )}
+          </nav>
+        )
+      ) : (
+        entries.length === PAGE_SIZE &&
+        last && (
+          <div className="mt-4">
+            <Link className="link" href={listHref(PATH, query, { before: last.id })}>
+              Older entries →
+            </Link>
+          </div>
+        )
       )}
     </>
   );

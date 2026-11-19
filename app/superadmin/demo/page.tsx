@@ -6,6 +6,16 @@ import { requireArea } from "@/server/authorization/guards";
 import { listDemoPeople } from "@/server/demo/service";
 import { DEMO_GROUPS, PURCHASE_DOA_BANDS } from "@/server/demo/demo-data";
 import { LoadDemoForm, RetireDemoForm, TryAsButton } from "@/features/superadmin/DemoForms";
+import { ListViews } from "@/features/lists/ListViews";
+import { sortHeads } from "@/features/superadmin/sort-heads";
+import { applyDefaultListView } from "@/server/lists/views";
+import { parseColumnSort, sortRows } from "@/server/lists/sorting";
+
+// v1.58.0 (D-354, owner: "sorting in all the tables ... in all columns"): the
+// demo people sort by any column; views save it. No Group by: a short set-up list.
+const PEOPLE_COLUMNS = ["name", "login", "department", "designation", "waiting", "state"] as const;
+const PATH = "/superadmin/demo";
+const TARGET = "list_super_demo";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
 export const metadata: Metadata = { title: "Demo data" };
@@ -14,9 +24,22 @@ const lakh = (value: number) => `₹${(value / 100_000).toLocaleString("en-IN")}
 
 // F-57 / D-071: stand-in staff and the first approval types, until the
 // owner's staff list arrives.
-export default async function DemoPage() {
-  await requireArea("superadmin");
-  const people = await listDemoPeople();
+export default async function DemoPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const { user } = await requireArea("superadmin");
+  const query = await searchParams;
+  await applyDefaultListView(user.id, TARGET, PATH, query);
+  const loaded = await listDemoPeople();
+  const sort = parseColumnSort(query, PEOPLE_COLUMNS);
+  const value: Record<(typeof PEOPLE_COLUMNS)[number], (person: (typeof loaded)[number]) => unknown> = {
+    name: (person) => person.name,
+    login: (person) => person.loginId,
+    department: (person) => person.department,
+    designation: (person) => person.designation,
+    waiting: (person) => person.pendingTasks,
+    state: (person) => (person.active ? "Active" : "Retired"),
+  };
+  const people = sort.sortBy ? sortRows(loaded, value[sort.sortBy], sort.dir) : loaded;
+  const head = sortHeads(PATH, query, sort);
   const active = people.filter((person) => person.active);
   return (
     <>
@@ -55,6 +78,7 @@ export default async function DemoPage() {
           <RetireDemoForm />
         </section>
       </div>
+      <ListViews userId={user.id} target={TARGET} path={PATH} query={query} />
       <section className="card overflow-x-auto">
         <div className="flex items-center gap-1.5 border-b border-line px-5 py-4">
           <h2 className="font-semibold">Demo people ({active.length} active)</h2>
@@ -66,12 +90,12 @@ export default async function DemoPage() {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>User ID</th>
-                <th>Department</th>
-                <th>Designation</th>
-                <th>Waiting with them</th>
-                <th></th>
+                {head("Name", "name")}
+                {head("User ID", "login")}
+                {head("Department", "department")}
+                {head("Designation", "designation")}
+                {head("Waiting with them", "waiting")}
+                {head("Try as", "state", { srOnly: true })}
               </tr>
             </thead>
             <tbody>

@@ -1,7 +1,7 @@
 "use client";
 
 import { ApprovalBadge, approvalRowClass } from "@/features/work/ApprovalLink";
-import { CalendarClock, ChevronDown, ChevronRight, GitBranch, GripVertical, Heart, Lock, MessageSquare, Plus, Repeat, Trash2, Diamond } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, CalendarClock, ChevronDown, ChevronRight, GitBranch, GripVertical, Heart, Lock, MessageSquare, Plus, Repeat, Trash2, Diamond } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -16,6 +16,8 @@ import { TaskPriorityPill, priorityControlProps } from "@/features/ui/ChoicePill
 import { PersonSelect } from "@/features/ui/PersonSelect";
 import type { GridConfig, GridTask } from "@/server/work/grid";
 import { inside } from "@/features/ui/inside";
+import { FoldAllButtons } from "@/features/ui/GroupFold";
+import { sortRows, type SortDir } from "@/server/lists/sorting";
 
 // D-215: a project's List and Board. Sections hold tasks in the order the
 // team set (drag, or Alt+↑/↓ on a row); a sort other than "Manual" only
@@ -94,7 +96,17 @@ export function ProjectWorkspace({
   const [dueWithin, setDueWithin] = useState<"" | "this" | "next">("");
   const [sort, setSort] = useState<Sort>("manual");
   const [group, setGroup] = useState<GroupBy>("section");
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  // v1.58.0 (D-354, owner: "sorting in all the tables asc to desc or vice versa"):
+  // the direction of the sort, and a project field's id when sorting by its column.
+  const [dir, setDir] = useState<SortDir>("asc");
+  const [sortField, setSortField] = useState<number | null>(null);
+  // v1.58.0 (D-354, owner: "by default when a group by is selected it should
+  // collapse all the group"): a chosen grouping starts folded; Sections (the
+  // project's own structure) stay open. `toggled`: groups opened/closed one by one.
+  const [fold, setFold] = useState<{ group: GroupBy; closed: boolean; toggled: Set<string> }>({ group: "section", closed: false, toggled: new Set() });
+  if (fold.group !== group) setFold({ group, closed: group !== "section", toggled: new Set() });
+  const isClosed = (key: string) => fold.closed !== fold.toggled.has(key);
+  const foldAll = (open: boolean) => setFold((value) => ({ ...value, closed: !open, toggled: new Set() }));
   const openTask = useSearchParams().get("task");
   const [dragging, setDragging] = useState<number | null>(null);
   const [live, setLive] = useState("");
@@ -120,17 +132,19 @@ export function ProjectWorkspace({
         (!dueWithin || inWeek(task, dueWithin === "this" ? 0 : 1)) &&
         words.every((word) => `${task.title} ${task.taskNo} ${task.assigneeName} ${task.tags.map((tag) => tag.name).join(" ")}`.toLowerCase().includes(word)),
     );
-    const by: Record<Sort, (a: BoardTask, b: BoardTask) => number> = {
-      manual: (a, b) => a.position - b.position || a.id - b.id,
-      due: (a, b) => (a.dueAt ?? "9999").localeCompare(b.dueAt ?? "9999"),
-      priority: (a, b) => PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority],
-      title: (a, b) => a.title.localeCompare(b.title),
-      assignee: (a, b) => a.assigneeName.localeCompare(b.assigneeName),
+    // v1.58.0 (D-354): each sort reads one value; "desc" reverses it; empty values stay last.
+    const manualOrder = [...list].sort((a, b) => a.position - b.position || a.id - b.id);
+    if (sortField !== null) return sortRows(manualOrder, (task) => values[task.id]?.[sortField] ?? "", dir);
+    const by: Record<Exclude<Sort, "manual">, (task: BoardTask) => unknown> = {
+      due: (task) => task.dueAt,
+      priority: (task) => PRIORITY_RANK[task.priority],
+      title: (task) => task.title,
+      assignee: (task) => task.assigneeName,
     };
-    return [...list].sort(by[sort]);
-  }, [tasks, incomplete, showDone, mine, dueWithin, meId, filter, sort, now]);
+    return sort === "manual" ? manualOrder : sortRows(manualOrder, by[sort], dir);
+  }, [tasks, incomplete, showDone, mine, dueWithin, meId, filter, sort, now, dir, sortField, values]);
   const filterCount = Number(!incomplete) + Number(showDone) + Number(mine) + Number(Boolean(dueWithin));
-  const manual = sort === "manual" && !filter && !mine && !dueWithin && group === "section";
+  const manual = sort === "manual" && sortField === null && !filter && !mine && !dueWithin && group === "section";
   const canDrag = canEdit && manual;
 
   const inSection = (sectionId: number) => visible.filter((task) => task.sectionId === sectionId);
@@ -158,6 +172,36 @@ export function ProjectWorkspace({
     }
     return [...map.entries()].sort((a, b) => a[1].order - b[1].order || a[0].localeCompare(b[0])).map(([name, value]) => ({ key: `g${name}`, name, section: null, rows: value.rows }));
   }, [group, sections, visible, now]);
+  // v1.58.0 (D-354): a sortable column title of the list.
+  const sortHead = (column: Exclude<Sort, "manual"> | number, label: string) => {
+    const active = typeof column === "number" ? sortField === column : sortField === null && sort === column;
+    const Icon = !active ? ArrowUpDown : dir === "asc" ? ArrowUp : ArrowDown;
+    const next = active && dir === "asc" ? "descending" : "ascending";
+    return (
+      <span key={String(column)} role="columnheader" aria-sort={active ? (dir === "asc" ? "ascending" : "descending") : "none"} className="truncate">
+        <button
+          type="button"
+          onClick={() => {
+            setDir(active && dir === "asc" ? "desc" : "asc");
+            if (typeof column === "number") {
+              setSortField(column);
+              setSort("manual");
+            } else {
+              setSortField(null);
+              setSort(column);
+            }
+          }}
+          title={`Sort by ${label}, ${next}`}
+         
+          className={`inline-flex max-w-full items-center gap-1 hover:text-ink ${active ? "text-ink" : ""}`}
+          data-testid="list-sort"
+        >
+          <span className="truncate">{label}</span>
+          <Icon aria-hidden="true" className={`h-3.5 w-3.5 shrink-0 ${active ? "" : "opacity-40"}`} />
+        </button>
+      </span>
+    );
+  };
   const focusAdd = () => document.querySelector<HTMLInputElement>("[data-work-add]")?.focus();
 
   // A move: into `sectionId`, before `beforeId` (null: at the end).
@@ -233,14 +277,43 @@ export function ProjectWorkspace({
       </Popover>
       <label className="flex items-center gap-1.5 text-label">
         <span className="text-ink-muted">Sort</span>
-        <select aria-label="Sort" value={sort} onChange={(event) => setSort(event.target.value as Sort)} className="field-input h-8 w-auto py-0 text-label">
+        <select
+          aria-label="Sort"
+          value={sortField !== null ? `f${sortField}` : sort}
+          onChange={(event) => {
+            const value = event.target.value;
+            if (value.startsWith("f")) {
+              setSortField(Number(value.slice(1)));
+              setSort("manual");
+            } else {
+              setSortField(null);
+              setSort(value as Sort);
+            }
+          }}
+          className="field-input h-8 w-auto py-0 text-label"
+        >
           <option value="manual">None (manual order)</option>
           <option value="due">Due date</option>
           <option value="priority">Priority</option>
           <option value="assignee">Assignee</option>
           <option value="title">Alphabetical</option>
+          {fields.map((field) => (
+            <option key={field.id} value={`f${field.id}`}>
+              {field.name}
+            </option>
+          ))}
         </select>
       </label>
+      {/* v1.58.0 (D-354): ascending or descending. */}
+      {(sort !== "manual" || sortField !== null) && (
+        <label className="flex items-center gap-1.5 text-label">
+          <span className="sr-only">Order</span>
+          <select aria-label="Order" value={dir} onChange={(event) => setDir(event.target.value as SortDir)} className="field-input h-8 w-auto py-0 text-label">
+            <option value="asc">Ascending</option>
+            <option value="desc">Descending</option>
+          </select>
+        </label>
+      )}
       {layout === "LIST" && (
         <label className="flex items-center gap-1.5 text-label">
           <span className="text-ink-muted">Group</span>
@@ -352,6 +425,7 @@ export function ProjectWorkspace({
   return (
     <div>
       {toolbar}
+      {groups.length > 0 && <FoldAllButtons onAll={foldAll} testId="project-fold-all" />}
       <div className="card overflow-x-auto" data-testid="project-list">
         <div role="table" aria-label="Tasks" className="min-w-[760px]">
           <div role="row" style={columns} className="relative grid border-b border-line bg-surface-muted px-3 py-2 text-caption font-semibold uppercase tracking-wide text-ink-faint">
@@ -365,15 +439,12 @@ export function ProjectWorkspace({
                 />
               </span>
             )}
-            <span role="columnheader">Task</span>
-            <span role="columnheader">Assignee</span>
-            <span role="columnheader">Due date</span>
-            <span role="columnheader">Priority</span>
-            {fields.map((field) => (
-              <span key={field.id} role="columnheader" className="truncate">
-                {field.name}
-              </span>
-            ))}
+            {/* v1.58.0 (D-354): every column title sorts by it, first A to Z, again Z to A. */}
+            {sortHead("title", "Task")}
+            {sortHead("assignee", "Assignee")}
+            {sortHead("due", "Due date")}
+            {sortHead("priority", "Priority")}
+            {fields.map((field) => sortHead(field.id, field.name))}
             {canEdit && (
               <Link href={`/users/work/projects/${projectId}/settings#fields`} aria-label="Add a field" title="Add a field" className="absolute right-3 rounded px-1 text-ink-faint hover:bg-surface hover:text-ink">
                 +
@@ -383,7 +454,7 @@ export function ProjectWorkspace({
           {groups.map((entry) => {
             const section = entry.section;
             const rows = entry.rows;
-            const closed = collapsed.has(entry.key);
+            const closed = isClosed(entry.key);
             return (
               <div
                 key={entry.key}
@@ -401,7 +472,7 @@ export function ProjectWorkspace({
                     type="button"
                     aria-expanded={!closed}
                     aria-label={`${closed ? "Show" : "Hide"} ${entry.name}`}
-                    onClick={() => setCollapsed((current) => new Set(current.has(entry.key) ? [...current].filter((item) => item !== entry.key) : [...current, entry.key]))}
+                    onClick={() => setFold((value) => ({ ...value, toggled: new Set(value.toggled.has(entry.key) ? [...value.toggled].filter((item) => item !== entry.key) : [...value.toggled, entry.key]) }))}
                     className="rounded p-1 text-ink-muted hover:bg-surface-muted"
                   >
                     {closed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}

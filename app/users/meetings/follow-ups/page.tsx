@@ -10,7 +10,11 @@ import { listFollowUps, listOpenPointRegister } from "@/lib/db/repositories/meet
 import { scopeFor } from "@/server/meetings/service";
 import { actionState, FOLLOW_UP_LABEL, type FollowUpState } from "@/server/meetings/rules";
 import { indiaDateTimeText } from "@/server/modules/settings";
-import { FoldTbody } from "@/features/ui/GroupFold";
+import { FoldScope, FoldTbody } from "@/features/ui/GroupFold";
+import { SortTh } from "@/features/ui/SortTh";
+import { ListViews } from "@/features/lists/ListViews";
+import { applyDefaultListView } from "@/server/lists/views";
+import { nextDir, parseColumnSort, sortRows } from "@/server/lists/sorting";
 import { departmentBucket, dueBucket, groupRows, indiaDayOf, pickGroup } from "@/server/lists/group-rows";
 
 // v1.57.5 (D-344, owner: "add group by option for all the pages where table is available").
@@ -19,6 +23,13 @@ type FollowGroup = (typeof FOLLOW_GROUPS)[number];
 const FOLLOW_GROUP_LABEL: Record<FollowGroup, string> = { dept: "Department (responsible)", responsible: "Responsible", meeting: "Meeting", status: "Status", due: "Due date" };
 const STATE_ORDER: Record<string, number> = { OVERDUE: 0, OPEN: 1, DONE_UNCONFIRMED: 2, NO_TASK: 3, CONFIRMED: 4, CANCELLED: 5 };
 import { isAdminActor } from "@/server/modules/tasks";
+
+// v1.58.0 (D-354, owner: "sorting in all the tables asc to desc or vice versa in
+// all columns"): the rows are all loaded, so they sort on the page. The
+// Follow-up column holds buttons only (nothing to sort).
+const FOLLOW_SORTS = ["action", "meeting", "responsible", "due", "status"] as const;
+type FollowSort = (typeof FOLLOW_SORTS)[number];
+const FOLLOW_SORT_LABEL: Record<FollowSort, string> = { action: "Action", meeting: "Meeting", responsible: "Responsible", due: "Due", status: "Status" };
 
 export const metadata: Metadata = { title: "Meeting follow-ups" };
 export const dynamic = "force-dynamic";
@@ -37,10 +48,20 @@ type View = (typeof VIEWS)[number]["key"];
 export default async function FollowUpsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const { user } = await requireArea("users");
   const query = await searchParams;
+  // v1.58.0 (D-354, owner): an empty address opens the person's default saved view (private).
+  await applyDefaultListView(user.id, "list_follow_ups", "/users/meetings/follow-ups", query);
   const view: View = (VIEWS.find((item) => item.key === query.view)?.key ?? "open") as View;
   const q = typeof query.q === "string" ? query.q.trim().slice(0, 100) : "";
   const group = pickGroup(query.group, FOLLOW_GROUPS);
-  const groupHref = (value: FollowGroup | null) => `/users/meetings/follow-ups?view=${view}${q ? `&q=${encodeURIComponent(q)}` : ""}${value ? `&group=${value}` : ""}`;
+  const sort = parseColumnSort(query, FOLLOW_SORTS);
+  // v1.58.0 (D-354): one address builder, so view, search, group and sort travel together.
+  const fuHref = (changes: Record<string, string | null>) => {
+    const params = new URLSearchParams();
+    const merged: Record<string, string | null> = { view, q: q || null, group, sortBy: sort.sortBy, dir: sort.sortBy ? sort.dir : null, ...changes };
+    for (const [key, value] of Object.entries(merged)) if (value) params.set(key, value);
+    return `/users/meetings/follow-ups?${params.toString()}`;
+  };
+  const groupHref = (value: FollowGroup | null) => fuHref({ group: value });
   const scope = await scopeFor(user);
   const [rows, openPoints] = await Promise.all([listFollowUps(scope, { ownerOnly: view === "mine" ? user.id : null, q, limit: 500 }), listOpenPointRegister(scope, 300)]);
   const now = new Date();
@@ -52,6 +73,23 @@ export default async function FollowUpsPage({ searchParams }: { searchParams: Pr
     if (view === "overdue") return state === "OVERDUE";
     return state !== "CONFIRMED" && state !== "CANCELLED";
   });
+  // v1.58.0 (D-354): the chosen column order (groups keep it inside each group).
+  const sorted = sort.sortBy
+    ? sortRows(
+        shown,
+        ({ row, state }) =>
+          sort.sortBy === "action"
+            ? `${row.taskNo ?? ""} ${row.title}`.trim()
+            : sort.sortBy === "meeting"
+              ? row.meetingNo
+              : sort.sortBy === "responsible"
+                ? row.ownerName
+                : sort.sortBy === "due"
+                  ? (row.taskDueAt ? row.taskDueAt.toISOString() : row.dueOn)
+                  : (STATE_ORDER[state] ?? 9),
+        sort.dir,
+      )
+    : shown;
   const counts = Object.fromEntries((["OPEN", "OVERDUE", "DONE_UNCONFIRMED", "CONFIRMED"] as FollowUpState[]).map((state) => [state, withState.filter((item) => item.state === state).length]));
   return (
     <>
@@ -70,7 +108,7 @@ export default async function FollowUpsPage({ searchParams }: { searchParams: Pr
           {VIEWS.map((item) => (
             <Link
               key={item.key}
-              href={`/users/meetings/follow-ups?view=${item.key}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
+              href={fuHref({ view: item.key })}
               aria-current={view === item.key ? "page" : undefined}
               className={`rounded-full border px-3 py-1 text-label ${view === item.key ? "border-primary-600 bg-primary-50 font-semibold text-primary-700" : "border-line text-ink-muted hover:text-ink"}`}
             >
@@ -83,10 +121,10 @@ export default async function FollowUpsPage({ searchParams }: { searchParams: Pr
           id="follow-up-filters"
           path="/users/meetings/follow-ups"
           label="Find follow-ups"
-          keep={{ view, group: group ?? undefined }}
+          keep={{ view, group: group ?? undefined, sortBy: sort.sortBy ?? undefined, dir: sort.sortBy ? sort.dir : undefined }}
           search={{ name: "q", value: q, placeholder: "Action or meeting" }}
           filterCount={0}
-          clearHref={q ? `/users/meetings/follow-ups?view=${view}${group ? `&group=${group}` : ""}` : null}
+          clearHref={q ? fuHref({ q: null }) : null}
           group={{
             label: group ? FOLLOW_GROUP_LABEL[group] : null,
             clearHref: groupHref(null),
@@ -94,23 +132,25 @@ export default async function FollowUpsPage({ searchParams }: { searchParams: Pr
           }}
         />
       </div>
+      {/* v1.58.0 (D-354, owner): save view, search, group and sort as a named view (only mine). */}
+      <ListViews userId={user.id} target="list_follow_ups" path="/users/meetings/follow-ups" query={Object.fromEntries(new URLSearchParams(fuHref({}).split("?")[1] ?? "").entries())} />
       {shown.length === 0 ? (
         <EmptyState title="Nothing to follow up here" body="Action items appear once the Meeting Owner approves the MOM." />
       ) : (
+        // v1.58.0 (D-354, owner): groups start folded; Expand all / Collapse all.
+        <FoldScope enabled={Boolean(group)}>
         <div className="card overflow-x-auto">
           <table className="data-table" data-testid="follow-up-table">
             <thead>
               <tr>
-                <th scope="col">Action</th>
-                <th scope="col">Meeting</th>
-                <th scope="col">Responsible</th>
-                <th scope="col">Due</th>
-                <th scope="col">Status</th>
+                {FOLLOW_SORTS.map((column) => (
+                  <SortTh key={column} label={FOLLOW_SORT_LABEL[column]} column={column} sortBy={sort.sortBy} dir={sort.dir} href={fuHref({ sortBy: column, dir: nextDir(sort, column) })} />
+                ))}
                 <th scope="col">Follow-up</th>
               </tr>
             </thead>
             {(group
-              ? groupRows(shown, ({ row, state }): [string, number] => {
+              ? groupRows(sorted, ({ row, state }): [string, number] => {
                   const today = indiaDayOf(new Date());
                   if (group === "dept") return departmentBucket(row.ownerDepartment);
                   if (group === "responsible") return [row.ownerName, 0];
@@ -118,7 +158,7 @@ export default async function FollowUpsPage({ searchParams }: { searchParams: Pr
                   if (group === "status") return [FOLLOW_UP_LABEL[state], STATE_ORDER[state] ?? 9];
                   return dueBucket(row.taskDueAt ? indiaDayOf(row.taskDueAt) : row.dueOn, today, state !== "CONFIRMED" && state !== "CANCELLED");
                 })
-              : [{ key: "all", label: "", items: shown }]
+              : [{ key: "all", label: "", items: sorted }]
             ).map((section) => {
               const rows = section.items.map(({ row, state }) => (
                 <tr key={row.id}>
@@ -159,6 +199,7 @@ export default async function FollowUpsPage({ searchParams }: { searchParams: Pr
             })}
           </table>
         </div>
+        </FoldScope>
       )}
       <section className="mt-6" aria-labelledby="open-points">
         <h2 id="open-points" className="mb-2 font-semibold">

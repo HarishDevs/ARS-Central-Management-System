@@ -3,6 +3,7 @@
 // covering, due within N days, files, raised and waiting-since dates, rows
 // per page). Filters only narrow what already waits for the person.
 import { priorityRankSql } from "@/server/approvals/priority";
+import { parseColumnSort, sqlDir, type SortDir } from "@/server/lists/sorting";
 
 export const QUEUE_SHOWS = ["all", "overdue", "soon", "approvals", "work", "held"] as const;
 export const QUEUE_SORTS = ["oldest", "newest", "due", "raised", "number", "priority"] as const; // v1.47.0: + priority
@@ -10,6 +11,11 @@ export const QUEUE_SIZES = [25, 50, 100] as const;
 export const QUEUE_FOR = ["me", "covering"] as const;
 export type QueueShow = (typeof QUEUE_SHOWS)[number];
 export type QueueSort = (typeof QUEUE_SORTS)[number];
+// v1.58.0 (D-354, owner: "sorting in all the tables asc to desc or vice versa in
+// all columns"): each column title of Waiting for me sorts it (?sortBy=&dir=);
+// a column sort wins over the preset `sort`.
+export const QUEUE_SORT_COLUMNS = ["title", "priority", "from", "step", "since", "due"] as const;
+export type QueueSortColumn = (typeof QUEUE_SORT_COLUMNS)[number];
 
 // v1.57.4 (D-343, owner: "add group" on Waiting for me): group the page's rows.
 export const QUEUE_GROUPS = ["dept", "raiser", "type", "step", "priority", "due"] as const;
@@ -20,6 +26,8 @@ export interface QueueFilter {
   show: QueueShow;
   typeId: number | null;
   sort: QueueSort;
+  sortBy?: QueueSortColumn | null; // v1.58.0 (D-354)
+  dir?: SortDir;
   q?: string;
   requesterId?: number | null;
   departmentId?: number | null;
@@ -58,10 +66,13 @@ export function parseQueueFilter(params: Record<string, unknown>): QueueFilter {
   const files = str(params.files);
   const [raisedFrom, raisedTo] = ordered(date(params.raisedFrom), date(params.raisedTo));
   const [waitingFrom, waitingTo] = ordered(date(params.waitingFrom), date(params.waitingTo));
+  const columnSort = parseColumnSort(params, QUEUE_SORT_COLUMNS); // v1.58.0 (D-354)
   return {
     show: pick(QUEUE_SHOWS, params.show, "all"),
     typeId: type,
     sort: pick(QUEUE_SORTS, params.sort, "oldest"),
+    sortBy: columnSort.sortBy,
+    dir: columnSort.dir,
     q: (str(params.q) ?? "").replace(/\s+/g, " ").trim().slice(0, 100),
     requesterId: id(params.raisedBy),
     departmentId: id(params.dept),
@@ -137,8 +148,10 @@ export function queueFilterSql(filter: QueueFilter, userId?: number): { where: s
     where.push(sql);
     params.push(value);
   }
-  const orderBy =
-    filter.sort === "newest"
+  // v1.58.0 (D-354): a column title's sort first, else the preset.
+  const orderBy = filter.sortBy
+    ? queueColumnOrderSql(filter.sortBy, filter.dir ?? "asc")
+    : filter.sort === "newest"
       ? "t.created_at DESC, t.id DESC"
       : filter.sort === "due"
         ? "t.due_at IS NULL, t.due_at, t.id"
@@ -167,9 +180,40 @@ export function queueHref(filter: Partial<QueueFilter>, page?: number): string {
   if (filter.hasFiles === false) query.set("files", "no");
   for (const key of ["raisedFrom", "raisedTo", "waitingFrom", "waitingTo"] as const) if (filter[key]) query.set(key, filter[key]!);
   if (filter.sort && filter.sort !== "oldest") query.set("sort", filter.sort);
+  // v1.58.0 (D-354): the column sort and its direction (links and saved views round-trip).
+  if (filter.sortBy) {
+    query.set("sortBy", filter.sortBy);
+    query.set("dir", filter.dir === "desc" ? "desc" : "asc");
+  }
   if (filter.size && filter.size !== 25) query.set("size", String(filter.size));
   if (filter.group) query.set("group", filter.group);
   if (page && page > 1) query.set("page", String(page));
   const text = query.toString();
   return text ? `/users/queue?${text}` : "/users/queue";
+}
+
+// v1.58.0 (D-354): the ORDER BY for one column of Waiting for me. Whitelisted SQL
+// only; empty values (no priority, no due date) last in both directions; the
+// task id breaks ties in the same direction. Due date sorts by the step's due time.
+export function queueColumnOrderSql(column: QueueSortColumn, dir: SortDir): string {
+  const d = sqlDir(dir);
+  const tie = `t.id ${d}`;
+  switch (column) {
+    case "title":
+      return `r.title ${d}, ${tie}`;
+    case "priority": {
+      const rank = priorityRankSql("r", "v");
+      return `${rank} IS NULL, ${rank} ${d}, ${tie}`;
+    }
+    case "from":
+      return `u.name ${d}, ${tie}`;
+    case "step":
+      return `t.node_label ${d}, ${tie}`;
+    case "since":
+      return `t.created_at ${d}, ${tie}`;
+    case "due":
+      return `t.due_at IS NULL, t.due_at ${d}, ${tie}`;
+    default:
+      return "t.created_at, t.id";
+  }
 }

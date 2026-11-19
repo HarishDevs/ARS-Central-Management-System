@@ -11,6 +11,19 @@ import { listAuditForEntity } from "@/lib/db/repositories/audit.repository";
 import { integrationStatus, redirectUri, SCOPES, STATUS_LABEL, WEBHOOK_PATH } from "@/server/calendar/config";
 import { formatIndiaTime } from "@/server/notifications/security-messages";
 import { getEnv } from "@/config/environment";
+import { ListViews } from "@/features/lists/ListViews";
+import { sortHeads } from "@/features/superadmin/sort-heads";
+import { applyDefaultListView } from "@/server/lists/views";
+import { parseColumnSort, sortRows } from "@/server/lists/sorting";
+
+// v1.58.0 (D-354, owner: "sorting in all the tables ... in all columns"): the
+// Connected people and Recent sync log tables sort by any column (one sort on
+// the page at a time); views save it. No Group by: a set-up and health console
+// (the failed syncs, conflicts and history are short lists, not tables).
+const CONNECTION_COLUMNS = ["con_person", "con_account", "con_status", "con_last", "con_waiting"] as const;
+const SYNC_COLUMNS = ["sync_queued", "sync_person", "sync_kind", "sync_status", "sync_result"] as const;
+const PATH = "/superadmin/integrations/google-calendar";
+const TARGET = "list_super_gcal";
 
 export const metadata: Metadata = { title: "Google Calendar (Super Admin)" };
 export const dynamic = "force-dynamic";
@@ -22,11 +35,13 @@ const when = (date: Date | null) => (date ? formatIndiaTime(date) : "Never");
 const TONE = { NOT_CONFIGURED: "warning", DISABLED: "neutral", ENABLED: "success", MAINTENANCE: "warning" } as const;
 const CONNECTION_TONE = { ACTIVE: "success", NEEDS_REAUTH: "warning", DISCONNECTED: "neutral", REVOKED: "danger" } as const;
 
-export default async function GoogleCalendarAdminPage() {
-  await requireArea("superadmin");
+export default async function GoogleCalendarAdminPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const { user } = await requireArea("superadmin");
+  const query = await searchParams;
+  await applyDefaultListView(user.id, TARGET, PATH, query);
   const settings = await loadSettingsRow();
   const status = integrationStatus({ enabled: settings.enabled, maintenance: settings.maintenance, clientId: settings.clientId, hasSecret: Boolean(settings.secretEnc), lastTestOk: settings.lastTestOk });
-  const [stats, connections, failed, recent, conflicts, history] = await Promise.all([
+  const [stats, allConnections, failed, allRecent, conflicts, history] = await Promise.all([
     calendarStats(),
     listConnections(),
     listJobs({ statuses: ["FAILED", "DEAD"], limit: 50 }),
@@ -34,6 +49,26 @@ export default async function GoogleCalendarAdminPage() {
     listConflicts({ status: "OPEN", limit: 50 }),
     listAuditForEntity(["INTEGRATION"], "google_calendar", 25),
   ]);
+  const connectionSort = parseColumnSort(query, CONNECTION_COLUMNS);
+  const connectionValue: Record<(typeof CONNECTION_COLUMNS)[number], (connection: (typeof allConnections)[number]) => unknown> = {
+    con_person: (connection) => connection.userName,
+    con_account: (connection) => connection.googleEmail,
+    con_status: (connection) => connection.status,
+    con_last: (connection) => connection.lastSyncAt,
+    con_waiting: (connection) => connection.pendingJobs + connection.openConflicts,
+  };
+  const connections = connectionSort.sortBy ? sortRows(allConnections, connectionValue[connectionSort.sortBy], connectionSort.dir) : allConnections;
+  const syncSort = parseColumnSort(query, SYNC_COLUMNS);
+  const syncValue: Record<(typeof SYNC_COLUMNS)[number], (job: (typeof allRecent)[number]) => unknown> = {
+    sync_queued: (job) => job.createdAt,
+    sync_person: (job) => job.userName,
+    sync_kind: (job) => `${job.kind} ${job.reason}`,
+    sync_status: (job) => job.status,
+    sync_result: (job) => (job.result ? JSON.stringify(job.result) : job.errorDetail),
+  };
+  const recent = syncSort.sortBy ? sortRows(allRecent, syncValue[syncSort.sortBy], syncSort.dir) : allRecent;
+  const connectionHead = sortHeads(PATH, query, connectionSort);
+  const syncHead = sortHeads(PATH, query, syncSort);
   const base = getEnv().APP_BASE_URL;
   const redirect = redirectUri(base);
   const webhook = base ? new URL(WEBHOOK_PATH, base).toString() : null;
@@ -45,6 +80,7 @@ export default async function GoogleCalendarAdminPage() {
         <Badge tone={TONE[status]}>{STATUS_LABEL[status]}</Badge>
       </PageHeader>
 
+      <ListViews userId={user.id} target={TARGET} path={PATH} query={query} />
       <Card title="Status and actions" className="mb-6">
         <dl className="mb-4 grid gap-x-6 gap-y-2 text-label sm:grid-cols-2 lg:grid-cols-4">
           <div>
@@ -164,11 +200,11 @@ export default async function GoogleCalendarAdminPage() {
             <table className="w-full min-w-[760px] text-label" aria-label="Connected people">
               <thead className="text-left text-caption text-ink-muted">
                 <tr>
-                  <th scope="col" className="px-4 py-2">Person</th>
-                  <th scope="col" className="px-4 py-2">Google account · calendar</th>
-                  <th scope="col" className="px-4 py-2">Status</th>
-                  <th scope="col" className="px-4 py-2">Last sync</th>
-                  <th scope="col" className="px-4 py-2">Waiting · conflicts</th>
+                  {connectionHead("Person", "con_person", { className: "px-4 py-2" })}
+                  {connectionHead("Google account · calendar", "con_account", { className: "px-4 py-2" })}
+                  {connectionHead("Status", "con_status", { className: "px-4 py-2" })}
+                  {connectionHead("Last sync", "con_last", { className: "px-4 py-2" })}
+                  {connectionHead("Waiting · conflicts", "con_waiting", { className: "px-4 py-2" })}
                   <th scope="col" className="px-4 py-2">Actions</th>
                 </tr>
               </thead>
@@ -264,11 +300,11 @@ export default async function GoogleCalendarAdminPage() {
           <table className="w-full min-w-[640px] text-label" aria-label="Recent syncs">
             <thead className="text-left text-caption text-ink-muted">
               <tr>
-                <th scope="col" className="px-4 py-2">Queued</th>
-                <th scope="col" className="px-4 py-2">Person</th>
-                <th scope="col" className="px-4 py-2">Kind · reason</th>
-                <th scope="col" className="px-4 py-2">Status</th>
-                <th scope="col" className="px-4 py-2">Result</th>
+                {syncHead("Queued", "sync_queued", { className: "px-4 py-2" })}
+                {syncHead("Person", "sync_person", { className: "px-4 py-2" })}
+                {syncHead("Kind · reason", "sync_kind", { className: "px-4 py-2" })}
+                {syncHead("Status", "sync_status", { className: "px-4 py-2" })}
+                {syncHead("Result", "sync_result", { className: "px-4 py-2" })}
               </tr>
             </thead>
             <PagedRows colSpan={5}>

@@ -11,9 +11,11 @@ const STATUS_LABEL: Record<string, string> = { SENT: "Sent / accepted", DELIVERE
 const STATUS_COLOR: Record<string, string> = { SENT: "--color-primary-600", DELIVERED: "--color-success-600", READ: "--color-success-600", FAILED: "--color-error-600", SKIPPED: "--color-warning-600", QUEUED: "--color-text-secondary" };
 const PERIOD_LABEL: Record<number, string> = { 1: "Last 24 hours", 7: "Last 7 days", 30: "Last 30 days", 90: "Last 90 days" };
 
-export function DeliveryDashboard({ summary, filter, path }: { summary: DeliverySummary; filter: DeliveryFilter; path: string }) {
+// v1.58.0 (D-354, owner): `keep` carries the list's Group by and column sort
+// through the filters and the dashboard's links.
+export function DeliveryDashboard({ summary, filter, path, keep = {} }: { summary: DeliverySummary; filter: DeliveryFilter; path: string; keep?: Record<string, string | undefined> }) {
   const href = (change: Partial<Record<"days" | "channel" | "status" | "provider", string | number | null>>) => {
-    const next = { days: filter.days, channel: filter.channel, status: filter.status, provider: filter.provider, ...change };
+    const next = { ...keep, days: filter.days, channel: filter.channel, status: filter.status, provider: filter.provider, ...change };
     const query = new URLSearchParams(Object.entries(next).filter(([, value]) => value !== null && value !== undefined && value !== "").map(([key, value]) => [key, String(value)]));
     return `${path}?${query.toString()}`;
   };
@@ -51,6 +53,7 @@ export function DeliveryDashboard({ summary, filter, path }: { summary: Delivery
   return (
     <section aria-label="Delivery dashboard" className="mb-6 space-y-4" data-testid="delivery-dashboard">
       <form method="get" action={path} className="card flex flex-wrap items-end gap-3 px-4 py-3" aria-label="Delivery filters">
+        {Object.entries(keep).map(([name, value]) => (value ? <input key={name} type="hidden" name={name} value={value} /> : null))}
         <div>
           <label htmlFor="dd-days" className="field-label">
             Period

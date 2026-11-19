@@ -34,7 +34,7 @@ test("IT opens a report, downloads Excel, CSV and PDF, saves the view, schedules
     expect(body.subarray(0, magic.length === 1 ? 3 : magic.length).toString("utf8").startsWith(magic)).toBe(true);
   }
 
-  await page.getByText("Save these filters").click();
+  await page.getByText("Save this view").click();
   await page.getByLabel("View name").fill("Last quarter register");
   await page.getByRole("button", { name: "Save view" }).click();
   await expect(page.getByRole("link", { name: "Last quarter register" })).toBeVisible();

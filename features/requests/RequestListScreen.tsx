@@ -1,12 +1,13 @@
 import { groupOrder, NO_VALUE, type ListGroupData } from "@/server/requests/list-groups";
 import Link from "next/link";
 import { Fragment } from "react";
-import { FoldListGroup, FoldTbody } from "@/features/ui/GroupFold";
+import { FoldListGroup, FoldScope, FoldTbody } from "@/features/ui/GroupFold";
+import { nextDir } from "@/server/lists/sorting";
 import { AlarmClock, Ban, CheckCircle2, ClipboardList, FileText, FolderOpen, Hourglass, Layers, PauseCircle, ShieldCheck, Undo2, UserCheck, X, XCircle, type LucideIcon } from "lucide-react";
 import { RoadMini } from "@/features/requests/RoadMini";
 import { RequestRowMenu, type RowAction } from "@/features/requests/RequestRowMenu";
 import { ColumnPicker } from "@/features/requests/ColumnPicker";
-import { ReorderHeader, type HeaderColumn } from "@/features/requests/ReorderHeader";
+import { ReorderHeader, type HeaderColumn, type HeaderSort } from "@/features/requests/ReorderHeader";
 import { COLUMN_LABEL, type ListColumn } from "@/server/requests/list-columns";
 import type { MiniRoad } from "@/server/approvals/road";
 import { RequestStatusPill } from "@/features/requests/StatusPill";
@@ -32,6 +33,7 @@ import {
   listHref,
   listQuery,
   SORT_LABEL,
+  sortColumnsFor,
   STATUS_LABEL,
   tabsFor,
   VALIDITY,
@@ -381,7 +383,17 @@ export function RequestListScreen({
     grouped.sort((a, b) => rankOf(a) - rankOf(b));
   }
   const columnCount = 1 + available.filter((column) => show(column)).length;
-  const sortChoices = can.sorts.map((value) => ({ label: SORT_LABEL[value], href: href({ sort: value, page: 1 }), active: filters.sort === value }));
+  // v1.58.0 (D-354, owner: "sorting in all the tables asc to desc or vice versa in all
+  // columns"): each column title links to its next direction (same column flips,
+  // another starts A to Z). A preset from the Sort menu clears the column sort.
+  const headerSort: HeaderSort = {
+    sortBy: filters.sortBy,
+    dir: filters.dir,
+    leadKey: "title",
+    hrefs: Object.fromEntries(sortColumnsFor(base).map((column) => [column, href({ sortBy: column, dir: nextDir({ sortBy: filters.sortBy, dir: filters.dir }, column), page: 1 })])),
+  };
+  const columnSortLabel = filters.sortBy ? `${filters.sortBy === "title" ? "Request" : HEADER[filters.sortBy].label}, ${filters.dir === "asc" ? "ascending" : "descending"}` : null;
+  const sortChoices = can.sorts.map((value) => ({ label: SORT_LABEL[value], href: href({ sort: value, sortBy: null, page: 1 }), active: !filters.sortBy && filters.sort === value }));
 
   return (
     <>
@@ -420,7 +432,7 @@ export function RequestListScreen({
         id="request-filters"
         path={path}
         label="Filter requests"
-        keep={{ tab: filters.tab !== "all" ? filters.tab : undefined, ...Object.fromEntries(Object.entries(listQuery({ sort: filters.sort, size: filters.size, group: filters.group }, {}, base))) }}
+        keep={{ tab: filters.tab !== "all" ? filters.tab : undefined, ...Object.fromEntries(Object.entries(listQuery({ sort: filters.sort, sortBy: filters.sortBy, dir: filters.dir, size: filters.size, group: filters.group }, {}, base))) }}
         search={{ name: "q", value: filters.q, placeholder: showRaiser ? "Number, title or who raised it" : "Number or title" }}
         filterCount={used - (filters.q ? 1 : 0)}
         clearHref={used > 0 || filters.tab !== "all" ? path : null}
@@ -532,7 +544,7 @@ export function RequestListScreen({
             {dates("activity", "Last activity", filters.activityFrom, filters.activityTo)}
           </>
         }
-        sort={{ label: SORT_LABEL[filters.sort], changed: filters.sort !== can.sorts[0], choices: sortChoices }}
+        sort={{ label: columnSortLabel ?? SORT_LABEL[filters.sort], changed: Boolean(filters.sortBy) || filters.sort !== can.sorts[0], choices: sortChoices }}
         group={{
           label: filters.group ? (filters.group.startsWith("f:") ? (groupData?.fields.find((field) => field.id === filters.group)?.label ?? "Form field") : GROUP_LABEL[filters.group as ListGroup]) : null,
           clearHref: href({ group: null, page: 1 }),
@@ -543,7 +555,8 @@ export function RequestListScreen({
           ],
         }}
         sizes={LIST_SIZES.map((size) => ({ label: `${size} per page`, href: href({ size, page: 1 }), active: filters.size === size }))}
-        options={<SaveViewForm target={VIEW_TARGET[base]} query={listQuery({ ...filters, page: 1 }, {}, base)} />}
+        // v1.58.0 (D-354): the saved query carries filters, group, column sort (sortBy/dir) and search.
+        options={<SaveViewForm target={VIEW_TARGET[base]} path={path} query={listQuery({ ...filters, page: 1 }, {}, base)} />}
       />
 
       <div className="mb-3 flex flex-wrap items-center gap-2 text-label">
@@ -579,7 +592,8 @@ export function RequestListScreen({
           <EmptyState title="Nothing here yet" body={empty} />
         )
       ) : (
-        <>
+        // v1.58.0 (D-354, owner: "expand or collapse individually and all"): groups start folded; Expand all / Collapse all above them.
+        <FoldScope enabled={Boolean(filters.group)}>
           <ul className="card divide-y divide-line sm:hidden" data-testid="request-cards">
             {grouped.map((group) => {
               // v1.57.4 (D-342): a group folds away from its heading.
@@ -629,7 +643,7 @@ export function RequestListScreen({
               <caption className="sr-only">Requests</caption>
               <thead>
                 {/* v1.52.3 (owner): drag a column title to move it; the order is saved for the person. */}
-                <ReorderHeader list={VIEW_TARGET[base]} lead="Request" columns={order.map((column) => HEADER[column])} />
+                <ReorderHeader list={VIEW_TARGET[base]} lead="Request" columns={order.map((column) => HEADER[column])} sort={headerSort} />
               </thead>
               {grouped.map((group) => {
                 const rows = group.items.map((item) => (
@@ -667,7 +681,7 @@ export function RequestListScreen({
               })}
             </table>
           </div>
-        </>
+        </FoldScope>
       )}
       {result.pages > 1 && (
         <nav aria-label="Pages" className="mt-4 flex flex-wrap items-center justify-between gap-3 text-label" data-testid="list-pages">

@@ -1,5 +1,7 @@
 import type { DashboardMeeting } from "@/lib/db/repositories/meetings.repository";
 import { onTime } from "@/server/meetings/rules";
+import { SortTh } from "@/features/ui/SortTh";
+import { nextDir, parseColumnSort, sortHref, sortRows, type SortDir } from "@/server/lists/sorting";
 
 // v1.51.1: the meeting figures shared by the Meeting dashboard and the
 // Meetings view of Home (one calculation, so both always agree).
@@ -114,22 +116,70 @@ export function KpiGrid({ total }: { total: Tally }) {
   );
 }
 
-export function TallyTable({ caption, rows }: { caption: string; rows: Tally[] }) {
+// v1.58.0 (D-354, owner: "sorting in all the tables asc to desc or vice versa in
+// all columns"): every column of a tally table sorts both ways. Rates sort by
+// their percentage (no figure yet = last); "Actions done" by the count done.
+export const TALLY_SORTS = ["name", "held", "cancelled", "points", "start", "mom", "attendance", "done", "overdue"] as const;
+export type TallySort = (typeof TALLY_SORTS)[number];
+const TALLY_SORT_LABEL: Record<TallySort, string> = {
+  name: "Name",
+  held: "Held",
+  cancelled: "Cancelled",
+  points: "Points in time",
+  start: "Started on time",
+  mom: "MOM in time",
+  attendance: "Attendance",
+  done: "Actions done",
+  overdue: "Overdue",
+};
+const rate = (part: number, whole: number) => (whole ? part / whole : null);
+export function tallySortValue(row: Tally, column: TallySort): string | number | null {
+  switch (column) {
+    case "name":
+      return row.name;
+    case "held":
+      return row.held;
+    case "cancelled":
+      return row.cancelled;
+    case "points":
+      return rate(row.pointsOnTime, row.pointsJudged);
+    case "start":
+      return rate(row.startOnTime, row.startJudged);
+    case "mom":
+      return rate(row.momOnTime, row.momJudged);
+    case "attendance":
+      return rate(row.present, row.invited);
+    case "done":
+      return row.done;
+    default:
+      return row.overdue;
+  }
+}
+export const sortTallies = (rows: readonly Tally[], column: TallySort | null, dir: SortDir): Tally[] => (column ? sortRows(rows, (row) => tallySortValue(row, column), dir) : [...rows]);
+
+// `sort` makes the titles sortable: the page's address and query, and a prefix
+// for this table's columns (?sortBy=<prefix>.<column>) so two tables on one
+// page never clash (only one is sorted at a time; the other keeps its order).
+export function TallyTable({ caption, rows: given, sort }: { caption: string; rows: Tally[]; sort?: { prefix: string; path: string; query: Record<string, unknown> } }) {
+  const columns = TALLY_SORTS.map((column) => `${sort?.prefix ?? "tally"}.${column}`);
+  const chosen = parseColumnSort(sort?.query ?? {}, columns);
+  const column = chosen.sortBy ? (chosen.sortBy.slice(chosen.sortBy.indexOf(".") + 1) as TallySort) : null;
+  const rows = sort ? sortTallies(given, column, chosen.dir) : given;
   return (
     <div className="card overflow-x-auto">
       <table className="data-table">
         <caption className="px-4 py-2 text-left font-semibold">{caption}</caption>
         <thead>
           <tr>
-            <th scope="col">Name</th>
-            <th scope="col">Held</th>
-            <th scope="col">Cancelled</th>
-            <th scope="col">Points in time</th>
-            <th scope="col">Started on time</th>
-            <th scope="col">MOM in time</th>
-            <th scope="col">Attendance</th>
-            <th scope="col">Actions done</th>
-            <th scope="col">Overdue</th>
+            {TALLY_SORTS.map((key, index) =>
+              sort ? (
+                <SortTh key={key} label={TALLY_SORT_LABEL[key]} column={columns[index]!} sortBy={chosen.sortBy} dir={chosen.dir} href={sortHref(sort.path, sort.query, columns[index]!, nextDir(chosen, columns[index]!))} />
+              ) : (
+                <th key={key} scope="col">
+                  {TALLY_SORT_LABEL[key]}
+                </th>
+              ),
+            )}
           </tr>
         </thead>
         <tbody>

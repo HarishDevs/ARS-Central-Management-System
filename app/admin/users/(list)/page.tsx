@@ -15,6 +15,12 @@ import { RowSelectBox } from "@/features/ui/BulkSelect";
 import { ROLE_LABEL } from "@/features/ui/labels";
 import { MODULE_HELP, MODULE_LABEL, MODULES, type ModuleCode } from "@/server/modules/modules";
 import { SIGN_IN_LABEL } from "@/types/auth";
+import { ListViews } from "@/features/lists/ListViews";
+import { applyDefaultListView } from "@/server/lists/views";
+import { nextDir, parseColumnSort, sortHref } from "@/server/lists/sorting";
+import { groupRows, departmentBucket, pickGroup } from "@/server/lists/group-rows";
+import { groupMenu, keepListState, USER_GROUPS, USER_SORT_COLUMNS, type UserGroup } from "@/server/admin/lists";
+import { accessLabel } from "@/features/ui/labels";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
 export const metadata: Metadata = { title: "Users & roles" };
@@ -22,9 +28,14 @@ export const metadata: Metadata = { title: "Users & roles" };
 const PAGE_SIZE = 50;
 
 // F-06 user list. Search and filter are plain GET parameters.
-export default async function UsersPage({ searchParams }: { searchParams: Promise<{ q?: string; status?: string; page?: string; module?: string; dept?: string }> }) {
+export default async function UsersPage({ searchParams }: { searchParams: Promise<{ q?: string; status?: string; page?: string; module?: string; dept?: string; sortBy?: string; dir?: string; group?: string }> }) {
   const { user: actor } = await requireArea("admin");
   const params = await searchParams;
+  // v1.58.0 (D-354, owner): your default saved view when the address is bare;
+  // every column sorts both ways (on the server: the list is paged); Group by.
+  await applyDefaultListView(actor.id, "list_admin_users", "/admin/users", params);
+  const sort = parseColumnSort(params, USER_SORT_COLUMNS);
+  const group = pickGroup(params.group, USER_GROUPS.map((choice) => choice.key)) as UserGroup | null;
   const search = (params.q ?? "").trim().slice(0, 100);
   const status = params.status === "inactive" || params.status === "all" ? params.status : "active";
   const page = Math.max(1, Number(params.page) || 1);
@@ -34,9 +45,14 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
   const departments = await listDepartments();
   const deptParam = params.dept ?? "";
   const departmentFilter = deptParam === "none" ? null : departments.some((item) => String(item.id) === deptParam) ? Number(deptParam) : undefined;
-  const { items, total } = await listUsersForAdmin({ search: search || undefined, status, module: moduleFilter, departmentId: departmentFilter }, { limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE });
+  const { items, total } = await listUsersForAdmin({ search: search || undefined, status, module: moduleFilter, departmentId: departmentFilter }, { limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE }, undefined, { sort, group });
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const link = (next: number) => `/admin/users?${new URLSearchParams({ ...(search ? { q: search } : {}), status, ...(moduleFilter ? { module: moduleFilter } : {}), ...(departmentFilter !== undefined ? { dept: deptParam } : {}), page: String(next) })}`;
+  const link = (next: number) => `/admin/users?${new URLSearchParams({ ...(search ? { q: search } : {}), status, ...(moduleFilter ? { module: moduleFilter } : {}), ...(departmentFilter !== undefined ? { dept: deptParam } : {}), ...(sort.sortBy ? { sortBy: sort.sortBy, dir: sort.dir } : {}), ...(group ? { group } : {}), page: String(next) })}`;
+  const groups = group
+    ? groupRows(items, (user) =>
+        group === "department" ? departmentBucket(user.departmentName) : group === "status" ? (user.active ? ["Active", 0] : ["Inactive", 1]) : group === "role" ? [accessLabel(user.roles), user.roles.includes("SUPER_ADMIN") ? 0 : user.roles.includes("IT_ADMIN") ? 1 : user.roles.length > 1 ? 2 : 3] : [SIGN_IN_LABEL[user.signInMethod], 0],
+      ).map((entry) => ({ key: entry.key, label: entry.label, ids: entry.items.map((user) => user.id) }))
+    : null;
 
   return (
     <>
@@ -54,8 +70,9 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
         id="users-filters"
         path="/admin/users"
         label="Filter users"
-        keep={{}}
+        keep={keepListState(params)}
         search={{ name: "q", value: search, placeholder: "Name, email or User ID" }}
+        group={groupMenu("/admin/users", params, USER_GROUPS, group)}
         filterCount={[status !== "active", moduleFilter, departmentFilter !== undefined].filter(Boolean).length}
         clearHref={search || status !== "active" || moduleFilter || departmentFilter !== undefined ? "/admin/users" : null}
         filters={
@@ -102,20 +119,23 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
         }
       />
 
+      <ListViews userId={actor.id} target="list_admin_users" path="/admin/users" query={params} />
+
       {/* v1.49.6 (owner): tick users, then one action for all of them. */}
       {items.length > 0 && <UsersBulkActions modules={MODULES.map((code) => ({ code, label: MODULE_LABEL[code], help: MODULE_HELP[code] }))} />}
       <DataTable
         caption="Users"
         storageKey="admin-users"
         empty={{ title: "No users found", body: search ? "Try a different search." : "Add the first user to get started." }}
-        initialSort={{ key: "name", direction: "asc" }}
+        serverSort={{ sortBy: sort.sortBy, dir: sort.dir, hrefs: Object.fromEntries(USER_SORT_COLUMNS.map((column) => [column, sortHref("/admin/users", params, column, nextDir(sort, column))])) }}
+        groups={groups}
         columns={[
           { key: "name", header: "Name", sortable: true },
           { key: "login", header: "User ID", sortable: true },
           { key: "department", header: "Department", sortable: true, optional: true },
-          { key: "signIn", header: "Sign-in", optional: true },
-          { key: "roles", header: "Roles", optional: true },
-          { key: "modules", header: "Modules", optional: true },
+          { key: "signIn", header: "Sign-in", sortable: true, optional: true },
+          { key: "roles", header: "Roles", sortable: true, optional: true },
+          { key: "modules", header: "Modules", sortable: true, optional: true },
           { key: "status", header: "Status", sortable: true },
           { key: "actions", header: "Actions" },
         ]}

@@ -17,6 +17,8 @@ import { listViews } from "@/lib/db/repositories/analytics-views.repository";
 import type { Cell, Column } from "@/server/reports/catalogue";
 import { formatIndiaTime } from "@/server/notifications/security-messages";
 import { personLabel } from "@/lib/people/label";
+import { SortHead } from "@/features/admin/SortHead";
+import { parseColumnSort, sortRows } from "@/server/lists/sorting";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
 export const metadata: Metadata = { title: "Report" };
@@ -58,6 +60,12 @@ export default async function ReportPage({ params, searchParams }: { params: Pro
   const filterCount = [scope.kind !== defaultScope, report.usesPeriod && filter.period.key !== "30d", filter.workflowId !== null, filter.departmentId !== null].filter(Boolean).length;
   // Clear keeps the default scope in the address, so B07's default view does not re-apply its filters.
   const clearHref = `/admin/reports/${key}?${new URLSearchParams({ scope: defaultScope }).toString()}`;
+  // v1.58.0 (D-354, owner): every column sorts both ways (all the rows, then
+  // the preview). No Group by: a report's rows are already its own totals or
+  // its own grain. The report's saved views stay as they are.
+  const sort = parseColumnSort(raw, result.columns.map((column) => column.key));
+  const sortIndex = sort.sortBy ? result.columns.findIndex((column) => column.key === sort.sortBy) : -1;
+  const rows = sortIndex >= 0 ? sortRows(result.rows, (row) => row[sortIndex], sort.dir) : result.rows;
   const download = (format: string) => `/api/reports/${key}?${new URLSearchParams({ ...effective, format }).toString()}`;
 
   return (
@@ -83,7 +91,7 @@ export default async function ReportPage({ params, searchParams }: { params: Pro
         id="report-filters"
         path={`/admin/reports/${key}`}
         label="Filters"
-        keep={{}}
+        keep={{ sortBy: sort.sortBy ?? undefined, dir: sort.sortBy ? sort.dir : undefined }}
         filterCount={filterCount}
         clearHref={filterCount ? clearHref : null}
         filters={
@@ -173,17 +181,9 @@ export default async function ReportPage({ params, searchParams }: { params: Pro
       <div className="card overflow-x-auto">
         <table className="data-table">
           <caption className="sr-only">{report.name}</caption>
-          <thead>
-            <tr>
-              {result.columns.map((column) => (
-                <th key={column.key} scope="col" className={column.kind === "text" || column.kind === "datetime" ? "" : "text-right"}>
-                  {column.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
+          <SortHead path={`/admin/reports/${key}`} query={raw} sort={sort} columns={result.columns.map((column) => ({ key: column.key, label: column.label, className: column.kind === "text" || column.kind === "datetime" ? "" : "text-right" }))} />
           <PagedRows colSpan={1}>
-            {result.rows.slice(0, PREVIEW).map((row, index) => (
+            {rows.slice(0, PREVIEW).map((row, index) => (
               <tr key={index}>
                 {row.map((cell, cellIndex) => {
                   const column = result.columns[cellIndex]!;

@@ -5,12 +5,20 @@
 // base condition (whose requests these are) is always added by the caller
 // and can't be widened by any filter.
 import { priorityRankSql } from "@/server/approvals/priority";
+import { parseColumnSort, sqlDir, type SortDir } from "@/server/lists/sorting";
 
 export const LIST_STATUSES = ["IN_PROGRESS", "ON_HOLD", "CHANGES_REQUIRED", "APPROVED", "REJECTED", "CANCELLED"] as const;
 export type ListStatus = (typeof LIST_STATUSES)[number];
 // v1.47.0: "priority" = the request's Priority field, in its option order.
 export const LIST_SORTS = ["newest", "oldest", "activity", "due", "number", "added", "approved", "mine", "priority"] as const;
 export type ListSort = (typeof LIST_SORTS)[number];
+// v1.58.0 (D-354, owner: "sorting in all the tables asc to desc or vice versa in
+// all columns"): every column title sorts the list (?sortBy=<column>&dir=asc|desc).
+// A column sort wins over the preset `sort` (which stays for the Sort menu and old links).
+export const LIST_SORT_COLUMNS = ["title", "status", "priority", "waiting", "raiser", "raised", "activity", "progress", "added"] as const;
+export type ListSortColumn = (typeof LIST_SORT_COLUMNS)[number];
+// v1.58.0 (D-354): the columns each list can sort by (Raised by only where others' requests show, Added only on Collaborating).
+export const sortColumnsFor = (base: ListBase): ListSortColumn[] => LIST_SORT_COLUMNS.filter((column) => (column !== "raiser" || BASE_FEATURES[base].people) && (column !== "added" || base === "COLLAB"));
 export const LIST_SIZES = [25, 50, 100] as const;
 // D-226: the list's rows in groups (the page shown).
 // v1.54.16 (owner): also the requester's department, and any form field ("f:<label slug>").
@@ -122,6 +130,8 @@ export interface ListFilters {
   activityFrom: string | null;
   activityTo: string | null;
   sort: ListSort;
+  sortBy: ListSortColumn | null; // v1.58.0 (D-354): a column title's sort (wins over `sort`)
+  dir: SortDir;
   size: (typeof LIST_SIZES)[number];
   group: ListGroupKey | null;
   page: number;
@@ -157,6 +167,8 @@ export function parseListFilters(params: Record<string, unknown>, base: ListBase
   const [activityFrom, activityTo] = range(dateOf(params.activityFrom), dateOf(params.activityTo));
   const type = idOf(params.type);
   const tabDef = tabsFor(base).find((item) => item.key === tab);
+  // v1.58.0 (D-354): ?sortBy / ?dir, checked against this list's own columns.
+  const columnSort = parseColumnSort(params, sortColumnsFor(base));
   return {
     tab,
     q: (str(params.q) ?? "").replace(/\s+/g, " ").trim().slice(0, 100),
@@ -186,6 +198,8 @@ export function parseListFilters(params: Record<string, unknown>, base: ListBase
     activityFrom,
     activityTo,
     sort,
+    sortBy: columnSort.sortBy,
+    dir: columnSort.dir,
     size,
     group: groupsFor(base).find((value) => value === str(params.group)) ?? (FIELD_GROUP.test(str(params.group) ?? "") ? (str(params.group) as `f:${string}`) : null),
     page: page && page > 0 && page <= 10000 ? page : 1,
@@ -233,6 +247,11 @@ export function listQuery(filters: Partial<ListFilters>, changes: Partial<ListFi
   put("activityTo", f.activityTo);
   const defaultSort = base ? BASE_FEATURES[base].sorts[0] : "newest";
   if (f.sort && f.sort !== defaultSort) put("sort", f.sort);
+  // v1.58.0 (D-354): a column sort is written with its direction, so links and saved views round-trip.
+  if (f.sortBy) {
+    put("sortBy", f.sortBy);
+    put("dir", f.dir === "desc" ? "desc" : "asc");
+  }
   if (f.size && f.size !== 25) put("size", f.size);
   put("group", f.group);
   if (f.page && f.page > 1) put("page", f.page);
@@ -389,10 +408,13 @@ export function listFilterSql(f: ListFilters, base: ListBase, userId = 0): { whe
     params.push(value);
   }
   const due = "(SELECT MIN(d.due_at) FROM approval_tasks d WHERE d.request_id = r.id AND d.status = 'PENDING')";
-  const mine = `(SELECT MAX(md.decided_at) FROM approval_tasks md WHERE md.request_id = r.id AND md.task_type = 'APPROVAL' AND md.status = 'APPROVED' AND md.decided_by = ${Number(userId) | 0})`;
+  const mine = myApprovalSql(userId);
   const rank = priorityRankSql("r", "v");
+  // v1.58.0 (D-354): a column title's sort comes first; otherwise the preset.
+  const columnOrder = f.sortBy ? columnOrderSql(f.sortBy, f.dir, base, userId) : null;
   const orderBy =
-    f.sort === "oldest"
+    columnOrder ??
+    (f.sort === "oldest"
       ? "r.submitted_at ASC, r.id ASC"
       : f.sort === "activity"
         ? "r.updated_at DESC, r.id DESC"
@@ -408,6 +430,47 @@ export function listFilterSql(f: ListFilters, base: ListBase, userId = 0): { whe
                   ? `${mine} DESC, r.id DESC`
                   : f.sort === "priority"
                     ? `${rank} IS NULL, ${rank}, r.submitted_at DESC, r.id DESC`
-                  : "r.submitted_at DESC, r.id DESC";
+                  : "r.submitted_at DESC, r.id DESC");
   return { where, params, orderBy };
+}
+
+// v1.58.0 (D-354): my latest approval on the request (APPROVED_BY_ME). The id is a number, never text.
+const myApprovalSql = (userId: number) => `(SELECT MAX(md.decided_at) FROM approval_tasks md WHERE md.request_id = r.id AND md.task_type = 'APPROVAL' AND md.status = 'APPROVED' AND md.decided_by = ${Number(userId) | 0})`;
+// Where a request is, in its natural order (ascending: still moving first, closed last).
+const STATUS_ORDER_SQL = "FIELD(r.status, 'IN_PROGRESS', 'ON_HOLD', 'CHANGES_REQUIRED', 'APPROVED', 'REJECTED', 'CANCELLED')";
+// Progress: how far it got (rejected/withdrawn < sent back < on hold < moving < approved), then approval steps done this round.
+const PROGRESS_STATUS_SQL = "FIELD(r.status, 'REJECTED', 'CANCELLED', 'CHANGES_REQUIRED', 'ON_HOLD', 'IN_PROGRESS', 'APPROVED')";
+const STEPS_DONE_SQL = "(SELECT COUNT(*) FROM approval_tasks sd WHERE sd.request_id = r.id AND sd.round = r.round AND sd.task_type = 'APPROVAL' AND sd.status = 'APPROVED')";
+const WAITING_STEP_SQL = "(SELECT MIN(ws.node_label) FROM approval_tasks ws WHERE ws.request_id = r.id AND ws.status = 'PENDING')";
+
+// v1.58.0 (D-354): the ORDER BY for one column and direction. Only whitelisted
+// SQL (no address text reaches it); empty values last in both directions; the
+// request id breaks ties in the same direction so pages never overlap.
+export function columnOrderSql(column: ListSortColumn, dir: SortDir, base: ListBase, userId = 0): string {
+  const d = sqlDir(dir);
+  const nullsLast = (expr: string) => `${expr} IS NULL, ${expr} ${d}`;
+  const tie = `r.id ${d}`;
+  switch (column) {
+    case "title":
+      return `r.title ${d}, ${tie}`;
+    case "status":
+      return `${STATUS_ORDER_SQL} ${d}, ${tie}`;
+    case "priority":
+      return `${nullsLast(priorityRankSql("r", "v"))}, ${tie}`;
+    case "waiting":
+      // The column shows: approved on (My approved), my approval (Approved by me), else the step waiting now.
+      return base === "APPROVED_MINE" ? `${nullsLast("r.closed_at")}, ${tie}` : base === "APPROVED_BY_ME" ? `${nullsLast(myApprovalSql(userId))}, ${tie}` : `${nullsLast(WAITING_STEP_SQL)}, ${tie}`;
+    case "raiser":
+      return `u.name ${d}, ${tie}`;
+    case "raised":
+      return `r.submitted_at ${d}, ${tie}`;
+    case "activity":
+      return `r.updated_at ${d}, ${tie}`;
+    case "progress":
+      return `${PROGRESS_STATUS_SQL} ${d}, ${STEPS_DONE_SQL} ${d}, ${tie}`;
+    case "added":
+      return base === "COLLAB" ? `${nullsLast("k.added_at")}, ${tie}` : `r.submitted_at ${d}, ${tie}`;
+    default:
+      return `r.submitted_at DESC, r.id DESC`;
+  }
 }

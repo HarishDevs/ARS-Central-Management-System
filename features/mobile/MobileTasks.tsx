@@ -11,6 +11,7 @@ import { TaskCheck } from "@/features/work/client";
 import { CompactToggle, ScreenTitle, SheetChoices, SheetLink, ViewDock } from "@/features/mobile/BottomSheet";
 import { TaskDockAdd } from "@/features/mobile/NewTaskButton";
 import { TaskPriorityPill } from "@/features/ui/ChoicePill";
+import { FoldSections } from "@/features/mobile/FoldSections";
 
 const OPEN = "t.status IN ('OPEN', 'IN_PROGRESS', 'BLOCKED')";
 const TABS = [
@@ -116,8 +117,12 @@ export async function MobileTasks({ userId, tab: asked, sort: askedSort, group: 
           />
         </div>
       ) : (
-        sections.map((section) => (
-          <details key={section.key} open className="mob-section -mx-4" data-testid="m-task-section">
+        <>
+        {/* v1.58.0 (D-354, owner: "by default when a group by is selected it should collapse all the group"):
+            grouped sections start closed; Expand all / Collapse all, or open one. */}
+        {group !== "none" && <FoldSections selector='details[data-testid="m-task-section"]' />}
+        {sections.map((section) => (
+          <details key={section.key} open={group === "none"} className="mob-section -mx-4" data-testid="m-task-section">
             <summary className="flex min-h-[52px] cursor-pointer list-none items-center gap-3 px-4 text-[17px] font-semibold">
               <span aria-hidden="true" className="mob-caret text-ink-muted">
                 ▾
@@ -133,7 +138,8 @@ export async function MobileTasks({ userId, tab: asked, sort: askedSort, group: 
               ))}
             </ul>
           </details>
-        ))
+        ))}
+        </>
       )}
       {list.total > list.items.length && <p className="pt-3 text-center text-[13px] text-ink-muted">Showing {list.items.length} of {list.total}. Use Search tasks to find the rest.</p>}
       <ViewDock

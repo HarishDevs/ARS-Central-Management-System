@@ -50,13 +50,14 @@ export function requestColumns(seeConfidential: boolean): RecordColumn<RequestRe
     { key: "raisedBy", label: "Raised by", sort: "raisedBy", value: (row) => row.raisedBy },
     { key: "department", label: "Department", sort: "department", value: (row) => row.department ?? "" },
     { key: "status", label: "Status", sort: "status", value: (row) => STATUS_LABEL[row.status] ?? row.status },
-    { key: "step", label: "Current step", value: (row) => row.currentStep ?? "" },
-    { key: "waiting", label: "Waiting on", value: (row) => row.waitingOn ?? "", wide: true },
-    { key: "approvals", label: "Approvals given", value: (row) => String(row.approvals) },
-    { key: "round", label: "Round", value: (row) => String(row.round) },
+    // v1.58.0 (D-354): these sort too (SORTS in filters.ts).
+    { key: "step", label: "Current step", sort: "step", value: (row) => row.currentStep ?? "" },
+    { key: "waiting", label: "Waiting on", sort: "waiting", value: (row) => row.waitingOn ?? "", wide: true },
+    { key: "approvals", label: "Approvals given", sort: "approvals", value: (row) => String(row.approvals) },
+    { key: "round", label: "Round", sort: "round", value: (row) => String(row.round) },
     { key: "submitted", label: "Submitted", sort: "submitted", value: (row) => dateTime(row.submitted) },
     { key: "closed", label: "Closed", sort: "closed", value: (row) => dateTime(row.closed) },
-    { key: "age", label: "Days open", value: (row) => String(daysBetween(row.submitted, row.closed)) },
+    { key: "age", label: "Days open", sort: "age", value: (row) => String(daysBetween(row.submitted, row.closed)) },
   ];
 }
 
@@ -69,14 +70,14 @@ export const TASK_COLUMNS: RecordColumn<TaskRecord>[] = [
   { key: "type", label: "Task type", sort: "type", value: (row) => row.type },
   { key: "priority", label: "Priority", sort: "priority", value: (row) => PRIORITY_LABEL[row.priority] ?? row.priority, color: (row) => BUILT_IN_PRIORITY_COLOR[row.priority] ?? null },
   { key: "status", label: "Status", sort: "status", value: (row) => taskStatus(row.status) },
-  { key: "overdue", label: "Overdue", value: (row) => (row.overdue ? "Yes" : "") },
+  { key: "overdue", label: "Overdue", sort: "overdue", value: (row) => (row.overdue ? "Yes" : "") },
   { key: "assignee", label: "Assignee", sort: "assignee", value: (row) => row.assignee },
   { key: "department", label: "Department", sort: "department", value: (row) => row.department ?? "" },
-  { key: "assignedBy", label: "Assigned by", value: (row) => row.assignedBy },
+  { key: "assignedBy", label: "Assigned by", sort: "assignedBy", value: (row) => row.assignedBy },
   { key: "created", label: "Created", sort: "created", value: (row) => dateTime(row.created) },
   { key: "due", label: "Due", sort: "due", value: (row) => dateTime(row.due) },
   { key: "completed", label: "Completed", sort: "completed", value: (row) => dateTime(row.completed) },
-  { key: "related", label: "Related request", value: (row) => row.relatedRequest ?? "" },
+  { key: "related", label: "Related request", sort: "related", value: (row) => row.relatedRequest ?? "" },
 ];
 
 export const INFO_COLUMNS: RecordColumn<InfoRecord>[] = [
@@ -89,11 +90,11 @@ export const INFO_COLUMNS: RecordColumn<InfoRecord>[] = [
   { key: "department", label: "Department", sort: "department", value: (row) => row.department ?? "" },
   { key: "created", label: "Created", sort: "created", value: (row) => dateTime(row.created) },
   { key: "published", label: "Published", sort: "published", value: (row) => dateTime(row.published) },
-  { key: "effective", label: "Effective from", value: (row) => row.effectiveOn ?? "" },
-  { key: "expires", label: "Expires", value: (row) => row.expiresOn ?? "" },
-  { key: "recipients", label: "Recipients", value: (row) => String(row.recipients) },
-  { key: "read", label: "Read", value: (row) => String(row.read) },
-  { key: "ack", label: "Acknowledged", value: (row) => (row.ackRequired ? String(row.acknowledged) : "Not asked") },
+  { key: "effective", label: "Effective from", sort: "effective", value: (row) => row.effectiveOn ?? "" },
+  { key: "expires", label: "Expires", sort: "expires", value: (row) => row.expiresOn ?? "" },
+  { key: "recipients", label: "Recipients", sort: "recipients", value: (row) => String(row.recipients) },
+  { key: "read", label: "Read", sort: "read", value: (row) => String(row.read) },
+  { key: "ack", label: "Acknowledged", sort: "ack", value: (row) => (row.ackRequired ? String(row.acknowledged) : "Not asked") },
 ];
 
 export function columnsFor(kind: RecordKind, viewer: { seeConfidential: boolean } = { seeConfidential: false }): RecordColumn<RequestRecord>[] | RecordColumn<TaskRecord>[] | RecordColumn<InfoRecord>[] {

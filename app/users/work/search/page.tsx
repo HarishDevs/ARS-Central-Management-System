@@ -3,7 +3,9 @@ import type { Metadata } from "next";
 import { paneLinks, paneTaskId, TaskPane, WithPane } from "@/features/work/TaskPane";
 import { TaskGrid } from "@/features/work/TaskGrid";
 import { toGridTask } from "@/server/work/grid-rows";
-import { DEFAULT_GRID } from "@/server/work/grid";
+import { DEFAULT_GRID, gridFromUrl, gridUrlState } from "@/server/work/grid";
+import { ListViews } from "@/features/lists/ListViews";
+import { applyDefaultListView } from "@/server/lists/views";
 import Link from "next/link";
 import { PageHeader } from "@/features/shell/PageHeader";
 import { NoResults, Pagination } from "@/features/ui/Display";
@@ -22,7 +24,14 @@ export const dynamic = "force-dynamic";
 export default async function WorkSearchPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const { user, viewer } = await workPage();
   const raw = await searchParams;
+  // v1.58.0 (D-353, owner: "all the changes like filters, group, sort can be saved
+  // as a view ... along with names"): the search, with the table's sort and
+  // grouping (kept in the address by the table), can be saved as a named view of
+  // the person's own; the default one opens when the address is empty.
+  await applyDefaultListView(user.id, "list_tasks_search", "/users/work/search", raw);
   const search = parseWorkSearch(raw);
+  const gridInitial = gridFromUrl(raw, { ...DEFAULT_GRID, completed: "all" });
+  const gridKeep = gridUrlState(gridInitial); // the table's sort and group, kept on paging and chips
   const now = new Date();
   const sql = workSearchSql(viewer, search, now);
   const [result, projects, tags, people] = await Promise.all([
@@ -37,7 +46,7 @@ export default async function WorkSearchPage({ searchParams }: { searchParams: P
   const queryText = new URLSearchParams(plain).toString();
   const pages = Math.max(1, Math.ceil(result.total / WORK_SEARCH_PAGE));
   // v1.51.1: each criterion of the search as a chip that removes it.
-  const without = (change: Partial<typeof search>) => `/users/work/search?${new URLSearchParams(workSearchQuery({ ...search, ...change, page: 1 }))}`;
+  const without = (change: Partial<typeof search>) => `/users/work/search?${new URLSearchParams({ ...workSearchQuery({ ...search, ...change, page: 1 }), ...gridKeep })}`;
   const nameOf = (value: number | "me" | null) => (value === "me" ? "me" : (people.find((person) => person.id === value)?.label ?? "someone"));
   const STATUS_TEXT: Record<string, string> = { completed: "Completed", cancelled: "Cancelled", all: "Any status" };
   const PRIORITY_TEXT: Record<string, string> = { URGENT: "Critical", HIGH: "Most Important", IMPORTANT: "Important", ELEVATED: "High", NORMAL: "Normal", LOW: "Low" };
@@ -106,7 +115,8 @@ export default async function WorkSearchPage({ searchParams }: { searchParams: P
           ) : (
             <TaskGrid
               rows={result.items.map((task) => toGridTask(task, user.id, false))}
-              initial={{ ...DEFAULT_GRID, completed: "all" }}
+              initial={gridInitial}
+              syncUrl
               columns={["assignee", "due", "priority", "projects", "tags", "createdBy", "collaborators"]} // v1.47.0: + Priority
               groupsAllowed={["assignee", "createdBy", "project", "due", "priority", "kind"]}
               people={people}
@@ -116,7 +126,8 @@ export default async function WorkSearchPage({ searchParams }: { searchParams: P
               testId="work-search-results"
             />
           )}
-          {pages > 1 && <Pagination page={search.page} pages={pages} hrefFor={(page) => `/users/work/search?${new URLSearchParams({ ...plain, page: String(page) })}`} />}
+          <ListViews userId={user.id} target="list_tasks_search" path="/users/work/search" query={Object.fromEntries(Object.entries(raw).filter(([key]) => key !== "task"))} />
+          {pages > 1 && <Pagination page={search.page} pages={pages} hrefFor={(page) => `/users/work/search?${new URLSearchParams({ ...plain, ...gridKeep, page: String(page) })}`} />}
           {queryText && (
             <section className="card px-4 py-3">
               <SaveSearchForm query={queryText} />

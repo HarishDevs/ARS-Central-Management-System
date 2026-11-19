@@ -8,6 +8,18 @@ import { Hint } from "@/features/ui/Hint";
 import { CreateHoldForm, ReleaseHoldForm } from "@/features/superadmin/HoldForms";
 import { listHolds, retentionDryRun } from "@/server/ops/governance";
 import { formatIndiaTime } from "@/server/notifications/security-messages";
+import { ListViews } from "@/features/lists/ListViews";
+import { sortHeads } from "@/features/superadmin/sort-heads";
+import { applyDefaultListView } from "@/server/lists/views";
+import { parseColumnSort, sortRows } from "@/server/lists/sorting";
+
+// v1.58.0 (D-354, owner: "sorting in all the tables ... in all columns"): both
+// tables sort by any column (one sort on the page at a time); views save it.
+// No Group by: holds and retention rules are short settings lists.
+const HOLD_COLUMNS = ["hold_ref", "hold_covers", "hold_owner", "hold_placed", "hold_status"] as const;
+const RETENTION_COLUMNS = ["ret_records", "ret_kept", "ret_past", "ret_held", "ret_oldest"] as const;
+const PATH = "/superadmin/retention";
+const TARGET = "list_super_retention";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
 export const metadata: Metadata = { title: "Data retention" };
@@ -16,15 +28,38 @@ export const dynamic = "force-dynamic";
 
 // FN10 retention and legal holds (Super Admin). Holds are enforced; the
 // retention section is a dry run only.
-export default async function RetentionPage() {
-  await requireArea("superadmin");
-  const [holds, dryRun] = await Promise.all([listHolds(), retentionDryRun()]);
-  const active = holds.filter((hold) => !hold.releasedAt);
+export default async function RetentionPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const { user } = await requireArea("superadmin");
+  const query = await searchParams;
+  await applyDefaultListView(user.id, TARGET, PATH, query);
+  const [allHolds, allRows] = await Promise.all([listHolds(), retentionDryRun()]);
+  const active = allHolds.filter((hold) => !hold.releasedAt);
+  const holdSort = parseColumnSort(query, HOLD_COLUMNS);
+  const holdValue: Record<(typeof HOLD_COLUMNS)[number], (hold: (typeof allHolds)[number]) => unknown> = {
+    hold_ref: (hold) => hold.reference,
+    hold_covers: (hold) => `${hold.scopeType} ${hold.scopeLabel}`,
+    hold_owner: (hold) => hold.ownerName,
+    hold_placed: (hold) => hold.createdAt,
+    hold_status: (hold) => (hold.releasedAt ? "Released" : "Active"),
+  };
+  const holds = holdSort.sortBy ? sortRows(allHolds, holdValue[holdSort.sortBy], holdSort.dir) : allHolds;
+  const rowSort = parseColumnSort(query, RETENTION_COLUMNS);
+  const rowValue: Record<(typeof RETENTION_COLUMNS)[number], (row: (typeof allRows)[number]) => unknown> = {
+    ret_records: (row) => row.label,
+    ret_kept: (row) => (row.duration ? row.duration * (row.unit === "years" ? 365 : row.unit === "months" ? 30 : 1) : null), // in days
+    ret_past: (row) => (row.duration ? row.eligible : null),
+    ret_held: (row) => (row.duration ? row.held : null),
+    ret_oldest: (row) => row.oldest,
+  };
+  const dryRun = rowSort.sortBy ? sortRows(allRows, rowValue[rowSort.sortBy], rowSort.dir) : allRows;
+  const holdHead = sortHeads(PATH, query, holdSort);
+  const rowHead = sortHeads(PATH, query, rowSort);
 
   return (
     <>
       <PageHeader title="Retention & legal holds" description="Holds keep records from being deleted while a matter is open. Retention shows what a policy would affect; these policies delete nothing by themselves. Separately, security records (sign-in attempts, WhatsApp codes, ended sessions, used links) are deleted after 90 days (DR-06)." />
 
+      <ListViews userId={user.id} target={TARGET} path={PATH} query={query} />
       <section aria-labelledby="holds-title" className="card mb-6 px-5 py-4">
         <div className="mb-3 flex items-center gap-1.5">
           <h2 id="holds-title" className="font-semibold">
@@ -38,11 +73,11 @@ export default async function RetentionPage() {
               <caption className="sr-only">Legal holds</caption>
               <thead>
                 <tr>
-                  <th scope="col">Reference</th>
-                  <th scope="col">Covers</th>
-                  <th scope="col">Owner</th>
-                  <th scope="col">Placed</th>
-                  <th scope="col">Status</th>
+                  {holdHead("Reference", "hold_ref")}
+                  {holdHead("Covers", "hold_covers")}
+                  {holdHead("Owner", "hold_owner")}
+                  {holdHead("Placed", "hold_placed")}
+                  {holdHead("Status", "hold_status")}
                 </tr>
               </thead>
               <PagedRows colSpan={5}>
@@ -104,15 +139,11 @@ export default async function RetentionPage() {
             <caption className="sr-only">Retention dry run</caption>
             <thead>
               <tr>
-                <th scope="col">Records</th>
-                <th scope="col">Kept for</th>
-                <th scope="col" className="text-right">
-                  Past the date
-                </th>
-                <th scope="col" className="text-right">
-                  Kept by a hold
-                </th>
-                <th scope="col">Oldest</th>
+                {rowHead("Records", "ret_records")}
+                {rowHead("Kept for", "ret_kept")}
+                {rowHead("Past the date", "ret_past", { className: "text-right" })}
+                {rowHead("Kept by a hold", "ret_held", { className: "text-right" })}
+                {rowHead("Oldest", "ret_oldest")}
               </tr>
             </thead>
             <PagedRows colSpan={5}>

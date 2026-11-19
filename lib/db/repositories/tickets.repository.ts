@@ -3,6 +3,7 @@ import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { getDbPool, type Queryable } from "@/lib/db/client";
 import type { TicketStatus } from "@/server/tickets/rules";
 import type { TicketPriority } from "@/server/modules/settings";
+import { sqlDir, type ColumnSort } from "@/server/lists/sorting";
 
 // v1.55.0 (D-326, D-327): Ticketing System data. Bound values only.
 type Row = RowDataPacket & Record<string, unknown>;
@@ -332,6 +333,8 @@ export interface TicketListFilter {
   departmentId?: number | null;
   priority?: TicketPriority | null;
   assigneeId?: number | null;
+  // v1.58.0 (D-354, owner: sorting on every column): ?sortBy=&dir= of the ticket table.
+  sort?: ColumnSort<TicketSortColumn> | null;
 }
 export interface TicketListItem {
   id: number;
@@ -353,6 +356,31 @@ export interface TicketListItem {
   taskStatus?: string | null;
 }
 export const TICKET_PAGE_SIZE = 25;
+
+// v1.58.0 (D-354, owner: "sorting in all the tables asc to desc or vice versa in
+// all columns"): the ticket table is paged by the server, so its columns sort in
+// SQL. Whitelist only (never the address text); empty values stay last in both
+// directions; ties newest first. Priority and status sort in the order a ticket
+// is handled (Urgent first; New, Reopened, Assigned, In progress, Awaiting, Closed).
+export const TICKET_SORT_COLUMNS = ["ticket", "subject", "requestor", "department", "priority", "assignee", "created", "target", "status", "task"] as const;
+export type TicketSortColumn = (typeof TICKET_SORT_COLUMNS)[number];
+const TICKET_SORT_SQL: Record<TicketSortColumn, { expr: string; nullable?: boolean }> = {
+  ticket: { expr: "k.ticket_no" },
+  subject: { expr: "k.title" },
+  requestor: { expr: "r.name" },
+  department: { expr: "d.name", nullable: true },
+  priority: { expr: "FIELD(k.priority, 'URGENT', 'HIGH', 'IMPORTANT', 'ELEVATED', 'NORMAL')" },
+  assignee: { expr: "a.name", nullable: true },
+  created: { expr: "k.submitted_at" },
+  target: { expr: "k.due_at", nullable: true },
+  status: { expr: "FIELD(k.status, 'NEW', 'REOPENED', 'ASSIGNED', 'IN_PROGRESS', 'AWAITING_CONFIRMATION', 'CLOSED')" },
+  task: { expr: "(SELECT tk.task_no FROM tasks tk WHERE tk.id = k.task_id)", nullable: true },
+};
+export function ticketOrderBy(sort: ColumnSort<TicketSortColumn> | null | undefined): string {
+  const column = sort?.sortBy && Object.prototype.hasOwnProperty.call(TICKET_SORT_SQL, sort.sortBy) ? TICKET_SORT_SQL[sort.sortBy] : undefined;
+  if (!column || !sort) return "ORDER BY k.id DESC";
+  return `ORDER BY ${column.nullable ? `${column.expr} IS NULL, ` : ""}${column.expr} ${sqlDir(sort.dir)}, k.id DESC`;
+}
 // Who is looking: isAdmin = sees every ticket; categoryIds = also sees these categories (D-338).
 export type TicketScopeViewer = { id: number; isAdmin: boolean; categoryIds?: number[] };
 // The WHERE of a list or dashboard (scope first: it can't be widened by a filter).
@@ -419,7 +447,7 @@ export async function listTickets(filter: TicketListFilter, viewer: TicketScopeV
   const [rows] = await db.query<Row[]>(
     `SELECT k.id, k.ticket_no, k.title, c.name AS category_name, t.name AS type_name, r.name AS requester_name, d.name AS department_name, a.name AS assignee_name, k.priority, k.status, k.close_kind, k.submitted_at, k.due_at,
             k.task_id, (SELECT tk.task_no FROM tasks tk WHERE tk.id = k.task_id) AS task_no, (SELECT tk.status FROM tasks tk WHERE tk.id = k.task_id) AS task_status
-       ${LIST_FROM} ${clause} ORDER BY k.id DESC LIMIT ? OFFSET ?`,
+       ${LIST_FROM} ${clause} ${ticketOrderBy(filter.sort)} LIMIT ? OFFSET ?`,
     [...params, TICKET_PAGE_SIZE, (Math.max(1, filter.page) - 1) * TICKET_PAGE_SIZE],
   );
   return {

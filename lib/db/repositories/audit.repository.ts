@@ -1,6 +1,8 @@
 import "server-only";
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { getDbPool, type Queryable } from "@/lib/db/client";
+import type { ColumnSort } from "@/server/lists/sorting";
+import { AUDIT_ORDER, LOGIN_ORDER, orderBySql, type AuditColumn, type LoginColumn } from "@/server/lists/superadmin-lists";
 import type { AuthMethod } from "@/types/auth";
 
 // Append-only (D-012): this module only ever INSERTs. There is deliberately
@@ -81,7 +83,7 @@ export interface AuditListItem {
 
 // Read-only viewer for the Super Admin (P1-57).
 export async function listAuditEntries(
-  filter: { action?: string; actorUserId?: number; beforeId?: number },
+  filter: { action?: string; actorUserId?: number; beforeId?: number; sort?: ColumnSort<AuditColumn>; offset?: number },
   limit: number,
   db: Queryable = getDbPool(),
 ): Promise<AuditListItem[]> {
@@ -99,14 +101,15 @@ export async function listAuditEntries(
     where.push("a.id < ?");
     params.push(filter.beforeId);
   }
-  params.push(limit);
+  // v1.58.0 (D-354, owner): a column sort (whitelisted SQL) pages by offset.
+  params.push(limit, Math.max(0, Math.floor(filter.offset ?? 0)));
   const [rows] = await db.query<
     (RowDataPacket & { id: number; occurred_at: Date; name: string | null; action: string; entity_type: string; entity_id: string | null; result: "SUCCESS" | "FAILURE"; ip_address: string | null; metadata_json: unknown })[]
   >(
     `SELECT a.id, a.occurred_at, u.name, a.action, a.entity_type, a.entity_id, a.result, a.ip_address, a.metadata_json
      FROM audit_logs a LEFT JOIN users u ON u.id = a.actor_user_id
      ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
-     ORDER BY a.id DESC LIMIT ?`,
+     ${orderBySql(AUDIT_ORDER, filter.sort ?? { sortBy: null, dir: "desc" }, "a.id DESC", "a.id DESC")} LIMIT ? OFFSET ?`,
     params,
   );
   return rows.map((row) => ({
@@ -173,9 +176,10 @@ export interface LoginHistoryItem {
   ipAddress: string | null;
   userAgent: string | null;
   newDevice: boolean;
+  departmentName?: string | null; // v1.58.0 (D-354): for Group by Department
 }
 
-export async function listLoginHistory(filter: { userId?: number; outcome?: "SUCCESS" | "FAILURE"; beforeId?: number }, limit: number, db: Queryable = getDbPool()): Promise<LoginHistoryItem[]> {
+export async function listLoginHistory(filter: { userId?: number; outcome?: "SUCCESS" | "FAILURE"; beforeId?: number; sort?: ColumnSort<LoginColumn>; offset?: number }, limit: number, db: Queryable = getDbPool()): Promise<LoginHistoryItem[]> {
   const where: string[] = [];
   const params: unknown[] = [];
   if (filter.userId) {
@@ -187,14 +191,15 @@ export async function listLoginHistory(filter: { userId?: number; outcome?: "SUC
     where.push("l.id < ?");
     params.push(filter.beforeId);
   }
-  params.push(limit);
+  // v1.58.0 (D-354, owner): a column sort (whitelisted SQL) pages by offset; the department for Group by.
+  params.push(limit, Math.max(0, Math.floor(filter.offset ?? 0)));
   const [rows] = await db.query<
-    (RowDataPacket & { id: number; occurred_at: Date; user_id: number | null; name: string | null; login_id: string | null; auth_method: "GOOGLE" | "PASSWORD_OTP"; step: string; success: number; failure_reason: string | null; ip_address: string | null; user_agent: string | null; new_device: number })[]
+    (RowDataPacket & { id: number; occurred_at: Date; user_id: number | null; name: string | null; login_id: string | null; auth_method: "GOOGLE" | "PASSWORD_OTP"; step: string; success: number; failure_reason: string | null; ip_address: string | null; user_agent: string | null; new_device: number; department_name: string | null })[]
   >(
-    `SELECT l.id, l.occurred_at, l.user_id, u.name, u.login_id, l.auth_method, l.step, l.success, l.failure_reason, l.ip_address, l.user_agent, l.new_device
-     FROM login_logs l LEFT JOIN users u ON u.id = l.user_id
+    `SELECT l.id, l.occurred_at, l.user_id, u.name, u.login_id, l.auth_method, l.step, l.success, l.failure_reason, l.ip_address, l.user_agent, l.new_device, d.name AS department_name
+     FROM login_logs l LEFT JOIN users u ON u.id = l.user_id LEFT JOIN departments d ON d.id = u.department_id
      ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
-     ORDER BY l.id DESC LIMIT ?`,
+     ${orderBySql(LOGIN_ORDER, filter.sort ?? { sortBy: null, dir: "desc" }, "l.id DESC", "l.id DESC")} LIMIT ? OFFSET ?`,
     params,
   );
   return rows.map((row) => ({
@@ -210,6 +215,7 @@ export async function listLoginHistory(filter: { userId?: number; outcome?: "SUC
     ipAddress: row.ip_address,
     userAgent: row.user_agent,
     newDevice: Number(row.new_device) === 1,
+    departmentName: row.department_name ?? null,
   }));
 }
 

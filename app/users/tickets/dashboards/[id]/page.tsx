@@ -6,8 +6,11 @@ import { PageHeader } from "@/features/shell/PageHeader";
 import { Breadcrumbs, EmptyState } from "@/features/ui/Display";
 import { TICKET_GROUP_LABEL, TICKET_GROUPS, TicketTable } from "@/features/tickets/TicketParts";
 import { pickGroup } from "@/server/lists/group-rows";
+import { ListViews } from "@/features/lists/ListViews";
+import { applyDefaultListView } from "@/server/lists/views";
+import { parseColumnSort } from "@/server/lists/sorting";
 import { ticketsPage } from "@/server/tickets/page-context";
-import { findTicketCategory, listTickets, ticketCounts, TICKET_PAGE_SIZE, type TicketListFilter } from "@/lib/db/repositories/tickets.repository";
+import { findTicketCategory, listTickets, ticketCounts, TICKET_PAGE_SIZE, TICKET_SORT_COLUMNS, type TicketListFilter } from "@/lib/db/repositories/tickets.repository";
 import { listDepartments } from "@/lib/db/repositories/organisation.repository";
 import { listPeopleFacts } from "@/lib/db/repositories/tasks.repository";
 import { TICKET_PRIORITIES, TICKET_PRIORITY_LABEL, type TicketPriority } from "@/server/modules/settings";
@@ -32,6 +35,13 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   // v1.57.1 (D-338): a category this person coordinates (or was named for); IT sees all.
   if (!category || !(isAdmin || categoryIds?.includes(category.id))) notFound();
   const query = await searchParams;
+  // v1.58.0 (D-354, owner: saved views, private): one view list per category
+  // dashboard (target list_ticket_dashboard_<id>, on its own address).
+  const base = `/users/tickets/dashboards/${category.id}`;
+  const viewTarget = `list_ticket_dashboard_${category.id}`;
+  await applyDefaultListView(user.id, viewTarget, base, query);
+  // v1.58.0 (D-354, owner: sorting on every column, both directions): ?sortBy=&dir= (SQL, the list is paged).
+  const sort = parseColumnSort(query, TICKET_SORT_COLUMNS);
   const status = (STATUS_FILTERS as readonly string[]).includes(query.status ?? "") ? (query.status as TicketListFilter["status"]) : null;
   const filter: TicketListFilter = {
     scope: "all",
@@ -44,15 +54,18 @@ export default async function Page({ params, searchParams }: { params: Promise<{
     departmentId: /^\d{1,10}$/.test(query.dept ?? "") ? Number(query.dept) : null,
     priority: (TICKET_PRIORITIES as readonly string[]).includes(query.priority ?? "") ? (query.priority as TicketPriority) : null,
     assigneeId: /^\d{1,10}$/.test(query.assignee ?? "") ? Number(query.assignee) : null,
+    sort,
   };
   const viewer = { id: user.id, isAdmin, categoryIds: viewerCategoryIds };
   const [counts, list, departments, people] = await Promise.all([ticketCounts(filter, viewer), listTickets(filter, viewer), listDepartments(), listPeopleFacts()]);
-  const base = `/users/tickets/dashboards/${category.id}`;
   // v1.57.5 (D-344): Group by, kept with the filters.
   const group = pickGroup(query.group, TICKET_GROUPS);
   const keep = { from: filter.from, to: filter.to, dept: filter.departmentId, priority: filter.priority, assignee: filter.assigneeId, status: filter.status, group };
+  // v1.58.0 (D-354): the sort stays on through filters, tiles and pages; Clear drops it too.
+  const sortKeep: Record<string, string> = sort.sortBy ? { sortBy: sort.sortBy, dir: sort.dir } : {};
+  const filterQuery = Object.fromEntries(Object.entries(keep).filter(([, value]) => value !== null && value !== undefined && value !== "").map(([key, value]) => [key, String(value)]));
   const href = (change: Record<string, string | number | null>) => {
-    const next = Object.entries({ ...keep, ...change }).filter(([, value]) => value !== null && value !== undefined && value !== "");
+    const next = Object.entries({ ...keep, ...sortKeep, ...change }).filter(([, value]) => value !== null && value !== undefined && value !== "");
     return `${base}${next.length ? `?${new URLSearchParams(next.map(([key, value]) => [key, String(value)])).toString()}` : ""}`;
   };
   const tiles = [
@@ -159,10 +172,12 @@ export default async function Page({ params, searchParams }: { params: Promise<{
             ))}
           </select>
         </div>
+        {sort.sortBy && <input type="hidden" name="sortBy" value={sort.sortBy} />}
+        {sort.sortBy && <input type="hidden" name="dir" value={sort.dir} />}
         <button type="submit" className="btn-primary btn-compact">
           Apply
         </button>
-        {Object.values(keep).some((value) => value !== null) && (
+        {(Object.values(keep).some((value) => value !== null) || sort.sortBy) && (
           <Link href={base} className="link text-label">
             Clear
           </Link>
@@ -172,7 +187,13 @@ export default async function Page({ params, searchParams }: { params: Promise<{
         {list.total.toLocaleString("en-IN")} ticket{list.total === 1 ? "" : "s"}
         {filter.status ? ` · ${STATUS_FILTER_LABEL[filter.status] ?? filter.status}` : ""}
       </p>
-      {list.items.length === 0 ? <EmptyState title="No tickets match" body="Change or clear the filters." /> : <TicketTable items={list.items} caption={`${category.name} tickets`} group={group} />}
+      {/* v1.58.0 (D-354): saved views (private) of this dashboard: filters, group, sort. */}
+      <ListViews userId={user.id} target={viewTarget} path={base} query={{ ...filterQuery, ...sortKeep }} />
+      {list.items.length === 0 ? (
+        <EmptyState title="No tickets match" body="Change or clear the filters." />
+      ) : (
+        <TicketTable items={list.items} caption={`${category.name} tickets`} group={group} sort={{ state: sort, path: base, query: filterQuery }} />
+      )}
       {pages > 1 && (
         <nav aria-label="Pages" className="mt-4 flex items-center justify-between text-label">
           {filter.page > 1 ? <Link href={href({ page: filter.page - 1 })} className="link">← Previous</Link> : <span />}

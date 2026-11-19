@@ -18,18 +18,25 @@ import { infoState, INFO_STATE_LABEL } from "@/server/modules/info-rules";
 import { indiaDateTimeText } from "@/server/modules/settings";
 import { personLabel } from "@/lib/people/label";
 import { RichText } from "@/features/work/RichText";
+import { SortTh } from "@/features/ui/SortTh";
+import { nextDir, parseColumnSort, sortHref, sortRows } from "@/server/lists/sorting";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
 export const metadata: Metadata = { title: "Information" };
 
 export const dynamic = "force-dynamic";
 
+// v1.58.0 (D-354, owner: "sorting in all the tables ... in all columns"): the
+// Recipients table sorts on every column (?sortBy=rcp.<column>&dir=).
+const RECIPIENT_SORTS = ["rcp.person", "rcp.dept", "rcp.read", "rcp.ack"] as const;
+const RECIPIENT_LABEL: Record<(typeof RECIPIENT_SORTS)[number], string> = { "rcp.person": "Person", "rcp.dept": "Department", "rcp.read": "Read", "rcp.ack": "Acknowledged" };
+
 const EVENT_TEXT: Record<string, string> = { CREATED: "Draft started", DRAFT_SAVED: "Draft saved", PUBLISHED: "Published", ACKNOWLEDGED: "Acknowledged", WITHDRAWN: "Withdrawn", ARCHIVED: "Archived", UPDATED: "Updated" };
 
 // v1.9.0 (D-143, D-145): one piece of information. The sender and IT see who
 // read and acknowledged it; a recipient opening it marks it read (never
 // acknowledged). Anyone else gets "not found".
-export default async function InformationPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ published?: string; saved?: string }> }) {
+export default async function InformationPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ published?: string; saved?: string; sortBy?: string; dir?: string }> }) {
   const { user } = await requireArea("users");
   if (!(await featureOn("information", user))) notFound();
   const { id } = await params;
@@ -55,6 +62,16 @@ export default async function InformationPage({ params, searchParams }: { params
   const values = Object.fromEntries(editable.map((field) => [field.key, Array.isArray(item.formData[field.key]) ? JSON.stringify(item.formData[field.key]) : item.formData[field.key] === undefined ? "" : String(item.formData[field.key])]));
   const readCount = recipients.filter((row) => row.readAt).length;
   const ackCount = recipients.filter((row) => row.acknowledgedAt).length;
+  // v1.58.0 (D-354): recipients in the chosen column order (people by name otherwise).
+  const recipientSort = parseColumnSort(query, RECIPIENT_SORTS);
+  const recipientRows = recipientSort.sortBy
+    ? sortRows(
+        recipients,
+        (row) => (recipientSort.sortBy === "rcp.person" ? row.name : recipientSort.sortBy === "rcp.dept" ? row.departmentName : recipientSort.sortBy === "rcp.read" ? row.readAt : row.acknowledgedAt),
+        recipientSort.dir,
+      )
+    : recipients;
+  const recipientHref = (column: string) => `${sortHref(`/users/information/${item.id}`, { sortBy: query.sortBy, dir: query.dir }, column, nextDir(recipientSort, column))}#recipients`;
 
   return (
     <>
@@ -106,14 +123,13 @@ export default async function InformationPage({ params, searchParams }: { params
                 <table className="data-table" data-testid="recipient-table">
                   <thead>
                     <tr>
-                      <th scope="col">Person</th>
-                      <th scope="col">Department</th>
-                      <th scope="col">Read</th>
-                      {item.ackRequired && <th scope="col">Acknowledged</th>}
+                      {RECIPIENT_SORTS.filter((column) => column !== "rcp.ack" || item.ackRequired).map((column) => (
+                        <SortTh key={column} label={RECIPIENT_LABEL[column]} column={column} sortBy={recipientSort.sortBy} dir={recipientSort.dir} href={recipientHref(column)} />
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {recipients.map((row) => (
+                    {recipientRows.map((row) => (
                       <tr key={row.userId}>
                         <td>{row.name}</td>
                         <td className="text-label">{row.departmentName ?? "—"}</td>

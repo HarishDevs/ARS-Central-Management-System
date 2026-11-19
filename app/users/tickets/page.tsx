@@ -5,9 +5,12 @@ import { PageHeader } from "@/features/shell/PageHeader";
 import { EmptyState } from "@/features/ui/Display";
 import { TICKET_GROUP_LABEL, TICKET_GROUPS, TicketTable } from "@/features/tickets/TicketParts";
 import { ListToolbar } from "@/features/ui/ListToolbar";
+import { ListViews } from "@/features/lists/ListViews";
+import { applyDefaultListView } from "@/server/lists/views";
+import { parseColumnSort } from "@/server/lists/sorting";
 import { pickGroup } from "@/server/lists/group-rows";
 import { ticketsPage } from "@/server/tickets/page-context";
-import { listTickets, TICKET_PAGE_SIZE } from "@/lib/db/repositories/tickets.repository";
+import { listTickets, TICKET_PAGE_SIZE, TICKET_SORT_COLUMNS } from "@/lib/db/repositories/tickets.repository";
 
 export const metadata: Metadata = { title: "My tickets" };
 export const dynamic = "force-dynamic";
@@ -20,16 +23,22 @@ const STATES = { open: "Open", closed: "Closed", all: "All" } as const;
 export default async function Page({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const { user, isAdmin } = await ticketsPage();
   const params = await searchParams;
+  // v1.58.0 (D-354, owner: "all the changes like filters, group, sort can be saved
+  // as a view"): the person's default saved view opens when the address is bare.
+  await applyDefaultListView(user.id, "list_my_tickets", "/users/tickets", params);
   const view = params.view === "assigned" ? "assigned" : "mine";
   const state = params.state === "closed" || params.state === "all" ? params.state : "open";
   const page = Math.max(1, Math.min(1000, Number(params.page) || 1));
   // v1.57.5 (D-344): Group (kept in the address).
   const group = pickGroup(params.group, TICKET_GROUPS);
   const q = (params.q ?? "").trim().slice(0, 100);
-  const { items, total } = await listTickets({ scope: view, categoryId: null, status: state === "all" ? null : state, q, page }, { id: user.id, isAdmin });
+  // v1.58.0 (D-354, owner: sorting on every column, both directions): ?sortBy=&dir= (SQL, the list is paged).
+  const sort = parseColumnSort(params, TICKET_SORT_COLUMNS);
+  const sortKeep: Record<string, string> = sort.sortBy ? { sortBy: sort.sortBy, dir: sort.dir } : {};
+  const { items, total } = await listTickets({ scope: view, categoryId: null, status: state === "all" ? null : state, q, page, sort }, { id: user.id, isAdmin });
   const pages = Math.max(1, Math.ceil(total / TICKET_PAGE_SIZE));
   const href = (change: Record<string, string | number | null>) => {
-    const merged: Record<string, string | number | null> = { view, state, ...(group ? { group } : {}), ...(q ? { q } : {}), ...change };
+    const merged: Record<string, string | number | null> = { view, state, ...(group ? { group } : {}), ...(q ? { q } : {}), ...sortKeep, ...change };
     return `/users/tickets?${new URLSearchParams(Object.entries(merged).filter(([, value]) => value !== null && value !== "").map(([key, value]) => [key, String(value)])).toString()}`;
   };
   return (
@@ -60,7 +69,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
             id="ticket-list"
             path="/users/tickets"
             label="Find tickets"
-            keep={{ view, state, group: group ?? undefined }}
+            keep={{ view, state, group: group ?? undefined, ...sortKeep }}
             search={{ name: "q", value: q, placeholder: "Ticket number or subject" }}
             filterCount={0}
             clearHref={q ? href({ q: null, page: 1 }) : null}
@@ -72,10 +81,12 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
           />
         </div>
       </div>
+      {/* v1.58.0 (D-354): saved views (private) of this list: tab, status, search, group, sort. */}
+      <ListViews userId={user.id} target="list_my_tickets" path="/users/tickets" query={{ view, state, ...(group ? { group } : {}), ...(q ? { q } : {}), ...sortKeep }} />
       {items.length === 0 ? (
         <EmptyState title="No tickets here" body={view === "mine" ? "Tickets you raise appear here." : "Tickets assigned to you appear here."} />
       ) : (
-        <TicketTable items={items} caption={VIEWS[view]} withTask={view === "assigned"} group={group} />
+        <TicketTable items={items} caption={VIEWS[view]} withTask={view === "assigned"} group={group} sort={{ state: sort, path: "/users/tickets", query: { view, state, ...(group ? { group } : {}), ...(q ? { q } : {}) } }} />
       )}
       {pages > 1 && (
         <nav aria-label="Pages" className="mt-4 flex items-center justify-between text-label">
