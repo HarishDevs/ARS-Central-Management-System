@@ -17,6 +17,9 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 **Multi-level approvals in any custom manner.** The engine must support any number of levels in any combination: sequential, parallel, any-one, any-N-of-M, conditional and hybrid. Approvers can come from any source, and levels can be added or skipped by rules. Build the engine for this from the first engine phase (P2). The drag-and-drop designer (P3) is only the screen for building it. Check every task against this.
 
 ## Now / Next
+- **Now (20 Nov 2026):** **v1.59.0** approvers change a request's details from Waiting for me; sent-back requests stay on the list (D-356, D-357). **Owner:** publish (no migration); confirm Q-033 (the defaults for approver changes).
+- [x] APR-01 (20 Nov 2026) Sent back for changes shown on the approver's Waiting for me
+- [x] APR-02 (20 Nov 2026) Approver changes values and levels to come from the Waiting for me table (reason, history, notifications, audit)
 - **Now (20 Nov 2026):** **v1.58.1** a request's Priority sorts in every table (D-355). **Owner:** publish (no migration).
 - [x] TBL-04 (20 Nov 2026) Request Priority sortable in Admin records, Super Admin requests and the Home tables
 - **Now (19 Nov 2026):** **v1.58.0** sort every column, saved views everywhere, groups start folded (D-351 to D-354). **Owner:** publish (no migration). Later, if wanted: server-side sort for Task search (sorts the shown page today); groups across all pages of a paged list (grouping is per page).

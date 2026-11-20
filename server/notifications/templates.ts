@@ -47,6 +47,7 @@ const SHORT_LABEL: Record<string, string> = {
   TASK_ASSIGNED: "Task for you",
   REQUEST_FYI: "For your information",
   REQUEST_RESUMED: "Request resumed",
+  REQUEST_DETAILS_CHANGED: "Details changed",
   REQUEST_RESUBMITTED: "Changes made",
   REQUEST_DELETED: "Request removed",
   REQUEST_UNBLOCKED: "Request moving again",

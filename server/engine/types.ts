@@ -257,6 +257,8 @@ export type EngineEvent =
   // v1.6.0 (EN-04, EN-05)
   | { type: "RECALLED"; actorId: number; reason: string; closedTaskIds: string[]; approverIds: number[] }
   | { type: "INFO_REQUESTED"; nodeId: string; actorId: number; question: string }
+  // v1.59.0 (D-357): the approver this request waits on changed its values (fieldKeys) and/or the levels to come.
+  | { type: "DETAILS_CHANGED"; nodeId: string; actorId: number; reason: string; fieldKeys: string[]; fieldLabels: string[]; levelsChanged: boolean; round: number; onBehalfOf?: number; earlierApproverIds: number[] }
   | { type: "INFO_ANSWERED"; actorId: number; answer: string; askedBy: number; heldSince: string; pendingApproverIds: number[] };
 
 export type Decision = "APPROVE" | "REJECT" | "REQUEST_CHANGES";

@@ -566,6 +566,23 @@ Approver requests changes (reason required) → state Changes Required, stays op
   - Approvals from the previous round never count in the new one.
   - The full history stays on one request (G-04).
 
+## F-APPROVER-CHANGE Approver changes the details (v1.59.0, D-357) and sent back stays visible (D-356)
+```mermaid
+flowchart LR
+  W[Waiting for me row: Change] --> D[Drawer: values + levels after mine + reason]
+  D --> C{Who?}
+  C -- not the approver it waits on / on hold --> X[Refused]
+  C -- approver or delegate --> V{Values changed?}
+  V -- yes --> R{Route changed?}
+  R -- no --> S[New round: my level starts again; earlier approvals stand]
+  R -- yes --> E[New round: restart at the earliest affected level]
+  V -- no, levels only --> L[New version of the levels to come; nothing restarts]
+  S --> T[Requester + earlier approvers told; history, audit]
+  E --> T
+  L --> T
+  Q[Approver asks for changes] --> B[Waiting for me: Sent back for changes, with reason] --> U[Requester resubmits] --> A[Back in Waiting for me as an approval]
+```
+
 ## F-27 On Hold / resume
 Approver puts the request on hold (reason) → state On Hold, stays open, counts as pending, SLA paused → the approver resumes → back to Pending at the same level.
 

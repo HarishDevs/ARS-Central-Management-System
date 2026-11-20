@@ -257,7 +257,7 @@ export default async function UsersHome({ searchParams }: { searchParams: Promis
                 <p className="mt-1 text-label text-ink-muted">Requests that need your approval, and work given to you, appear here.</p>
               </div>
             ) : (
-              <QueueTable items={queueShown} priority={priority} formDue={await formDueDays(queue.map((item) => item.requestId))} sort={queueSort} />
+              <QueueTable items={queueShown} priority={priority} formDue={await formDueDays(queue.map((item) => item.requestId))} sort={queueSort} editable />
             )}
           </section>
 

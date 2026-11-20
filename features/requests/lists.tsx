@@ -2,12 +2,14 @@ import Link from "next/link";
 import { Fragment } from "react";
 import { ReorderHeader, type HeaderColumn, type HeaderSort } from "@/features/requests/ReorderHeader";
 import { SortTh } from "@/features/ui/SortTh";
+import { ChangeDetailsButton } from "@/features/requests/ChangeDetails";
 import { RequestStatusPill } from "@/features/requests/StatusPill";
 import { EmptyState } from "@/features/shell/PageHeader";
 import { formatIndiaTime } from "@/server/notifications/security-messages";
 import type {
   MyRequestItem,
   QueueItem,
+  SentBackItem,
 } from "@/lib/db/repositories/approvals.repository";
 import { SafeText } from "@/features/ui/SafeText";
 import { FoldListGroup, FoldScope, FoldTbody } from "@/features/ui/GroupFold";
@@ -31,7 +33,10 @@ const QUEUE_HEADER: Record<QueueColumn, HeaderColumn> = {
 // v1.58.0 (D-354, owner: "sorting in all the tables ... in all columns"): with
 // `sort` every column title (and Request) is a sort link (hrefs from the page);
 // grouped rows get Expand all / Collapse all (groups start folded).
-export function QueueTable({ items, priority, order: savedOrder, formDue = {}, groups, sort }: { items: QueueItem[]; priority?: Record<number, ShownPriority>; order?: string[]; formDue?: Record<number, string>; groups?: { key: string; label: string; items: QueueItem[] }[]; sort?: HeaderSort }) {
+// v1.59.0 (D-357, owner: "approver can change the approval details" "from the
+// table itself"): with `editable`, each approval row (not a work task, not on
+// hold) has a Change details button at the end.
+export function QueueTable({ items, priority, order: savedOrder, formDue = {}, groups, sort, editable = false }: { items: QueueItem[]; priority?: Record<number, ShownPriority>; order?: string[]; formDue?: Record<number, string>; groups?: { key: string; label: string; items: QueueItem[] }[]; sort?: HeaderSort; editable?: boolean }) {
   // v1.53.0: the request's own due date (its form's Due date field), India day.
   const todayDay = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
   const dayText = (day: string) => new Date(`${day}T00:00:00Z`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
@@ -157,7 +162,7 @@ export function QueueTable({ items, priority, order: savedOrder, formDue = {}, g
         <table className="data-table">
           <thead>
             {savedOrder ? (
-              <ReorderHeader list="queue" lead="Request" columns={order.map((column) => QUEUE_HEADER[column])} sort={sort} />
+              <ReorderHeader list="queue" lead="Request" columns={order.map((column) => QUEUE_HEADER[column])} sort={sort} trailing={editable ? "Change details" : undefined} />
             ) : (
               <tr>
                 {sort?.hrefs.title ? <SortTh label="Request" column="title" sortBy={sort.sortBy} dir={sort.dir} href={sort.hrefs.title} /> : <th>Request</th>}
@@ -167,6 +172,11 @@ export function QueueTable({ items, priority, order: savedOrder, formDue = {}, g
                   ) : (
                     <th key={column}>{QUEUE_HEADER[column].label}</th>
                   ),
+                )}
+                {editable && (
+                  <th scope="col">
+                    <span className="sr-only">Change details</span>
+                  </th>
                 )}
               </tr>
             )}
@@ -190,10 +200,11 @@ export function QueueTable({ items, priority, order: savedOrder, formDue = {}, g
                 {order.map((column) => (
                   <Fragment key={column}>{cellFor(item, column)}</Fragment>
                 ))}
+                {editable && <td className="text-right">{!item.work && !item.onHold && <ChangeDetailsButton requestId={item.requestId} taskKey={item.taskKey} title={item.title} />}</td>}
               </tr>
             ));
             return group.label ? (
-              <FoldTbody key={group.key} label={group.label} count={group.items.length} colSpan={order.length + 1}>
+              <FoldTbody key={group.key} label={group.label} count={group.items.length} colSpan={order.length + 1 + (editable ? 1 : 0)}>
                 {rows}
               </FoldTbody>
             ) : (
@@ -203,6 +214,62 @@ export function QueueTable({ items, priority, order: savedOrder, formDue = {}, g
         </table>
       </div>
     </FoldScope>
+  );
+}
+
+// v1.59.0 (D-356, owner: "if we asked changes request that also should be
+// reflected to the current approver's waiting for me screen so that the
+// particular Approver can review that"): what you sent back for changes,
+// still with the requester. Open to review; it comes back to you as a normal
+// approval when it is resubmitted.
+export function SentBackTable({ items }: { items: SentBackItem[] }) {
+  if (items.length === 0) return null;
+  return (
+    <section className="mt-6" aria-labelledby="sent-back" data-testid="sent-back">
+      <h2 id="sent-back" className="mb-1 font-semibold">
+        Sent back for changes ({items.length})
+      </h2>
+      <p className="mb-3 text-label text-ink-muted">With the requester now. Open one to review it; it comes back here for your approval when they resubmit.</p>
+      <div className="card overflow-x-auto">
+        <table className="data-table">
+          <caption className="sr-only">Requests you sent back for changes</caption>
+          <thead>
+            <tr>
+              <th scope="col">Request</th>
+              <th scope="col">Status</th>
+              <th scope="col">Waiting for</th>
+              <th scope="col">Your step</th>
+              <th scope="col">Sent back</th>
+              <th scope="col">Your reason</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item) => (
+              <tr key={item.requestId} data-testid="sent-back-row">
+                <td>
+                  <Link href={`/users/requests/${item.requestId}`} className="link">
+                    <SafeText text={item.title} />
+                  </Link>
+                  <p className="text-caption text-ink-muted">
+                    {item.requestNo} · {item.typeName}
+                  </p>
+                </td>
+                <td>
+                  <span className="inline-flex items-center rounded-full bg-warning-50 px-2 py-0.5 text-caption font-medium text-warning-600">Sent back</span>
+                </td>
+                <td>{item.requesterName} (requester)</td>
+                <td>
+                  {item.nodeLabel}
+                  {item.forName && <p className="text-caption text-ink-muted">for {item.forName}</p>}
+                </td>
+                <td className="whitespace-nowrap">{formatIndiaTime(item.sentAt)}</td>
+                <td className="max-w-xs text-ink-muted">{item.reason ? <SafeText text={item.reason} /> : "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
 

@@ -1,5 +1,13 @@
 # Release notes
 
+## v1.59.0 (20 Nov 2026): Approvers change a request's details from Waiting for me; sent-back requests stay on the list (owner)
+- **Change details from the table** (Waiting for me, and the Waiting for me table on Home): each approval row has a **Change** button. It opens the request's values (files stay as they are) and, on a custom request, the **levels after yours**: change who approves a level, add a level, remove one or move it. A **reason is required**. Only the approver the request is waiting on now (or their active delegate) can do it, and not while it is on hold.
+- **What happens:** new values start your level again in a new round, so everyone at your level sees them; earlier approvals stand unless the new values change the route, in which case it restarts from the earliest affected level (as when a requester resubmits). Changing only the levels to come restarts nothing. New approvers must be able to approve (Manager and above), active, and never the requester or you. Levels up to yours never change.
+- **Who is told:** the requester and everyone who already approved get "Request details changed" with what changed and the reason. The request's history, its "What changed in round N" and the audit log record it.
+- **Sent back for changes** stays on your Waiting for me, in its own **Sent back for changes** table: the request, the requester it waits for, your step, when and your reason. Open it to review; when the requester resubmits it comes back to you as a normal approval.
+- Notification settings: "An approver changes a request's details" is under **Updates on requests you raised**.
+- **Owner steps:** no migration; publish v1.59.0.
+
 ## v1.58.1 (20 Nov 2026): a request's Priority sorts in every table (owner)
 - **Priority sorts everywhere** a request's Priority is shown: Admin → Records → Approval requests and Super Admin → Requests (over every page, in the database), and the Home tables (Waiting for me, Due soon or overdue, Returned to you for changes, My recent requests), which now sort on every column. Ascending puts the form's first option first (e.g. Critical). A Priority that is confidential for you, or missing, always goes last, so the order gives nothing away.
 - **Owner steps:** no migration; publish v1.58.1.

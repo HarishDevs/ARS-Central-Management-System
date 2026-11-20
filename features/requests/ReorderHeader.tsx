@@ -32,7 +32,8 @@ export interface HeaderSort {
 
 const ariaSort = (sort: HeaderSort | undefined, key: string) => (sort && sort.hrefs[key] ? (sort.sortBy === key ? (sort.dir === "asc" ? "ascending" : "descending") : "none") : undefined);
 
-export function ReorderHeader({ list, lead, columns, hidden = [], sort }: { list: string; lead: string; columns: HeaderColumn[]; hidden?: string[]; sort?: HeaderSort }) {
+// v1.59.0: `trailing` adds a last, fixed column (e.g. the row's Change details button), named for screen readers.
+export function ReorderHeader({ list, lead, columns, hidden = [], sort, trailing }: { list: string; lead: string; columns: HeaderColumn[]; hidden?: string[]; sort?: HeaderSort; trailing?: string }) {
   const router = useRouter();
   // The order shown is the saved one: titles and cells move together once the
   // page has the new order (a short "Saving…" in between), never apart.
@@ -133,6 +134,11 @@ export function ReorderHeader({ list, lead, columns, hidden = [], sort }: { list
           </th>
         );
       })}
+      {trailing && (
+        <th scope="col">
+          <span className="sr-only">{trailing}</span>
+        </th>
+      )}
     </tr>
   );
 }

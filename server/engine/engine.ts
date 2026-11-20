@@ -1020,6 +1020,84 @@ export function recall(definition: WorkflowDefinition, previous: InstanceState, 
   return { state, events: run.events };
 }
 
+// v1.59.0 (D-357, owner: "approver can change the approval details", from
+// Waiting for me): the approver whose step is open now (or their delegate)
+// changes the form values and/or the levels still to come. The caller passes
+// the definition to use from now on (the new one when levels changed; nodes
+// that already ran keep their ids) and, in the context, the new values.
+// - Levels only: nothing restarts; the levels to come follow the new route.
+// - New values: like a recall straight followed by a resubmit from this step
+//   (F-26 / DR-09): earlier approvals stand unless the values change the
+//   route, in which case it restarts from the earliest affected step; the open
+//   step(s) start again, so everyone on them sees the new values. A new round
+//   records the values before and after.
+export function changeByApprover(
+  definition: WorkflowDefinition,
+  previous: InstanceState,
+  input: { taskId: string; actorId: number; reason: string; fieldKeys: readonly string[]; fieldLabels?: readonly string[]; levelsChanged: boolean },
+  context: EngineContext,
+  directory: Directory,
+  options: { previousFormData?: EngineContext["formData"] } = {},
+): EngineResult {
+  if (previous.status !== "IN_PROGRESS") {
+    throw new EngineError("NOT_IN_PROGRESS", previous.status === "ON_HOLD" ? "This request is on hold. Resume it before changing the details." : "This request is no longer waiting for approval.");
+  }
+  const task = previous.tasks.find((candidate) => candidate.id === input.taskId);
+  if (!task || task.status !== "PENDING") throw new EngineError("NOT_AUTHORISED", "This approval is no longer waiting for you.");
+  const isDelegate = task.approverId !== input.actorId && directory.canActFor(input.actorId, task.approverId);
+  if ((task.approverId !== input.actorId && !isDelegate) || input.actorId === context.requesterId) {
+    throw new EngineError("NOT_AUTHORISED", "Only the approver this request is waiting for can change its details.");
+  }
+  const graph = new Graph(definition);
+  if (!graph.nodes.has(task.nodeId)) throw new EngineError("INVALID_ACTION", "Your own level can't be changed or removed.");
+  const node = graph.node(task.nodeId);
+  if (node.kind !== "APPROVAL" || node.mode === "WORK") throw new EngineError("INVALID_ACTION", "Only an approval step can change the details.");
+  const reason = input.reason.trim();
+  if (reason.length < 3) throw new EngineError("COMMENT_REQUIRED", "Say why you're changing the details.");
+  if (input.fieldKeys.length === 0 && !input.levelsChanged) throw new EngineError("INVALID_ACTION", "Nothing was changed.");
+  const state = clone(previous);
+  alignNodes(definition, state);
+  const changed = (round: number): EngineEvent => ({
+    type: "DETAILS_CHANGED",
+    nodeId: task.nodeId,
+    actorId: input.actorId,
+    reason,
+    fieldKeys: [...input.fieldKeys],
+    fieldLabels: [...(input.fieldLabels ?? input.fieldKeys)],
+    levelsChanged: input.levelsChanged,
+    round,
+    // Everyone who already approved on it (told what changed), not the editor.
+    earlierApproverIds: [...new Set(previous.tasks.filter((other) => other.status === "APPROVED").map((other) => other.decidedBy ?? other.approverId))].filter((id) => id !== input.actorId && id !== task.approverId),
+    ...(isDelegate ? { onBehalfOf: task.approverId } : {}),
+  });
+  if (input.fieldKeys.length === 0) return { state, events: [changed(state.round)] };
+
+  const run = new Run(graph, state, context, directory);
+  const openNodeIds = Object.entries(state.nodes)
+    .filter(([, nodeState]) => nodeState.status === "ACTIVE" || nodeState.status === "BLOCKED")
+    .map(([id]) => id)
+    .filter((id) => graph.node(id).kind === "APPROVAL");
+  state.status = "CHANGES_REQUIRED";
+  delete state.hold;
+  state.changesRequested = { nodeId: task.nodeId, by: input.actorId, at: context.now, comment: reason, openNodeIds: openNodeIds.includes(task.nodeId) ? openNodeIds : [task.nodeId, ...openNodeIds] };
+  run.closeTasks(null, "CANCELLED");
+  run.endActiveSteps();
+  const again = resubmit(definition, state, "REQUESTING_STEP", context, directory, options.previousFormData ? { previousFormData: options.previousFormData } : {});
+  return { state: again.state, events: [changed(again.state.round), ...run.events, ...again.events.filter((event) => event.type !== "RESUBMITTED")] };
+}
+
+// The node states follow a definition whose later levels changed: new levels
+// wait; a removed level must not have started (only levels to come change).
+function alignNodes(definition: WorkflowDefinition, state: InstanceState): void {
+  const ids = new Set(definition.nodes.map((node) => node.id));
+  for (const [id, nodeState] of Object.entries(state.nodes)) {
+    if (ids.has(id)) continue;
+    if (nodeState.status !== "WAITING") throw new EngineError("INVALID_ACTION", "Only the levels still to come can change.");
+    delete state.nodes[id];
+  }
+  for (const id of ids) state.nodes[id] ??= { status: "WAITING" };
+}
+
 // Ask for information (EN-05, BD-2): the approver (or their delegate) asks
 // the requester a question. The request waits on hold (the response time
 // stops, nobody else decides meanwhile) until the requester answers.

@@ -210,6 +210,13 @@ Comments on a request can't be edited or removed. To tell someone in particular,
 - **Comments / All activity:** Comments is the thread (reply, like, pin); All activity is the full history, oldest or newest first.
 - **Choosing a person** anywhere: type a name, code or department; each choice shows **Name - Employee code** and the department below. Lists open where they fit on the screen and close with ×, Esc or a click outside.
 
+**Changing a request's details as its approver (v1.59.0):**
+- On **Waiting for me**, press **Change** on a request's row. Change any value (files stay as they are) and, on a custom request, the levels after yours: who approves, add, remove or move a level. Give a reason and press **Save changes**.
+- New values start your level again (everyone at your level sees them); earlier approvals stand unless the values change the route. Changing only the levels to come restarts nothing. The requester and earlier approvers are told what changed and why; it shows in the request's history.
+- Only the approver the request waits on now (or their delegate) can change it, and not while it is on hold. New approvers must be able to approve, and can't be the requester or you.
+
+**Sent back for changes (v1.59.0):** a request you sent back stays at the bottom of Waiting for me under **Sent back for changes**, with your reason, until the requester resubmits it; then it is back in your list for approval.
+
 **Sorting, saved views and folded groups (v1.58.0):**
 - **Sort:** click any column title to sort A→Z (oldest, smallest first); click it again for Z→A. Empty values always go last. On long lists the whole list is sorted, not just the page you see.
 - **Save this view:** keeps the list as it is now (filters, search, group, sort, tab) under a name. Your views appear as chips above the list: click one to open it, **Make default** to open it whenever you come to that list with nothing chosen, **×** to delete it. Views are only yours.

@@ -44,7 +44,7 @@ import { listUserIdsWithRole } from "@/lib/db/repositories/users.repository";
 import { recordAudit } from "@/lib/db/repositories/audit.repository";
 import { deliverOutboxRows } from "@/server/notifications/outbox-sender";
 import { messagesForEvents } from "@/server/approvals/messages";
-import { answerInformation, askForInformation, decide, putOnHold, reassignTask, recall, reopen, resolveBlocked, resubmit, resume, simulate, startInstance, validateWorkflow, withdraw, EngineError } from "@/server/engine";
+import { answerInformation, askForInformation, changeByApprover, decide, putOnHold, reassignTask, recall, reopen, resolveBlocked, resubmit, resume, simulate, startInstance, validateWorkflow, withdraw, EngineError } from "@/server/engine";
 import type { BlockAction, Decision, EngineEvent, EngineResult, FormData as EngineFormData, RestartPolicy, ValidationResult, WorkflowDefinition, WorkflowNode } from "@/server/engine";
 import { insertRevision } from "@/lib/db/repositories/revisions.repository";
 import { insertSubmissionCheck, updateCommittedAmount } from "@/lib/db/repositories/checks.repository";
@@ -60,6 +60,7 @@ import type { RoleCode } from "@/types/auth";
 import { appBaseUrl } from "@/lib/http/app-url";
 import { mirrorWorkTasks } from "@/server/approvals/work-mirror";
 import { withdrawOpenConsultations } from "@/lib/db/repositories/consult.repository";
+import { addedApprovers, applyLevelEdits, changedKeys, type LevelEdit } from "@/server/approvals/approver-edit";
 
 // The multi-level approval service (north star, S2-06, F-11 to F-13). The
 // engine decides; this layer loads, locks, saves and tells people.
@@ -685,6 +686,12 @@ async function afterChange(
       await recordAudit({ actorUserId: actor.id, action: "REQUEST_INFO_ANSWERED", entityType: "REQUEST", entityId: requestId, metadata: { askedBy: event.askedBy } }, db);
     } else if (event.type === "INFO_REQUESTED") {
       await recordAudit({ actorUserId: actor.id, action: "REQUEST_INFO_REQUESTED", entityType: "REQUEST", entityId: requestId, metadata: { step: event.nodeId } }, db);
+    } else if (event.type === "DETAILS_CHANGED") {
+      // v1.59.0 (D-357): an approver changed the values and/or the levels to come.
+      await recordAudit(
+        { actorUserId: actor.id, action: "REQUEST_DETAILS_CHANGED", entityType: "REQUEST", entityId: requestId, onBehalfOfUserId: event.onBehalfOf ?? null, metadata: { step: event.nodeId, fields: event.fieldKeys, levelsChanged: event.levelsChanged, round: event.round, reason: event.reason } },
+        db,
+      );
     } else if (event.type === "RECALLED") {
       await recordAudit({ actorUserId: actor.id, action: "REQUEST_RECALLED", entityType: "REQUEST", entityId: requestId, metadata: { reason: event.reason, closedTasks: event.closedTaskIds } }, db);
     } else if (event.type === "TASK_REASSIGNED") {
@@ -742,6 +749,104 @@ export async function resubmitRequest(input: { requestId: number; fields?: Recor
     return { ...result, formData: input.fields ? formData : undefined };
   }, input.fields ? { check: (request, version, connection) => resubmitChecks(request, version, input.fields!, actor, connection), afterSave: (request, connection) => syncBudgetAmount(request.id, connection) } : {});
   return result;
+}
+
+// v1.59.0 (D-357, owner: "approver can change the approval details", from the
+// Waiting for me table): the approver this request waits on now (or their
+// delegate) changes its values and/or the levels after their own, with a
+// reason. New values: a new round (earlier approvals stand unless the route
+// changes; the open step starts again). New levels (custom requests): a new
+// version of the request's own levels; the levels up to theirs never change;
+// new approvers follow the usual rules (approver-eligible, active, never the
+// requester or the editor). The requester and earlier approvers are told.
+let levelSeq = 0;
+const freshStepId = () => `a${Date.now().toString(36)}${(levelSeq++ % 1296).toString(36)}`.slice(0, 30);
+
+export async function changeDetailsAsApprover(
+  input: { requestId: number; taskKey: string; reason: string; fields?: Record<string, string | undefined>; levels?: readonly LevelEdit[] },
+  actor: Actor,
+): Promise<Result<{ status: string }>> {
+  const reason = input.reason.trim();
+  if (reason.length < 3) return { ok: false, code: "COMMENT_REQUIRED", message: "Say why you're changing the details." };
+  if (reason.length > 1000) return { ok: false, code: "COMMENT_TOO_LONG", message: "Keep the reason under 1,000 characters." };
+  const current = await findRequest(input.requestId);
+  const currentVersion = current ? await findWorkflowVersion(current.workflowVersionId) : null;
+  if (!current || !currentVersion) return { ok: false, code: "NOT_FOUND", message: "Request not found." };
+  const task = current.state.tasks.find((candidate) => candidate.id === input.taskKey);
+  if (!task || task.status !== "PENDING") return { ok: false, code: "NOT_AUTHORISED", message: "This approval is no longer waiting for you." };
+
+  // The new levels, worked out (and compiled) before the locked change.
+  let levels: { content: ResolvedContent; versionId: number } | null = null;
+  if (input.levels) {
+    const workflow = await findWorkflow(currentVersion.workflowId);
+    if (!workflow || workflow.kind !== "CUSTOM" || !currentVersion.builder) return { ok: false, code: "INVALID_ACTION", message: "This request's levels are set by its approval type, so they can't be changed here." };
+    const applied = applyLevelEdits(currentVersion.builder, task.nodeId, input.levels, freshStepId);
+    if (!applied.ok) return { ok: false, code: "INVALID_WORKFLOW", message: applied.message };
+    if (applied.changed) {
+      const config = await loadCustomConfig();
+      const builder = applyStepPolicy(applied.spec, config.policy);
+      const unavailable = unavailableFeatures(builder, config.policy);
+      if (unavailable.length) return { ok: false, code: "INVALID_WORKFLOW", message: unavailable.join(" ") };
+      const own = checkCustomSpec(builder, current.requesterId);
+      if (own.length) return { ok: false, code: "SELF_APPROVAL", message: own.join(" ") };
+      const resolved = await resolveContent({ builder, form: currentVersion.form });
+      if (!resolved.ok) return resolved;
+      if (!resolved.value.validation.valid) return { ok: false, code: "INVALID_WORKFLOW", message: resolved.value.validation.errors.map((issue) => issue.message).join(" ") };
+      levels = { content: resolved.value, versionId: currentVersion.id };
+    }
+  }
+  const lookups = input.fields ? await loadFieldLookups() : undefined;
+  const added = input.levels ? addedApprovers(input.levels) : [];
+  return mutate(
+    input.requestId,
+    actor,
+    (request, definition, directory, { version, snapshot }) => {
+      if (levels && request.workflowVersionId !== levels.versionId) throw new ServiceError("CONFLICT", "Someone else just changed this request. Reload and try again.");
+      const open = request.state.tasks.find((candidate) => candidate.id === input.taskKey);
+      const holder = open?.approverId ?? task.approverId;
+      for (const userId of levels ? added : []) {
+        const person = snapshot.users.find((user) => user.id === userId);
+        if (!person || !person.active || person.isBreakGlass) throw new ServiceError("INVALID_APPROVER", "Choose active people as approvers.");
+        if (person.approver === false) throw new ServiceError("INVALID_APPROVER", "Choose approvers who can approve (Manager and above).");
+        if (userId === request.requesterId) throw new ServiceError("SELF_APPROVAL", "The person who raised the request can't approve it.");
+        if (userId === actor.id || userId === holder) throw new ServiceError("INVALID_APPROVER", "Choose someone other than yourself for the levels to come.");
+      }
+      let formData = request.formData as EngineFormData;
+      let fieldKeys: string[] = [];
+      if (input.fields) {
+        // Files stay as they are: their fields keep the current count.
+        const raw: Record<string, string | undefined> = { ...input.fields };
+        for (const field of version.form) if (field.type === "ATTACHMENT") raw[field.key] = request.formData[field.key] === undefined || request.formData[field.key] === null ? "" : String(request.formData[field.key]);
+        const parsed = parseFormSubmission(version.form, raw, activeIds(snapshot), lookups);
+        if (!parsed.ok) throw new FormError(parsed.errors);
+        const doaErrors = { ...checkDoaAmount(version.builder, parsed.data), ...approverFieldErrors(version.definition, parsed.data, snapshot, request.formData as EngineFormData) };
+        if (Object.keys(doaErrors).length) throw new FormError(doaErrors);
+        fieldKeys = changedKeys(request.formData, parsed.data);
+        if (fieldKeys.length) formData = parsed.data;
+      }
+      const labelOf = (key: string) => version.form.find((field) => field.key === key)?.label ?? key;
+      const result = changeByApprover(
+        levels?.content.definition ?? definition,
+        request.state,
+        { taskId: input.taskKey, actorId: actor.id, reason, fieldKeys, fieldLabels: fieldKeys.map(labelOf), levelsChanged: Boolean(levels) },
+        { requesterId: request.requesterId, formData, now: now() },
+        directory,
+        fieldKeys.length ? { previousFormData: request.formData as EngineFormData } : {},
+      );
+      return { ...result, formData: fieldKeys.length ? formData : undefined };
+    },
+    {
+      // New values pass the same blocking checks as a resubmit (duplicates, unique values, budget).
+      check: input.fields ? (request, version, connection) => resubmitChecks(request, version, input.fields!, { id: request.requesterId, roles: [] } as unknown as Actor, connection) : undefined,
+      afterSave: async (request, connection) => {
+        if (levels) {
+          const created = await insertWorkflowVersion(currentVersion.workflowId, { definition: levels.content.definition, form: levels.content.form, builder: levels.content.builder }, actor.id, connection);
+          await connection.query("UPDATE approval_requests SET workflow_version_id = ? WHERE id = ?", [created.id, request.id]);
+        }
+        if (input.fields) await syncBudgetAmount(request.id, connection);
+      },
+    },
+  );
 }
 
 // D-248 (V181-A1, audit AUD-11): new values on a resubmit pass the same

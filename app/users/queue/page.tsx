@@ -5,13 +5,13 @@ import { redirect } from "next/navigation";
 import { Hourglass, X } from "lucide-react";
 import { requireArea } from "@/server/authorization/guards";
 import { PageHeader } from "@/features/shell/PageHeader";
-import { QueueTable } from "@/features/requests/lists";
+import { QueueTable, SentBackTable } from "@/features/requests/lists";
 import { parseColumns, QUEUE_COLUMNS } from "@/server/requests/list-columns";
 import { getUserSetting } from "@/lib/db/repositories/user-settings.repository";
 import { priorityRecord } from "@/server/approvals/priority-lookup";
 import { PendingLink } from "@/features/ui/PendingLink";
 import { QueueKeyboard } from "@/features/requests/QueueKeyboard";
-import { countPendingTasksFor, listPendingTasksFor, queueChoicesFor, queueTypesFor } from "@/lib/db/repositories/approvals.repository";
+import { countPendingTasksFor, listPendingTasksFor, listSentBackFor, queueChoicesFor, queueTypesFor } from "@/lib/db/repositories/approvals.repository";
 // v1.58.0 (D-354, owner: saved views are "Only mine"): only the person's own views show and set the default.
 import { myListViews } from "@/server/lists/views";
 import { SavedViews, SaveViewForm } from "@/features/analytics/ReportForms";
@@ -38,12 +38,14 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
   }
   const filter = parseQueueFilter(params);
   const PAGE_SIZE = filter.size ?? 25;
-  const [total, everything, types, choices, views] = await Promise.all([
+  const [total, everything, types, choices, views, sentBack] = await Promise.all([
     countPendingTasksFor(user.id, filter),
     countPendingTasksFor(user.id),
     queueTypesFor(user.id),
     queueChoicesFor(user.id),
     myListViews(user.id, "queue"),
+    // v1.59.0 (D-356, owner): what you sent back for changes, still with the requester.
+    listSentBackFor(user.id),
   ]);
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const page = Math.min(Math.max(1, Number(params.page) || 1), pages);
@@ -302,9 +304,10 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
         <NoResults what="items waiting" query={filter.q} clearSearchHref={without({ q: "" })} resetHref="/users/queue" />
       ) : (
         <QueueKeyboard>
-          <QueueTable items={queue} priority={priority} order={queueOrder} formDue={formDue} groups={groups} sort={{ sortBy: columnSort.sortBy, dir: columnSort.dir, hrefs: sortHrefs, leadKey: "title" }} />
+          <QueueTable items={queue} priority={priority} order={queueOrder} formDue={formDue} groups={groups} sort={{ sortBy: columnSort.sortBy, dir: columnSort.dir, hrefs: sortHrefs, leadKey: "title" }} editable />
         </QueueKeyboard>
       )}
+      <SentBackTable items={sentBack} />
       {pages > 1 && (
         <nav aria-label="Pages" className="mt-4 flex items-center gap-3 text-label">
           {page > 1 ? (

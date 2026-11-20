@@ -67,6 +67,12 @@ export function describeEvent(event: TimelineEvent, labelOf: (nodeId: string) =>
         : `"${labelOf(event.nodeId)}" handed over from ${nameOf(event.fromId)} to ${nameOf(event.toId)} by ${nameOf(event.actorId)}`;
     case "RECALLED":
       return `Recalled by ${nameOf(event.actorId)} to change it: ${event.reason}`;
+    case "DETAILS_CHANGED": {
+      // v1.59.0 (D-357): an approver changed the details from their step.
+      const who = event.onBehalfOf ? `${nameOf(event.actorId)} for ${nameOf(event.onBehalfOf)}` : nameOf(event.actorId);
+      const what = [event.fieldLabels.length ? `changed ${event.fieldLabels.join(", ")}` : "", event.levelsChanged ? "changed the levels to come" : ""].filter(Boolean).join(" and ");
+      return `${who} ${what} at "${labelOf(event.nodeId)}"${event.fieldLabels.length ? ` (round ${event.round})` : ""}: ${event.reason}`;
+    }
     case "INFO_REQUESTED":
       return `${nameOf(event.actorId)} asked a question at "${labelOf(event.nodeId)}": ${event.question}`;
     case "INFO_ANSWERED":
@@ -149,6 +155,8 @@ export function eventKind(event: TimelineEvent): TimelineKind {
       return "handover";
     case "RECALLED":
       return "withdraw";
+    case "DETAILS_CHANGED":
+      return "resubmit";
     case "INFO_REQUESTED":
       return "hold";
     case "INFO_ANSWERED":

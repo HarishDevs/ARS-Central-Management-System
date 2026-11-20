@@ -120,6 +120,31 @@ export function messagesForEvents(
           });
         }
         break;
+      case "DETAILS_CHANGED": {
+        // v1.59.0 (D-357): the requester and everyone who already approved are told what changed and why.
+        const what = [event.fieldLabels.length ? `changed ${event.fieldLabels.join(", ")}` : "", event.levelsChanged ? "changed the levels to come" : ""].filter(Boolean).join(" and ");
+        const step = context.labelOf?.(event.nodeId) ?? event.nodeId;
+        for (const userId of [request.requesterId, ...event.earlierApproverIds]) {
+          out.push({
+            eventType: "REQUEST_DETAILS_CHANGED",
+            userId,
+            title: "Request details changed",
+            message: `The approver at "${step}" ${what}: ${ref}. Reason: ${event.reason}`,
+            deepLink: link,
+            email: {
+              subject: `Details changed: ${request.requestNo}`,
+              text: `The approver at "${step}" ${what}.
+
+${ref}
+Reason: ${event.reason}
+
+See what changed (sign-in required): ${link}`,
+            },
+            whatsappVariables: null,
+          });
+        }
+        break;
+      }
       case "INFO_REQUESTED":
         out.push({
           eventType: "INFORMATION_REQUESTED",

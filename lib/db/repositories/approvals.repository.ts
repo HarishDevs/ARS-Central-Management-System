@@ -635,6 +635,52 @@ export async function listPendingTasksFor(
   }));
 }
 
+// v1.59.0 (D-356, owner: "if we asked changes request that also should be
+// reflected to the current approver's waiting for me screen so that the
+// particular Approver can review that"): requests this person (or someone
+// they covered for) sent back for changes, still with the requester. Shown on
+// Waiting for me, marked Sent back; they come back as a normal approval when
+// the requester resubmits. Newest first; bounded.
+export interface SentBackItem {
+  requestId: number;
+  requestNo: string;
+  title: string;
+  requesterName: string;
+  nodeLabel: string;
+  sentAt: Date;
+  reason: string | null;
+  typeName: string;
+  forName: string | null; // sent back as a delegate for this person
+}
+export async function listSentBackFor(userId: number, limit = 100, db: Queryable = getDbPool()): Promise<SentBackItem[]> {
+  const [rows] = await db.query<
+    (RowDataPacket & { request_id: number; request_no: string; title: string; requester_name: string; node_label: string; decided_at: Date; comment: string | null; type_name: string; approver_id: number; approver_name: string })[]
+  >(
+    `SELECT t.request_id, r.request_no, r.title, u.name AS requester_name, t.node_label, t.decided_at, t.comment, w.name AS type_name, t.approver_id, a.name AS approver_name
+     FROM approval_tasks t
+     JOIN approval_requests r ON r.id = t.request_id
+     JOIN users u ON u.id = r.requester_id
+     JOIN users a ON a.id = t.approver_id
+     JOIN workflow_versions v ON v.id = r.workflow_version_id
+     JOIN workflow_definitions w ON w.id = v.workflow_id
+     WHERE t.status = 'CHANGES_REQUESTED' AND t.round = r.round AND r.status = 'CHANGES_REQUIRED' AND r.deleted_at IS NULL
+       AND (t.decided_by = ? OR (t.decided_by IS NULL AND t.approver_id = ?))
+     ORDER BY t.decided_at DESC, t.id DESC LIMIT ?`,
+    [userId, userId, limit],
+  );
+  return rows.map((row) => ({
+    requestId: row.request_id,
+    requestNo: row.request_no,
+    title: row.title,
+    requesterName: row.requester_name,
+    nodeLabel: row.node_label,
+    sentAt: row.decided_at,
+    reason: row.comment,
+    typeName: row.type_name,
+    forName: row.approver_id === userId ? null : row.approver_name,
+  }));
+}
+
 // WS-01: the approval types in this person's queue, for the filter.
 export async function queueTypesFor(userId: number, db: Queryable = getDbPool()): Promise<{ id: number; name: string; count: number }[]> {
   const [rows] = await db.query<(RowDataPacket & { id: number; name: string; total: number })[]>(

@@ -34,9 +34,9 @@ export const EVENT_GROUPS: readonly EventGroup[] = [
   {
     key: "MY_REQUESTS",
     label: "Updates on requests you raised",
-    help: "Approved, rejected, changes asked, on hold, resumed, reopened, removed, moving again.",
+    help: "Approved, rejected, changes asked, details changed by an approver, on hold, resumed, reopened, removed, moving again.",
     mandatory: false,
-    events: ["REQUEST_APPROVED", "REQUEST_REJECTED", "CHANGES_REQUESTED", "REQUEST_ON_HOLD", "REQUEST_RESUMED", "REQUEST_REOPENED", "REQUEST_DELETED", "REQUEST_UNBLOCKED"],
+    events: ["REQUEST_APPROVED", "REQUEST_REJECTED", "CHANGES_REQUESTED", "REQUEST_DETAILS_CHANGED", "REQUEST_ON_HOLD", "REQUEST_RESUMED", "REQUEST_REOPENED", "REQUEST_DELETED", "REQUEST_UNBLOCKED"],
   },
   {
     key: "REMINDERS",
@@ -143,6 +143,7 @@ export const EVENT_LABEL: Record<string, string> = {
   CHANGES_REQUESTED: "Changes are asked on your request",
   REQUEST_ON_HOLD: "Your request is put on hold",
   REQUEST_RESUMED: "Your request moves again",
+  REQUEST_DETAILS_CHANGED: "An approver changes a request's details",
   REQUEST_REOPENED: "Your request is reopened",
   REQUEST_DELETED: "Your request is removed",
   REQUEST_UNBLOCKED: "Your request is unblocked",
