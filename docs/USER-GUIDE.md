@@ -179,7 +179,7 @@ Comments on a request can't be edited or removed. To tell someone in particular,
   - Type **/** in the description for the command menu.
   - Collaborators are set beside **Create task**.
 - **Task with a type (form):** for task types IT set up with their own fields.
-- **Working on a task:** **Start**, then **Complete** (the type may ask for a note or a file), or tick it on any list. You can mark it **Blocked** with the reason, and add comments, files, subtasks and followers.
+- **Working on a task:** **Start**, then **Complete** (the type may ask for a note or a file), or tick it on any list. You can mark it **Blocked** with the reason, and add comments, files, subtasks and followers. **Subtasks (v1.59.5):** **Add subtask** (or the **+** beside "Add a subtask...") opens the full Create task window for a subtask under this task: due date, people, priority, files and the rest; or type a name and press Enter for a quick one due today.
 - **My Tasks:** Overdue, Recently assigned, Today, Upcoming, Later and your own sections, as a list, board or calendar.
 - **Change a task in the table:** click a cell. Name, due date, assignee, priority, collaborators and tags change in place (where you may change the task). Created by can't be changed. On the board, columns have a coloured top edge and a count, and each card shows who it's for, the due date and the priority.
 - **Projects:** private, department or everyone; List, Board, Calendar, Timeline and Overview. Start blank or from a template; **Share** a project or a task.

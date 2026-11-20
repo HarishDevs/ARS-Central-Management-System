@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown, ArrowUp, ChevronDown, Diamond, Heart, Lock, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, Diamond, Heart, Lock, Plus, X } from "lucide-react";
 import Link from "next/link";
 import { useProjectsOn } from "@/features/work/projects-access";
 import { LockedProjectName } from "@/features/ui/ComingSoon";
@@ -8,7 +8,7 @@ import { useState } from "react";
 import { deleteTaskAction, dependencyAction, followAction, likeAction, moveTaskAction, parentAction, subtaskOrderAction, tagAction, taskFieldsAction, taskProjectAction } from "@/app/users/work/actions";
 import { FieldError, ResultMessage, SubmitButton, useActionForm } from "@/features/ui/form";
 import { PersonSelect } from "@/features/ui/PersonSelect";
-import { ProjectDot, TaskCheck, usePaneLink, useWorkCall } from "@/features/work/client";
+import { openCreateTask, ProjectDot, TaskCheck, usePaneLink, useWorkCall } from "@/features/work/client";
 import { dueLabel, TONE_TEXT } from "@/features/work/format";
 import { AddTask } from "@/features/work/ProjectWorkspace";
 import { FieldInput, RepeatEditor, type FieldView } from "@/features/work/MoreParts";
@@ -58,6 +58,7 @@ export function TaskWorkPanel({ data }: { data: PanelData }) {
   const projectsOn = useProjectsOn();
   const paneLink = usePaneLink();
   const [parentRef, setParentRef] = useState("");
+  const newSubtask = () => openCreateTask({ parentId: data.taskId, parentLabel: `${data.taskNo} ${data.title}` });
   const liked = data.likes.some((person) => person.id === data.meId);
 
   if (data.deleted)
@@ -157,9 +158,17 @@ export function TaskWorkPanel({ data }: { data: PanelData }) {
       </section>
 
       <section className="card space-y-3 px-5 py-4" aria-labelledby="work-subtasks">
-        <h2 id="work-subtasks" className="font-semibold">
-          Subtasks {data.subtasks.length > 0 && <span className="font-normal text-ink-muted">({data.subtasks.filter((item) => item.status === "COMPLETED").length}/{data.subtasks.length} done)</span>}
-        </h2>
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 id="work-subtasks" className="flex-1 font-semibold">
+            Subtasks {data.subtasks.length > 0 && <span className="font-normal text-ink-muted">({data.subtasks.filter((item) => item.status === "COMPLETED").length}/{data.subtasks.length} done)</span>}
+          </h2>
+          {/* v1.59.5 (owner): "Add subtask" opens the same Create task dialog, under this task. */}
+          {data.canProgress && data.open && (
+            <button type="button" className="btn-secondary btn-compact inline-flex items-center gap-1" data-testid="add-subtask" onClick={newSubtask}>
+              <Plus aria-hidden="true" className="h-4 w-4" /> Add subtask
+            </button>
+          )}
+        </div>
         <ul className="divide-y divide-line" data-testid="subtasks">
           {data.subtasks.map((task, index) => {
             const due = dueLabel(task.dueAt, now, OPEN.includes(task.status));
@@ -186,7 +195,7 @@ export function TaskWorkPanel({ data }: { data: PanelData }) {
             );
           })}
         </ul>
-        {data.canProgress && data.open && <AddTask parentId={data.taskId} placeholder="Add a subtask… (Enter to add; paste several lines for several)" />}
+        {data.canProgress && data.open && <AddTask parentId={data.taskId} placeholder="Add a subtask… (Enter to add; paste several lines for several)" onPlus={newSubtask} plusLabel="Open the full subtask form" />}
         {data.canEdit && (
           <div className="flex flex-wrap items-end gap-2 border-t border-line pt-3">
             {data.parent ? (

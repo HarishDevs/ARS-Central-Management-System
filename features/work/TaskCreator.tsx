@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { followAction, quickAddAction, recurrenceAction, taskFieldsAction } from "@/app/users/work/actions";
 import { taskAction } from "@/app/users/tasks/actions";
 import { draftTaskTextAction } from "@/app/users/ai/actions";
-import { CREATE_TASK_EVENT, ProjectDot, useWorkCall } from "@/features/work/client";
+import { CREATE_TASK_EVENT, ProjectDot, useWorkCall, type CreateTaskDetail } from "@/features/work/client";
 import { RichEditor } from "@/features/ui/RichEditor";
 import { useProjectsOn } from "@/features/work/projects-access";
 import { mentionIds } from "@/features/work/rich-text";
@@ -19,9 +19,12 @@ type RailProject = { id: number; name: string; color: string };
 type Person = { id: number; label: string; detail?: string };
 
 export function TaskCreator({ projects, people, meId, ai = false }: { projects: RailProject[]; people: Person[]; meId: number; ai?: boolean }) {
-  const [open, setOpen] = useState<{ projectId: number | null } | null>(null);
+  const [open, setOpen] = useState<{ projectId: number | null; parentId?: number | null; parentLabel?: string; at?: number } | null>(null);
   useEffect(() => {
-    const onCreate = (event: Event) => setOpen({ projectId: (event as CustomEvent<{ projectId?: number | null } | null>).detail?.projectId ?? null });
+    const onCreate = (event: Event) => {
+      const detail = (event as CustomEvent<CreateTaskDetail | null>).detail;
+      setOpen({ projectId: detail?.projectId ?? null, parentId: detail?.parentId ?? null, parentLabel: detail?.parentLabel, at: Date.now() });
+    };
     window.addEventListener(CREATE_TASK_EVENT, onCreate);
     return () => window.removeEventListener(CREATE_TASK_EVENT, onCreate);
   }, []);
@@ -38,7 +41,19 @@ export function TaskCreator({ projects, people, meId, ai = false }: { projects: 
       window.history.replaceState(window.history.state, "", url.pathname + (url.search ? url.search : "") + url.hash);
     }
   }, [asked]);
-  return open ? <CreateTaskDialog key={String(open.projectId)} onClose={() => setOpen(null)} projects={projects} people={people} meId={meId} defaultProject={open.projectId} ai={ai} /> : null;
+  return open ? (
+    <CreateTaskDialog
+      key={`${open.projectId}-${open.parentId ?? ""}-${open.at ?? 0}`}
+      onClose={() => setOpen(null)}
+      projects={projects}
+      people={people}
+      meId={meId}
+      defaultProject={open.projectId}
+      parentId={open.parentId ?? null}
+      parentLabel={open.parentLabel}
+      ai={ai}
+    />
+  ) : null;
 }
 
 const UNIT: Record<(typeof RECURRENCE_KINDS)[number], string> = { DAILY: "days", WEEKLY: "weeks", MONTHLY: "months", YEARLY: "years", AFTER_DONE: "days after it is completed" };
@@ -72,6 +87,8 @@ function CreateTaskDialog({
   people,
   meId,
   defaultProject,
+  parentId = null,
+  parentLabel,
   ai,
 }: {
   onClose: () => void;
@@ -79,6 +96,8 @@ function CreateTaskDialog({
   people: Person[];
   meId: number;
   defaultProject: number | null;
+  parentId?: number | null;
+  parentLabel?: string;
   ai: boolean;
 }) {
   const router = useRouter();
@@ -189,6 +208,7 @@ function CreateTaskDialog({
           dueDay: `${choice?.moveTo ?? due}T${/^\d{2}:\d{2}$/.test(dueTime) ? dueTime : "23:59"}`,
           holidayOk: choice?.holidayOk,
           projectId: project === "" ? null : project,
+          parentId,
           description: body,
         }),
       { success: false },
@@ -209,6 +229,11 @@ function CreateTaskDialog({
     const follow = [...new Set([...collaborators, ...mentionIds(body)])].filter((person) => person !== meId && !assignees.includes(person));
     for (const person of follow) await call(() => followAction(id, person, true), { success: false });
     onClose();
+    // v1.59.5 (owner): a subtask made from its parent stays on the parent, which shows it.
+    if (parentId !== null) {
+      router.refresh();
+      return;
+    }
     // D-246 (audit UI-D04): a task for someone else isn't in my own list, so it
     // opens on its page (still found later under Tasks assigned by me).
     router.push(project !== "" ? `/users/work/projects/${project}?task=${id}` : assignees.includes(meId) ? `/users/work/my-tasks?task=${id}` : `/users/tasks/${id}`);
@@ -236,7 +261,12 @@ function CreateTaskDialog({
     >
       <header className="draft-head flex items-center gap-2 border-b border-line px-4 py-2.5">
         <h2 id="draft-task-title" className="flex-1 font-semibold">
-          Create task <span className="text-caption font-normal text-ink-muted">· draft</span>
+          {parentId !== null ? "Create subtask" : "Create task"} <span className="text-caption font-normal text-ink-muted">· draft</span>
+          {parentId !== null && (
+            <span className="ml-2 text-caption font-normal text-ink-muted" data-testid="create-parent">
+              under {parentLabel ?? "this task"}
+            </span>
+          )}
         </h2>
         <button type="button" aria-label={small ? "Expand" : "Minimise"} onClick={() => setSmall((value) => !value)} className="rounded p-1 text-ink-muted hover:bg-surface-muted">
           <ChevronDown aria-hidden="true" className={`h-4 w-4 ${small ? "rotate-180" : ""}`} />
@@ -656,7 +686,7 @@ function CreateTaskDialog({
                 title={assignees.length === 0 ? "Choose who the task is for" : !due ? "Choose a due date" : undefined}
                 className="btn-primary btn-compact"
               >
-                Create task
+                {parentId !== null ? "Create subtask" : "Create task"}
               </button>
             </span>
           </footer>

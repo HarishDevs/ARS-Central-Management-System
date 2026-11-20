@@ -172,7 +172,7 @@ export async function quickAddAction(input: { title: string; projectId?: number 
   if (many.length > 1)
     return run("quickAddMany", await actor(), (me) =>
       work.quickAddForMany(
-        { title: String(input.title ?? ""), projectId: id(input.projectId), sectionId: id(input.sectionId), parentId: null, assigneeId: null, dueDay: typeof input.dueDay === "string" ? input.dueDay : "", mySectionId: null, holidayOk: input.holidayOk === true, description: typeof input.description === "string" ? input.description : undefined },
+        { title: String(input.title ?? ""), projectId: id(input.projectId), sectionId: id(input.sectionId), parentId: id(input.parentId), assigneeId: null, dueDay: typeof input.dueDay === "string" ? input.dueDay : "", mySectionId: null, holidayOk: input.holidayOk === true, description: typeof input.description === "string" ? input.description : undefined },
         many,
         me,
       ),

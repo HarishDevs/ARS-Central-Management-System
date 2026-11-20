@@ -1,5 +1,11 @@
 # Release notes
 
+## v1.59.5 (20 Nov 2026): Add a subtask with the Create task window (owner)
+- On a task's page, **Subtasks** has an **Add subtask** button, and the **+** beside "Add a subtask..." is now a button too. Both open the same **Create task** window (name, for Myself or Others, project, description, due date and time, priority, periodic, files, collaborators), titled **Create subtask** and showing the task it goes under.
+- **Create subtask** makes it under this task and you stay on the task, which lists it. Typing a name and pressing Enter still adds a quick subtask (due today).
+- A subtask for several people makes one subtask each, all under this task.
+- **Owner steps:** no migration; publish v1.59.5.
+
 ## v1.59.4 (20 Nov 2026): Ticket status by department: a table for every form (owner)
 - **Status by department** now has a separate table for each ticket form (e.g. IT Hardware Ticketing and IT Software Ticketing), named after the form, with its category. Any form IT creates gets its own table as soon as it has a ticket in the period.
 - A category with two or more forms also gets a table for all its forms together (e.g. "IT Ticketing (all forms)"), shown first.

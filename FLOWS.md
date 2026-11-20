@@ -1470,7 +1470,7 @@ Roles: one **Meeting Owner** (approves the points and the MOM) and one **Coordin
 5. Overview: description, milestones, members; owners and editors post status updates (On track … Dropped); members are told.
 
 ## F-153 A task in Task & Project Management (v1.30.0, D-215)
-1. The task page shows its projects (and section in each; add to another project; remove), subtasks (add, reorder, open), "Waiting for" tasks (by number; no loops), tags, followers (Follow / add / remove), Like, milestone, start date, Delete (with subtasks; Restore from Task search → Deleted tasks).
+1. The task page shows its projects (and section in each; add to another project; remove), subtasks (add: quick line, or Add subtask / + for the full Create task window under this task (v1.59.5, D-364); reorder, open), "Waiting for" tasks (by number; no loops), tags, followers (Follow / add / remove), Like, milestone, start date, Delete (with subtasks; Restore from Task search → Deleted tasks).
 2. Comments: write, @mention people (they are told; people who can't see it become followers unless unticked), reply once, like, pin, edit or delete your own.
 3. The tick completes or reopens from any list (types that need a note or file open the task instead); when the last task a task waits for completes, its assignee is told.
 

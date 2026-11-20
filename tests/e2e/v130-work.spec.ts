@@ -1,5 +1,5 @@
 import { expect, test, type BrowserContext } from "@playwright/test";
-import { db, sessionCookie, dueToday } from "./db";
+import { db, sessionCookie, dueToday, fillDue } from "./db";
 import { createProject } from "./work-helpers";
 
 // D-215 / D-216 / D-217: Task & Project Management through the real screens:
@@ -62,6 +62,20 @@ test("the task page: a subtask, a comment that mentions someone, a like", async 
   await subtask.fill(`East bay ${stamp}`);
   await subtask.press("Enter");
   await expect(page.getByTestId("subtasks")).toContainText(`East bay ${stamp}`);
+
+  // v1.59.5 (owner): "Add subtask" (and the +) open the same Create task dialog, under this task.
+  await page.getByTestId("add-subtask").click();
+  const draft = page.getByTestId("create-dialog");
+  await expect(draft.getByTestId("create-parent")).toContainText(`Survey the site ${stamp}`);
+  await draft.getByPlaceholder("Task name").fill(`West bay ${stamp}`);
+  await fillDue(draft);
+  await draft.getByRole("button", { name: "Create subtask" }).click();
+  await expect(draft).toHaveCount(0);
+  await expect(page).toHaveURL(/\/users\/tasks\/\d+$/);
+  await expect(page.getByTestId("subtasks")).toContainText(`West bay ${stamp}`);
+  await page.getByTestId("add-task-plus").click();
+  await expect(page.getByTestId("create-dialog").getByTestId("create-parent")).toBeVisible();
+  await page.getByTestId("create-dialog").getByRole("button", { name: "Close" }).click();
 
   // v1.52.2 (owner): the comment box formats like an email; "@" and a name mention someone.
   const box = page.getByRole("textbox", { name: "Add a comment" });

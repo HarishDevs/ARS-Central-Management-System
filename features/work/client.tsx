@@ -255,6 +255,11 @@ export function CopyLinkButton({ path, label = "Copy task link" }: { path: strin
 
 // D-219: "+ Create task" anywhere in the Tasks area opens the left bar's dialog.
 export const CREATE_TASK_EVENT = "ars:create-task";
+// v1.59.5 (owner): "Add subtask" opens the same Create task dialog, made under a parent.
+export type CreateTaskDetail = { projectId?: number | null; parentId?: number | null; parentLabel?: string };
+export function openCreateTask(detail: CreateTaskDetail = {}) {
+  window.dispatchEvent(new CustomEvent<CreateTaskDetail>(CREATE_TASK_EVENT, { detail }));
+}
 export function CreateTaskButton({ label = "Create task" }: { label?: string }) {
   return (
     <button type="button" onClick={() => window.dispatchEvent(new Event(CREATE_TASK_EVENT))} className="btn-secondary btn-compact inline-flex items-center gap-1">

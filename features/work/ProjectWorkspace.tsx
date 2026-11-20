@@ -752,7 +752,26 @@ function SectionHeader({ section, sections, count, canEdit, plain }: { section: 
   );
 }
 
-export function AddTask({ projectId, sectionId, parentId, mySectionId, compact, placeholder }: { projectId?: number; sectionId?: number; parentId?: number; mySectionId?: number; compact?: boolean; placeholder?: string }) {
+export function AddTask({
+  projectId,
+  sectionId,
+  parentId,
+  mySectionId,
+  compact,
+  placeholder,
+  onPlus,
+  plusLabel,
+}: {
+  projectId?: number;
+  sectionId?: number;
+  parentId?: number;
+  mySectionId?: number;
+  compact?: boolean;
+  placeholder?: string;
+  // v1.59.5 (owner): the + opens the full Create task dialog.
+  onPlus?: () => void;
+  plusLabel?: string;
+}) {
   const { call } = useWorkCall();
   const [value, setValue] = useState("");
   const [busy, setBusy] = useState(false);
@@ -768,7 +787,14 @@ export function AddTask({ projectId, sectionId, parentId, mySectionId, compact, 
   };
   return (
     <div className={compact ? "px-2 pb-2" : "flex items-center gap-2 border-b border-line px-3 py-1.5"}>
-      {!compact && <Plus aria-hidden="true" className="h-4 w-4 text-ink-faint" />}
+      {!compact &&
+        (onPlus ? (
+          <button type="button" onClick={onPlus} aria-label={plusLabel ?? "Open the Create task dialog"} title={plusLabel ?? "Open the Create task dialog"} className="grid h-6 w-6 shrink-0 place-items-center rounded text-ink-muted hover:bg-surface-muted hover:text-ink" data-testid="add-task-plus">
+            <Plus aria-hidden="true" className="h-4 w-4" />
+          </button>
+        ) : (
+          <Plus aria-hidden="true" className="h-4 w-4 text-ink-faint" />
+        ))}
       <input
         ref={input}
         value={value}
