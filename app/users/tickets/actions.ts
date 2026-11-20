@@ -7,7 +7,7 @@ import { hasModule } from "@/server/modules/modules";
 import { getActionContext } from "@/lib/http/request-context";
 import { readFiles } from "@/server/modules/upload";
 import { findLiveType } from "@/lib/db/repositories/module-types.repository";
-import { assignTicket, commentOnTicket, confirmTicket, raiseTicket, reopenTicket } from "@/server/tickets/service";
+import { assignTicket, commentOnTicket, confirmTicket, raiseTicket, reopenTicket, workOnTicket } from "@/server/tickets/service";
 import type { TaskActor } from "@/server/modules/tasks";
 import { LIMITS, overLimit } from "@/server/security/limits";
 import { logError } from "@/lib/logging/logger";
@@ -79,6 +79,23 @@ export async function assignTicketAction(_previous: ActionResult | null, formDat
   } catch (error) {
     logError("assignTicketAction failed", error);
     return { ok: false, message: "Couldn't assign it. Please try again." };
+  }
+}
+
+// v1.59.3 (D-362, owner): the assignee starts and resolves the work on the ticket (no task).
+export async function ticketWorkAction(_previous: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  const me = await actor();
+  const ticketId = idOf(text(formData, "ticketId"));
+  const step = text(formData, "step");
+  if (!me || !ticketId || (step !== "START" && step !== "RESOLVE")) return NOT_FOUND;
+  try {
+    const result = await workOnTicket({ ticketId, step, remarks: text(formData, "remarks"), rowVersion: idOf(text(formData, "rowVersion")) }, me);
+    revalidatePath(`/users/tickets/${ticketId}`);
+    revalidatePath("/users/tickets");
+    return result.ok ? { ok: true, message: result.value.message } : { ok: false, message: result.message, fieldErrors: result.fieldErrors };
+  } catch (error) {
+    logError("ticketWorkAction failed", error);
+    return { ok: false, message: "Couldn't update it. Please try again." };
   }
 }
 

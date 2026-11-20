@@ -38,6 +38,20 @@ describe("ticket rules", () => {
     expect(allowedTicketActions(ticket({ status: "IN_PROGRESS" }), requester).has("CONFIRM")).toBe(false);
   });
 
+  // v1.59.3 (D-362, owner): the assignee starts and resolves on the ticket (no task).
+  it("only the assignee starts (Assigned, Reopened) and resolves (Assigned, In progress, Reopened)", () => {
+    const at = (status: "NEW" | "ASSIGNED" | "IN_PROGRESS" | "REOPENED" | "AWAITING_CONFIRMATION") => allowedTicketActions(ticket({ status, assigneeId: 3 }), assignee);
+    expect(at("ASSIGNED").has("START")).toBe(true);
+    expect(at("REOPENED").has("START")).toBe(true);
+    expect(at("IN_PROGRESS").has("START")).toBe(false);
+    for (const status of ["ASSIGNED", "IN_PROGRESS", "REOPENED"] as const) expect(at(status).has("RESOLVE")).toBe(true);
+    expect(at("AWAITING_CONFIRMATION").has("RESOLVE")).toBe(false);
+    for (const other of [requester, coordinator, viewer(8, { isAdmin: true })]) {
+      expect(allowedTicketActions(ticket({ status: "ASSIGNED", assigneeId: 3 }), other).has("START")).toBe(false);
+      expect(allowedTicketActions(ticket({ status: "IN_PROGRESS", assigneeId: 3 }), other).has("RESOLVE")).toBe(false);
+    }
+  });
+
   it("a closed ticket allows nothing", () => {
     for (const person of [requester, coordinator, assignee]) expect(allowedTicketActions(ticket({ status: "CLOSED", assigneeId: 3 }), person).size).toBe(0);
   });

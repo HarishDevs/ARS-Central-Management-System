@@ -1,3 +1,5 @@
+import type { Queryable } from "@/lib/db/client";
+import { applyTicketWork } from "@/server/tickets/sync";
 import "server-only";
 import { withTransaction } from "@/lib/db/transaction";
 import { afterResponse } from "@/lib/http/after-response";
@@ -6,8 +8,7 @@ import { insertOutbox } from "@/lib/db/repositories/outbox.repository";
 import { nextRequestNumber } from "@/lib/db/repositories/approvals.repository";
 import { loadFieldLookups } from "@/lib/db/repositories/lookups.repository";
 import { findLiveType, versionWithType } from "@/lib/db/repositories/module-types.repository";
-import { appendTaskEvent, findTask, insertTask, listPeopleFacts, personFacts, updateTask } from "@/lib/db/repositories/tasks.repository";
-import { addFollower, generalTypeVersion } from "@/lib/db/repositories/work.repository";
+import { appendTaskEvent, findTask, listPeopleFacts, personFacts, updateTask } from "@/lib/db/repositories/tasks.repository";
 import { loadWorkingCalendar } from "@/lib/db/repositories/calendar.repository";
 import {
   appendTicketEvent,
@@ -20,7 +21,6 @@ import {
   insertTicketComment,
   insertTicketFeedback,
   isCoordinatorOf,
-  linkTaskToTicket,
   updateTicket,
   viewerCategories,
   type TicketRecord,
@@ -153,7 +153,7 @@ export async function raiseTicket(input: RaiseTicketInput, actor: TaskActor): Pr
   }
 }
 
-// ---- coordinator: assign (makes the linked task) or reassign ------------------------------------
+// ---- coordinator: assign or reassign (v1.59.3: no task is made) ----------------------------------
 
 export interface AssignInput {
   ticketId: number;
@@ -169,8 +169,6 @@ export async function assignTicket(input: AssignInput, actor: TaskActor): Promis
   if (remarks.length > 4000) return fail("Use 4000 characters or fewer.", { remarks: "Use 4000 characters or fewer." });
   const assignee = await personFacts(input.assigneeId);
   if (!assignee?.active) return fail("Choose an active employee.", { assignee: "Choose an active employee." });
-  const general = await generalTypeVersion();
-  if (!general) return fail("The General task type is switched off. Ask IT to switch it on in Admin → Task types.");
   const dueAt = dueFromDay(input.targetDate);
   if (!dueAt) return fail("Choose a valid target date.", { target: "Choose a valid target date." });
   const outcome = await withTransaction(async (connection) => {
@@ -181,48 +179,61 @@ export async function assignTicket(input: AssignInput, actor: TaskActor): Promis
     if (input.rowVersion !== null && input.rowVersion !== ticket.rowVersion) return { error: "Someone changed this ticket while you were looking. Reload and try again." } as const;
     const messages: NotifyInput[] = [];
     const reopened = ticket.status === "REOPENED";
-    let taskId = ticket.taskId;
-    let taskNo = ticket.taskNo ?? "";
-    const taskTitle = `${ticket.ticketNo} ${ticket.title}`.slice(0, 200);
-    if (!taskId) {
-      // The first assignment: one task, in the assignee's Tasks, linked for good.
-      taskNo = await nextRequestNumber("TSK", connection);
-      const description = [`Ticket ${ticket.ticketNo} (${ticket.categoryName}: ${ticket.typeName}), raised by ${ticket.requesterName}${ticket.departmentName ? ` (${ticket.departmentName})` : ""}.`, ticket.requiredOn ? `Required by ${ticket.requiredOn}.` : "", "", ticket.description ?? "", remarks ? `\nCoordinator's remarks: ${remarks}` : ""].join("\n").slice(0, 4000);
-      taskId = await insertTask({ taskNo, typeVersionId: general.versionId, title: taskTitle, description, priority: ticket.priority /* v1.55.1: one scale; the task keeps the ticket's priority */, createdBy: actor.id, assigneeId: assignee.id, dueAt, startsOn: null, formData: {}, relatedRequestId: null, submissionKey: null }, connection);
-      await linkTaskToTicket(taskId, ticket.id, connection);
-      await appendTaskEvent(taskId, { actorId: actor.id, type: "CREATED", to: "OPEN", payload: { assigneeId: assignee.id, dueAt: dueAt.toISOString(), ticketId: ticket.id, ticketNo: ticket.ticketNo } }, connection);
-      await addFollower(taskId, actor.id, "CREATOR", actor.id, connection);
-      await addFollower(taskId, assignee.id, "ASSIGNEE", actor.id, connection);
-    } else {
-      // Reassign (new person or date) or, after reopening, the same task back to Open.
-      const task = await findTask(taskId, connection, true);
-      if (!task) return { error: "The ticket's task is missing. Ask IT." } as const;
-      const changes: Record<string, unknown> = { assignee_id: assignee.id, assigned_by: actor.id, assigned_at: new Date(), due_at: dueAt };
-      if (reopened || task.status === "COMPLETED" || task.status === "CANCELLED") Object.assign(changes, { status: "OPEN", completed_by: null, completed_at: null, cancelled_by: null, cancelled_at: null });
-      // v1.57.6 (D-345, owner: "Task back to Open"): a different person starts afresh, so the
-      // task and the ticket (Assigned) agree and the new assignee can press Start.
-      else if (task.assigneeId !== assignee.id && (task.status === "IN_PROGRESS" || task.status === "BLOCKED")) changes.status = "OPEN";
-      if (!(await updateTask(task.id, task.rowVersion, changes, connection))) return { error: "The task changed while you were looking. Reload and try again." } as const;
-      await appendTaskEvent(task.id, { actorId: actor.id, type: reopened ? "REOPEN" : "REASSIGN", from: task.status, to: (changes.status as string | undefined) ?? task.status, body: remarks || null, payload: { from: task.assigneeId, to: assignee.id, ticketId: ticket.id } }, connection);
-      await addFollower(task.id, assignee.id, "ASSIGNEE", actor.id, connection);
-    }
+    // v1.59.3 (D-362, owner): no task is made; the assignee updates the ticket itself.
+    // A ticket from before still linked to an open task: that task is cancelled
+    // (finished ones stay as history), and the work continues on the ticket.
+    if (ticket.taskId) await retireTicketTask(ticket.taskId, ticket.ticketNo, actor.id, connection);
     const nextStatus = ticket.status === "IN_PROGRESS" && !reopened && ticket.assigneeId === assignee.id ? "IN_PROGRESS" : "ASSIGNED";
-    const changes: Record<string, unknown> = { status: nextStatus, assignee_id: assignee.id, coordinator_id: actor.id, task_id: taskId, due_at: dueAt, assigned_at: new Date() };
+    const changes: Record<string, unknown> = { status: nextStatus, assignee_id: assignee.id, coordinator_id: actor.id, due_at: dueAt, assigned_at: new Date() };
     if (!ticket.firstResponseAt) changes.first_response_at = new Date();
     if (!(await updateTicket(ticket.id, ticket.rowVersion, changes, connection))) return { error: "Someone changed this ticket while you were looking. Reload and try again." } as const;
     const action = ticket.assigneeId ? (reopened ? "REASSIGNED_AFTER_REOPEN" : "REASSIGNED") : "ASSIGNED";
-    await appendTicketEvent(ticket.id, { actorId: actor.id, action, from: ticket.status, to: nextStatus, detail: { assigneeId: assignee.id, assigneeName: assignee.name, targetDate: input.targetDate, taskNo } }, connection);
+    await appendTicketEvent(ticket.id, { actorId: actor.id, action, from: ticket.status, to: nextStatus, detail: { assigneeId: assignee.id, assigneeName: assignee.name, targetDate: input.targetDate } }, connection);
     if (remarks) {
       await insertTicketComment(ticket.id, actor.id, remarks, true, connection);
     }
-    await recordAudit({ actorUserId: actor.id, action: `TICKET_${action}`, entityType: "TICKET", entityId: ticket.id, sessionId: actor.sessionId, ipAddress: actor.ipAddress ?? null, metadata: { ticketNo: ticket.ticketNo, assigneeId: assignee.id, targetDate: input.targetDate, taskId } }, connection);
-    if (assignee.id !== actor.id) messages.push(ticketMessages.assigned(info(ticket), assignee.id, actor.name, taskNo));
+    await recordAudit({ actorUserId: actor.id, action: `TICKET_${action}`, entityType: "TICKET", entityId: ticket.id, sessionId: actor.sessionId, ipAddress: actor.ipAddress ?? null, metadata: { ticketNo: ticket.ticketNo, assigneeId: assignee.id, targetDate: input.targetDate } }, connection);
+    if (assignee.id !== actor.id) messages.push(ticketMessages.assigned(info(ticket), assignee.id, actor.name));
     if (ticket.requesterId !== actor.id) messages.push(ticketMessages.updated(info(ticket), ticket.requesterId, `assigned to ${assignee.name}, target ${input.targetDate}`));
-    return { outbox: await insertOutbox(null, messages, connection), taskNo } as const;
+    return { outbox: await insertOutbox(null, messages, connection) } as const;
   });
   if ("error" in outcome) return fail(outcome.error!);
   await send(outcome.outbox);
-  return { ok: true, value: { message: `Assigned to ${assignee.name}. Task ${outcome.taskNo} is in their Tasks.` } };
+  return { ok: true, value: { message: `Assigned to ${assignee.name}. They update the ticket's status here.` } };
+}
+
+// ---- assignee: start and resolve the work on the ticket (v1.59.3, D-362) -------------------------
+// Start work: Assigned or Reopened → In progress. Mark resolved (remarks
+// required): → Awaiting confirmation, which starts the requester's 4-working-
+// day clock and tells the requester and the coordinators. Only the assignee.
+export async function workOnTicket(input: { ticketId: number; step: "START" | "RESOLVE"; remarks: string; rowVersion: number | null }, actor: TaskActor & { name?: string }): Promise<TicketResult<{ message: string }>> {
+  const remarks = input.remarks.trim();
+  if (input.step === "RESOLVE" && remarks.length < 3) return fail("Say what was done (3 characters or more).", { remarks: "Say what was done (3 characters or more)." });
+  if (remarks.length > 4000) return fail("Use 4000 characters or fewer.", { remarks: "Use 4000 characters or fewer." });
+  const me = await personFacts(actor.id);
+  const outcome = await withTransaction(async (connection) => {
+    const ticket = await findTicket(input.ticketId, connection, true);
+    if (!ticket) return { error: "Not found." } as const;
+    const viewer = await ticketViewer(ticket, actor);
+    if (!allowedTicketActions(ticket, viewer).has(input.step)) return { error: canSeeTicket(ticket, viewer) ? "It can't be changed now. Reload to see its latest state." : "Not found." } as const;
+    if (input.rowVersion !== null && input.rowVersion !== ticket.rowVersion) return { error: "Someone changed this ticket while you were looking. Reload and try again." } as const;
+    const messages = await applyTicketWork(ticket.id, input.step === "START" ? "IN_PROGRESS" : "COMPLETED", { id: actor.id, name: me?.name ?? "The assignee" }, remarks, connection);
+    if (messages === null) return { error: "Someone changed this ticket while you were looking. Reload and try again." } as const;
+    if (input.step === "START" && remarks) await insertTicketComment(ticket.id, actor.id, remarks, false, connection);
+    await recordAudit({ actorUserId: actor.id, action: input.step === "START" ? "TICKET_WORK_STARTED" : "TICKET_RESOLVED", entityType: "TICKET", entityId: ticket.id, sessionId: actor.sessionId, ipAddress: actor.ipAddress ?? null, metadata: { ticketNo: ticket.ticketNo } }, connection);
+    return { outbox: await insertOutbox(null, messages, connection) } as const;
+  });
+  if ("error" in outcome) return fail(outcome.error!);
+  await send(outcome.outbox);
+  return { ok: true, value: { message: input.step === "START" ? "Work started. The requester has been told." : "Marked resolved. The requester has been asked to confirm." } };
+}
+
+// A ticket from before v1.59.3 still linked to an open task: the task is cancelled with a note.
+async function retireTicketTask(taskId: number, ticketNo: string, actorId: number, connection: Queryable): Promise<void> {
+  const task = await findTask(taskId, connection, true);
+  if (!task || task.status === "COMPLETED" || task.status === "CANCELLED") return;
+  if (!(await updateTask(task.id, task.rowVersion, { status: "CANCELLED", cancelled_by: actorId, cancelled_at: new Date() }, connection))) return;
+  await appendTaskEvent(task.id, { actorId, type: "CANCEL", from: task.status, to: "CANCELLED", body: `Ticket ${ticketNo} is now updated on the ticket itself.`, payload: { ticketNo } }, connection);
 }
 
 // ---- requester: confirm or reopen ------------------------------------------------------------
@@ -246,20 +257,14 @@ export async function reopenTicket(input: { ticketId: number; reason: string }, 
   if (reason.length > 2000) return fail("Use 2000 characters or fewer.", { reason: "Use 2000 characters or fewer." });
   return closeOrReopen(input.ticketId, "REOPEN", actor, async (ticket, connection) => {
     if (!(await updateTicket(ticket.id, ticket.rowVersion, { status: "REOPENED", reopen_count: ticket.reopenCount + 1, confirmation_requested_at: null, confirm_due_on: null }, connection))) return null;
-    // v1.55.3 (D-331, owner: "after reopen the ticket the Ticket is not reopening in the task"):
-    // the same task goes straight back to Open for the same assignee, in their Tasks.
-    // Earlier work stays in the history; the coordinators can still reassign it.
-    if (ticket.taskId) {
-      const task = await findTask(ticket.taskId, connection, true);
-      if (task && (task.status === "COMPLETED" || task.status === "CANCELLED")) {
-        if (!(await updateTask(task.id, task.rowVersion, { status: "OPEN", completed_by: null, completed_at: null, cancelled_by: null, cancelled_at: null }, connection))) return null;
-        await appendTaskEvent(task.id, { actorId: actor.id, type: "REOPEN", from: task.status, to: "OPEN", body: `Ticket ${ticket.ticketNo} reopened: ${reason}`.slice(0, 2000), payload: { ticketId: ticket.id } }, connection);
-      }
-    }
+    // v1.59.3 (D-362, owner): the work is on the ticket, not a task: a reopened
+    // ticket goes back to its assignee, who starts it again here (or the
+    // coordinators reassign it). A ticket from before with an open task: cancelled.
+    if (ticket.taskId) await retireTicketTask(ticket.taskId, ticket.ticketNo, actor.id, connection);
     await appendTicketEvent(ticket.id, { actorId: actor.id, action: "REOPENED", from: ticket.status, to: "REOPENED", detail: { reason, previousResolution: ticket.resolutionText } }, connection);
     await insertTicketComment(ticket.id, actor.id, `Reopened: ${reason}`, false, connection);
     const to = [ticket.assigneeId, ...(await coordinatorsOf(ticket.typeId, connection)).map((person) => person.id)].filter((id): id is number => id !== null && id !== actor.id);
-    return { messages: [...new Set(to)].map((id) => ticketMessages.reopened(info(ticket), id, actor.name, reason)), message: "Reopened. The task is open again for the assignee, and the coordinators have been told." };
+    return { messages: [...new Set(to)].map((id) => ticketMessages.reopened(info(ticket), id, actor.name, reason)), message: "Reopened. It is back with the assignee, and the coordinators have been told." };
   });
 }
 

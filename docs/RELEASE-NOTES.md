@@ -1,5 +1,13 @@
 # Release notes
 
+## v1.59.3 (20 Nov 2026): Tickets are updated on the ticket, no task (owner)
+- **Assigning a ticket no longer makes a task.** The assignee updates the ticket itself: **Start work** (In progress), then **Mark resolved** with what was done, which asks the requester to confirm, as before.
+- Both are on the ticket's page (**Your work on this ticket**) and on each row of **My tickets → Assigned to me** (the **Update** column, replacing Open task).
+- Reopened: it goes back to the same assignee, who starts it again on the ticket (or the coordinators reassign it).
+- Tickets assigned before this release: their open tasks are cancelled with a note ("now updated on the ticket itself"), and the work continues on the ticket. Finished tasks stay as history, linked from the ticket.
+- Assigned tickets are in Tickets only (not in Tasks or the task calendar).
+- **Owner steps:** back up the database, run `database/migrations/202611201000_ticket_tasks_retired.sql` (cancels the open tasks linked to tickets; rollback inside), then publish v1.59.3.
+
 ## v1.59.2 (20 Nov 2026): Resizable columns, two-line cells, ticket status by department (owner)
 - **Resize any column**: drag the right edge of a column title in any table (user, Admin, Super Admin), and in the task lists and project lists. Double-click the edge to go back to the automatic width. In the task and project lists, a focused edge also moves with ← / → (Enter resets). Widths are kept in this browser, per page and table.
 - **Long text no longer stretches rows**: text in a table cell shows at most two lines, then "…". Hover to read all of it, or widen the column. Task names in the task lists work the same way.

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TicketWorkForm } from "@/features/tickets/TicketForms";
 import { FoldScope, FoldTbody } from "@/features/ui/GroupFold";
 import { SortTh } from "@/features/ui/SortTh";
 import { nextDir, sortHref, type ColumnSort } from "@/server/lists/sorting";
@@ -65,7 +66,7 @@ const TICKET_COLUMN_LABEL: Record<TicketSortColumn, string> = {
   created: "Created",
   target: "Target date",
   status: "Status",
-  task: "Task",
+  task: "Update", // v1.59.3 (D-362): the assignee updates the ticket here (was the linked task)
 };
 export type TableSort<K extends string> = { state: ColumnSort<K>; path: string; query: Record<string, unknown> };
 
@@ -123,11 +124,10 @@ export function TicketTable({ items, caption, testId = "ticket-table", withTask 
                     <TicketStatusBadge status={item.status} closeKind={item.closeKind} />
                   </td>
                   {withTask && (
-                    <td className="whitespace-nowrap">
-                      {item.taskId ? (
-                        <Link href={`/users/tasks/${item.taskId}`} className="btn-secondary btn-compact" data-testid="open-task" title={item.taskNo ? `Open task ${item.taskNo}` : "Open the task"}>
-                          {item.taskStatus === "COMPLETED" || item.taskStatus === "CANCELLED" ? "View task" : "Open task"}
-                        </Link>
+                    // v1.59.3 (D-362, owner): Assigned to me updates the ticket from its row (no task).
+                    <td className="min-w-[12rem]">
+                      {item.status === "ASSIGNED" || item.status === "REOPENED" || item.status === "IN_PROGRESS" ? (
+                        <TicketWorkForm ticketId={item.id} canStart={item.status !== "IN_PROGRESS"} canResolve compact />
                       ) : (
                         <span className="text-caption text-ink-muted">—</span>
                       )}

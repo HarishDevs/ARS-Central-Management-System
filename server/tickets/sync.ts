@@ -12,6 +12,12 @@ import type { NotifyInput } from "@/server/notifications/notify";
 // Awaiting confirmation, which starts the 4-working-day clock and tells the
 // requester and the coordinators. Completing the task never closes the ticket.
 export async function syncTicketWithTask(ticketId: number, taskStatus: string, actor: { id: number; name: string }, remarks: string, db: Queryable): Promise<NotifyInput[]> {
+  return (await applyTicketWork(ticketId, taskStatus, actor, remarks, db)) ?? [];
+}
+
+// v1.59.3 (D-362): the same step, now done on the ticket by its assignee
+// (workOnTicket). null = the ticket changed meanwhile (row version).
+export async function applyTicketWork(ticketId: number, taskStatus: string, actor: { id: number; name: string }, remarks: string, db: Queryable): Promise<NotifyInput[] | null> {
   const ticket = await findTicket(ticketId, db, true);
   if (!ticket) return [];
   const next = statusForTask(taskStatus, ticket.status);
@@ -25,7 +31,7 @@ export async function syncTicketWithTask(ticketId: number, taskStatus: string, a
     confirmBy = addWorkingDays(indiaDate(now), CONFIRM_STAGES.at(-1)!.days, await loadWorkingCalendar(db));
     Object.assign(changes, { resolved_at: now, confirmation_requested_at: now, confirm_due_on: confirmBy, resolution_text: remarks.trim().slice(0, 4000) || null });
   }
-  if (!(await updateTicket(ticket.id, ticket.rowVersion, changes, db))) return [];
+  if (!(await updateTicket(ticket.id, ticket.rowVersion, changes, db))) return null;
   await appendTicketEvent(ticket.id, { actorId: actor.id, action: next === "IN_PROGRESS" ? "WORK_STARTED" : "WORK_COMPLETED", from: ticket.status, to: next, detail: next === "AWAITING_CONFIRMATION" ? { remarks: remarks.trim().slice(0, 4000), confirmBy } : null }, db);
   const info = { id: ticket.id, ticketNo: ticket.ticketNo, title: ticket.title };
   if (next === "IN_PROGRESS") return [ticketMessages.updated(info, ticket.requesterId, `${actor.name} started work on it`)];

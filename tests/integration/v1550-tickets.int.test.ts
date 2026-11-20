@@ -4,15 +4,17 @@ import { getDbPool } from "@/lib/db/client";
 import { createModuleType, publishTypeDraft, saveTypeDraft } from "@/server/modules/config";
 import { saveTicketFormSetup, findTicket, ticketBoard } from "@/lib/db/repositories/tickets.repository";
 import { analyticsTickets } from "@/lib/db/repositories/ticket-analytics.repository";
-import { assignTicket, confirmTicket, raiseTicket, reopenTicket, runTicketConfirmations } from "@/server/tickets/service";
-import { actOnTask, type TaskActor } from "@/server/modules/tasks";
-import { deleteTask } from "@/server/work/service";
+import { assignTicket, confirmTicket, raiseTicket, reopenTicket, runTicketConfirmations, workOnTicket } from "@/server/tickets/service";
+import type { TaskActor } from "@/server/modules/tasks";
+import { insertTask } from "@/lib/db/repositories/tasks.repository";
+import { generalTypeVersion } from "@/lib/db/repositories/work.repository";
+import { linkTaskToTicket } from "@/lib/db/repositories/tickets.repository";
 import { loadWorkingCalendar } from "@/lib/db/repositories/calendar.repository";
 import { addWorkingDays, indiaDate } from "@/server/workflows/calendar";
 import { createUser } from "./helpers";
 
 // v1.55.0 (owner's ticketing brief): the whole lifecycle on real MySQL:
-// RAISE → ASSIGN (task) → START → COMPLETE (remarks) → CONFIRM / REOPEN →
+// RAISE → ASSIGN → START → RESOLVE (remarks) → CONFIRM / REOPEN → (v1.59.3, D-362: on the ticket, no task)
 // auto-close after 4 working days (reminders on days 2 and 3), exactly once.
 let typeId = 0;
 const people: Record<string, TaskActor> = {};
@@ -27,15 +29,13 @@ async function raise(title: string) {
   if (!result.ok) throw new Error(result.message);
   return result.value;
 }
-async function taskOf(ticketId: number) {
-  const [row] = await q<{ id: number; status: string; title: string; assignee_id: number; row_version: number }>("SELECT id, status, title, assignee_id, row_version FROM tasks WHERE ticket_id = ?", [ticketId]);
-  return row!;
+async function tasksOf(ticketId: number) {
+  return q<{ id: number; status: string }>("SELECT id, status FROM tasks WHERE ticket_id = ?", [ticketId]);
 }
 async function toAwaiting(ticketId: number) {
   const assigned = await assignTicket({ ticketId, assigneeId: people.assignee!.id, targetDate: today(), remarks: "Please install it today", rowVersion: null }, people.coordinator!);
   if (!assigned.ok) throw new Error(assigned.message);
-  const task = await taskOf(ticketId);
-  const done = await actOnTask({ taskId: task.id, action: "COMPLETE", rowVersion: null, reason: "Installed and licensed", assigneeId: null, files: [] }, people.assignee!);
+  const done = await workOnTicket({ ticketId, step: "RESOLVE", remarks: "Installed and licensed", rowVersion: null }, people.assignee!);
   if (!done.ok) throw new Error(done.message);
 }
 
@@ -86,69 +86,62 @@ describe("raise and assign", () => {
     expect(!result.ok && result.fieldErrors?.required_on).toBe("Choose the date you need it by.");
   });
 
-  it("only a coordinator assigns; assigning makes one linked task in the assignee's Tasks", async () => {
-    const { id, ticketNo } = await raise("Install SAP GUI");
+  // v1.59.3 (D-362, owner: "For Ticket assignment i dont want task to be created").
+  it("only a coordinator assigns; assigning makes no task", async () => {
+    const { id } = await raise("Install SAP GUI");
     expect((await assignTicket({ ticketId: id, assigneeId: people.assignee!.id, targetDate: today(), remarks: "", rowVersion: null }, people.stranger!)).ok).toBe(false);
-    expect((await assignTicket({ ticketId: id, assigneeId: people.assignee!.id, targetDate: today(), remarks: "Go ahead", rowVersion: null }, people.coordinator!)).ok).toBe(true);
-    const task = await taskOf(id);
-    expect(task.assignee_id).toBe(people.assignee!.id);
-    expect(task.title).toContain(ticketNo);
-    expect(await findTicket(id)).toMatchObject({ status: "ASSIGNED", assigneeId: people.assignee!.id, taskId: task.id });
-    const [tasks] = await q<{ n: number }>("SELECT COUNT(*) AS n FROM tasks WHERE ticket_id = ?", [id]);
-    expect(Number(tasks!.n)).toBe(1);
-  });
-});
-
-// v1.57.6 (D-345, owner: "Block the delete"): a ticket's task can't be deleted on its own.
-describe("a ticket's task", () => {
-  it("can't be deleted from the task pages, by its creator or by IT; nothing changes", async () => {
-    const { id } = await raise("Delete guard");
-    expect((await assignTicket({ ticketId: id, assigneeId: people.assignee!.id, targetDate: today(), remarks: "", rowVersion: null }, people.coordinator!)).ok).toBe(true);
-    const task = await taskOf(id);
-    for (const who of [people.coordinator!, people.admin!]) {
-      const result = await deleteTask(task.id, { ...who, sessionId: null } as never);
-      expect(result.ok).toBe(false);
-      expect(!result.ok && result.message).toMatch(/carries out a ticket/);
-    }
-    const after = await taskOf(id);
-    expect(after.status).toBe("OPEN");
-    const [row] = await q<{ deleted_at: Date | null }>("SELECT deleted_at FROM tasks WHERE id = ?", [task.id]);
-    expect(row!.deleted_at).toBeNull();
-    expect((await findTicket(id))!.status).toBe("ASSIGNED");
+    const assigned = await assignTicket({ ticketId: id, assigneeId: people.assignee!.id, targetDate: today(), remarks: "Go ahead", rowVersion: null }, people.coordinator!);
+    expect(assigned).toMatchObject({ ok: true });
+    expect(await findTicket(id)).toMatchObject({ status: "ASSIGNED", assigneeId: people.assignee!.id, taskId: null });
+    expect(await tasksOf(id)).toHaveLength(0);
   });
 
-  // v1.57.6 (D-345, owner: "Task back to Open"): reassigning an In-progress ticket to someone else.
-  it("reassigned to a different person while In progress, the task goes back to Open and the ticket to Assigned", async () => {
+  it("a ticket from before, still linked to an open task: assigning cancels that task and the work continues on the ticket", async () => {
+    const { id, ticketNo } = await raise("Old linked task");
+    const general = (await generalTypeVersion())!;
+    const taskId = await insertTask({ taskNo: `TSK-OLD-${Date.now().toString(36)}`, typeVersionId: general.versionId, title: `${ticketNo} old`, description: "", priority: "NORMAL", createdBy: people.coordinator!.id, assigneeId: people.assignee!.id, dueAt: new Date(Date.now() + 86_400_000), startsOn: null, formData: {}, relatedRequestId: null, submissionKey: null }, getDbPool());
+    await linkTaskToTicket(taskId, id, getDbPool());
+    await getDbPool().query("UPDATE tickets SET task_id = ? WHERE id = ?", [taskId, id]); // as the old assignment did
+    expect((await assignTicket({ ticketId: id, assigneeId: people.stranger!.id, targetDate: today(), remarks: "", rowVersion: null }, people.coordinator!)).ok).toBe(true);
+    expect(await tasksOf(id)).toEqual([expect.objectContaining({ id: taskId, status: "CANCELLED" })]);
+    const [event] = await q<{ body: string }>("SELECT body FROM task_events WHERE task_id = ? AND event_type = 'CANCEL'", [taskId]);
+    expect(event!.body).toContain("updated on the ticket itself");
+    expect((await workOnTicket({ ticketId: id, step: "START", remarks: "", rowVersion: null }, people.stranger!)).ok).toBe(true);
+    expect((await findTicket(id))!.status).toBe("IN_PROGRESS");
+  });
+
+  // v1.57.6 (D-345): reassigning an In-progress ticket to someone else (now on the ticket).
+  it("reassigned to a different person while In progress, the ticket goes back to Assigned and they start it", async () => {
     const { id } = await raise("Reassign started");
     expect((await assignTicket({ ticketId: id, assigneeId: people.assignee!.id, targetDate: today(), remarks: "", rowVersion: null }, people.coordinator!)).ok).toBe(true);
-    const task = await taskOf(id);
-    expect((await actOnTask({ taskId: task.id, action: "START", rowVersion: null, reason: "", assigneeId: null, files: [] }, people.assignee!)).ok).toBe(true);
+    expect((await workOnTicket({ ticketId: id, step: "START", remarks: "", rowVersion: null }, people.assignee!)).ok).toBe(true);
     expect((await findTicket(id))!.status).toBe("IN_PROGRESS");
     expect((await assignTicket({ ticketId: id, assigneeId: people.stranger!.id, targetDate: today(), remarks: "Please take over", rowVersion: null }, people.coordinator!)).ok).toBe(true);
-    const after = await taskOf(id);
-    expect(after).toMatchObject({ id: task.id, status: "OPEN", assignee_id: people.stranger!.id });
     expect((await findTicket(id))!.status).toBe("ASSIGNED");
-    // The new person can start it.
-    expect((await actOnTask({ taskId: task.id, action: "START", rowVersion: null, reason: "", assigneeId: null, files: [] }, people.stranger!)).ok).toBe(true);
+    // The earlier assignee can't update it any more; the new one can.
+    expect((await workOnTicket({ ticketId: id, step: "START", remarks: "", rowVersion: null }, people.assignee!)).ok).toBe(false);
+    expect((await workOnTicket({ ticketId: id, step: "START", remarks: "", rowVersion: null }, people.stranger!)).ok).toBe(true);
     expect((await findTicket(id))!.status).toBe("IN_PROGRESS");
   });
 });
 
 describe("work, confirmation and reopening", () => {
-  it("start → In progress; completing needs remarks and moves it to Awaiting confirmation, never Closed", async () => {
+  it("on the ticket: only the assignee starts (In progress) and resolves (remarks required → Awaiting confirmation, never Closed)", async () => {
     const { id } = await raise("Install Office");
     await assignTicket({ ticketId: id, assigneeId: people.assignee!.id, targetDate: today(), remarks: "", rowVersion: null }, people.coordinator!);
-    const task = await taskOf(id);
-    expect((await actOnTask({ taskId: task.id, action: "START", rowVersion: null, reason: "", assigneeId: null, files: [] }, people.assignee!)).ok).toBe(true);
+    expect((await workOnTicket({ ticketId: id, step: "START", remarks: "", rowVersion: null }, people.coordinator!)).ok).toBe(false);
+    expect((await workOnTicket({ ticketId: id, step: "START", remarks: "", rowVersion: null }, people.requester!)).ok).toBe(false);
+    expect((await workOnTicket({ ticketId: id, step: "START", remarks: "", rowVersion: null }, people.assignee!)).ok).toBe(true);
     expect((await findTicket(id))!.status).toBe("IN_PROGRESS");
-    const noRemarks = await actOnTask({ taskId: task.id, action: "COMPLETE", rowVersion: null, reason: "", assigneeId: null, files: [] }, people.assignee!);
-    expect(noRemarks.ok).toBe(false);
-    expect((await actOnTask({ taskId: task.id, action: "COMPLETE", rowVersion: null, reason: "Installed Office 2024", assigneeId: null, files: [] }, people.assignee!)).ok).toBe(true);
+    expect((await workOnTicket({ ticketId: id, step: "START", remarks: "", rowVersion: null }, people.assignee!)).ok).toBe(false); // already started
+    expect((await workOnTicket({ ticketId: id, step: "RESOLVE", remarks: "", rowVersion: null }, people.assignee!)).ok).toBe(false);
+    expect((await workOnTicket({ ticketId: id, step: "RESOLVE", remarks: "Installed Office 2024", rowVersion: null }, people.assignee!)).ok).toBe(true);
     const ticket = await findTicket(id);
     expect(ticket).toMatchObject({ status: "AWAITING_CONFIRMATION", resolutionText: "Installed Office 2024" });
     expect(ticket!.confirmDueOn).toBe(addWorkingDays(today(), 4, await loadWorkingCalendar()));
-    // The task side can't reopen or reassign a ticket's task.
-    expect((await actOnTask({ taskId: task.id, action: "REOPEN", rowVersion: null, reason: "", assigneeId: null, files: [] }, people.coordinator!)).ok).toBe(false);
+    expect(await tasksOf(id)).toHaveLength(0);
+    const [notice] = await q<{ n: number }>("SELECT COUNT(*) AS n FROM notifications WHERE user_id = ? AND entity_type = 'TICKET' AND entity_id = ?", [people.requester!.id, id]);
+    expect(Number(notice!.n)).toBeGreaterThan(0);
   });
 
   it("only the requester confirms; the assignee can't confirm for them", async () => {
@@ -163,23 +156,16 @@ describe("work, confirmation and reopening", () => {
     expect(feedback).toMatchObject({ rating: 4, comment: "Quick, thanks" });
   });
 
-  it("reopening needs a reason, returns it to the coordinators and reuses the same task", async () => {
+  it("reopening needs a reason; the same assignee starts it again on the ticket, or the coordinators reassign it", async () => {
     const { id } = await raise("Install VPN");
     await toAwaiting(id);
-    const before = await taskOf(id);
     expect((await reopenTicket({ ticketId: id, reason: "" }, people.requester!)).ok).toBe(false);
     expect((await reopenTicket({ ticketId: id, reason: "Still can't connect" }, people.requester!)).ok).toBe(true);
-    expect(await findTicket(id)).toMatchObject({ status: "REOPENED", reopenCount: 1 });
-    // v1.55.3 (D-331): reopening puts the same task straight back to Open for the same assignee.
-    const reopenedTask = await taskOf(id);
-    expect(reopenedTask.id).toBe(before.id);
-    expect(reopenedTask.status).toBe("OPEN");
-    expect(reopenedTask.assignee_id).toBe(people.assignee!.id);
+    expect(await findTicket(id)).toMatchObject({ status: "REOPENED", reopenCount: 1, assigneeId: people.assignee!.id });
+    expect((await workOnTicket({ ticketId: id, step: "START", remarks: "Looking at the certificate", rowVersion: null }, people.assignee!)).ok).toBe(true);
+    expect((await findTicket(id))!.status).toBe("IN_PROGRESS");
     expect((await assignTicket({ ticketId: id, assigneeId: people.assignee!.id, targetDate: today(), remarks: "Check the certificate", rowVersion: null }, people.coordinator!)).ok).toBe(true);
-    const after = await taskOf(id);
-    expect(after.id).toBe(before.id);
-    expect(after.status).toBe("OPEN");
-    expect((await findTicket(id))!.status).toBe("ASSIGNED");
+    expect(await tasksOf(id)).toHaveLength(0);
     const [events] = await q<{ n: number }>("SELECT COUNT(*) AS n FROM ticket_events WHERE ticket_id = ? AND action IN ('WORK_COMPLETED', 'REOPENED')", [id]);
     expect(Number(events!.n)).toBe(2); // the earlier work stays in the history
   });
@@ -196,7 +182,7 @@ describe("the coordinator board", () => {
     expect((await assignTicket({ ticketId: id, assigneeId: people.assignee!.id, targetDate: today(), remarks: "", rowVersion: null }, people.coordinator!)).ok).toBe(true);
     const moved = (await ticketBoard({ categoryId: null, q: "Board check", overdueOnly: false }, { id: people.coordinator!.id, isAdmin: false })).find((item) => item.id === id);
     expect(moved).toMatchObject({ status: "ASSIGNED", assigneeName: expect.any(String) });
-    expect(moved!.taskNo).toMatch(/^TSK-/);
+    expect(moved!.taskNo).toBeNull(); // v1.59.3: no task
     expect(moved!.statusSince.getTime()).toBeGreaterThan(Date.now() - 5 * 60_000);
   });
 });

@@ -247,15 +247,15 @@ Ask for help: a software problem, a hardware fault, an Admin request. Tickets ap
   3. That employee does the work in their **Tasks**.
 - **When the work is done** you're asked to confirm (Inbox and email):
   - **Confirm and close**, optionally with a rating of 1–5 and feedback;
-  - or **Reopen ticket** with a reason. The same task opens again straight away in the assignee's Tasks, and the coordinators are told (they can reassign it).
+  - or **Reopen ticket** with a reason. It goes back to the same assignee, who starts it again on the ticket, and the coordinators are told (they can reassign it).
 
   If you don't answer, you're reminded after 2 and 3 working days, and the ticket closes by itself after 4 complete working days ("Closed – auto closed"). Weekly offs and company holidays don't count.
-- **My tickets** lists the tickets you raised, and those assigned to you; on **Assigned to me**, **Open task** takes you straight to the task to start or complete it.
-- **Ticket and task in step:** the ticket shows the task's comments and activity, and the task shows the ticket's remarks, files and timeline, so both tell the whole story.
+- **My tickets** lists the tickets you raised, and those assigned to you; on **Assigned to me**, the **Update** column has **Start work** and **Mark resolved** for each ticket (v1.59.3).
+- **Tickets from before v1.59.3** that had a task: the ticket still shows that task's comments and activity, and links to it as history; the work now continues on the ticket.
 - **Remarks:** anyone on the ticket can add a remark or files. Coordinators and the assignee may mark a remark **Internal**; you don't see those.
-- **Assigned a ticket?** Its task is in your Tasks, titled with the ticket number. **Start** it, add remarks and documents, and **Complete** it with **completion remarks** (the requester reads them). Completing asks the requester to confirm; it doesn't close the ticket. Reassigning and reopening are done on the ticket, not the task.
+- **Assigned a ticket?** (v1.59.3: no task is made.) Open it from **My tickets → Assigned to me** (or the bell). Press **Start work** (In progress), add remarks and documents on the ticket, then **Mark resolved** with **what was done** (the requester reads it). Resolving asks the requester to confirm; it doesn't close the ticket. You can also Start and Resolve from the Assigned to me row.
 - **Coordinators:**
-  - open a new ticket, choose **Assign to**, a **Target date** and remarks, then **Assign** (this makes the task);
+  - open a new ticket, choose **Assign to**, a **Target date** and remarks, then **Assign** (the assignee updates the ticket itself; no task is made);
   - **Reassign** the same way;
   - **Coordinator board** (Tickets → Coordinator board; coordinators and IT only) shows where every ticket is now, as a table grouped by status (New, Reopened, Assigned, In progress, Awaiting confirmation, Closed in the last 7 days), with a chip per status and its count that shows just that status. Each row shows the ticket number, subject, priority, requester, who has it (and the task number), how long it has been in that status, the target date (red when overdue), the needed-by date and, while it awaits confirmation, when it auto-closes. Filter by category, search, or show only overdue tickets; click a ticket to open it.
   - **Analytics → Ticket analytics** (everyone with Ticketing) works by access: choose the scope at the top. Whole organisation (IT) counts every ticket; My requests, My team or My departments count the tickets raised by or assigned to those people, plus every ticket of the forms you coordinate.

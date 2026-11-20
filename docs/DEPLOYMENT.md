@@ -209,6 +209,10 @@ Stops anyone reaching the GoDaddy server directly, around Cloudflare (and faking
 1. https://approval.arssteels.net → **Continue with Google** → **itsupport@arsenergy.co.in** (D-082). The seed created this Super Admin, User ID `itadmin`. `itadmin@arssteels.co.in` can't be used: it's only an alias, and Google reports the main address.
 2. You land on **My approvals**. Your name at the top right opens a menu whose **Switch space** section shows Admin and Super Admin.
 
+### G0d. Tickets without tasks (v1.59.3)
+1. Back up the database, then run `database/migrations/202611201000_ticket_tasks_retired.sql`. It cancels the tasks still open that belong to a ticket, each with a note in its history; data only, safe to run twice, rollback inside.
+2. Publish v1.59.3. Assigning a ticket no longer makes a task; the assignee starts and resolves it on the ticket.
+
 ### G0c. Job state recovery (v1.57.6)
 1. Back up the database, then run `database/migrations/202611191200_job_state_recovery.sql` (adds `attempts` to `export_jobs`, `report_runs` and `hod_report_runs`; rollback inside).
 2. Publish v1.57.6. The job runner now takes a database lock for each run, so a second cron call while one is running is skipped (recorded nowhere, by design). If the host's MySQL `wait_timeout` is shorter than a full run, raise it (the lock lives as long as its connection).

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { assignTicketAction, commentTicketAction, acceptResolutionAction, raiseTicketAction, reopenTicketAction } from "@/app/users/tickets/actions";
+import { assignTicketAction, commentTicketAction, acceptResolutionAction, raiseTicketAction, reopenTicketAction, ticketWorkAction } from "@/app/users/tickets/actions";
 import { DynamicFields } from "@/features/requests/DynamicFields";
 import { FieldError, ResultMessage, SubmitButton, useActionForm } from "@/features/ui/form";
 import { FileListInput } from "@/features/ui/FileListInput";
@@ -238,5 +238,67 @@ export function TicketRemarkForm({ ticketId, canInternal }: { ticketId: number; 
       </div>
       <ResultMessage result={result} />
     </form>
+  );
+}
+
+// v1.59.3 (D-362, owner: "For Ticket assignment i dont want task to be created
+// instead i want an option to update the task status in the ticket itself"):
+// the assignee's controls, on the ticket page (full) and on an Assigned to me
+// row (compact): Start work, then Mark resolved with what was done.
+export function TicketWorkForm({ ticketId, rowVersion = null, canStart, canResolve, compact = false }: { ticketId: number; rowVersion?: number | null; canStart: boolean; canResolve: boolean; compact?: boolean }) {
+  const start = useActionForm(ticketWorkAction);
+  const resolve = useActionForm(ticketWorkAction);
+  const [resolving, setResolving] = useState(!compact);
+  if (!canStart && !canResolve) return null;
+  const hidden = (step: "START" | "RESOLVE") => (
+    <>
+      <input type="hidden" name="ticketId" value={ticketId} />
+      <input type="hidden" name="step" value={step} />
+      {rowVersion !== null && <input type="hidden" name="rowVersion" value={rowVersion} />}
+    </>
+  );
+  return (
+    <div className={compact ? "space-y-2" : "space-y-4"} data-testid={compact ? "ticket-work-row" : "ticket-work"}>
+      {canStart && (
+        <form onSubmit={start.onSubmit} className={compact ? "inline" : ""}>
+          {hidden("START")}
+          <SubmitButton pending={start.pending} variant={compact ? "secondary" : "primary"} className="btn-compact">
+            Start work
+          </SubmitButton>
+          {!compact && <p className="mt-1 text-caption text-ink-muted">Sets it to In progress and tells the requester.</p>}
+          <ResultMessage result={start.result} />
+        </form>
+      )}
+      {canResolve && compact && !resolving && (
+        <button type="button" className="btn-secondary btn-compact ml-2" onClick={() => setResolving(true)}>
+          Mark resolved
+        </button>
+      )}
+      {canResolve && resolving && (
+        <form onSubmit={resolve.onSubmit} className={compact ? "space-y-2" : "space-y-3 rounded-md border border-line p-4"} aria-label="Mark resolved">
+          {hidden("RESOLVE")}
+          {!compact && <h3 className="font-semibold">Mark resolved</h3>}
+          <div>
+            <label htmlFor={`resolve-${ticketId}${compact ? "-row" : ""}`} className={compact ? "sr-only" : "field-label"}>
+              What was done <span className="text-danger-600" aria-hidden="true">*</span>
+            </label>
+            <textarea id={`resolve-${ticketId}${compact ? "-row" : ""}`} name="remarks" rows={compact ? 2 : 3} required minLength={3} maxLength={4000} className="field-input" placeholder="What was done" />
+            <FieldError result={resolve.result} name="remarks" />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <SubmitButton pending={resolve.pending} className="btn-compact">
+              Mark resolved
+            </SubmitButton>
+            {compact && (
+              <button type="button" className="btn-secondary btn-compact" onClick={() => setResolving(false)}>
+                Cancel
+              </button>
+            )}
+          </div>
+          {!compact && <p className="text-caption text-ink-muted">The requester is asked to confirm (or reopen it) within 4 working days.</p>}
+          <ResultMessage result={resolve.result} />
+        </form>
+      )}
+    </div>
   );
 }

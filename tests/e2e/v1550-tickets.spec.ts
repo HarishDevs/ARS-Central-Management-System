@@ -94,10 +94,11 @@ test("the coordinator assigns it: a linked task in the assignee's Tasks", async 
   await pickPerson(page, assign.getByTestId("assign-person"), "Sita");
   await assign.getByLabel("Remarks for the assignee").fill("Check the disk first");
   await assign.getByRole("button", { name: "Assign", exact: true }).click();
-  await expect(assign.getByText(/Assigned to Sita Staff\. Task TSK-/)).toBeVisible();
+  // v1.59.3 (D-362, owner): no task is made; the assignee updates the ticket.
+  await expect(assign.getByText(/Assigned to Sita Staff\. They update the ticket's status here\./)).toBeVisible();
   await page.reload();
   await expect(page.locator("main")).toContainText("Assigned");
-  await expect(page.getByRole("link", { name: /^TSK-/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: /^TSK-/ })).toHaveCount(0);
   // v1.57.0 (D-335): the coordinator ticks the item as provided.
   const items = page.getByTestId("item-checklists");
   await expect(items).toContainText("USB mouse");
@@ -110,22 +111,25 @@ test("the coordinator assigns it: a linked task in the assignee's Tasks", async 
   await page.screenshot({ path: "test-results/v1570-item-checklist.png", fullPage: true });
 });
 
-test("the assignee starts and completes the task with remarks; the ticket awaits confirmation", async ({ page, context }) => {
+test("the assignee starts it from Assigned to me and resolves it on the ticket; the ticket awaits confirmation", async ({ page, context }) => {
   await as(context, "E2E_STAFF");
-  // v1.57.2 (D-340): from My tickets → Assigned to me, straight to the task.
+  // v1.59.3 (D-362, owner): Assigned to me updates the ticket from its row (no task).
   await page.goto("/users/tickets?view=assigned");
-  await page.getByTestId("ticket-table").locator("tr", { hasText: subject }).getByTestId("open-task").click();
-  await expect(page).toHaveURL(/\/users\/tasks\/\d+/);
-  // v1.57.2 (D-339): the ticket's remarks and files show on the task too.
-  await expect(page.getByTestId("task-ticket-remarks")).toContainText("Check the disk first");
-  await page.getByRole("button", { name: "Start", exact: true }).click();
-  await expect(page.getByText(/Done: /).first()).toBeVisible();
-  await page.getByRole("textbox", { name: "Remarks" }).fill("Replaced the SSD and reinstalled Windows");
-  await page.getByRole("button", { name: "Complete", exact: true }).click();
-  // Wait for the completion itself (the Start message also says "Done:").
-  await expect(page.getByText("Completed", { exact: true }).first()).toBeVisible();
+  const row = page.getByTestId("ticket-table").locator("tr", { hasText: subject });
+  await row.getByTestId("ticket-work-row").getByRole("button", { name: "Start work" }).click();
+  await expect(row.getByText("Work started. The requester has been told.")).toBeVisible();
+  await page.reload();
+  await expect(page.getByTestId("ticket-table").locator("tr", { hasText: subject })).toContainText("In progress");
+  // Then on the ticket page: Mark resolved with what was done.
   await page.goto(ticketPath);
+  const work = page.getByTestId("ticket-work");
+  await expect(work.getByRole("button", { name: "Start work" })).toHaveCount(0);
+  await work.getByLabel(/What was done/).fill("Replaced the SSD and reinstalled Windows");
+  await work.getByRole("button", { name: "Mark resolved" }).click();
+  await expect(work.getByText("Marked resolved. The requester has been asked to confirm.")).toBeVisible();
+  await page.reload();
   await expect(page.locator("main")).toContainText(/Waiting for Ravi Requester to confirm/);
+  await expect(page.getByTestId("ticket-work")).toHaveCount(0);
 });
 
 test("the requester confirms with a rating; the ticket closes", async ({ page, context }) => {
@@ -133,8 +137,6 @@ test("the requester confirms with a rating; the ticket closes", async ({ page, c
   await page.goto(ticketPath);
   const confirm = page.getByTestId("confirm-ticket");
   await expect(page.getByRole("region", { name: /please confirm/ })).toContainText("Replaced the SSD and reinstalled Windows");
-  // v1.57.2 (D-339): the task's activity shows in the ticket's timeline.
-  await expect(page.getByTestId("ticket-timeline-task").first()).toContainText(/Task TSK-/);
   await confirm.getByRole("radio", { name: "5 out of 5" }).click();
   await confirm.getByRole("button", { name: "Confirm and close" }).click();
   await expect(confirm.getByText("Thank you. The ticket is closed.")).toBeVisible();

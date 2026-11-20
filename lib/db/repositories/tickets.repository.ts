@@ -374,7 +374,8 @@ const TICKET_SORT_SQL: Record<TicketSortColumn, { expr: string; nullable?: boole
   created: { expr: "k.submitted_at" },
   target: { expr: "k.due_at", nullable: true },
   status: { expr: "FIELD(k.status, 'NEW', 'REOPENED', 'ASSIGNED', 'IN_PROGRESS', 'AWAITING_CONFIRMATION', 'CLOSED')" },
-  task: { expr: "(SELECT tk.task_no FROM tasks tk WHERE tk.id = k.task_id)", nullable: true },
+  // v1.59.3 (D-362): the Update column sorts by what's next to do (start, then resolve, then the rest).
+  task: { expr: "FIELD(k.status, 'ASSIGNED', 'REOPENED', 'IN_PROGRESS', 'NEW', 'AWAITING_CONFIRMATION', 'CLOSED')" },
 };
 export function ticketOrderBy(sort: ColumnSort<TicketSortColumn> | null | undefined): string {
   const column = sort?.sortBy && Object.prototype.hasOwnProperty.call(TICKET_SORT_SQL, sort.sortBy) ? TICKET_SORT_SQL[sort.sortBy] : undefined;

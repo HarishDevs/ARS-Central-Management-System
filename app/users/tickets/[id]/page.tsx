@@ -8,7 +8,7 @@ import { PageHeader } from "@/features/shell/PageHeader";
 import { Breadcrumbs } from "@/features/ui/Display";
 import { FieldValues, FileLinks } from "@/features/modules/RecordParts";
 import { RichText } from "@/features/work/RichText";
-import { AssignTicketForm, ConfirmTicketForms, TicketRemarkForm } from "@/features/tickets/TicketForms";
+import { AssignTicketForm, ConfirmTicketForms, TicketRemarkForm, TicketWorkForm } from "@/features/tickets/TicketForms";
 import { TicketPriorityBadge, TicketStatusBadge } from "@/features/tickets/TicketParts";
 import { ticketsPage } from "@/server/tickets/page-context";
 import { loadTicketFor } from "@/server/tickets/service";
@@ -195,18 +195,23 @@ export default async function Page({ params, searchParams }: { params: Promise<{
               />
             </section>
           )}
-          {ticket.taskId && (viewer.isAdmin || viewer.isCoordinator || ticket.assigneeId === user.id) && (
-            <section className="card px-5 py-4" aria-labelledby="task-heading">
-              <h2 id="task-heading" className="mb-1 font-semibold">
-                Linked task
+          {/* v1.59.3 (D-362, owner): the assignee updates the work on the ticket itself; no task. */}
+          {(actions.has("START") || actions.has("RESOLVE")) && (
+            <section className="card px-5 py-4" aria-labelledby="work-heading">
+              <h2 id="work-heading" className="mb-3 font-semibold">
+                Your work on this ticket
               </h2>
-              <p className="text-label">
-                <Link href={`/users/tasks/${ticket.taskId}`} className="link font-mono">
-                  {ticket.taskNo}
-                </Link>{" "}
-                {ticket.assigneeId === user.id ? "· start, update and complete the work there." : `· with ${ticket.assigneeName}.`}
-              </p>
+              <TicketWorkForm ticketId={ticket.id} rowVersion={ticket.rowVersion} canStart={actions.has("START")} canResolve={actions.has("RESOLVE")} />
             </section>
+          )}
+          {ticket.taskId && (viewer.isAdmin || viewer.isCoordinator || ticket.assigneeId === user.id) && (
+            <p className="text-caption text-ink-muted">
+              Earlier work was tracked in task{" "}
+              <Link href={`/users/tasks/${ticket.taskId}`} className="link font-mono">
+                {ticket.taskNo}
+              </Link>{" "}
+              (history; the ticket is now updated here).
+            </p>
           )}
           <section className="card px-5 py-4" aria-labelledby="timeline-heading">
             <h2 id="timeline-heading" className="mb-3 font-semibold">

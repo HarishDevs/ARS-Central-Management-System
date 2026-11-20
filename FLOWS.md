@@ -194,15 +194,15 @@ flowchart LR
 flowchart TD
   R([Anyone with the Ticketing module (D-329): Raise a ticket → ticket type (a form of a category) → subject, description, priority, required date, fields, files]) --> N[NEW: number PREFIX-YEAR-00001, requestor details filled in]
   N --> C[The form's coordinators are told; any one of them assigns]
-  C -->|assign: employee, target date, remarks| A[ASSIGNED: one linked task in the employee's Tasks]
-  A -->|task started| P[IN PROGRESS]
-  P -->|task completed with completion remarks| AC[AWAITING CONFIRMATION: 4-working-day clock]
-  A -->|task completed| AC
+  C -->|assign: employee, target date, remarks| A[ASSIGNED: no task (v1.59.3, D-362)]
+  A -->|assignee: Start work on the ticket or its row| P[IN PROGRESS]
+  P -->|assignee: Mark resolved with what was done| AC[AWAITING CONFIRMATION: 4-working-day clock]
+  A -->|assignee: Mark resolved| AC
   AC -->|requester confirms (rating 1-5 optional)| CL[CLOSED]
-  AC -->|requester reopens with a reason| RO[REOPENED: the same task back to Open for the assignee (D-331)] --> C
+  AC -->|requester reopens with a reason| RO[REOPENED: back with the same assignee, who starts it again; coordinators may reassign] --> C
   AC -->|reminders on working days 2 and 3; no answer after 4 full working days| AUTO[CLOSED – AUTO CLOSED]
 ```
-- Task completion never closes a ticket. Only the requester confirms or reopens. Coordinators reassign on the ticket (the task side refuses reassign, cancel and reopen).
+- Resolving never closes a ticket. Only the requester confirms or reopens. Only the assignee starts and resolves; coordinators assign and reassign. Tickets from before v1.59.3: their open tasks are cancelled (migration 202611201000, and again on any reassign); finished ones stay as history.
 - The auto-close job claims each stage once, and closes only while the ticket still waits.
 - Coordinator board (D-332): every column above (New, Reopened, Assigned, In progress, Awaiting confirmation, Closed last 7 days) as one page, for coordinators and IT.
 

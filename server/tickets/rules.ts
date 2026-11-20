@@ -22,8 +22,11 @@ export function statusText(status: TicketStatus, closeKind: string | null): stri
 }
 export const OPEN_STATUSES: readonly TicketStatus[] = ["NEW", "ASSIGNED", "IN_PROGRESS", "AWAITING_CONFIRMATION", "REOPENED"];
 
-// What people do on the ticket page (the assignee's Start / Complete happen in the task).
-export const TICKET_ACTIONS = ["ASSIGN", "CONFIRM", "REOPEN", "COMMENT"] as const;
+// What people do on the ticket page. v1.59.3 (D-362, owner: "For Ticket
+// assignment i dont want task to be created instead i want an option to update
+// the task status in the ticket itself"): the assignee starts and resolves the
+// work on the ticket (START, RESOLVE); no task is made.
+export const TICKET_ACTIONS = ["ASSIGN", "START", "RESOLVE", "CONFIRM", "REOPEN", "COMMENT"] as const;
 export type TicketAction = (typeof TICKET_ACTIONS)[number];
 
 export interface TicketViewer {
@@ -62,6 +65,9 @@ export function allowedTicketActions(ticket: TicketFacts, viewer: TicketViewer):
   if (ticket.status === "CLOSED") return actions;
   // Assign a new or reopened ticket, or reassign while the work is with someone.
   if (role.coordinator && ticket.status !== "AWAITING_CONFIRMATION") actions.add("ASSIGN");
+  // The assignee: Start work (Assigned or Reopened → In progress), then Mark resolved (→ Awaiting confirmation).
+  if (role.assignee && (ticket.status === "ASSIGNED" || ticket.status === "REOPENED")) actions.add("START");
+  if (role.assignee && (ticket.status === "ASSIGNED" || ticket.status === "IN_PROGRESS" || ticket.status === "REOPENED")) actions.add("RESOLVE");
   // Only the requester confirms or reopens (never the assignee or a coordinator for them).
   if (role.requester && ticket.status === "AWAITING_CONFIRMATION") {
     actions.add("CONFIRM");
