@@ -580,7 +580,7 @@ flowchart LR
   S --> T[Requester + earlier approvers told; history, audit]
   E --> T
   L --> T
-  Q[Approver asks for changes] --> B[Waiting for me: Sent back for changes, with reason] --> U[Requester resubmits] --> A[Back in Waiting for me as an approval]
+  Q[Approver asks for changes] --> B[Sent back for changes page (v1.59.1, D-359), linked from Waiting for me] --> U[Requester resubmits] --> A[Back in Waiting for me as an approval]
 ```
 
 ## F-27 On Hold / resume

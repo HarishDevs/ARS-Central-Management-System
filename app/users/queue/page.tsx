@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { Hourglass, X } from "lucide-react";
 import { requireArea } from "@/server/authorization/guards";
 import { PageHeader } from "@/features/shell/PageHeader";
-import { QueueTable, SentBackTable } from "@/features/requests/lists";
+import { QueueTable } from "@/features/requests/lists";
 import { parseColumns, QUEUE_COLUMNS } from "@/server/requests/list-columns";
 import { getUserSetting } from "@/lib/db/repositories/user-settings.repository";
 import { priorityRecord } from "@/server/approvals/priority-lookup";
@@ -44,7 +44,7 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
     queueTypesFor(user.id),
     queueChoicesFor(user.id),
     myListViews(user.id, "queue"),
-    // v1.59.0 (D-356, owner): what you sent back for changes, still with the requester.
+    // v1.59.1 (D-359, owner): what you sent back has its own page; here, a link with how many.
     listSentBackFor(user.id),
   ]);
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -299,6 +299,14 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
           />
         </div>
       )}
+      {sentBack.length > 0 && (
+        <p className="mb-3 text-label">
+          <Link href="/users/queue/sent-back" className="link" data-testid="sent-back-link">
+            Sent back for changes ({sentBack.length}) →
+          </Link>
+          <span className="ml-2 text-ink-muted">with the requester now; back here when they resubmit.</span>
+        </p>
+      )}
       {/* v1.54.7 (owner: "drop this in the waiting for me"): the Approve several at once panel is removed; each approval is opened and decided on its own. */}
       {filtered && queue.length === 0 ? (
         <NoResults what="items waiting" query={filter.q} clearSearchHref={without({ q: "" })} resetHref="/users/queue" />
@@ -307,7 +315,7 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
           <QueueTable items={queue} priority={priority} order={queueOrder} formDue={formDue} groups={groups} sort={{ sortBy: columnSort.sortBy, dir: columnSort.dir, hrefs: sortHrefs, leadKey: "title" }} editable />
         </QueueKeyboard>
       )}
-      <SentBackTable items={sentBack} />
+
       {pages > 1 && (
         <nav aria-label="Pages" className="mt-4 flex items-center gap-3 text-label">
           {page > 1 ? (

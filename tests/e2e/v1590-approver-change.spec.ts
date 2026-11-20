@@ -43,14 +43,39 @@ test("the approver changes the amount and adds a level from the Waiting for me t
   await expect(page.locator("main")).toContainText("Finance");
 });
 
-test("sent back for changes stays on the approver's Waiting for me", async ({ page, context }) => {
+test("sent back for changes: a link on Waiting for me, and its own page with every table feature (v1.59.1)", async ({ page, context }) => {
   await as(context, "E2E_MGR");
   await page.goto(requestPath);
   await page.getByLabel(/Comment/).fill("Attach the vendor quote");
   await page.getByRole("button", { name: "Ask for changes", exact: true }).click();
   await expect(page.locator("main")).toContainText(/Changes required|changes/i);
+  // No table on Waiting for me; a link to the page instead.
   await page.goto("/users/queue");
-  const sent = page.getByTestId("sent-back");
-  await expect(sent.getByTestId("sent-back-row").filter({ hasText: `Change check ${stamp}` })).toContainText("Attach the vendor quote");
-  await expect(sent).toContainText("Sent back");
+  await expect(page.getByTestId("sent-back")).toHaveCount(0);
+  await page.getByTestId("sent-back-link").click();
+  await expect(page).toHaveURL(/\/users\/queue\/sent-back$/);
+  await expect(page.getByTestId("sidebar-scroll").getByRole("link", { name: "Sent back for changes", exact: true })).toHaveAttribute("aria-current", "page");
+  const row = page.getByTestId("sent-back-row").filter({ hasText: `Change check ${stamp}` });
+  await expect(row).toContainText("Attach the vendor quote");
+  await expect(row).toContainText("Ravi Requester");
+  // Search, sort both ways on every column, Group by (folded), Expand all.
+  await page.goto(`/users/queue/sent-back?q=${stamp}`);
+  await expect(page.getByTestId("sent-back-row")).toHaveCount(1);
+  for (const column of ["request", "type", "priority", "requester", "department", "step", "sent", "waiting", "reason"]) {
+    for (const dir of ["asc", "desc"]) {
+      await page.goto(`/users/queue/sent-back?sortBy=${column}&dir=${dir}`);
+      await expect(page.locator(`th[data-sort-column="${column}"]`)).toHaveAttribute("aria-sort", dir === "asc" ? "ascending" : "descending");
+    }
+  }
+  await page.goto("/users/queue/sent-back?group=requester");
+  const fold = page.getByTestId("group-fold").first();
+  await expect(fold).toHaveAttribute("aria-expanded", "false");
+  await page.getByRole("button", { name: "Expand all" }).first().click();
+  await expect(page.getByTestId("sent-back-row").filter({ hasText: `Change check ${stamp}` })).toBeVisible();
+  // Filters and a saved view.
+  await page.goto("/users/queue/sent-back?requester=Ravi%20Requester&group=dept");
+  await page.getByTestId("save-view").first().click();
+  await page.getByPlaceholder(/e\.g\./).first().fill(`Ravi sent back ${stamp}`);
+  await page.getByRole("button", { name: "Save view" }).first().click();
+  await expect(page.getByText(`Saved "Ravi sent back ${stamp}".`)).toBeVisible();
 });

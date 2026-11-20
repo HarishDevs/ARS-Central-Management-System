@@ -93,7 +93,9 @@ export const TOUR_STEPS: readonly TourStep[] = [
     intro: "Everything that needs your decision, oldest first, with how long it has waited.",
     points: [
       "Open a request and choose Approve, Reject, Ask for changes (back to the requester) or Put on hold (pauses the clock). Add a comment.",
-      "Tick several straightforward ones to approve them together.",
+      // v1.59.0/v1.59.1 (D-357, D-359): Change from the row; Sent back has its own page. (Bulk approval was removed in v1.54.7.)
+      "Change on a row lets you correct the values or the levels after yours, with a reason; the requester and earlier approvers are told.",
+      "What you send back for changes is on Sent back for changes (linked here) until the requester resubmits it.",
       "A To do badge means a step to do rather than decide (for example raise a PO): open it and Mark as done.",
     ],
     path: "/users/queue",

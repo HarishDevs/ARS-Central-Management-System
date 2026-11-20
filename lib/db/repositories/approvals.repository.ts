@@ -651,12 +651,14 @@ export interface SentBackItem {
   reason: string | null;
   typeName: string;
   forName: string | null; // sent back as a delegate for this person
+  departmentName: string | null; // v1.59.1: the requester's department (filter, group)
 }
-export async function listSentBackFor(userId: number, limit = 100, db: Queryable = getDbPool()): Promise<SentBackItem[]> {
+export async function listSentBackFor(userId: number, limit = 500, db: Queryable = getDbPool()): Promise<SentBackItem[]> {
   const [rows] = await db.query<
-    (RowDataPacket & { request_id: number; request_no: string; title: string; requester_name: string; node_label: string; decided_at: Date; comment: string | null; type_name: string; approver_id: number; approver_name: string })[]
+    (RowDataPacket & { request_id: number; request_no: string; title: string; requester_name: string; node_label: string; decided_at: Date; comment: string | null; type_name: string; approver_id: number; approver_name: string; department_name: string | null })[]
   >(
-    `SELECT t.request_id, r.request_no, r.title, u.name AS requester_name, t.node_label, t.decided_at, t.comment, w.name AS type_name, t.approver_id, a.name AS approver_name
+    `SELECT t.request_id, r.request_no, r.title, u.name AS requester_name, t.node_label, t.decided_at, t.comment, w.name AS type_name, t.approver_id, a.name AS approver_name,
+            (SELECT dq.name FROM departments dq WHERE dq.id = u.department_id) AS department_name
      FROM approval_tasks t
      JOIN approval_requests r ON r.id = t.request_id
      JOIN users u ON u.id = r.requester_id
@@ -678,6 +680,7 @@ export async function listSentBackFor(userId: number, limit = 100, db: Queryable
     reason: row.comment,
     typeName: row.type_name,
     forName: row.approver_id === userId ? null : row.approver_name,
+    departmentName: row.department_name ?? null,
   }));
 }
 

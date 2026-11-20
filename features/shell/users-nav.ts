@@ -21,6 +21,8 @@ export async function usersNav(user: { id: number; roles: readonly string[] }): 
     { href: "/users/requests", label: "My pending requests", section: "My Approvals" },
     { href: "/users/approved", label: "My approved requests", section: "My Approvals" },
     { href: "/users/queue", label: "Waiting for me", section: "My Approvals" },
+    // v1.59.1 (D-359, owner): requests you sent back for changes, on their own page.
+    { href: "/users/queue/sent-back", label: "Sent back for changes", section: "My Approvals" },
     { href: "/users/approved-by-me", label: "Approved by me", section: "My Approvals" },
     { href: "/users/collaborating", label: "Collaborating", section: "My Approvals" },
     { href: "/users/new", label: "Approval templates", section: "My Approvals" },

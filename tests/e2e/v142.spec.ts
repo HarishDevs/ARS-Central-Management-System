@@ -219,7 +219,7 @@ test("New request: the workflow is locked until Next; required fields show a sta
 test("the road: while a level waits the van is halfway to it", async ({ page, context }) => {
   await as(context, "E2E_REQ");
   await page.goto("/users/requests?tab=waiting");
-  const first = page.getByTestId("request-table").getByRole("link").first();
+  const first = page.getByTestId("request-table").locator("tbody").getByRole("link").first(); // v1.58.0: the header links sort
   if (!(await first.count())) test.skip(true, "No request waiting in this run.");
   await first.click();
   const road = page.getByTestId("approval-road");
@@ -238,7 +238,7 @@ test("the request page: the road on top, the requester's details below it, the a
   await as(context, "E2E_REQ");
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/users/requests?tab=waiting");
-  const first = page.getByTestId("request-table").getByRole("link").first();
+  const first = page.getByTestId("request-table").locator("tbody").getByRole("link").first(); // v1.58.0: the header links sort
   if (!(await first.count())) test.skip(true, "No request waiting in this run.");
   await first.click();
   const road = (await page.getByTestId("approval-road").boundingBox())!;
@@ -273,7 +273,7 @@ test("the request page on a phone: one column, the journey, then Request details
   await as(context, "E2E_REQ");
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/users/requests?tab=waiting");
-  const first = page.getByTestId("request-table").getByRole("link").first();
+  const first = page.getByTestId("request-table").locator("tbody").getByRole("link").first(); // v1.58.0: the header links sort
   if (!(await first.count())) test.skip(true, "No request waiting in this run.");
   const href = (await first.getAttribute("href"))!;
   await page.setViewportSize({ width: 390, height: 844 });
@@ -415,8 +415,11 @@ test("New request with a work step, an FYI and an approval: the work is a task i
 
   // Harini was told (Inbox) and can open the request; Manoj now has it waiting.
   await as(context, "E2E_HOD");
-  await page.goto("/users/inbox");
-  await expect(page.getByText(/For your information/).first()).toBeVisible();
+  // The message is written just after the response (the outbox), so look again until it is there.
+  await expect(async () => {
+    await page.goto("/users/inbox");
+    await expect(page.getByText(/For your information/).first()).toBeVisible({ timeout: 2000 });
+  }).toPass({ timeout: 20_000 });
   expect((await page.goto(requestPath))?.status()).toBe(200);
   await expect(page.getByRole("heading", { level: 1, name: subject })).toBeVisible();
 

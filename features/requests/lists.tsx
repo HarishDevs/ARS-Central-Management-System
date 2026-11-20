@@ -9,7 +9,6 @@ import { formatIndiaTime } from "@/server/notifications/security-messages";
 import type {
   MyRequestItem,
   QueueItem,
-  SentBackItem,
 } from "@/lib/db/repositories/approvals.repository";
 import { SafeText } from "@/features/ui/SafeText";
 import { FoldListGroup, FoldScope, FoldTbody } from "@/features/ui/GroupFold";
@@ -214,62 +213,6 @@ export function QueueTable({ items, priority, order: savedOrder, formDue = {}, g
         </table>
       </div>
     </FoldScope>
-  );
-}
-
-// v1.59.0 (D-356, owner: "if we asked changes request that also should be
-// reflected to the current approver's waiting for me screen so that the
-// particular Approver can review that"): what you sent back for changes,
-// still with the requester. Open to review; it comes back to you as a normal
-// approval when it is resubmitted.
-export function SentBackTable({ items }: { items: SentBackItem[] }) {
-  if (items.length === 0) return null;
-  return (
-    <section className="mt-6" aria-labelledby="sent-back" data-testid="sent-back">
-      <h2 id="sent-back" className="mb-1 font-semibold">
-        Sent back for changes ({items.length})
-      </h2>
-      <p className="mb-3 text-label text-ink-muted">With the requester now. Open one to review it; it comes back here for your approval when they resubmit.</p>
-      <div className="card overflow-x-auto">
-        <table className="data-table">
-          <caption className="sr-only">Requests you sent back for changes</caption>
-          <thead>
-            <tr>
-              <th scope="col">Request</th>
-              <th scope="col">Status</th>
-              <th scope="col">Waiting for</th>
-              <th scope="col">Your step</th>
-              <th scope="col">Sent back</th>
-              <th scope="col">Your reason</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item) => (
-              <tr key={item.requestId} data-testid="sent-back-row">
-                <td>
-                  <Link href={`/users/requests/${item.requestId}`} className="link">
-                    <SafeText text={item.title} />
-                  </Link>
-                  <p className="text-caption text-ink-muted">
-                    {item.requestNo} · {item.typeName}
-                  </p>
-                </td>
-                <td>
-                  <span className="inline-flex items-center rounded-full bg-warning-50 px-2 py-0.5 text-caption font-medium text-warning-600">Sent back</span>
-                </td>
-                <td>{item.requesterName} (requester)</td>
-                <td>
-                  {item.nodeLabel}
-                  {item.forName && <p className="text-caption text-ink-muted">for {item.forName}</p>}
-                </td>
-                <td className="whitespace-nowrap">{formatIndiaTime(item.sentAt)}</td>
-                <td className="max-w-xs text-ink-muted">{item.reason ? <SafeText text={item.reason} /> : "—"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
   );
 }
 

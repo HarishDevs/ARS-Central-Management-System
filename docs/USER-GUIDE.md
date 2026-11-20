@@ -215,7 +215,7 @@ Comments on a request can't be edited or removed. To tell someone in particular,
 - New values start your level again (everyone at your level sees them); earlier approvals stand unless the values change the route. Changing only the levels to come restarts nothing. The requester and earlier approvers are told what changed and why; it shows in the request's history.
 - Only the approver the request waits on now (or their delegate) can change it, and not while it is on hold. New approvers must be able to approve, and can't be the requester or you.
 
-**Sent back for changes (v1.59.0):** a request you sent back stays at the bottom of Waiting for me under **Sent back for changes**, with your reason, until the requester resubmits it; then it is back in your list for approval.
+**Sent back for changes (v1.59.1):** requests you sent back have their own page, **My Approvals → Sent back for changes** (Waiting for me links to it with the count). Each stays there, with your reason and how long it has been with the requester, until the requester resubmits it; then it is back in Waiting for me for your approval. Search, filter, sort any column, group (groups start folded) and save views as on the other lists.
 
 **Sorting, saved views and folded groups (v1.58.0):**
 - **Sort:** click any column title to sort A→Z (oldest, smallest first); click it again for Z→A. Empty values always go last. On long lists the whole list is sorted, not just the page you see.

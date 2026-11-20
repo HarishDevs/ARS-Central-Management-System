@@ -110,7 +110,7 @@ test("a request opened from a list: its module in the breadcrumb, Esc back to th
   await classicFor("E2E_REQ", true);
   await as(context, "E2E_REQ");
   await page.goto("/users/requests");
-  const first = page.getByTestId("request-table").getByRole("link").first();
+  const first = page.getByTestId("request-table").locator("tbody").getByRole("link").first(); // v1.58.0: the header links sort
   test.skip((await first.count()) === 0, "no request to open");
   await first.click();
   await expect(page).toHaveURL(/\/users\/requests\/\d+/);

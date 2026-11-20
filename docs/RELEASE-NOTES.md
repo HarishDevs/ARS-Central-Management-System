@@ -1,5 +1,10 @@
 # Release notes
 
+## v1.59.1 (20 Nov 2026): Sent back for changes on its own page (owner)
+- **Sent back for changes** is now its own page (sidebar → My Approvals → Sent back for changes; on phones, Approvals → more), instead of a table under Waiting for me. Waiting for me shows a link with how many there are.
+- The page has every table feature: **search** (number, title, requester, reason), **filters** (approval type, requester, department, your step, sent-back dates), **sort** on every column both ways (request, type, priority, requester, department, step, sent back, days with the requester, reason), **Group by** (department, requester, type, step, priority, month; groups start folded, Expand all / Collapse all), **saved views** and pages of 50.
+- **Owner steps:** no migration; publish v1.59.1.
+
 ## v1.59.0 (20 Nov 2026): Approvers change a request's details from Waiting for me; sent-back requests stay on the list (owner)
 - **Change details from the table** (Waiting for me, and the Waiting for me table on Home): each approval row has a **Change** button. It opens the request's values (files stay as they are) and, on a custom request, the **levels after yours**: change who approves a level, add a level, remove one or move it. A **reason is required**. Only the approver the request is waiting on now (or their active delegate) can do it, and not while it is on hold.
 - **What happens:** new values start your level again in a new round, so everyone at your level sees them; earlier approvals stand unless the new values change the route, in which case it restarts from the earliest affected level (as when a requester resubmits). Changing only the levels to come restarts nothing. New approvers must be able to approve (Manager and above), active, and never the requester or you. Levels up to yours never change.

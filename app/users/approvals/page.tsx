@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { COMPACT_COOKIE } from "@/lib/ui/layout";
-import { CheckCheck, CheckSquare, FilePen, Plane, Plus, Search, Users } from "lucide-react";
+import { CheckCheck, CheckSquare, FilePen, Plane, Plus, Search, Users, Undo2 } from "lucide-react";
 import { ADD_CLASS } from "@/features/mobile/dock";
 import { CompactToggle, ScreenTitle, SheetLink, ViewDock } from "@/features/mobile/BottomSheet";
 import { requireArea } from "@/server/authorization/guards";
@@ -109,6 +109,7 @@ export default async function ApprovalsHub({ searchParams }: { searchParams: Pro
   const menu = (
     <nav aria-label="More approval pages">
       {canQueue && <SheetLink href="/users/approved-by-me" icon={<CheckCheck className="h-5 w-5" />} label="Approved by me" />}
+      {canQueue && <SheetLink href="/users/queue/sent-back" icon={<Undo2 className="h-5 w-5" />} label="Sent back for changes" />}
       {!isHiddenHref("/users/collaborating", access.hidden) && <SheetLink href="/users/collaborating" icon={<Users className="h-5 w-5" />} label="Collaborating" />}
       {!isHiddenHref("/users/search", access.hidden) && <SheetLink href="/users/search" icon={<Search className="h-5 w-5" />} label="Search requests" />}
       {!isHiddenHref("/users/delegation", access.hidden) && <SheetLink href="/users/delegation" icon={<Plane className="h-5 w-5" />} label="Out of office" />}
