@@ -4,6 +4,7 @@
 // for server-paged lists, whitelisted per column), their Group by buckets and
 // the address helper. Pure (used by repositories, pages and tests).
 import { sqlDir, type ColumnSort } from "@/server/lists/sorting";
+import { priorityRankSql } from "@/server/approvals/priority";
 import { departmentBucket, indiaDayOf } from "@/server/lists/group-rows";
 
 // ORDER BY for one whitelisted column: empty values last in both directions,
@@ -38,12 +39,13 @@ export const LOGIN_ORDER: Record<LoginColumn, string> = {
   from: "l.ip_address",
 };
 
-// v1.58.0 (D-354): Super Admin → Requests columns. Priority is read from each
-// request's form, so it sorts the page on screen (not in SQL).
+// v1.58.0 (D-354): Super Admin → Requests columns. v1.58.1 (owner): Priority
+// sorts in SQL over every page (option order; confidential ranks as empty, last).
 export const REQUEST_COLUMNS = ["request", "raised_by", "type", "status", "priority", "when", "reason"] as const;
 export type RequestColumn = (typeof REQUEST_COLUMNS)[number];
-export function requestOrder(deleted: boolean): Record<Exclude<RequestColumn, "priority">, string> {
+export function requestOrder(deleted: boolean): Record<RequestColumn, string> {
   return {
+    priority: priorityRankSql("r", "v"),
     request: "r.request_no",
     raised_by: "u.name",
     type: "w.name",

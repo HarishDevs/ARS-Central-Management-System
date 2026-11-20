@@ -46,7 +46,7 @@ export function requestColumns(seeConfidential: boolean): RecordColumn<RequestRe
     { key: "type", label: "Approval type", sort: "type", value: (row) => row.type },
     { key: "amount", label: "Amount", value: (row) => amountText(row.amount, seeConfidential) },
     // v1.47.0: the request's Priority field (confidential → "Hidden", as Amount).
-    { key: "priority", label: "Priority", value: (row) => priorityText(shownPriority(row.priority, seeConfidential)), color: (row) => shownPriority(row.priority, seeConfidential)?.color ?? null },
+    { key: "priority", label: "Priority", sort: "priority", value: (row) => priorityText(shownPriority(row.priority, seeConfidential)), color: (row) => shownPriority(row.priority, seeConfidential)?.color ?? null },
     { key: "raisedBy", label: "Raised by", sort: "raisedBy", value: (row) => row.raisedBy },
     { key: "department", label: "Department", sort: "department", value: (row) => row.department ?? "" },
     { key: "status", label: "Status", sort: "status", value: (row) => STATUS_LABEL[row.status] ?? row.status },

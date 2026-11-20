@@ -177,7 +177,10 @@ function mapRow(kind: RecordKind, row: RowDataPacket): RequestRecord | TaskRecor
 // v1.58.0 (D-354): a Group by orders by the group first (fixed SQL, never the address's text).
 const orderBy = (kind: RecordKind, filter: RecordFilter) => {
   const group = filter.group ? recordGroupSql(kind, filter.group) : null;
-  return `${group ? `${group}, ` : ""}${SORTS[kind][filter.sort] ?? SORTS[kind].no} ${filter.dir === "asc" ? "ASC" : "DESC"}, ${kind === "requests" ? "r" : kind === "tasks" ? "t" : "i"}.id DESC`;
+  const expr = SORTS[kind][filter.sort] ?? SORTS[kind].no;
+  // v1.58.1: a request's Priority keeps empty (none, or confidential) last both ways.
+  const nullsLast = kind === "requests" && filter.sort === "priority" ? `${expr} IS NULL, ` : "";
+  return `${group ? `${group}, ` : ""}${nullsLast}${expr} ${filter.dir === "asc" ? "ASC" : "DESC"}, ${kind === "requests" ? "r" : kind === "tasks" ? "t" : "i"}.id DESC`;
 };
 
 export async function listRecords<K extends RecordKind>(kind: K, filter: RecordFilter, db: Queryable = getDbPool()): Promise<{ rows: RecordRow<K>[]; total: number; page: number; pages: number }> {

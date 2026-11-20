@@ -206,7 +206,10 @@ export function QueueTable({ items, priority, order: savedOrder, formDue = {}, g
   );
 }
 
-export function MyRequestsTable({ items, priority }: { items: MyRequestItem[]; priority?: Record<number, ShownPriority> }) {
+// v1.58.1 (owner): with `sort` every column title (Priority included) is a sort link.
+export function MyRequestsTable({ items, priority, sort }: { items: MyRequestItem[]; priority?: Record<number, ShownPriority>; sort?: HeaderSort }) {
+  const th = (column: string, label: string) =>
+    sort?.hrefs[column] ? <SortTh label={label} column={column} sortBy={sort.sortBy} dir={sort.dir} href={sort.hrefs[column]!} /> : <th>{label}</th>;
   if (items.length === 0) {
     return (
       <EmptyState
@@ -252,12 +255,12 @@ export function MyRequestsTable({ items, priority }: { items: MyRequestItem[]; p
         <table className="data-table">
           <thead>
             <tr>
-              <th>Request</th>
-              <th>Type</th>
-              <th>Status</th>
-              {priority && <th>Priority</th>}
-              <th>Waiting for</th>
-              <th>Raised</th>
+              {th("title", "Request")}
+              {th("type", "Type")}
+              {th("status", "Status")}
+              {priority && th("priority", "Priority")}
+              {th("waiting", "Waiting for")}
+              {th("raised", "Raised")}
             </tr>
           </thead>
           <tbody>

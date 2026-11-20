@@ -47,6 +47,9 @@ test("every column of every server-sorted list sorts both ways", async ({ page, 
     ["/superadmin/logins", LOGIN_COLUMNS, "sortBy", "dir"],
     ["/superadmin/requests", REQUEST_COLUMNS, "sortBy", "dir"],
   ];
+  // v1.58.1 (owner: a request's Priority sorts in every table): the Home tables.
+  for (const prefix of ["hq", "ha"]) lists.push(["/users?home=approvals", ["title", "priority", "from", "step", "since", "due"].map((column) => `${prefix}.${column}`), "sortBy", "dir"]);
+  for (const prefix of ["hx", "hr"]) lists.push(["/users?home=approvals", ["title", "type", "status", "priority", "waiting", "raised"].map((column) => `${prefix}.${column}`), "sortBy", "dir"]);
   for (const [path, columns, sortKey, dirKey] of lists) {
     for (const column of columns) {
       for (const dir of ["asc", "desc"]) {
@@ -54,6 +57,20 @@ test("every column of every server-sorted list sorts both ways", async ({ page, 
       }
     }
   }
+});
+
+const priorityHead = (page: import("@playwright/test").Page) => page.locator("th").filter({ has: page.getByTestId("sort-link").filter({ hasText: /^Priority$/ }) }).first();
+
+test("a request's Priority is a sort link on the records register, Super Admin requests and Home", async ({ page, context }) => {
+  await context.addCookies([await sessionCookie("E2E_SUPER")]);
+  for (const url of ["/admin/records/requests", "/superadmin/requests"]) {
+    await page.goto(url);
+    await expect(priorityHead(page), url).toBeVisible();
+  }
+  await page.goto("/admin/records/requests?sort=priority&dir=asc");
+  await expect(priorityHead(page)).toHaveAttribute("aria-sort", "ascending");
+  await page.goto("/superadmin/requests?sortBy=priority&dir=desc");
+  await expect(priorityHead(page)).toHaveAttribute("aria-sort", "descending");
 });
 
 test("a grouped list starts folded; Expand all and Collapse all work; a view saves and opens", async ({ page, context }) => {

@@ -1,5 +1,9 @@
 # Release notes
 
+## v1.58.1 (20 Nov 2026): a request's Priority sorts in every table (owner)
+- **Priority sorts everywhere** a request's Priority is shown: Admin → Records → Approval requests and Super Admin → Requests (over every page, in the database), and the Home tables (Waiting for me, Due soon or overdue, Returned to you for changes, My recent requests), which now sort on every column. Ascending puts the form's first option first (e.g. Critical). A Priority that is confidential for you, or missing, always goes last, so the order gives nothing away.
+- **Owner steps:** no migration; publish v1.58.1.
+
 ## v1.58.0 (19 Nov 2026): Sort every column, saved views everywhere, groups start folded (owner)
 - **Sort any column, both ways, in every table** (user lists, Admin and Super Admin): click a column title for A→Z (oldest, smallest), again for Z→A. Empty values always go last. Paged lists (requests, Waiting for me, tasks, information, meetings, tickets, Admin users and records, audit, sign-ins) sort on the server, so the order covers every page, not just the one shown; short tables sort in place. The sort is in the address, so it survives reloads and bookmarks.
 - **Saved views on every list** with filters, sort or group: **Save this view** keeps what is on screen (filters, search, group, sort, tab) under a name; your views show as chips (open, make default, delete). Views are **yours only** (sharing removed; a view shared before can still be unshared). A default view opens when you arrive at the list with nothing chosen; pressing Clear on the list stays clear.

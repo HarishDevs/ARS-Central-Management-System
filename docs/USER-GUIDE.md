@@ -213,6 +213,7 @@ Comments on a request can't be edited or removed. To tell someone in particular,
 **Sorting, saved views and folded groups (v1.58.0):**
 - **Sort:** click any column title to sort A→Z (oldest, smallest first); click it again for Z→A. Empty values always go last. On long lists the whole list is sorted, not just the page you see.
 - **Save this view:** keeps the list as it is now (filters, search, group, sort, tab) under a name. Your views appear as chips above the list: click one to open it, **Make default** to open it whenever you come to that list with nothing chosen, **×** to delete it. Views are only yours.
+- **Priority (v1.58.1):** a request's Priority sorts in every table, Home's included: ascending puts the form's first option (e.g. Critical) first; a Priority hidden from you, or none, goes last.
 - **Groups:** after you choose a Group by, every group starts folded. Click a group's heading to open or close it, or use **Expand all** / **Collapse all**.
 
 **Group on every list (v1.57.5):** every list page with a table has **Group**: tasks, information, meetings, follow-ups, My tickets and the ticket dashboards (Department is always one of the choices).

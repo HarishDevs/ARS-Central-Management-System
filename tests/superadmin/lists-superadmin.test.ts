@@ -39,7 +39,7 @@ describe("orderBySql", () => {
     for (const column of AUDIT_COLUMNS) expect(AUDIT_ORDER[column]).toBeTruthy();
     for (const column of LOGIN_COLUMNS) expect(LOGIN_ORDER[column]).toBeTruthy();
     const order = requestOrder(false);
-    for (const column of REQUEST_COLUMNS.filter((item) => item !== "priority")) expect(order[column as keyof typeof order]).toBeTruthy();
+    for (const column of REQUEST_COLUMNS) expect(order[column]).toBeTruthy(); // v1.58.1: Priority sorts in SQL too
     expect(requestOrder(true).when).toBe("r.deleted_at");
     expect(requestOrder(false).when).toBe("r.submitted_at");
   });

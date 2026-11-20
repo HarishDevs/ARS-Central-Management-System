@@ -17,6 +17,8 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 **Multi-level approvals in any custom manner.** The engine must support any number of levels in any combination: sequential, parallel, any-one, any-N-of-M, conditional and hybrid. Approvers can come from any source, and levels can be added or skipped by rules. Build the engine for this from the first engine phase (P2). The drag-and-drop designer (P3) is only the screen for building it. Check every task against this.
 
 ## Now / Next
+- **Now (20 Nov 2026):** **v1.58.1** a request's Priority sorts in every table (D-355). **Owner:** publish (no migration).
+- [x] TBL-04 (20 Nov 2026) Request Priority sortable in Admin records, Super Admin requests and the Home tables
 - **Now (19 Nov 2026):** **v1.58.0** sort every column, saved views everywhere, groups start folded (D-351 to D-354). **Owner:** publish (no migration). Later, if wanted: server-side sort for Task search (sorts the shown page today); groups across all pages of a paged list (grouping is per page).
 - [x] TBL-01 (19 Nov 2026) Column sorting both ways on every table (user, Admin, Super Admin, Analytics)
 - [x] TBL-02 (19 Nov 2026) Private saved views on every list (filters, group, sort, search)

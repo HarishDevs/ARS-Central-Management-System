@@ -177,7 +177,7 @@ flowchart LR
   X -- yes --> Y[Default view opens]
   X -- no, e.g. Clear on the same list --> Z[List stays as asked]
 ```
-Not sortable on purpose: button columns, records Amount and a request's form Priority (could reveal confidential values), the calendar grid, editors, chart data tables. The Coordinator board and a project's Sections start open.
+A request's Priority sorts everywhere (v1.58.1, D-355: confidential or missing ranks last). Not sortable on purpose: button columns, records Amount (could reveal confidential values), the calendar grid, editors, chart data tables. The Coordinator board and a project's Sections start open.
 
 ## F-ITEMS Item list: requested → provided (v1.57.0, D-335)
 ```mermaid

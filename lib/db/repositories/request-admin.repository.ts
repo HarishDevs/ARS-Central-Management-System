@@ -25,11 +25,11 @@ export interface AdminRequestItem {
 }
 
 // v1.58.0 (D-354, owner: "sorting in all the tables"): a column sort from the
-// whitelist (Priority sorts on the page instead), else newest first.
+// whitelist (Priority too, v1.58.1), else newest first.
 function requestSql(filter: { deleted?: boolean; sort?: ColumnSort<RequestColumn> }): string {
   const fallback = `${filter.deleted ? "r.deleted_at" : "r.id"} DESC`;
   const sort = filter.sort;
-  if (!sort || !sort.sortBy || sort.sortBy === "priority") return `ORDER BY ${fallback}`;
+  if (!sort || !sort.sortBy) return `ORDER BY ${fallback}`;
   return orderBySql(requestOrder(Boolean(filter.deleted)), { sortBy: sort.sortBy, dir: sort.dir }, fallback, "r.id DESC");
 }
 

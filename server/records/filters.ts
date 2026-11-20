@@ -2,6 +2,8 @@
 // and information item, whoever raised it, in one spreadsheet-like table each.
 // This file reads the filters from the address (pure, unit-tested); every
 // value is checked against a fixed list or pattern before it reaches SQL.
+import { priorityRankSql } from "@/server/approvals/priority";
+
 export type RecordKind = "requests" | "tasks" | "information";
 
 export const REQUEST_STATUSES = ["IN_PROGRESS", "ON_HOLD", "CHANGES_REQUIRED", "APPROVED", "REJECTED", "CANCELLED"] as const;
@@ -17,9 +19,13 @@ export const SORTS: Record<RecordKind, Record<string, string>> = {
   information: { no: "i.id", title: "i.title", type: "type_name", priority: "FIELD(i.priority, 'NORMAL', 'ELEVATED', 'IMPORTANT', 'HIGH', 'URGENT')", status: "i.status", createdBy: "creator_name", department: "department_name", created: "i.created_at", published: "i.published_at" },
 };
 // v1.58.0 (D-354, owner: "sorting ... in all columns"): the remaining columns.
-// Amount and a request's Priority are not sortable: they are read from each
-// request's form and may be confidential (sorting would give hidden values away).
-Object.assign(SORTS.requests, { step: "current_step", waiting: "waiting_on", approvals: "approvals", round: "r.round", age: "TIMESTAMPDIFF(SECOND, r.submitted_at, COALESCE(r.closed_at, UTC_TIMESTAMP()))" });
+// Amount is not sortable: it is read from each request's form and may be
+// confidential (sorting would give hidden values away).
+// v1.58.1 (owner: "request's form Priority is a must sortable column in all
+// tables"): Priority sorts by its option's place in the form (first option,
+// e.g. Critical, first on ascending), as on the user lists. A confidential
+// Priority ranks as empty (always last), so the order gives nothing away.
+Object.assign(SORTS.requests, { priority: priorityRankSql("r", "v"), step: "current_step", waiting: "waiting_on", approvals: "approvals", round: "r.round", age: "TIMESTAMPDIFF(SECOND, r.submitted_at, COALESCE(r.closed_at, UTC_TIMESTAMP()))" });
 Object.assign(SORTS.tasks, { overdue: "overdue", assignedBy: "assigned_by_name", related: "related_request" });
 Object.assign(SORTS.information, { effective: "i.effective_on", expires: "i.expires_on", recipients: "recipients", read: "read_count", ack: "ack_count" });
 

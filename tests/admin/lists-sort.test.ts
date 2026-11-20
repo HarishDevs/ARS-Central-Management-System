@@ -38,13 +38,17 @@ describe("Admin → Records sort and group", () => {
     ] as const;
     for (const [kind, columns] of sets)
       for (const column of columns) {
-        if (kind === "requests" && (column.key === "amount" || column.key === "priority")) {
+        if (kind === "requests" && column.key === "amount") {
           expect(column.sort, column.key).toBeUndefined();
           continue;
         }
         expect(column.sort, `${kind}.${column.key}`).toBeDefined();
         expect(SORTS[kind][column.sort!], `${kind}.${column.key}`).toBeDefined();
       }
+  });
+  it("sorts a request's Priority by option order, empty and confidential last (v1.58.1)", () => {
+    expect(SORTS.requests.priority).toContain("confidential");
+    expect(SORTS.requests.priority).toContain("THEN NULL");
   });
   it("reads a known group only and keeps it in links", () => {
     expect(readRecordFilter("requests", { group: "department" }).group).toBe("department");

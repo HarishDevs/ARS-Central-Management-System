@@ -18,7 +18,7 @@ import { FoldScope, FoldTbody } from "@/features/ui/GroupFold";
 import { ListViews } from "@/features/lists/ListViews";
 import { groupMenu, sortHeads } from "@/features/superadmin/sort-heads";
 import { applyDefaultListView } from "@/server/lists/views";
-import { parseColumnSort, sortRows } from "@/server/lists/sorting";
+import { parseColumnSort } from "@/server/lists/sorting";
 import { groupRows, pickGroup } from "@/server/lists/group-rows";
 import { REQUEST_COLUMNS, REQUEST_GROUP_LABEL, REQUEST_GROUPS, listHref, requestBucket } from "@/server/lists/superadmin-lists";
 
@@ -48,7 +48,7 @@ export default async function SuperAdminRequestsPage({ searchParams }: { searchP
   const result = await listAllRequests({ q, status, deleted, page: Number(params.page) || 1, sort });
   // v1.47.0: each request's Priority (the Super Admin sees confidential values).
   const priority = await priorityRecord(result.items.map((item) => item.id), user);
-  const items = sort.sortBy === "priority" ? sortRows(result.items, (item) => (priority[item.id] && !priority[item.id]!.hidden ? priority[item.id]!.rank : null), sort.dir) : result.items;
+  const items = result.items; // v1.58.1: every column, Priority too, is sorted in SQL
   // v1.58.0 (D-354, owner): Group by status, approval type or department (folded by default).
   const group = pickGroup(query.group, REQUEST_GROUPS);
   const head = sortHeads(PATH, query, sort);
