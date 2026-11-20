@@ -17,7 +17,8 @@ describe("addresses survive Cloudflare email obfuscation", () => {
     const html = renderToStaticMarkup(<SafeText text="Ask IT (itadmin@arssteels.co.in) or approvals@arssteels.net today." />);
     expect(html).not.toMatch(EMAIL_IN_HTML);
     expect(html.replace(/<[^>]+>/g, "")).toBe("Ask IT (itadmin@arssteels.co.in) or approvals@arssteels.net today.");
-    expect(renderToStaticMarkup(<SafeText text="No address here." />)).toBe("No address here.");
+    // v1.59.2 (D-361): the text sits in a span.cell-text (two lines at most in a table cell).
+    expect(renderToStaticMarkup(<SafeText text="No address here." />)).toBe('<span class="cell-text">No address here.</span>');
   });
 });
 

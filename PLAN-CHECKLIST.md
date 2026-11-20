@@ -17,7 +17,9 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 **Multi-level approvals in any custom manner.** The engine must support any number of levels in any combination: sequential, parallel, any-one, any-N-of-M, conditional and hybrid. Approvers can come from any source, and levels can be added or skipped by rules. Build the engine for this from the first engine phase (P2). The drag-and-drop designer (P3) is only the screen for building it. Check every task against this.
 
 ## Now / Next
-- **Now (20 Nov 2026):** **v1.59.1** Sent back for changes on its own page with every table feature (D-359). **Owner:** publish (no migration).
+- **Now (20 Nov 2026):** **v1.59.2** resizable columns, two-line cells, ticket status by department (D-360, D-361). **Owner:** publish (no migration).
+- [x] TBL-05 (20 Nov 2026) Resizable columns on every table and the task grids; long text two lines then …
+- [x] TKT-20 (20 Nov 2026) Ticket analytics: Status by department per form with a Priority filter
 - [x] APR-03 (20 Nov 2026) Sent back for changes as its own page (search, filters, sort, group, saved views, pages); link from Waiting for me
 - [x] APR-01 (20 Nov 2026) Sent back for changes shown on the approver's Waiting for me
 - [x] APR-02 (20 Nov 2026) Approver changes values and levels to come from the Waiting for me table (reason, history, notifications, audit)

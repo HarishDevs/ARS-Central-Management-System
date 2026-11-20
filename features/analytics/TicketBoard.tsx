@@ -5,6 +5,8 @@ import { viewerCategories } from "@/lib/db/repositories/tickets.repository";
 import { teamOf } from "@/server/work/task-access";
 import { TICKET_PRIORITIES, TICKET_PRIORITY_LABEL } from "@/server/modules/settings";
 import { TICKET_STATUSES, TICKET_STATUS_LABEL, isOverdue } from "@/server/tickets/rules";
+import { summariseStatusByDepartment, type PriorityFilter, type StatusTable } from "@/server/tickets/status-summary";
+import { TicketStatusByDepartment } from "@/features/analytics/TicketStatusByDepartment";
 import type { Scope, Viewer } from "@/server/analytics/scope";
 import type { Period } from "@/server/analytics/periods";
 
@@ -20,6 +22,7 @@ const pct = (part: number, whole: number) => (whole ? Math.round((part / whole) 
 const pctText = (value: number | null) => (value === null ? "—" : `${value}%`);
 const avg = (values: number[]) => (values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null);
 const hours = (from: Date | null, to: Date | null) => (from && to ? Math.max(0, (to.getTime() - from.getTime()) / 3_600_000) : null);
+const dayText = (day: string) => new Date(`${day}T00:00:00Z`).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
 const hoursText = (value: number | null) => (value === null ? "—" : value < 24 ? `${Math.round(value)} h` : `${(value / 24).toFixed(1)} days`);
 
 async function scopeFor(scope: Scope, viewer: Viewer): Promise<TicketAnalyticsScope> {
@@ -90,6 +93,11 @@ export async function TicketBoard({ scope, viewer, period, previous }: { scope: 
   }
   const assigneeRows = [...assignees.values()].sort((a, b) => b.overdue - a.overdue || b.open - a.open).slice(0, 25);
   const statusNow = TICKET_STATUSES.filter((status) => status !== "CLOSED").map((status) => [TICKET_STATUS_LABEL[status], open.filter((row) => row.status === status).length] as const);
+  // v1.59.2 (D-360, owner: "Priority wise IT Software Issues Status"): the
+  // tickets raised in the period, one table per form, a row per department.
+  // Worked out here for All and each priority; ?tpriority= picks one.
+  const priorityOptions: { value: PriorityFilter; label: string }[] = [{ value: "ALL", label: "All" }, ...TICKET_PRIORITIES.map((priority) => ({ value: priority, label: TICKET_PRIORITY_LABEL[priority] }))];
+  const statusTables: Partial<Record<PriorityFilter, StatusTable[]>> = Object.fromEntries(priorityOptions.map((option) => [option.value, summariseStatusByDepartment(rows, option.value, at)]));
   const byPriority = TICKET_PRIORITIES.map((priority) => ({ label: TICKET_PRIORITY_LABEL[priority], figures: figuresOf(rows.filter((row) => row.priority === priority)) })).filter((row) => row.figures.raised > 0);
 
   return (
@@ -104,6 +112,13 @@ export async function TicketBoard({ scope, viewer, period, previous }: { scope: 
               : "Tickets you raised or were assigned, and every ticket of the forms you coordinate."}{" "}
         Period figures count tickets raised in the period; “now” figures ignore the period.
       </p>
+
+      <Section title="Status by department">
+        <p className="mb-3 text-caption text-ink-muted">
+          Tickets raised in the period. Due is the Target date, or else the Required date (end of that day). On time: closed by the due, or closed with no due date. Delay: closed after the due. Overdue: still open after the due. Not due: still open, due not passed or no due date.
+        </p>
+        <TicketStatusByDepartment options={priorityOptions} tables={statusTables} from={dayText(period.from)} to={dayText(period.to)} />
+      </Section>
 
       <Section title="Volume">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">

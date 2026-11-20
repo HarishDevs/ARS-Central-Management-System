@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 // request's background work step may read that request.
 // v1.46.0 (D-277, D-278): the encrypted backup copy may go to an ARS Google
 // Drive folder; security records are deleted after 90 days.
-const PRIVACY_EFFECTIVE = "18 November 2026";
+const PRIVACY_EFFECTIVE = "20 November 2026";
 
 export default function PrivacyPage() {
   return (
@@ -132,6 +132,10 @@ export default function PrivacyPage() {
           On a screen narrower than 768 pixels ARS CMS shows its phone layout. To pick the right layout, the browser keeps one small cookie, <code>ars_layout</code>, holding only the word
           &ldquo;mobile&rdquo; or &ldquo;desktop&rdquo; for a year. It holds nothing about the person, and the app works the same without it. If you turn on
           Compact mode in a phone list, a second small cookie, <code>ars_m_compact</code>, keeps that choice (&ldquo;1&rdquo; or &ldquo;0&rdquo;) on that device for a year.
+        </p>
+        <p>
+          When you resize a column, the browser keeps the widths you chose (numbers only, per page and table) in its own storage on that device, so the table opens the same way next time. They
+          never leave the device, hold nothing about you or your records, and go when you clear the browser&apos;s site data.
         </p>
 
         <h2>How information is shared</h2>

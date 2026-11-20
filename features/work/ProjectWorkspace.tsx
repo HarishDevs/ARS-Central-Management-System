@@ -18,6 +18,8 @@ import type { GridConfig, GridTask } from "@/server/work/grid";
 import { inside } from "@/features/ui/inside";
 import { FoldAllButtons } from "@/features/ui/GroupFold";
 import { sortRows, type SortDir } from "@/server/lists/sorting";
+import { ColumnResizer } from "@/features/work/ColumnResizer";
+import { useColumnWidths, type ColumnDefault } from "@/features/work/useColumnWidths";
 
 // D-215: a project's List and Board. Sections hold tasks in the order the
 // team set (drag, or Alt+↑/↓ on a row); a sort other than "Manual" only
@@ -114,7 +116,17 @@ export function ProjectWorkspace({
   const paneLink = usePaneLink();
   useAutoRefresh();
   // D-218: column widths: select, task, assignee, due, priority, then the project's fields.
-  const columns = { gridTemplateColumns: `${canEdit ? "28px " : ""}minmax(220px,1fr) 170px 130px 110px${fields.map(() => " 150px").join("")}` };
+  // Owner: "all the columns in all the tables should be resizable": every column
+  // but the select box takes its width from one state (header and all rows).
+  const widthDefaults: ColumnDefault[] = [
+    { key: "title", width: 220, flex: true },
+    { key: "assignee", width: 170 },
+    { key: "due", width: 130 },
+    { key: "priority", width: 110 },
+    ...fields.map((field) => ({ key: `f${field.id}`, width: 150 })),
+  ];
+  const resize = useColumnWidths(`project-list:${projectId}`, widthDefaults);
+  const columns = { gridTemplateColumns: `${canEdit ? "28px " : ""}${resize.template}` };
 
   const visible = useMemo(() => {
     const words = filter.toLowerCase().split(/\s+/).filter(Boolean);
@@ -174,11 +186,12 @@ export function ProjectWorkspace({
   }, [group, sections, visible, now]);
   // v1.58.0 (D-354): a sortable column title of the list.
   const sortHead = (column: Exclude<Sort, "manual"> | number, label: string) => {
+    const colKey = typeof column === "number" ? `f${column}` : column;
     const active = typeof column === "number" ? sortField === column : sortField === null && sort === column;
     const Icon = !active ? ArrowUpDown : dir === "asc" ? ArrowUp : ArrowDown;
     const next = active && dir === "asc" ? "descending" : "ascending";
     return (
-      <span key={String(column)} role="columnheader" aria-sort={active ? (dir === "asc" ? "ascending" : "descending") : "none"} className="truncate">
+      <span key={String(column)} role="columnheader" aria-sort={active ? (dir === "asc" ? "ascending" : "descending") : "none"} className="relative truncate pr-2" data-column={colKey}>
         <button
           type="button"
           onClick={() => {
@@ -199,6 +212,13 @@ export function ProjectWorkspace({
           <span className="truncate">{label}</span>
           <Icon aria-hidden="true" className={`h-3.5 w-3.5 shrink-0 ${active ? "" : "opacity-40"}`} />
         </button>
+        <ColumnResizer
+          column={colKey}
+          label={label}
+          width={resize.widths[colKey] ?? widthDefaults.find((item) => item.key === colKey)?.width}
+          onResize={(width) => resize.setWidth(colKey, width)}
+          onReset={() => resize.reset(colKey)}
+        />
       </span>
     );
   };
@@ -412,6 +432,7 @@ export function ProjectWorkspace({
           meId={meId}
           nowIso={nowIso}
           view={grid.view}
+          widthKey={`project:${projectId}`}
           bulk={canEdit}
           editAssignee={canEdit}
           editPriority={canEdit}
@@ -427,7 +448,7 @@ export function ProjectWorkspace({
       {toolbar}
       {groups.length > 0 && <FoldAllButtons onAll={foldAll} testId="project-fold-all" />}
       <div className="card overflow-x-auto" data-testid="project-list">
-        <div role="table" aria-label="Tasks" className="min-w-[760px]">
+        <div role="table" aria-label="Tasks" className="min-w-max">
           <div role="row" style={columns} className="relative grid border-b border-line bg-surface-muted px-3 py-2 text-caption font-semibold uppercase tracking-wide text-ink-faint">
             {canEdit && (
               <span role="columnheader">
@@ -517,14 +538,15 @@ export function ProjectWorkspace({
                           />
                         </div>
                       )}
-                      <div role="cell" className="flex min-w-0 items-center gap-2">
+                      <div role="cell" className="flex min-w-0 items-center gap-2 pr-2 [contain:inline-size]">
                         <span aria-hidden="true" className={`text-ink-faint ${canDrag ? "cursor-grab opacity-0 group-hover:opacity-100" : "invisible"}`} title="Drag to move (or Alt+↑/↓)">
                           <GripVertical className="h-4 w-4" />
                         </span>
                         <TaskCheck taskId={task.id} done={task.status === "COMPLETED"} disabled={!(canEdit || task.assigneeId === meId) || task.status === "CANCELLED"} label={task.title} />
                         <Link
                           href={paneLink(task.id)} scroll={false}
-                          className="min-w-0 truncate text-label text-ink hover:underline"
+                          title={task.title}
+                          className="line-clamp-2 min-w-0 break-words text-label text-ink hover:underline"
                           aria-keyshortcuts={canDrag ? "Alt+ArrowUp Alt+ArrowDown" : undefined}
                         >
                           {task.isMilestone && <Diamond aria-label="Milestone" className="mr-1 inline h-3.5 w-3.5 text-primary-600" />}
@@ -532,7 +554,7 @@ export function ProjectWorkspace({
                         </Link>
                         <RowBadges task={task} />
                       </div>
-                      <div role="cell">
+                      <div role="cell" className="min-w-0">
                         {canEdit ? (
                           <PersonSelect
                             ariaLabel={`Assignee of ${task.title}`}
@@ -544,13 +566,15 @@ export function ProjectWorkspace({
                             }}
                             compact
                             floating
-                            className="w-[160px] text-label"
+                            className="w-full max-w-[160px] text-label"
                           />
                         ) : (
-                          <span className="text-label text-ink-muted">{task.assigneeName}</span>
+                          <span className="block truncate text-label text-ink-muted" title={task.assigneeName}>
+                            {task.assigneeName}
+                          </span>
                         )}
                       </div>
-                      <div role="cell">
+                      <div role="cell" className="min-w-0">
                         {canEdit || task.assigneeId === meId ? (
                           <input
                             key={task.dueAt ?? "none"}
@@ -567,13 +591,13 @@ export function ProjectWorkspace({
                                   if (!result?.ok) input.value = before; // refused or cancelled: show the saved date again
                                 });
                             }}
-                            className={`field-input h-8 w-[124px] py-0 text-label ${TONE_TEXT[dueLabel(task.dueAt, now, OPEN.has(task.status))?.tone ?? "neutral"]}`}
+                            className={`field-input h-8 w-full max-w-[124px] py-0 text-label ${TONE_TEXT[dueLabel(task.dueAt, now, OPEN.has(task.status))?.tone ?? "neutral"]}`}
                           />
                         ) : (
                           <span className="text-label">{dueLabel(task.dueAt, now, OPEN.has(task.status))?.text ?? "—"}</span>
                         )}
                       </div>
-                      <div role="cell">
+                      <div role="cell" className="min-w-0">
                         {canEdit ? (
                           <select
                             aria-label={`Priority of ${task.title}`}
@@ -581,7 +605,7 @@ export function ProjectWorkspace({
                             disabled={!OPEN.has(task.status)}
                             onChange={(event) => void call(() => taskFieldsAction(task.id, { priority: event.target.value }), { success: false })}
                             {...priorityControlProps(task.priority)}
-                            className={`field-input h-8 w-[100px] py-0 text-label ${priorityControlProps(task.priority).className}`}
+                            className={`field-input h-8 w-full max-w-[100px] py-0 text-label ${priorityControlProps(task.priority).className}`}
                           >
                             <option value="URGENT">Critical</option>
                             <option value="HIGH">Most Important</option>
@@ -595,7 +619,7 @@ export function ProjectWorkspace({
                         )}
                       </div>
                       {fields.map((field) => (
-                        <div key={field.id} role="cell" className="pr-2">
+                        <div key={field.id} role="cell" className="min-w-0 pr-2">
                           <FieldInput taskId={task.id} field={{ ...field, name: `${field.name} of ${task.title}` }} value={values[task.id]?.[field.id] ?? ""} canChange={canEdit || task.assigneeId === meId} compact />
                         </div>
                       ))}

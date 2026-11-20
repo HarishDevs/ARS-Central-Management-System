@@ -583,6 +583,9 @@ flowchart LR
   Q[Approver asks for changes] --> B[Sent back for changes page (v1.59.1, D-359), linked from Waiting for me] --> U[Requester resubmits] --> A[Back in Waiting for me as an approval]
 ```
 
+## F-TICKET-STATUS Ticket status by department (v1.59.2, D-360)
+Tickets raised in the period (the board's scope) → per form, per requester department → due = Target date else Required date (end of that India day) → closed (status CLOSED) by the due or with none = On time; closed later = Delay; open past due = Overdue; open otherwise = Not due → Total row. Priority filter (?tpriority=) narrows the counts; the departments stay.
+
 ## F-27 On Hold / resume
 Approver puts the request on hold (reason) → state On Hold, stays open, counts as pending, SLA paused → the approver resumes → back to Pending at the same level.
 

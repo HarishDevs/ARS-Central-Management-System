@@ -1,5 +1,16 @@
 # Release notes
 
+## v1.59.2 (20 Nov 2026): Resizable columns, two-line cells, ticket status by department (owner)
+- **Resize any column**: drag the right edge of a column title in any table (user, Admin, Super Admin), and in the task lists and project lists. Double-click the edge to go back to the automatic width. In the task and project lists, a focused edge also moves with ← / → (Enter resets). Widths are kept in this browser, per page and table.
+- **Long text no longer stretches rows**: text in a table cell shows at most two lines, then "…". Hover to read all of it, or widen the column. Task names in the task lists work the same way.
+- **Ticket analytics → Status by department**, like the owner's sheet: one table per ticket form (e.g. IT Software, IT Hardware) for the chosen period, with Department, Total, On time, Delay, Overdue and Not due, and a Total row. A **Priority** filter on top (All, Critical, Most important, Important, High, Normal).
+  - **Due:** the coordinator's Target date, or the requester's Required date (end of that day) when no Target is set.
+  - **Finished:** when the ticket is closed.
+  - **On time:** closed by the due time, or with no due date. **Delay:** closed after it. **Overdue:** still open past the due time. **Not due:** still open, not yet due.
+  - A reopened ticket counts as open again.
+  - Every column sorts; the Total row stays at the bottom.
+- **Owner steps:** no migration; publish v1.59.2.
+
 ## v1.59.1 (20 Nov 2026): Sent back for changes on its own page (owner)
 - **Sent back for changes** is now its own page (sidebar → My Approvals → Sent back for changes; on phones, Approvals → more), instead of a table under Waiting for me. Waiting for me shows a link with how many there are.
 - The page has every table feature: **search** (number, title, requester, reason), **filters** (approval type, requester, department, your step, sent-back dates), **sort** on every column both ways (request, type, priority, requester, department, step, sent back, days with the requester, reason), **Group by** (department, requester, type, step, priority, month; groups start folded, Expand all / Collapse all), **saved views** and pages of 50.

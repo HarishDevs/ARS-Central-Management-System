@@ -28,7 +28,8 @@ export function SafeText({ text }: { text: string }) {
     parts.push(<Email key={index} address={match[0]} />);
     last = index + match[0].length;
   }
-  if (parts.length === 0) return <>{text}</>;
+  // v1.59.2 (D-361): in a table cell the text shows at most two lines (styles: .data-table .cell-text).
+  if (parts.length === 0) return <span className="cell-text">{text}</span>;
   if (last < text.length) parts.push(text.slice(last));
-  return <>{parts}</>;
+  return <span className="cell-text">{parts}</span>;
 }

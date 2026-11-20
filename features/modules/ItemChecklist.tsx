@@ -90,7 +90,9 @@ export function ItemChecklist({ entityType, entityId, lists, canTick }: { entity
                   {lines.map((line) => (
                     <tr key={line.lineNo}>
                       <td className="px-3 py-2 tabular-nums text-ink-muted">{line.lineNo + 1}</td>
-                      <td className={`px-3 py-2 ${line.provided ? "text-ink-muted line-through" : ""}`}>{line.description}</td>
+                      <td className={`px-3 py-2 ${line.provided ? "text-ink-muted line-through" : ""}`}>
+                        <span className="clamp-2">{line.description}</span>
+                      </td>
                       <td className="px-3 py-2 text-right tabular-nums">{line.quantity.toLocaleString("en-IN")}</td>
                       <td className="px-3 py-2">
                         <label className="inline-flex items-center gap-2">

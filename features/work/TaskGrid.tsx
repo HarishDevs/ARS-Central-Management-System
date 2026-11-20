@@ -18,6 +18,8 @@ import { dueLabel, indiaDayOf, TONE_TEXT } from "@/features/work/format";
 import { BulkBar, FieldInput, type FieldView } from "@/features/work/MoreParts";
 import { AddTask } from "@/features/work/ProjectWorkspace";
 import { CollaboratorsCell, TagsCell } from "@/features/work/GridCellEditors";
+import { ColumnResizer } from "@/features/work/ColumnResizer";
+import { useColumnWidths, type ColumnDefault } from "@/features/work/useColumnWidths";
 import {
   applyGrid,
   columnSortState,
@@ -53,7 +55,8 @@ export interface GridView {
 }
 
 const COMPLETED_LABEL: Record<(typeof COMPLETED_RANGES)[number], string> = { none: "Hide", all: "All completed", today: "Completed today", week: "Past 7 days", month: "Past 30 days" };
-const WIDTH: Record<GridColumn, string> = { due: "130px", assignee: "190px", collaborators: "150px", createdBy: "160px", projects: "210px", visibility: "180px", priority: "160px", tags: "150px" };
+const WIDTH: Record<GridColumn, number> = { due: 130, assignee: 190, collaborators: 150, createdBy: 160, projects: 210, visibility: 180, priority: 160, tags: 150 };
+const FIELD_WIDTH = 150;
 
 export function TaskGrid({
   rows,
@@ -79,6 +82,7 @@ export function TaskGrid({
   editPriority = true,
   emptyText = "No tasks here.",
   syncUrl = false,
+  widthKey,
 }: {
   rows: GridTask[];
   initial: GridConfig;
@@ -103,6 +107,8 @@ export function TaskGrid({
   // v1.58.0 (D-354): keep the sort and grouping in the address (a page whose
   // saved views are its address, e.g. search results).
   syncUrl?: boolean;
+  // Where this table keeps its column widths (ars.gridw:<widthKey>).
+  widthKey?: string;
 }) {
   const projectsOn = useProjectsOn();
   const { call } = useWorkCall();
@@ -151,7 +157,17 @@ export function TaskGrid({
   const groups = useMemo(() => applyGrid(rows, config, { today, meId, sections, values }), [rows, config, today, meId, sections, values]);
   const shown = config.hidden.length ? columns.filter((column) => !config.hidden.includes(column)) : columns;
   const canDrag = Boolean(onMove) && config.group === "section" && config.sort === "none" && !config.sortField && filterCount(config) === 0 && !config.search;
-  const gridColumns = { gridTemplateColumns: `40px minmax(260px,1fr)${shown.map((column) => ` ${WIDTH[column]}`).join("")}${fields.map(() => " 150px").join("")}` };
+  // Owner: "all the columns in all the tables should be resizable". Every
+  // column but the row number takes its width from one state (drag the right
+  // edge of its title; ←/→ when focused; double-click or Enter resets).
+  const widthDefaults: ColumnDefault[] = [
+    { key: "name", width: 260, flex: true },
+    ...shown.map((column) => ({ key: column, width: WIDTH[column] })),
+    ...fields.map((field) => ({ key: `f${field.id}`, width: FIELD_WIDTH })),
+  ];
+  const resize = useColumnWidths(widthKey ?? (testId === "task-grid" ? "taskgrid" : `taskgrid:${testId}`), widthDefaults);
+  const gridColumns = { gridTemplateColumns: `40px ${resize.template}` };
+  const resizer = (key: string, label: string) => <ColumnResizer column={key} label={label} width={resize.widths[key] ?? widthDefaults.find((column) => column.key === key)?.width} onResize={(width) => resize.setWidth(key, width)} onReset={() => resize.reset(key)} />;
   const set = (changes: Partial<GridConfig>) => setConfig((value) => ({ ...value, ...changes }));
   const dirty = JSON.stringify(config) !== saved;
   const count = filterCount(config);
@@ -161,16 +177,17 @@ export function TaskGrid({
   // The sort is part of the view (saved with Save view / Save as a new tab).
   const sorting = Boolean(config.sortField) || config.sort !== "none";
   const sortName = config.sortField ? (fields.find((field) => field.id === config.sortField)?.name ?? "Field") : SORT_LABEL[config.sort];
-  const sortHead = (column: SortableColumn, label: string, className: string) => {
+  const sortHead = (column: SortableColumn, label: string, className: string, colKey: string) => {
     const state = columnSortState(config, column);
     const Icon = state === "asc" ? ArrowUp : state === "desc" ? ArrowDown : ArrowUpDown;
     const next = state === "asc" ? "descending" : "ascending";
     return (
-      <span key={String(column)} role="columnheader" aria-sort={state === "asc" ? "ascending" : state === "desc" ? "descending" : "none"} className={className}>
+      <span key={String(column)} role="columnheader" aria-sort={state === "asc" ? "ascending" : state === "desc" ? "descending" : "none"} className={`relative ${className}`} data-column={colKey}>
         <button type="button" onClick={() => set(nextColumnSort(config, column))} title={`Sort by ${label}, ${next}`} className={`inline-flex max-w-full items-center gap-1 hover:text-ink ${state ? "text-ink" : ""}`} data-testid="grid-sort">
           <span className="truncate">{label}</span>
           <Icon aria-hidden="true" className={`h-3.5 w-3.5 shrink-0 ${state ? "" : "opacity-40"}`} />
         </button>
+        {resizer(colKey, label)}
       </span>
     );
   };
@@ -391,9 +408,9 @@ export function TaskGrid({
             <span role="columnheader" className="px-2 py-2">
               #
             </span>
-            {sortHead("name", "Name", "border-r border-line px-2 py-2")}
-            {shown.map((column) => sortHead(column, COLUMN_LABEL[column], "truncate border-r border-line px-2 py-2"))}
-            {fields.map((field) => sortHead(field.id, field.name, "truncate border-r border-line px-2 py-2"))}
+            {sortHead("name", "Name", "border-r border-line px-2 py-2", "name")}
+            {shown.map((column) => sortHead(column, COLUMN_LABEL[column], "truncate border-r border-line px-2 py-2", column))}
+            {fields.map((field) => sortHead(field.id, field.name, "truncate border-r border-line px-2 py-2", `f${field.id}`))}
           </div>
           {allShown.length === 0 && !(config.group === "section" && sections?.length) && <p className="px-4 py-8 text-center text-label text-ink-muted">{emptyText}</p>}
           {groups.map((group) => {
@@ -473,9 +490,9 @@ export function TaskGrid({
                         <span role="cell" className="px-2 text-caption text-ink-faint">
                           {index + 1}
                         </span>
-                        <span role="cell" className="flex min-w-0 items-center gap-2 border-r border-line px-2 py-1">
+                        <span role="cell" className="flex min-w-0 items-center gap-2 border-r border-line px-2 py-1 [contain:inline-size]">
                           <TaskCheck taskId={task.id} done={task.status === "COMPLETED"} disabled={!task.canComplete} label={task.title} />
-                          <Link href={paneLink(task.id)} scroll={false} className={`min-w-0 truncate hover:underline ${task.status === "COMPLETED" ? "text-ink-muted line-through" : "text-ink"}`}>
+                          <Link href={paneLink(task.id)} scroll={false} title={task.title} className={`line-clamp-2 min-w-0 break-words hover:underline ${task.status === "COMPLETED" ? "text-ink-muted line-through" : "text-ink"}`}>
                             {task.title}
                           </Link>
                           <span className="flex shrink-0 items-center gap-2 text-caption text-ink-muted">
@@ -580,7 +597,7 @@ export function TaskGrid({
                           </span>
                         ))}
                         {fields.map((field) => (
-                          <span key={field.id} role="cell" className="border-r border-line px-1">
+                          <span key={field.id} role="cell" className="min-w-0 border-r border-line px-1">
                             <FieldInput taskId={task.id} field={{ ...field, name: `${field.name} of ${task.title}` }} value={values[task.id]?.[field.id] ?? ""} canChange={task.canEdit} compact />
                           </span>
                         ))}

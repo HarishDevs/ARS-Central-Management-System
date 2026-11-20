@@ -260,6 +260,39 @@ body {
   .data-table tbody tr:last-child td {
     @apply border-b-0;
   }
+  /* v1.59.2 (D-361, owner: "the tables should not be wrapped completely
+     because it is hiding all the below line items"): long text in a cell
+     shows two lines, then …; hover shows it all (TableColumns adds the
+     title), and widening the column shows more. */
+  .data-table td .cell-text,
+  .data-table td > a,
+  .data-table td > p,
+  .data-table td .clamp-2 {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+  }
+  .data-table td > a .cell-text {
+    display: inline;
+  }
+  /* v1.59.2 (D-361, owner: "all the columns in all the tables should be
+     resizable"): TableColumns marks the column title whose right edge is
+     under the pointer; the page shows a resize cursor and the edge in blue. */
+  thead [data-col-edge] {
+    box-shadow: inset -2px 0 0 var(--color-primary-600);
+  }
+  .col-edge,
+  .col-edge *,
+  .col-resizing,
+  .col-resizing * {
+    cursor: col-resize !important;
+  }
+  .col-resizing,
+  .col-resizing * {
+    user-select: none !important;
+  }
   .link {
     @apply font-semibold text-primary-600 hover:text-primary-700 hover:underline;
   }

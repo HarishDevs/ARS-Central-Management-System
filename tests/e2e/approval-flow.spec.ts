@@ -69,7 +69,7 @@ test("the HOD asks for changes; the requester resubmits; the HOD approves", asyn
   await as(context, "E2E_HOD");
   await page.goto(requestPath);
   await decide(page, "Approve");
-  await expect(page.getByText("Fully approved", { exact: true })).toBeVisible();
+  await expect(page.getByText("Fully approved", { exact: true }).first()).toBeVisible(); // v1.59.2: banner and footer both say it
   await expect(page.getByText("Approved", { exact: true }).first()).toBeVisible();
 });
 

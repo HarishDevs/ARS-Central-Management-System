@@ -1,3 +1,4 @@
+import { TableColumns } from "@/features/ui/TableColumns";
 import Link from "next/link";
 import { BrandLockup, CmsMark } from "@/features/ui/Brand";
 import { InstallInviteAccountSync } from "@/features/pwa/InstallInvite";
@@ -351,6 +352,8 @@ export async function AppShell({ area, user, nav, children }: { area: AppArea; u
           }
         >
           {children}
+          {/* v1.59.2 (D-361): every table's columns can be resized. */}
+          <TableColumns />
         </main>
         {/* WEB-15 (v1.10.0): the phone bar holds My approvals destinations, so it
             shows in that space only; Admin and Super Admin use the menu. */}
