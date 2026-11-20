@@ -1,5 +1,10 @@
 # Release notes
 
+## v1.59.4 (20 Nov 2026): Ticket status by department: a table for every form (owner)
+- **Status by department** now has a separate table for each ticket form (e.g. IT Hardware Ticketing and IT Software Ticketing), named after the form, with its category. Any form IT creates gets its own table as soon as it has a ticket in the period.
+- A category with two or more forms also gets a table for all its forms together (e.g. "IT Ticketing (all forms)"), shown first.
+- **Owner steps:** no migration; publish v1.59.4.
+
 ## v1.59.3 (20 Nov 2026): Tickets are updated on the ticket, no task (owner)
 - **Assigning a ticket no longer makes a task.** The assignee updates the ticket itself: **Start work** (In progress), then **Mark resolved** with what was done, which asks the requester to confirm, as before.
 - Both are on the ticket's page (**Your work on this ticket**) and on each row of **My tickets → Assigned to me** (the **Update** column, replacing Open task).

@@ -21,6 +21,7 @@ export interface AnalyticsTicket {
   categoryId: number;
   categoryPosition: number;
   categoryName: string;
+  typeId: number; // v1.59.4: the form (ticket type), for a table per form
   typeName: string;
   priority: TicketPriority;
   status: TicketStatus;
@@ -54,7 +55,7 @@ function scopeSql(scope: TicketAnalyticsScope): { sql: string; params: unknown[]
 }
 const FROM = `FROM tickets k JOIN module_type_versions v ON v.id = k.type_version_id JOIN module_types t ON t.id = v.type_id JOIN ticket_categories c ON c.id = k.category_id
   LEFT JOIN users a ON a.id = k.assignee_id LEFT JOIN departments d ON d.id = k.requester_department_id`;
-const SELECT = `SELECT k.id, k.ticket_no, k.title, k.category_id, c.position AS category_position, c.name AS category_name, t.name AS type_name, k.priority, k.status, k.close_kind, k.requester_department_id, d.name AS department_name,
+const SELECT = `SELECT k.id, k.ticket_no, k.title, k.category_id, c.position AS category_position, c.name AS category_name, t.id AS type_id, t.name AS type_name, k.priority, k.status, k.close_kind, k.requester_department_id, d.name AS department_name,
   k.assignee_id, a.name AS assignee_name, k.submitted_at, k.first_response_at, k.resolved_at, k.closed_at, k.due_at, DATE_FORMAT(k.required_on, '%Y-%m-%d') AS required_on, k.reopen_count,
   (SELECT f.rating FROM ticket_feedback f WHERE f.ticket_id = k.id ORDER BY f.cycle DESC LIMIT 1) AS rating`;
 
@@ -65,6 +66,7 @@ const toTicket = (row: Row): AnalyticsTicket => ({
   categoryId: Number(row.category_id),
   categoryPosition: Number(row.category_position ?? 0),
   categoryName: String(row.category_name),
+  typeId: Number(row.type_id),
   typeName: String(row.type_name),
   priority: String(row.priority) as TicketPriority,
   status: String(row.status) as TicketStatus,

@@ -60,7 +60,7 @@ export function TicketStatusByDepartment({ options, tables, from, to }: { option
       ) : (
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           {shown.map((table) => (
-            <StatusTableView key={table.categoryId} table={table} priority={chosenLabel} from={from} to={to} />
+            <StatusTableView key={table.key} table={table} priority={chosenLabel} from={from} to={to} />
           ))}
         </div>
       )}
@@ -82,7 +82,8 @@ function StatusTableView({ table, priority, from, to }: { table: StatusTable; pr
       return sign * (a[sort.column] - b[sort.column]) || a.department.localeCompare(b.department, "en-IN");
     });
   }, [table.rows, sort]);
-  const title = `${table.categoryName} issues status`;
+  // v1.59.4 (D-363): a table per form; a category with several forms also gets one for all of them.
+  const title = table.scope === "FORM" && table.title !== table.categoryName ? `${table.title} issues status (${table.categoryName})` : `${table.title} issues status`;
 
   return (
     <section aria-label={title}>

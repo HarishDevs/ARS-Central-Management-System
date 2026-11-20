@@ -182,6 +182,8 @@ test("Analytics has a Ticket analytics board for the coordinator, with their for
   const board = page.getByTestId("ticket-analytics");
   await expect(board).toBeVisible();
   await expect(board.getByTestId("ticket-by-category")).toContainText("IT Hardware");
+  // v1.59.4 (D-363, owner): Status by department has a table for each form, named after it.
+  await expect(page.getByTestId("ticket-status-by-department")).toContainText(`${formName} issues status`);
   await page.screenshot({ path: "test-results/v1560-ticket-analytics.png", fullPage: true });
 });
 

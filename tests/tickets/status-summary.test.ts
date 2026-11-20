@@ -19,6 +19,28 @@ const ticket = (over: Partial<StatusSummaryTicket> = {}): StatusSummaryTicket =>
 });
 const NOW = at("2026-11-20T06:30:00Z"); // 12:00 India time
 
+describe("a table per form (v1.59.4, D-363)", () => {
+  it("a category with two forms: one table for both, then one per form, each with its own counts", () => {
+    const hw = { categoryId: 5, categoryName: "IT Ticketing", typeId: 51, typeName: "IT Hardware Ticketing" };
+    const sw = { categoryId: 5, categoryName: "IT Ticketing", typeId: 52, typeName: "IT Software Ticketing" };
+    const tables = summariseStatusByDepartment(
+      [ticket({ ...hw, departmentId: 10, departmentName: "Accounts" }), ticket({ ...sw, departmentId: 10, departmentName: "Accounts", requiredOn: "2026-11-10" }), ticket({ ...sw, departmentId: 20, departmentName: "EDO" }), ticket({ categoryId: 6, categoryName: "Admin", categoryPosition: 2, typeId: 61, typeName: "Stationery" })],
+      "ALL",
+      NOW,
+    );
+    expect(tables.map((table) => [table.key, table.scope, table.title])).toEqual([
+      ["c5", "CATEGORY", "IT Ticketing (all forms)"],
+      ["t51", "FORM", "IT Hardware Ticketing"],
+      ["t52", "FORM", "IT Software Ticketing"],
+      ["t61", "FORM", "Stationery"], // one form: no separate category table
+    ]);
+    expect(tables[0]!.total.total).toBe(3);
+    expect(tables[1]!.total).toMatchObject({ total: 1, notDue: 1 });
+    expect(tables[2]!.total).toMatchObject({ total: 2, overdue: 1, notDue: 1 });
+    expect(tables[2]!.rows.map((row) => row.department)).toEqual(["Accounts", "EDO"]);
+  });
+});
+
 describe("a reopened ticket (v1.59.2)", () => {
   it("keeps its old closed time but counts as open again", () => {
     const facts = { dueAt: new Date("2026-11-01T06:00:00Z"), requiredOn: null, closedAt: new Date("2026-10-30T06:00:00Z") };

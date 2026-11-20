@@ -214,7 +214,7 @@ Comments on a request can't be edited or removed. To tell someone in particular,
 - Drag the right edge of a column title to make a column wider or narrower; double-click the edge for the automatic width. This works in every table and in the task and project lists. Your widths are kept in this browser.
 - Text in a cell shows at most two lines, then "…". Hover to read all of it, or widen the column.
 
-**Ticket status by department (v1.59.2):** Analytics → Ticket analytics → **Status by department**. One table per ticket form for the chosen period: Total, On time, Delay, Overdue and Not due per department, with a Total row. The due time is the coordinator's Target date, or the requester's Required date when there is none; a ticket is finished when it is closed. Use **Priority** on top to see one priority.
+**Ticket status by department (v1.59.2; a table per form since v1.59.4):** Analytics → Ticket analytics → **Status by department**. One table for each ticket form (and, for a category with several forms, one for all of them together) for the chosen period: Total, On time, Delay, Overdue and Not due per department, with a Total row. The due time is the coordinator's Target date, or the requester's Required date when there is none; a ticket is finished when it is closed. Use **Priority** on top to see one priority.
 
 **Changing a request's details as its approver (v1.59.0):**
 - On **Waiting for me**, press **Change** on a request's row. Change any value (files stay as they are) and, on a custom request, the levels after yours: who approves, add, remove or move a level. Give a reason and press **Save changes**.

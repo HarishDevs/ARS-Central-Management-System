@@ -28,6 +28,9 @@ export interface StatusSummaryTicket extends TimelinessFacts {
   categoryId: number;
   categoryName: string;
   categoryPosition?: number;
+  // v1.59.4 (owner: "i want the seperate ticketing, or whatever forms created"): the form.
+  typeId?: number;
+  typeName?: string;
   departmentId: number | null;
   departmentName: string | null;
   priority: TicketPriority;
@@ -47,6 +50,9 @@ export interface StatusRow extends StatusCounts {
 }
 
 export interface StatusTable {
+  key: string; // "c<category id>" (a category's forms together) or "t<form id>"
+  scope: "CATEGORY" | "FORM";
+  title: string; // the form's name, or "<category> (all forms)"
   categoryId: number;
   categoryName: string;
   rows: StatusRow[]; // by department name; Others last
@@ -88,35 +94,55 @@ function add(counts: StatusCounts, kind: TicketTimeliness) {
   counts[KEY[kind]] += 1;
 }
 
-// One table per form that has at least one ticket (at any priority, so the
-// tables and their department rows stay the same when the priority changes;
-// a department with no ticket at the chosen priority shows zeros). Forms in
-// their Admin order, then by name.
-export function summariseStatusByDepartment(tickets: readonly StatusSummaryTicket[], priority: PriorityFilter = "ALL", now: Date = new Date()): StatusTable[] {
-  const forms = new Map<number, { name: string; position: number; departments: Map<number | null, StatusRow> }>();
-  for (const ticket of tickets) {
-    const form = forms.get(ticket.categoryId) ?? { name: ticket.categoryName, position: ticket.categoryPosition ?? 0, departments: new Map<number | null, StatusRow>() };
-    forms.set(ticket.categoryId, form);
-    const departmentId = ticket.departmentId ?? null;
-    const row = form.departments.get(departmentId) ?? { departmentId, department: departmentId === null ? OTHERS : (ticket.departmentName ?? OTHERS), ...emptyCounts() };
-    form.departments.set(departmentId, row);
-    if (priority === "ALL" || ticket.priority === priority) add(row, classifyTicket(ticket, now));
+// v1.59.4 (D-363, owner: "i want the seperate ticketing, or whatever forms
+// created and i want whatever category generated"): one table per form
+// (ticket type) that has at least one ticket in the period, under its
+// category; a category with two or more such forms first gets a table of all
+// its forms together. Rows use tickets at any priority, so the tables and
+// their department rows stay the same when the priority changes (a department
+// with none at the chosen priority shows zeros). Categories in their Admin
+// order, then by name; forms by name.
+type Bucket = { departments: Map<number | null, StatusRow> };
+
+function tally(bucket: Bucket, ticket: StatusSummaryTicket, priority: PriorityFilter, now: Date) {
+  const departmentId = ticket.departmentId ?? null;
+  const row = bucket.departments.get(departmentId) ?? { departmentId, department: departmentId === null ? OTHERS : (ticket.departmentName ?? OTHERS), ...emptyCounts() };
+  bucket.departments.set(departmentId, row);
+  if (priority === "ALL" || ticket.priority === priority) add(row, classifyTicket(ticket, now));
+}
+
+function finish(bucket: Bucket): { rows: StatusRow[]; total: StatusCounts } {
+  const rows = [...bucket.departments.values()].sort((a, b) => {
+    if ((a.departmentId === null) !== (b.departmentId === null)) return a.departmentId === null ? 1 : -1;
+    return a.department.localeCompare(b.department, "en-IN", { sensitivity: "base" }) || (a.departmentId ?? 0) - (b.departmentId ?? 0);
+  });
+  const total = emptyCounts();
+  for (const row of rows) {
+    total.total += row.total;
+    total.onTime += row.onTime;
+    total.delay += row.delay;
+    total.overdue += row.overdue;
+    total.notDue += row.notDue;
   }
-  return [...forms.entries()]
-    .sort(([, a], [, b]) => a.position - b.position || a.name.localeCompare(b.name, "en-IN"))
-    .map(([categoryId, form]) => {
-      const rows = [...form.departments.values()].sort((a, b) => {
-        if ((a.departmentId === null) !== (b.departmentId === null)) return a.departmentId === null ? 1 : -1;
-        return a.department.localeCompare(b.department, "en-IN", { sensitivity: "base" }) || (a.departmentId ?? 0) - (b.departmentId ?? 0);
-      });
-      const total = emptyCounts();
-      for (const row of rows) {
-        total.total += row.total;
-        total.onTime += row.onTime;
-        total.delay += row.delay;
-        total.overdue += row.overdue;
-        total.notDue += row.notDue;
-      }
-      return { categoryId, categoryName: form.name, rows, total };
-    });
+  return { rows, total };
+}
+
+export function summariseStatusByDepartment(tickets: readonly StatusSummaryTicket[], priority: PriorityFilter = "ALL", now: Date = new Date()): StatusTable[] {
+  const categories = new Map<number, Bucket & { name: string; position: number; forms: Map<number, Bucket & { name: string }> }>();
+  for (const ticket of tickets) {
+    const category = categories.get(ticket.categoryId) ?? { name: ticket.categoryName, position: ticket.categoryPosition ?? 0, departments: new Map(), forms: new Map() };
+    categories.set(ticket.categoryId, category);
+    tally(category, ticket, priority, now);
+    const formId = ticket.typeId ?? -ticket.categoryId;
+    const form = category.forms.get(formId) ?? { name: ticket.typeName ?? ticket.categoryName, departments: new Map() };
+    category.forms.set(formId, form);
+    tally(form, ticket, priority, now);
+  }
+  const tables: StatusTable[] = [];
+  for (const [categoryId, category] of [...categories.entries()].sort(([, a], [, b]) => a.position - b.position || a.name.localeCompare(b.name, "en-IN"))) {
+    const forms = [...category.forms.entries()].sort(([, a], [, b]) => a.name.localeCompare(b.name, "en-IN"));
+    if (forms.length > 1) tables.push({ key: `c${categoryId}`, scope: "CATEGORY", title: `${category.name} (all forms)`, categoryId, categoryName: category.name, ...finish(category) });
+    for (const [formId, form] of forms) tables.push({ key: `t${formId}`, scope: "FORM", title: form.name, categoryId, categoryName: category.name, ...finish(form) });
+  }
+  return tables;
 }

@@ -584,7 +584,7 @@ flowchart LR
 ```
 
 ## F-TICKET-STATUS Ticket status by department (v1.59.2, D-360)
-Tickets raised in the period (the board's scope) → per form, per requester department → due = Target date else Required date (end of that India day) → closed (status CLOSED) by the due or with none = On time; closed later = Delay; open past due = Overdue; open otherwise = Not due → Total row. Priority filter (?tpriority=) narrows the counts; the departments stay.
+Tickets raised in the period (the board's scope) → per form (v1.59.4, D-363: a table for each form, plus one for all the forms of a category with several), per requester department → due = Target date else Required date (end of that India day) → closed (status CLOSED) by the due or with none = On time; closed later = Delay; open past due = Overdue; open otherwise = Not due → Total row. Priority filter (?tpriority=) narrows the counts; the departments stay.
 
 ## F-27 On Hold / resume
 Approver puts the request on hold (reason) → state On Hold, stays open, counts as pending, SLA paused → the approver resumes → back to Pending at the same level.
