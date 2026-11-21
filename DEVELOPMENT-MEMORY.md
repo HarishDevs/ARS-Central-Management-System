@@ -748,6 +748,7 @@
 
 ## 4. Open questions (must be answered before the phase shown)
 
+| Q-034 | **Project Management + Forms brief (21 Nov 2026), Step 0 discovery: owner's approval needed before building.** Report: docs/pm-module/DISCOVERY.md (and three evidence files). Decisions: C-1 public forms for people without an account (conflicts with "only admin-created users sign in" and D-150); C-2/C-3 keep one assignee and a mandatory due date; C-6 polling instead of live sync (cPanel); C-8 field limits as Admin settings; C-9 a Stage field in place of custom statuses; C-10 a system user for automations and form tasks; phase order and scope (portfolios, automations). |
 | Q-033 | **Answered 20 Nov 2026 (owner: "confirm all four defaults") → D-358.** Approver changes (D-357): confirm the defaults chosen while the owner moved on: (1) earlier approvals stand unless new values change the route (then restart at the earliest affected level); (2) a reason is required; (3) only the approver it waits on now or their delegate; (4) only levels after theirs, usual approver rules. | Before relying on approver changes | Answered → D-358 |
 | Q-032 | **Answered 18 Nov 2026 → D-327.** **Ticketing decisions Q-T1 to Q-T7 (docs/TICKETING_SYSTEM_GAP_ANALYSIS.md §C):** location master, coordinator routing granularity, whole working days vs business hours, who may raise, hardware asset tag, reopen same task, rating scale. Suggested defaults are listed there. | Before Ticketing Phase 2 | Open, waiting on the owner (18 Nov 2026) |
 | Q-031 | **Mobile Home "Coming soon" (D-307).** The phone Home leaves out modules not given (as before) instead of locked tiles. Add locked tiles there too? | Before the Tasks release on phones | Answered 11 Nov 2026 → D-308 |
@@ -792,6 +793,9 @@
 
 ### 13 Nov 2026 (v1.54.6: Google sign-in diagnosis and fix)
 - D-315. Investigated end to end (route, Firebase popup, middleware 403 sources, COOP/CSP on live, cookies, rate limits, email dependency). No production data access: the per-person reason is now recorded instead. Four reports in docs/GOOGLE_AUTH_*.md. Tests: unit google-provider (10), e2e v1546 (4), route inventory, full unit/lint/types. General pages: privacy (masked email on refused Google sign-ins; effective 13 Nov 2026), Help, release notes; terms/tour/checklist: no change.
+
+### 21 Nov 2026 (Project Management + Forms brief: Step 0 discovery)
+- The owner pasted a full brief (Project Management module with Forms, from the spec package at D:\REA\Asana\asana-reverse-engineering). Step 0 only: three read-only reviews (projects/views/customization and BR rules; forms/portfolios/Home/navigation/security; tokens/components/data/infrastructure), compiled into docs/pm-module/DISCOVERY.md with token and component mapping tables, gap list, conflicts C-1..C-10, phases A–E, migrations and risks. Main finding: most of Phase A already exists (D-215 onward), so the plan upgrades the existing module (blend into existing). Waiting for approval (Q-034); nothing built.
 
 ### 21 Nov 2026 (v1.60.0: edit and delete every comment)
 - D-365. Owner answered four questions (versions kept; author and IT; no time limit; edit and delete). Migration 202611211000.

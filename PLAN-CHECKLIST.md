@@ -17,6 +17,13 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 **Multi-level approvals in any custom manner.** The engine must support any number of levels in any combination: sequential, parallel, any-one, any-N-of-M, conditional and hybrid. Approvers can come from any source, and levels can be added or skipped by rules. Build the engine for this from the first engine phase (P2). The drag-and-drop designer (P3) is only the screen for building it. Check every task against this.
 
 ## Now / Next
+- **Next (21 Nov 2026):** Project Management + Forms: Step 0 discovery done (docs/pm-module/DISCOVERY.md); waiting for the owner's approval and decisions (Q-034).
+- [x] PM-00 (21 Nov 2026) Step 0 discovery: gap analysis, token and component mapping, plan
+- [ ] PM-A Phase A foundations (after approval)
+- [ ] PM-B Phase B planning and data
+- [ ] PM-C Phase C forms
+- [ ] PM-D Phase D reporting, workload, automations, portfolios
+- [ ] PM-E Phase E backlog
 - **Now (21 Nov 2026):** **v1.60.0** edit and delete every comment, versions kept (D-365). **Owner:** back up, run migration 202611211000_comment_edits.sql (and 202611201000 first if v1.59.3 isn't live), publish.
 - [x] COL-12 (21 Nov 2026) Edit and delete on request comments, ticket remarks and task comments (author and IT), every earlier version kept and shown
 - [x] TSK-60 (20 Nov 2026) Add subtask button and the + open the Create task window for a subtask
