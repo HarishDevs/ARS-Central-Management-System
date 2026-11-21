@@ -19,6 +19,8 @@ import { hasModule } from "@/server/modules/modules";
 import { getDbPool } from "@/lib/db/client";
 import type { RowDataPacket } from "mysql2/promise";
 import type { HolidayHit } from "@/server/work/holidays";
+import { z } from "zod";
+import { changeTabs } from "@/server/work/view-tabs-service";
 
 // D-215: Task & Project Management actions. Each checks the session and the
 // page's access (requireApiArea), then the service checks the person's
@@ -532,6 +534,54 @@ export async function deleteViewAction(viewId: number): Promise<ActionResult> {
   await repo.deleteWorkView(view.id);
   refresh();
   return { ok: true, message: "Tab deleted." };
+}
+
+// ---- v1.61.0 (D-367, PM phase A): tabs for every view --------------------------------
+// Behind the "pm_foundations" switch. Owners and editors change a project's
+// tabs (server/work/view-tabs-service.ts checks the role again, deny by default).
+const tabInput = z.discriminatedUnion("op", [
+  z.object({ op: z.literal("add"), type: z.string().max(20), name: z.string().max(200).optional() }),
+  z.object({ op: z.literal("rename"), key: z.string().max(20), name: z.string().max(200) }),
+  z.object({ op: z.literal("default"), key: z.string().max(20) }),
+  z.object({ op: z.literal("duplicate"), key: z.string().max(20) }),
+  z.object({ op: z.literal("remove"), key: z.string().max(20) }),
+  z.object({ op: z.literal("reorder"), keys: z.array(z.string().max(20)).max(60) }),
+  z.object({ op: z.literal("save"), key: z.string().max(20), config: z.unknown() }),
+]);
+export async function projectTabAction(projectId: number, input: unknown): Promise<ActionResult & { value?: { id: number | null } }> {
+  const me = await actorForProjects();
+  const target = id(projectId);
+  if (!me || !target) return NOT_FOUND;
+  if (me === "OFF") return PROJECTS_OFF;
+  if (!(await featureOn("pm_foundations", me))) return { ok: false, message: "Tabs for every view aren't switched on yet." };
+  const parsed = tabInput.safeParse(input);
+  if (!parsed.success) return { ok: false, message: "That change isn't valid." };
+  try {
+    const result = await changeTabs(target, parsed.data, me, await workViewer(me));
+    if (!result.ok) return { ok: false, message: result.message };
+    refresh();
+    return { ok: true, message: result.message, value: result.value };
+  } catch (error) {
+    logError("projectTabAction failed", error);
+    return { ok: false, message: "Couldn't do that. Please try again." };
+  }
+}
+
+// v1.61.0 (D-367): the person's row density for task lists (Comfortable or
+// Compact), kept with their other preferences in user_settings.
+export async function densityAction(value: string): Promise<ActionResult> {
+  const me = await actor();
+  if (!me) return NOT_FOUND;
+  if (value !== "COMFORTABLE" && value !== "COMPACT") return { ok: false, message: "Choose Comfortable or Compact." };
+  try {
+    if (value === "COMFORTABLE") await getDbPool().query("DELETE FROM user_settings WHERE user_id = ? AND setting_key = 'work.density'", [me.id]);
+    else await getDbPool().query("INSERT INTO user_settings (user_id, setting_key, value) VALUES (?, 'work.density', 'COMPACT') ON DUPLICATE KEY UPDATE value = 'COMPACT'", [me.id]);
+    revalidatePath("/users/work", "layout");
+    return { ok: true, message: value === "COMPACT" ? "Compact rows." : "Comfortable rows." };
+  } catch (error) {
+    logError("densityAction failed", error);
+    return { ok: false, message: "Couldn't save. Please try again." };
+  }
 }
 
 // D-220: the Share dialog's "Access settings" (owners only; the rest of the

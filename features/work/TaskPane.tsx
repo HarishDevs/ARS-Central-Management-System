@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ExternalLink, X } from "lucide-react";
 import { CopyLinkButton } from "@/features/work/client";
 import { TaskDetail } from "@/features/work/TaskDetail";
+import { LiveRefresh } from "@/features/work/useLiveRefresh";
 import type { AuthenticatedUser } from "@/types/auth";
 export { visibilityText } from "@/features/work/visibility";
 
@@ -14,6 +15,8 @@ export { visibilityText } from "@/features/work/visibility";
 export async function TaskPane({ taskId, user, closeHref }: { taskId: number; user: AuthenticatedUser; closeHref: string }) {
   return (
     <div role="dialog" aria-modal="true" aria-label="Task" data-task-pane data-close-href={closeHref} data-testid="task-pane" className="fixed inset-0 z-[60] flex items-center justify-center p-0 sm:p-6">
+      {/* v1.61.0 (D-366): the open task stays fresh (15 s, focus, after changes). */}
+      <LiveRefresh />
       {/* The dimmed page behind: a click on it closes the popup. */}
       <Link href={closeHref} scroll={false} aria-label="Close task" tabIndex={-1} className="fixed inset-0 cursor-default bg-black/40" />
       <div className="relative h-full w-full max-w-6xl overflow-y-auto overscroll-contain rounded-none bg-page shadow-2xl sm:h-auto sm:max-h-full sm:rounded-xl">

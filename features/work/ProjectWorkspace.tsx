@@ -3,10 +3,9 @@
 import { ApprovalBadge, approvalRowClass } from "@/features/work/ApprovalLink";
 import { ArrowDown, ArrowUp, ArrowUpDown, CalendarClock, ChevronDown, ChevronRight, GitBranch, GripVertical, Heart, Lock, MessageSquare, Plus, Repeat, Trash2, Diamond } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { addSectionAction, moveTaskAction, quickAddAction, quickAddManyAction, sectionAction, taskFieldsAction } from "@/app/users/work/actions";
+import { addSectionAction, projectTabAction, moveTaskAction, quickAddAction, quickAddManyAction, sectionAction, taskFieldsAction } from "@/app/users/work/actions";
 import { TaskCheck, usePaneLink, useWorkCall } from "@/features/work/client";
 import { dueLabel, indiaDayOf, TONE_TEXT } from "@/features/work/format";
 import { columnAccent, initialsOf } from "@/features/work/kanban";
@@ -20,6 +19,9 @@ import { FoldAllButtons } from "@/features/ui/GroupFold";
 import { sortRows, type SortDir } from "@/server/lists/sorting";
 import { ColumnResizer } from "@/features/work/ColumnResizer";
 import { useColumnWidths, type ColumnDefault } from "@/features/work/useColumnWidths";
+import { useLiveRefresh } from "@/features/work/useLiveRefresh";
+import { UnsavedView } from "@/features/work/UnsavedView";
+import { DEFAULT_BOARD, type BoardConfig } from "@/server/work/view-tabs";
 
 // D-215: a project's List and Board. Sections hold tasks in the order the
 // team set (drag, or Alt+↑/↓ on a row); a sort other than "Manual" only
@@ -75,6 +77,8 @@ export function ProjectWorkspace({
   fields = [],
   values = {},
   grid,
+  density = "COMFORTABLE",
+  board,
 }: {
   projectId: number;
   layout: "LIST" | "BOARD";
@@ -86,22 +90,40 @@ export function ProjectWorkspace({
   nowIso: string;
   fields?: FieldView[]; // D-218: the project's own columns
   values?: Record<number, Record<number, string>>;
-  grid?: { rows: GridTask[]; initial: GridConfig; view: GridView }; // D-220: the List as the shared table
+  grid?: { rows: GridTask[]; initial: GridConfig; view: GridView; subtasks?: Record<number, GridTask[]> }; // D-220: the List as the shared table
+  // v1.61.0 (D-367): the person's row density, and the Board tab's saved view (Save view / Reset).
+  density?: "COMFORTABLE" | "COMPACT";
+  board?: { initial: BoardConfig; tabKey: string; tabName: string; canSave: boolean };
 }) {
   const { call } = useWorkCall();
   const now = useMemo(() => new Date(nowIso), [nowIso]);
   // D-219 (screen catalog O-06/O-05/O-07): Filter (quick filters), Sort, Group, Search this view.
-  const [incomplete, setIncomplete] = useState(true);
-  const [showDone, setShowDone] = useState(false);
-  const [filter, setFilter] = useState("");
-  const [mine, setMine] = useState(false);
-  const [dueWithin, setDueWithin] = useState<"" | "this" | "next">("");
-  const [sort, setSort] = useState<Sort>("manual");
+  const start = board?.initial ?? DEFAULT_BOARD;
+  const [incomplete, setIncomplete] = useState(start.incomplete);
+  const [showDone, setShowDone] = useState(start.showDone);
+  const [filter, setFilter] = useState(start.search);
+  const [mine, setMine] = useState(start.mine);
+  const [dueWithin, setDueWithin] = useState<"" | "this" | "next">(start.dueWithin);
+  const [sort, setSort] = useState<Sort>(start.sort);
   const [group, setGroup] = useState<GroupBy>("section");
   // v1.58.0 (D-354, owner: "sorting in all the tables asc to desc or vice versa"):
   // the direction of the sort, and a project field's id when sorting by its column.
-  const [dir, setDir] = useState<SortDir>("asc");
-  const [sortField, setSortField] = useState<number | null>(null);
+  const [dir, setDir] = useState<SortDir>(start.dir);
+  const [sortField, setSortField] = useState<number | null>(start.sortField);
+  // v1.61.0 (D-367): a Board tab's view stays unsaved until "Save view"; Reset goes back.
+  const [savedBoard, setSavedBoard] = useState<BoardConfig>(start);
+  const boardNow: BoardConfig = { incomplete, showDone, mine, dueWithin, sort, dir, sortField, search: filter };
+  const boardDirty = Boolean(board) && JSON.stringify(boardNow) !== JSON.stringify(savedBoard);
+  const resetBoard = () => {
+    setIncomplete(savedBoard.incomplete);
+    setShowDone(savedBoard.showDone);
+    setMine(savedBoard.mine);
+    setDueWithin(savedBoard.dueWithin);
+    setSort(savedBoard.sort);
+    setDir(savedBoard.dir);
+    setSortField(savedBoard.sortField);
+    setFilter(savedBoard.search);
+  };
   // v1.58.0 (D-354, owner: "by default when a group by is selected it should
   // collapse all the group"): a chosen grouping starts folded; Sections (the
   // project's own structure) stay open. `toggled`: groups opened/closed one by one.
@@ -350,6 +372,13 @@ export function ProjectWorkspace({
         <span className="sr-only">Search this view</span>
         <input id="project-filter" type="search" value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="Search this view" className="field-input h-8 w-52 text-label" />
       </label>
+      {board && boardDirty && (
+        <UnsavedView
+          canSave={board.canSave}
+          onReset={resetBoard}
+          onSave={() => void call(() => projectTabAction(projectId, { op: "save", key: board.tabKey, config: boardNow })).then((result) => result?.ok && setSavedBoard(boardNow))}
+        />
+      )}
       {canEdit && !manual && <span className="w-full text-caption text-ink-muted">Dragging is off while a sort, filter or grouping is on.</span>}
       <span role="status" aria-live="polite" className="sr-only">
         {live}
@@ -419,6 +448,8 @@ export function ProjectWorkspace({
       <div data-testid="project-list">
         <TaskGrid
           rows={grid.rows}
+          subtasks={grid.subtasks}
+          density={density}
           initial={grid.initial}
           columns={["assignee", "due", "priority", "collaborators", "createdBy", "tags"]}
           groupsAllowed={["section", "assignee", "createdBy", "due", "priority", "kind"]}
@@ -844,21 +875,10 @@ function AddSection({ projectId, afterId, board }: { projectId: number; afterId:
   );
 }
 
-// Open views stay fresh: the page asks the server again every 30 seconds
-// while the tab is visible, and when the person comes back to it.
-export function useAutoRefresh(ms = 30_000) {
-  const router = useRouter();
-  useEffect(() => {
-    const tick = () => {
-      if (document.visibilityState === "visible" && !document.querySelector("input:focus, textarea:focus, select:focus, dialog[open]")) router.refresh();
-    };
-    const timer = window.setInterval(tick, ms);
-    document.addEventListener("visibilitychange", tick);
-    return () => {
-      window.clearInterval(timer);
-      document.removeEventListener("visibilitychange", tick);
-    };
-  }, [router, ms]);
+// v1.61.0 (D-366/D-367): open views stay fresh through the one shared
+// refresher (every 15 s while visible, on focus, after every change).
+export function useAutoRefresh() {
+  useLiveRefresh();
 }
 
 // A small toolbar popover (the catalog's Filter): a button that opens a panel.

@@ -15,7 +15,9 @@ import { getDbPool } from "@/lib/db/client";
 import type { RowDataPacket } from "mysql2/promise";
 import { TaskCalendar } from "@/features/work/TaskCalendar";
 import { indiaDayOf } from "@/features/work/format";
-import { listTaskItems, listVisibleProjects, listWorkViews } from "@/lib/db/repositories/work.repository";
+import { listTaskItems, listVisibleProjects, listWorkViews, workDensity } from "@/lib/db/repositories/work.repository";
+import { featureOn } from "@/server/settings/features";
+import { LiveRefresh } from "@/features/work/useLiveRefresh";
 import { workPage } from "@/server/work/page-context";
 import { calendarHolidays } from "@/server/work/holiday-store";
 import { isMobileLayout } from "@/server/ui/layout-mode";
@@ -131,6 +133,8 @@ export default async function MyTasksPage({
   // D-220: the List is the shared table, with the person's saved tabs.
   const [savedTabs, gridPeople, gridProjects] = await Promise.all([listWorkViews("MY_TASKS", user.id), peopleOptions(), listVisibleProjects(viewer)]);
   const currentTab = savedTabs.find((item) => String(item.id) === params.tab) ?? null;
+  // v1.61.0 (D-367): the row density choice (with "pm_foundations" on).
+  const density = (await featureOn("pm_foundations", user)) ? await workDensity(user.id) : undefined;
   const gridRows = list.items.map((task) => {
     const row = rows.find((item) => item.id === task.id)!;
     return toGridTask(task, user.id, true, row.sectionId, row.position);
@@ -181,6 +185,8 @@ export default async function MyTasksPage({
           </li>
         ))}
       </ul>
+      {/* v1.61.0 (D-366): fresh every 15 s while visible, on focus and after changes. */}
+      <LiveRefresh />
       <WithPane pane={pane}>
         <div className="mb-4 flex flex-wrap items-center gap-2">
           <nav aria-label="Task Summary views" className="flex flex-wrap gap-1 border-b border-line" data-testid="view-tabs">
@@ -241,6 +247,7 @@ export default async function MyTasksPage({
             rows={gridRows}
             sections={SUMMARY}
             fixed
+            density={density}
             initial={currentTab ? parseGridConfig(currentTab.config) : { ...DEFAULT_GRID, group: "section" }}
             view={{ scope: "MY_TASKS", scopeId: user.id, canSave: true, current: currentTab ? { id: currentTab.id, name: currentTab.name } : null }}
             people={gridPeople}

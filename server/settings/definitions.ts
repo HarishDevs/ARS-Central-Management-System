@@ -63,6 +63,8 @@ export const SETTING_DEFINITIONS: readonly SettingDefinition[] = [
   // v1.55.0 (D-327): Off until the owner releases it (IT_ONLY = a pilot by the IT team).
   { key: "features.ai", group: "FEATURES", label: "AI module; people also need the AI module ticked on their user page", valueType: "STRING", encrypted: false, schema: z.enum(["ON", "OFF", "IT_ONLY"]), defaultValue: "ON" },
   { key: "features.templates", group: "FEATURES", label: "Request templates and raise again", valueType: "STRING", encrypted: false, schema: z.enum(["ON", "OFF", "IT_ONLY"]), defaultValue: "ON" },
+  // v1.61.0 (D-366/D-367): Project Management phase A (tabs for every view, the faster list, row density). Off until IT releases it.
+  { key: "features.pm_foundations", group: "FEATURES", label: "Projects: tabs for every view, faster list and row density (phase A)", valueType: "STRING", encrypted: false, schema: z.enum(["ON", "OFF", "IT_ONLY"]), defaultValue: "OFF" },
   // Retention (FN10, D-126): 0 = not set, keep for ever. Setting a value only
   // changes the dry run; nothing is archived or deleted automatically.
   { key: "retention.requests_years", group: "RETENTION", label: "Keep finished requests for (years; 0 = keep for ever)", valueType: "NUMBER", encrypted: false, schema: z.coerce.number().int().min(0).max(50), defaultValue: "0" },

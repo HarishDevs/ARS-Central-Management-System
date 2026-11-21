@@ -48,17 +48,26 @@ const config: Config = {
         danger: { 50: token("--color-error-50"), 200: token("--color-error-200"), 600: token("--color-error-600"), solid: token("--color-error-solid"), "solid-hover": token("--color-error-solid-hover") },
         info: { 50: token("--color-info-50"), 600: token("--color-info-600") },
         focus: token("--color-focus"),
+        // v1.61.0 (D-367): the open/selected row and project identity colours.
+        "row-active": token("--color-row-active"),
+        identity: { 1: token("--color-identity-1"), 2: token("--color-identity-2"), 3: token("--color-identity-3"), 4: token("--color-identity-4"), 5: token("--color-identity-5"), 6: token("--color-identity-6"), 7: token("--color-identity-7"), 8: token("--color-identity-8") },
       },
       fontFamily: {
         sans: ["var(--font-inter)", "Inter", "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"],
+        mono: ["var(--font-mono)"],
       },
       fontSize: {
+        micro: ["calc(11px * var(--text-scale, 1))", "calc(14px * var(--text-scale, 1))"],
         caption: ["calc(12px * var(--text-scale, 1))", "calc(16px * var(--text-scale, 1))"],
         label: ["calc(13px * var(--text-scale, 1))", "calc(18px * var(--text-scale, 1))"],
         body: ["calc(14px * var(--text-scale, 1))", "calc(20px * var(--text-scale, 1))"],
+        subhead: ["calc(16px * var(--text-scale, 1))", "calc(22px * var(--text-scale, 1))"],
+        "widget-title": ["calc(18px * var(--text-scale, 1))", "calc(24px * var(--text-scale, 1))"],
         title: ["calc(20px * var(--text-scale, 1))", "calc(28px * var(--text-scale, 1))"],
         "card-title": ["calc(22px * var(--text-scale, 1))", "calc(30px * var(--text-scale, 1))"],
+        greeting: ["calc(28px * var(--text-scale, 1))", "calc(36px * var(--text-scale, 1))"],
         display: ["calc(32px * var(--text-scale, 1))", "calc(40px * var(--text-scale, 1))"],
+        kpi: ["calc(44px * var(--text-scale, 1))", "calc(52px * var(--text-scale, 1))"],
       },
       borderRadius: { sm: "4px", md: "8px", lg: "12px", xl: "16px" },
       boxShadow: {
@@ -68,8 +77,8 @@ const config: Config = {
       },
       transitionDuration: { fast: "var(--motion-fast)", base: "var(--motion-base)", slow: "var(--motion-slow)" },
       transitionTimingFunction: { standard: "var(--ease-standard)" },
-      zIndex: { header: "var(--z-header)", sticky: "var(--z-sticky)", drawer: "var(--z-drawer)", dialog: "var(--z-dialog)", toast: "var(--z-toast)", palette: "var(--z-palette)" },
-      spacing: { sidebar: "220px", topbar: "64px" },
+      zIndex: { header: "var(--z-header)", sticky: "var(--z-sticky)", drawer: "var(--z-drawer)", dialog: "var(--z-dialog)", toast: "var(--z-toast)", palette: "var(--z-palette)", popover: "var(--z-popover)" },
+      spacing: { sidebar: "220px", topbar: "64px", row: "var(--row-h)", "row-compact": "var(--row-h-compact)", "header-row": "var(--header-row-h)", pane: "var(--pane-w)" },
     },
   },
   // dark: variants follow the chosen theme (rarely needed: tokens switch by themselves).

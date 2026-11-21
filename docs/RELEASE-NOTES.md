@@ -1,5 +1,14 @@
 # Release notes
 
+## v1.61.0 (22 Nov 2026): Project tabs for every view, a faster List, fresher screens (Project Management phase A, part 1)
+- **Tabs for every view** (behind the new feature switch, Off until IT turns it on): a project's Overview, List, Board, Timeline and Calendar are tabs. Owners and editors add more from **+** (e.g. a second Board), and each tab's **⋯** menu has **Rename**, **Set as default** (starred; opens first), **Duplicate**, **Copy link**, **Move left / right** and **Remove** (one tab always stays; tasks are never touched). Reorder by dragging or with **Alt + ← / →** on a focused tab. Up to 50 tabs per project.
+- **Save view:** filters, sort, groups and columns change only your screen (**Unsaved changes**) until an owner or editor presses **Save view**; **Reset** goes back. Board tabs save their filters and sort too.
+- **The List:** works fully from the keyboard (arrows, Home/End, Enter opens, Space selects; screen readers hear it as a tree of sections, tasks and subtasks); subtasks open under their task (▸); a section's **⋯** menu has **Hide empty groups** and **Expand / Collapse all subtasks**; a new **Last modified** sort; sections of 1,500+ tasks scroll smoothly (only the rows on screen are drawn).
+- **Row height:** Options → **Rows: Comfortable or Compact**, remembered for you.
+- **Fresher screens for everyone:** project views, My Tasks and an open task refresh every 15 seconds while visible (was 30 s), as soon as you come back to the window, and after every change; they pause while the window is hidden and never while you're typing.
+- **Project colours** now come from the theme (light and dark); red and green projects show as orange and a calmer green so they no longer look like overdue or done.
+- **Owner steps:** back up the database, run `database/migrations/202611221000_pm_a_views_prefs.sql` (rollback inside), publish v1.61.0, then switch **Projects: tabs for every view… (phase A)** to IT team only or On in Super Admin → Settings → Feature switches when ready.
+
 ## v1.60.0 (21 Nov 2026): Edit and delete every comment (owner)
 - **Every comment can be edited and deleted:** comments on requests (Discussion), ticket remarks and task comments. **Edit** and **Delete** show under each comment for the person who wrote it and for IT.
 - **Nothing is lost:** an edited comment is marked **(edited)**, and **Show edits** lists what it said before each change, with who changed it and when. A deleted comment shows "This comment was deleted", and **Show what it said** shows its last text. Everyone who can see the comment can see its earlier versions.

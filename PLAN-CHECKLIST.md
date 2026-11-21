@@ -17,9 +17,21 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 **Multi-level approvals in any custom manner.** The engine must support any number of levels in any combination: sequential, parallel, any-one, any-N-of-M, conditional and hybrid. Approvers can come from any source, and levels can be added or skipped by rules. Build the engine for this from the first engine phase (P2). The drag-and-drop designer (P3) is only the screen for building it. Check every task against this.
 
 ## Now / Next
-- **Next (21 Nov 2026):** Project Management + Forms: Step 0 discovery done (docs/pm-module/DISCOVERY.md); approved 21 Nov 2026 (D-366): phases A to E in one stretch.
+- **Now (22 Nov 2026):** **v1.61.0** PM phase A part 1: tabs for every view, the windowed keyboard List, 15 s refresh, theme tokens (D-367). **Owner:** back up, run migration 202611221000_pm_a_views_prefs.sql, publish, then switch "Projects: tabs for every view… (phase A)" to IT only or On.
+- **Next (22 Nov 2026):** PM phase A part 2 (PM-A7..A11), then phases B to E (D-366).
 - [x] PM-00 (21 Nov 2026) Step 0 discovery: gap analysis, token and component mapping, plan
-- [ ] PM-A Phase A foundations (after approval)
+- [ ] PM-A Phase A foundations (in progress: part 1 shipped in v1.61.0)
+  - [x] PM-A1 (22 Nov 2026) Theme tokens: row-active, identity 1–8 (COLOR_HEX moved to tokens), row heights/density, pane width, popover z, type steps, mono font
+  - [x] PM-A2 (22 Nov 2026) Feature switch pm_foundations (default OFF; ON in e2e)
+  - [x] PM-A3 (22 Nov 2026) Tabs for every view: catalogue, rename, default, duplicate, copy link, remove, keyboard/drag reorder, Save view / Unsaved / Reset, server rules and permissions
+  - [x] PM-A4 (22 Nov 2026) List: treegrid + roving focus, windowing (1,500 rows), row numbers, inline subtasks, Hide empty groups, Expand/collapse all subtasks, search, Last modified sort
+  - [x] PM-A5 (22 Nov 2026) Faster polling: shared 15 s refresher for project views, My Tasks and the task pane (D-366)
+  - [x] PM-A6 (22 Nov 2026) Row density preference (Comfortable / Compact, user_settings)
+  - [ ] PM-A7 Board: Space-to-lift keyboard moves, card field chips, comment count
+  - [ ] PM-A8 Task pane: right-side resizable pane, visibility banner, reactions
+  - [ ] PM-A9 Completion animation, celebrations preference, undo for complete and delete
+  - [ ] PM-A10 Sidebar: Starred projects, Departments sections, Home greeting and widgets
+  - [ ] PM-A11 Purge job after 30 days in Deleted (Admin setting)
 - [ ] PM-B Phase B planning and data
 - [ ] PM-C Phase C forms
 - [ ] PM-D Phase D reporting, workload, automations, portfolios

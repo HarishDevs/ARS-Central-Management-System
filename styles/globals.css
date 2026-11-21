@@ -56,6 +56,24 @@
   --z-dialog: 60;
   --z-toast: 70;
   --z-palette: 80;
+  /* v1.61.0 (D-367, PM Phase A tokens): the open or selected grid row, project
+     identity colours (none reuses a status hue exactly), list row heights and
+     density, the task pane width, popovers' layer and a monospace stack. */
+  --color-row-active: #e3edf9;
+  --color-identity-1: #2563c9; /* blue */
+  --color-identity-2: #6d4bc4; /* violet */
+  --color-identity-3: #b23a8a; /* magenta */
+  --color-identity-4: #c2541b; /* orange */
+  --color-identity-5: #9a6a10; /* ochre */
+  --color-identity-6: #2f7d4f; /* green */
+  --color-identity-7: #13798a; /* cyan */
+  --color-identity-8: #5f6b7a; /* grey */
+  --row-h: 36px;
+  --row-h-compact: 30px;
+  --header-row-h: 34px;
+  --pane-w: 440px;
+  --z-popover: 40;
+  --font-mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Consolas, "Liberation Mono", monospace;
   /* D-253: the approval road (TMT road tracker). */
   --road-surface: #3b4656;
   --road-edge: #2b3441;
@@ -114,6 +132,15 @@
   --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.35);
   --shadow-button: 0 4px 12px rgba(0, 0, 0, 0.35);
   --shadow-overlay: 0 20px 48px rgba(0, 0, 0, 0.55);
+  --color-row-active: #16304d;
+  --color-identity-1: #2f6fd0;
+  --color-identity-2: #7556cf;
+  --color-identity-3: #b8428f;
+  --color-identity-4: #c2541b;
+  --color-identity-5: #9a6a10;
+  --color-identity-6: #2f7d4f;
+  --color-identity-7: #13798a;
+  --color-identity-8: #66727f;
   --road-surface: #2c3646;
   --road-edge: #1d2531;
   --road-done: #22a356;
@@ -169,6 +196,15 @@
   --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.35);
   --shadow-button: 0 4px 12px rgba(0, 0, 0, 0.35);
   --shadow-overlay: 0 20px 48px rgba(0, 0, 0, 0.55);
+  --color-row-active: #16304d;
+  --color-identity-1: #2f6fd0;
+  --color-identity-2: #7556cf;
+  --color-identity-3: #b8428f;
+  --color-identity-4: #c2541b;
+  --color-identity-5: #9a6a10;
+  --color-identity-6: #2f7d4f;
+  --color-identity-7: #13798a;
+  --color-identity-8: #66727f;
     --road-surface: #2c3646;
     --road-edge: #1d2531;
     --road-done: #22a356;
@@ -1434,3 +1470,8 @@ body:has([data-testid="m-comment-dock"][data-open="1"]) .picbot-launcher {
   top: calc(3.5rem + env(safe-area-inset-top) + 0.25rem);
 }
 
+/* v1.61.0 (D-367): a person's row density (Profile-free: the list's Options).
+   Compact rows use --row-h-compact; the list reads --row-h. */
+[data-density="compact"] {
+  --row-h: var(--row-h-compact);
+}

@@ -19,6 +19,8 @@ The number of levels and how they combine is unlimited. There are no fixed "Leve
 |---|---|---|
 | A-01…A-12 | Asana reference flows | Reference |
 | F-212 | Meeting Management: schedule, points and MOM approval, action tasks, follow-ups | Built 10 Nov 2026 (v1.51.0) |
+| F-PM-TABS | Project tabs for every view, Save view / Reset | Built 22 Nov 2026 (v1.61.0, behind pm_foundations) |
+| F-PM-LIST | The List as a keyboard treegrid, windowed; 15 s refresh | Built 22 Nov 2026 (v1.61.0) |
 | F-01 | Google sign-in | Built 28 Sep 2026 (live test pending Firebase Admin values) |
 | F-02 | User ID + password + OTP | Built 28 Sep 2026 (live send pending the CEOITBox key) |
 | F-03 | New-login detection and alert | Built 28 Sep 2026 (device cookie; location later) |
@@ -1882,6 +1884,35 @@ The application audit (`application-audit/`) found these gaps between flows and 
 - **F-31 SLA, reminder, escalation** and **F-79 FYI steps:** escalation managers and FYI recipients receive links they can't open (AUD-09). Planned for Phase B.
 - **F-59 Bulk import:** the import doesn't apply the rule that only the Super Admin changes another IT Admin's contact details (AUD-01). Fix planned: V181-A2.
 - **F-121 Page access:** an action posted from an address that is no configured page isn't restricted (AUD-14). Fix planned: V181-A7.
+
+## F-PM-TABS: Project tabs for every view (v1.61.0, D-367; extends F-162)
+```mermaid
+flowchart LR
+  O[Open a project] --> P{?tab= / ?view= / default tab}
+  P --> V[The tab's view: List, Board, Calendar, Timeline or Overview, with its saved view]
+  V -->|change filters, sort, groups, columns| U[Unsaved changes]
+  U -->|Reset| V
+  U -->|owner or editor: Save view| S[Saved for everyone] --> V
+  V -->|owner or editor: + Add tab| A{Strip stored?}
+  A -->|no| M[Write the five built-in views as rows] --> N[New tab last, unique name, opens]
+  A -->|yes| N
+  V -->|tab menu| X[Rename / Set as default / Duplicate / Copy link / Move left-right / Remove]
+  V -->|Alt + arrow or drag| R[Reorder, announced]
+```
+- Owners and editors change tabs; commenters, viewers and everyone else only open them and copy links; anyone who can't see the project gets "Not found". One tab always stays; at most 50.
+- Behind the `pm_foundations` switch; off, the project page shows the fixed views and saved List tabs (F-162).
+
+## F-PM-LIST: The List as a keyboard treegrid (v1.61.0, D-367)
+```mermaid
+flowchart TD
+  T[Tab into the List: one row takes focus] -->|Up / Down, Home / End, PageUp / PageDown| T
+  T -->|Right on a closed section or task with subtasks| O[Open it]
+  T -->|Left on an open one| C[Close it]
+  T -->|Left on a task or subtask| PA[Focus its parent]
+  T -->|Enter| TP[Open the task pane]
+  T -->|Space| SEL[Select for bulk actions]
+```
+- 150 lines or more: only the lines near the screen are drawn (spacers keep the scroll height). Every open project view, My Tasks and the task pane refresh every 15 s while visible, on focus, and after a change (paused when hidden or while typing).
 
 ## F-COMMENT-EDIT: Edit or delete a comment (v1.60.0, D-365)
 ```mermaid

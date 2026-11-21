@@ -8,6 +8,7 @@ import type { MySystemSection, WorkSearch } from "@/server/work/rules";
 import { MY_SECTION_NAMES, MY_SECTION_ORDER } from "@/server/work/rules";
 import type { TaskPriority } from "@/server/modules/settings";
 import type { TaskStatus } from "@/server/modules/task-rules";
+import type { TabRow, TabView } from "@/server/work/view-tabs";
 
 // D-215: Task & Project Management data. Every list that shows tasks uses
 // visibleTaskClause, the SQL twin of server/work/access.ts taskRights().view.
@@ -301,6 +302,7 @@ export interface WorkTaskItem {
   blockedBy: number; // open blockers
   isPeriodic: boolean; // D-219: repeats (or belongs to a repeating series)
   createdAt: Date; // D-220
+  updatedAt?: Date; // v1.61.0 (D-367): the Modified sort
   followers: { id: number; name: string }[]; // D-220: collaborators
   tags: { id: number; name: string; color: string }[];
   projects: { id: number; name: string; color: string }[];
@@ -312,7 +314,7 @@ export interface WorkTaskItem {
 }
 
 const ITEM_SELECT = `SELECT t.id, t.task_no, t.title, t.status, t.priority, t.assignee_id, a.name AS assignee_name, (SELECT dd.name FROM departments dd WHERE dd.id = a.department_id) AS assignee_department, t.created_by, c.name AS created_by_name, t.due_at, t.starts_on,
-    t.completed_at, t.created_at, t.is_milestone, t.parent_task_id, t.assigned_at, LEFT(t.description, 160) AS summary, t.related_request_id, (SELECT rq.request_no FROM approval_requests rq WHERE rq.id = t.related_request_id) AS related_request_no, JSON_CONTAINS_PATH(t.form_data_json, 'one', '$.__approvalWork') AS from_approval, JSON_CONTAINS_PATH(t.form_data_json, 'one', '$.__approvalLink') AS linked_work, (t.recurrence_json IS NOT NULL OR t.series_id IS NOT NULL) AS is_periodic,
+    t.completed_at, t.created_at, t.updated_at, t.is_milestone, t.parent_task_id, t.assigned_at, LEFT(t.description, 160) AS summary, t.related_request_id, (SELECT rq.request_no FROM approval_requests rq WHERE rq.id = t.related_request_id) AS related_request_no, JSON_CONTAINS_PATH(t.form_data_json, 'one', '$.__approvalWork') AS from_approval, JSON_CONTAINS_PATH(t.form_data_json, 'one', '$.__approvalLink') AS linked_work, (t.recurrence_json IS NOT NULL OR t.series_id IS NOT NULL) AS is_periodic,
     (SELECT COUNT(*) FROM tasks s WHERE s.parent_task_id = t.id AND s.deleted_at IS NULL) AS subtasks,
     (SELECT COUNT(*) FROM tasks s WHERE s.parent_task_id = t.id AND s.deleted_at IS NULL AND s.status IN ('OPEN', 'IN_PROGRESS', 'BLOCKED')) AS subtasks_open,
     (SELECT COUNT(*) FROM task_comments cm WHERE cm.task_id = t.id AND cm.deleted_at IS NULL) AS comments,
@@ -360,6 +362,7 @@ async function decorate(rows: Row[], db: Queryable): Promise<WorkTaskItem[]> {
     blockedBy: num(row.blocked_by),
     isPeriodic: Boolean(row.is_periodic),
     createdAt: row.created_at as Date,
+    updatedAt: (row.updated_at as Date | undefined) ?? undefined,
     followers: followers.get(num(row.id)) ?? [],
     tags: tags.get(num(row.id)) ?? [],
     projects: projects.get(num(row.id)) ?? [],
@@ -388,6 +391,13 @@ export async function listTaskItems(where: string[], params: unknown[], orderBy:
   const [rows] = await db.query<Row[]>(`${ITEM_SELECT}, NULL AS section_id, t.subtask_position AS position FROM tasks t JOIN users a ON a.id = t.assignee_id JOIN users c ON c.id = t.created_by ${clause} ORDER BY ${orderBy} LIMIT ? OFFSET ?`, [...params, limit, offset]);
   const [count] = await db.query<Row[]>(`SELECT COUNT(*) AS total FROM tasks t JOIN users a ON a.id = t.assignee_id ${clause}`, params);
   return { items: await decorate(rows, db), total: num(count[0]?.total ?? 0) };
+}
+
+// v1.61.0 (D-367): the direct subtasks of many tasks at once (the List shows
+// them inline). Like listSubtasks: whoever sees the top task sees its subtasks.
+export async function listChildTasks(parentIds: readonly number[], db: Queryable = getDbPool()): Promise<WorkTaskItem[]> {
+  if (!parentIds.length) return [];
+  return (await listTaskItems(["t.parent_task_id IN (?)", "t.deleted_at IS NULL"], [[...parentIds]], "t.parent_task_id, t.subtask_position, t.id", 5000, 0, db)).items;
 }
 
 export async function listSubtasks(parentId: number, db: Queryable = getDbPool()): Promise<WorkTaskItem[]> {
@@ -1099,8 +1109,68 @@ export interface WorkView {
   config: unknown;
 }
 export async function listWorkViews(scope: "MY_TASKS" | "PROJECT", scopeId: number, db: Queryable = getDbPool()): Promise<WorkView[]> {
-  const [rows] = await db.query<Row[]>("SELECT id, name, config_json FROM work_views WHERE scope = ? AND scope_id = ? ORDER BY position, id", [scope, scopeId]);
+  // v1.61.0 (D-367): only List tabs here (My Tasks, and the old project strip).
+  const [rows] = await db.query<Row[]>("SELECT id, name, config_json FROM work_views WHERE scope = ? AND scope_id = ? AND view_type = 'LIST' ORDER BY position, id", [scope, scopeId]);
   return rows.map((row) => ({ id: num(row.id), name: String(row.name), config: typeof row.config_json === "string" ? JSON.parse(row.config_json) : row.config_json }));
+}
+
+// v1.61.0 (D-367): a project's tabs of every view type, and whether its strip is stored.
+export async function listProjectTabs(projectId: number, db: Queryable = getDbPool()): Promise<{ rows: TabRow[]; tabsSet: boolean; defaultView: string }> {
+  const [[project], [rows]] = await Promise.all([
+    db.query<Row[]>("SELECT view_tabs_set, default_view FROM projects WHERE id = ?", [projectId]),
+    db.query<Row[]>("SELECT id, view_type, name, config_json, is_default, position FROM work_views WHERE scope = 'PROJECT' AND scope_id = ? ORDER BY position, id", [projectId]),
+  ]);
+  return {
+    tabsSet: Boolean(project[0]?.view_tabs_set),
+    defaultView: String(project[0]?.default_view ?? "LIST"),
+    rows: rows.map((row) => ({
+      id: num(row.id),
+      type: String(row.view_type) as TabView,
+      name: String(row.name),
+      config: typeof row.config_json === "string" ? JSON.parse(row.config_json) : row.config_json,
+      isDefault: Boolean(row.is_default),
+      position: Number(row.position),
+    })),
+  };
+}
+export async function findProjectTab(id: number, db: Queryable = getDbPool()): Promise<(TabRow & { projectId: number }) | null> {
+  const [rows] = await db.query<Row[]>("SELECT id, scope_id, view_type, name, config_json, is_default, position FROM work_views WHERE id = ? AND scope = 'PROJECT'", [id]);
+  const row = rows[0];
+  if (!row) return null;
+  return { id: num(row.id), projectId: num(row.scope_id), type: String(row.view_type) as TabView, name: String(row.name), config: typeof row.config_json === "string" ? JSON.parse(row.config_json) : row.config_json, isDefault: Boolean(row.is_default), position: Number(row.position) };
+}
+export async function insertProjectTab(projectId: number, input: { type: TabView; name: string; config: unknown; position: number; isDefault?: boolean }, by: number, db: Queryable): Promise<number | "DUPLICATE"> {
+  try {
+    const [result] = await db.query<ResultSetHeader>(
+      "INSERT INTO work_views (scope, scope_id, view_type, name, config_json, position, is_default, created_by) VALUES ('PROJECT', ?, ?, ?, ?, ?, ?, ?)",
+      [projectId, input.type, input.name, JSON.stringify(input.config ?? {}), input.position, Boolean(input.isDefault), by],
+    );
+    return result.insertId;
+  } catch (error) {
+    if ((error as { code?: string }).code === "ER_DUP_ENTRY") return "DUPLICATE";
+    throw error;
+  }
+}
+export async function setTabPositions(projectId: number, ids: readonly number[], db: Queryable): Promise<void> {
+  for (const [index, id] of ids.entries()) await db.query<ResultSetHeader>("UPDATE work_views SET position = ? WHERE id = ? AND scope = 'PROJECT' AND scope_id = ?", [(index + 1) * 1024, id, projectId]);
+}
+export async function setDefaultTab(projectId: number, id: number, db: Queryable): Promise<void> {
+  await db.query<ResultSetHeader>("UPDATE work_views SET is_default = (id = ?) WHERE scope = 'PROJECT' AND scope_id = ?", [id, projectId]);
+}
+export async function renameWorkView(id: number, name: string, db: Queryable = getDbPool()): Promise<"DUPLICATE" | "OK"> {
+  try {
+    await db.query<ResultSetHeader>("UPDATE work_views SET name = ? WHERE id = ?", [name, id]);
+    return "OK";
+  } catch (error) {
+    if ((error as { code?: string }).code === "ER_DUP_ENTRY") return "DUPLICATE";
+    throw error;
+  }
+}
+export async function markProjectTabsSet(projectId: number, db: Queryable): Promise<void> {
+  await db.query<ResultSetHeader>("UPDATE projects SET view_tabs_set = TRUE WHERE id = ?", [projectId]);
+}
+export async function lockProjectRow(projectId: number, db: Queryable): Promise<void> {
+  await db.query<Row[]>("SELECT id FROM projects WHERE id = ? FOR UPDATE", [projectId]);
 }
 export async function findWorkView(id: number, db: Queryable = getDbPool()): Promise<{ id: number; scope: "MY_TASKS" | "PROJECT"; scopeId: number; name: string } | null> {
   const [rows] = await db.query<Row[]>("SELECT id, scope, scope_id, name FROM work_views WHERE id = ?", [id]);
@@ -1108,7 +1178,7 @@ export async function findWorkView(id: number, db: Queryable = getDbPool()): Pro
 }
 export async function insertWorkView(scope: "MY_TASKS" | "PROJECT", scopeId: number, name: string, config: unknown, by: number, db: Queryable = getDbPool()): Promise<"DUPLICATE" | "TOO_MANY" | number> {
   const [count] = await db.query<Row[]>("SELECT COUNT(*) AS n, COALESCE(MAX(position), 0) AS top FROM work_views WHERE scope = ? AND scope_id = ?", [scope, scopeId]);
-  if (num(count[0]?.n ?? 0) >= 30) return "TOO_MANY";
+  if (num(count[0]?.n ?? 0) >= (scope === "PROJECT" ? 50 : 30)) return "TOO_MANY"; // v1.61.0 (D-367): 50 tabs per project
   try {
     const [result] = await db.query<ResultSetHeader>("INSERT INTO work_views (scope, scope_id, name, config_json, position, created_by) VALUES (?, ?, ?, ?, ?, ?)", [scope, scopeId, name, JSON.stringify(config), Number(count[0]?.top ?? 0) + 1024, by]);
     return result.insertId;
@@ -1138,4 +1208,10 @@ export async function assignGroup(taskId: number, db: Queryable = getDbPool()): 
     [taskId, taskId],
   );
   return rows.map((row) => ({ id: num(row.id), taskNo: String(row.task_no), assigneeName: String(row.name), status: String(row.status) }));
+}
+
+// v1.61.0 (D-367): the person's row density for task lists ("work.density" in user_settings).
+export async function workDensity(userId: number, db: Queryable = getDbPool()): Promise<"COMFORTABLE" | "COMPACT"> {
+  const [rows] = await db.query<Row[]>("SELECT value FROM user_settings WHERE user_id = ? AND setting_key = 'work.density'", [userId]);
+  return rows[0]?.value === "COMPACT" ? "COMPACT" : "COMFORTABLE";
 }

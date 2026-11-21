@@ -9,14 +9,19 @@ import { TaskCalendar } from "@/features/work/TaskCalendar";
 import { Timeline } from "@/features/work/Timeline";
 import { paneLinks, paneTaskId, TaskPane, WithPane } from "@/features/work/TaskPane";
 import { toGridTask } from "@/server/work/grid-rows";
-import { DEFAULT_GRID, parseGridConfig } from "@/server/work/grid";
+import { DEFAULT_GRID, parseGridConfig, type GridConfig } from "@/server/work/grid";
+import { featureOn } from "@/server/settings/features";
+import { buildStrip, parseTabConfig, pickTab, type BoardConfig } from "@/server/work/view-tabs";
+import { childrenByParent } from "@/server/work/tree";
+import { ViewTabs } from "@/features/work/ViewTabs";
+import { LiveRefresh } from "@/features/work/useLiveRefresh";
 import { ProjectCommandButton, RemoveStatusButton, StatusForm } from "@/features/work/ProjectForms";
 import { ProjectHeader } from "@/features/work/ProjectHeader";
 import { FromTemplateForm } from "@/features/work/MoreParts";
 import { listDepartments } from "@/lib/db/repositories/organisation.repository";
 import { countTemplateTasks, parseTemplate, type TemplateTask } from "@/server/work/more-rules";
 import { indiaDayOf } from "@/features/work/format";
-import { listWorkViews, fieldValues, listProjectFields, listProjectTasks, listSections, listStatusUpdates, projectCounts, projectFor, templateBody, touchRecentProject } from "@/lib/db/repositories/work.repository";
+import { listChildTasks, listProjectTabs, listWorkViews, workDensity, fieldValues, listProjectFields, listProjectTasks, listSections, listStatusUpdates, projectCounts, projectFor, templateBody, touchRecentProject } from "@/lib/db/repositories/work.repository";
 import { getDbPool } from "@/lib/db/client";
 import { indiaDateTimeText } from "@/server/modules/settings";
 import { PRIVACY_LABEL, PROJECT_ROLE_LABEL, projectAbilities, STATUS_KIND_LABEL, STATUS_KIND_TONE } from "@/server/work/access";
@@ -101,7 +106,18 @@ export default async function ProjectPage({
     );
   }
   const query = await searchParams;
-  const view: ViewKey = VIEWS.some((item) => item.key === query.view) ? (query.view as ViewKey) : (project.defaultView.toLowerCase() as ViewKey);
+  // v1.61.0 (D-367): with "pm_foundations" on, every view is a tab of the
+  // project's own strip (server/work/view-tabs.ts); off, the fixed views as before.
+  const pmOn = await featureOn("pm_foundations", user);
+  const tabData = pmOn ? await listProjectTabs(project.id) : null;
+  const strip = tabData ? buildStrip(tabData.rows, tabData.tabsSet, tabData.defaultView) : [];
+  const activeTab = tabData ? pickTab(strip, { tab: query.tab, view: query.view }) : null;
+  const activeRow = activeTab?.id ? (tabData?.rows.find((row) => row.id === activeTab.id) ?? null) : null;
+  const view: ViewKey = activeTab
+    ? (activeTab.type.toLowerCase() as ViewKey)
+    : VIEWS.some((item) => item.key === query.view)
+      ? (query.view as ViewKey)
+      : (project.defaultView.toLowerCase() as ViewKey);
   const now = new Date();
   const todayDay = indiaDayOf(now);
   const [sections, tasks, people, statuses, counts, starred, fields] = await Promise.all([
@@ -116,9 +132,14 @@ export default async function ProjectPage({
     listProjectFields(project.id),
   ]);
   // D-220: the project's saved tabs (List views with their filters, sort and groups).
-  const savedTabs = await listWorkViews("PROJECT", project.id);
+  const savedTabs = pmOn ? [] : await listWorkViews("PROJECT", project.id);
   const currentTab = savedTabs.find((item) => String(item.id) === query.tab) ?? null;
   const values = await fieldValues(tasks.map((task) => task.id));
+  // v1.61.0 (D-367): subtasks shown inline in the List (treegrid), and the person's row density.
+  const [subtaskRows, density] = await Promise.all([
+    pmOn && view === "list" ? listChildTasks(tasks.map((task) => task.id)) : Promise.resolve([]),
+    pmOn ? workDensity(user.id) : Promise.resolve("COMFORTABLE" as const),
+  ]);
   await touchRecentProject(user.id, project.id).catch(() => undefined);
   const isMember = members.some((member) => member.type === "USER" && member.id === user.id);
   // D-220: the Share dialog's lists.
@@ -167,6 +188,9 @@ export default async function ProjectPage({
         </p>
       )}
       {project.archivedAt && <p className="mb-4 rounded-md bg-surface-muted px-3 py-2 text-label">This project is archived. Its tasks still work; it is hidden from the project list.</p>}
+      <LiveRefresh />
+      {pmOn && <ViewTabs projectId={project.id} base={base} strip={strip} activeKey={activeTab?.key ?? null} canEdit={can.edit} />}
+      {!pmOn && (
       <nav aria-label="Project views" className="mb-3 flex flex-wrap gap-1 border-b border-line" data-testid="view-tabs">
         {VIEWS.map((item) => (
           <span key={item.key} className="contents">
@@ -191,12 +215,20 @@ export default async function ProjectPage({
           </span>
         ))}
       </nav>
+      )}
 
       <WithPane pane={pane}>
         {(view === "list" || view === "board") && (
           <ProjectWorkspace
+            key={activeTab?.key ?? `${view}:${currentTab?.id ?? ""}`}
             projectId={project.id}
             layout={view === "board" ? "BOARD" : "LIST"}
+            density={density}
+            board={
+              pmOn && view === "board" && activeTab
+                ? { initial: parseTabConfig("BOARD", activeRow?.config) as BoardConfig, tabKey: activeTab.key, tabName: activeTab.name, canSave: can.edit }
+                : undefined
+            }
             sections={sections.map((section) => ({
               id: section.id,
               name: section.name,
@@ -238,8 +270,11 @@ export default async function ProjectPage({
               view === "list"
                 ? {
                     rows: tasks.map((task) => toGridTask(task, user.id, can.edit)),
-                    initial: currentTab ? parseGridConfig(currentTab.config) : { ...DEFAULT_GRID, group: "section" },
-                    view: { scope: "PROJECT", scopeId: project.id, canSave: can.edit, current: currentTab ? { id: currentTab.id, name: currentTab.name } : null },
+                    subtasks: pmOn ? childrenByParent(subtaskRows.map((task) => ({ parentId: task.parentTaskId, row: toGridTask(task, user.id, can.edit) }))) : undefined,
+                    initial: activeTab ? (parseTabConfig("LIST", activeRow?.config) as GridConfig) : currentTab ? parseGridConfig(currentTab.config) : { ...DEFAULT_GRID, group: "section" },
+                    view: activeTab
+                      ? { scope: "PROJECT", scopeId: project.id, canSave: can.edit, current: activeTab.id ? { id: activeTab.id, name: activeTab.name } : null, tabKey: activeTab.key, tabName: activeTab.name, phaseA: true }
+                      : { scope: "PROJECT", scopeId: project.id, canSave: can.edit, current: currentTab ? { id: currentTab.id, name: currentTab.name } : null },
                   }
                 : undefined
             }
@@ -260,7 +295,7 @@ export default async function ProjectPage({
             canEdit={can.edit}
             meId={user.id}
             projectId={project.id}
-            monthHref={`${base}?view=calendar&month=`}
+            monthHref={activeTab?.id ? `${base}?tab=${activeTab.id}&month=` : `${base}?view=calendar&month=`}
             holidays={await calendarHolidays(undefined, viewer.departmentId)}
           />
         )}

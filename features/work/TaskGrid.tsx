@@ -2,14 +2,17 @@
 
 import { TaskPriorityPill, priorityControlProps } from "@/features/ui/ChoicePill";
 import { ApprovalBadge, approvalRowClass } from "@/features/work/ApprovalLink";
-import { ArrowDown, ArrowUp, ArrowUpDown, CalendarDays, ChevronDown, ChevronRight, Filter, GitBranch, Layers, Lock, MessageSquare, Plus, Repeat, Search, Settings2, Users, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, CalendarDays, ChevronDown, ChevronRight, Filter, GitBranch, Layers, Lock, MessageSquare, MoreHorizontal, Plus, Repeat, Search, Settings2, Users, X } from "lucide-react";
 import Link from "next/link";
 import { useProjectsOn } from "@/features/work/projects-access";
 import { LockedProjectName } from "@/features/ui/ComingSoon";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FoldAllButtons } from "@/features/ui/GroupFold";
-import { deleteViewAction, saveViewAction, taskFieldsAction, updateViewAction } from "@/app/users/work/actions";
+import { deleteViewAction, densityAction, projectTabAction, saveViewAction, taskFieldsAction, updateViewAction } from "@/app/users/work/actions";
+import { UnsavedView } from "@/features/work/UnsavedView";
+import { useWindowedLines, WINDOW_FROM } from "@/features/work/useWindowedLines";
+import { expandableIds, flattenGrid, keyMove } from "@/server/work/tree";
 import { initials } from "@/features/ui/Display";
 import { Drop } from "@/features/ui/Drop";
 import { PersonSelect } from "@/features/ui/PersonSelect";
@@ -38,6 +41,7 @@ import {
   type GridColumn,
   type GridConfig,
   type GridGroup,
+  type GridGroupOut,
   type GridTask,
   type SortableColumn,
 } from "@/server/work/grid";
@@ -52,6 +56,12 @@ export interface GridView {
   scopeId: number;
   canSave: boolean;
   current: { id: number; name: string } | null;
+  // v1.61.0 (D-367): a project tab of the new strip ("pm_foundations"): its key
+  // ("t12", or "vLIST" before the strip is stored), name, and the phase A tools
+  // (Unsaved changes, Save view, Reset, the group menu).
+  tabKey?: string;
+  tabName?: string;
+  phaseA?: boolean;
 }
 
 const COMPLETED_LABEL: Record<(typeof COMPLETED_RANGES)[number], string> = { none: "Hide", all: "All completed", today: "Completed today", week: "Past 7 days", month: "Past 30 days" };
@@ -83,8 +93,13 @@ export function TaskGrid({
   emptyText = "No tasks here.",
   syncUrl = false,
   widthKey,
+  subtasks,
+  density,
 }: {
   rows: GridTask[];
+  // v1.61.0 (D-367): each task's subtasks (shown inline, folded), and the person's row density.
+  subtasks?: Record<number, GridTask[]>;
+  density?: "COMFORTABLE" | "COMPACT";
   initial: GridConfig;
   columns: GridColumn[];
   groupsAllowed: GridGroup[];
@@ -127,19 +142,22 @@ export function TaskGrid({
   const [searching, setSearching] = useState(Boolean(initial.search));
   const openTask = useSearchParams().get("task");
   const lastInitial = useRef(JSON.stringify(initial));
+  // v1.61.0 (D-367): keyed by the saved view's text, not the object, so the
+  // 15-second refresh (a new but equal object) never wipes unsaved changes.
+  const initialKey = JSON.stringify(initial);
   useEffect(() => {
     // v1.58.0 (D-354): with syncUrl the page comes back with the sort and group
     // just put in the address; the filters and search typed here are kept then.
-    const key = JSON.stringify(initial);
+    const fresh = JSON.parse(initialKey) as GridConfig;
     if (syncUrl) {
-      if (key === lastInitial.current) return;
-      lastInitial.current = key;
-      setConfig((current) => (JSON.stringify(gridUrlState(current)) === JSON.stringify(gridUrlState(initial)) ? current : initial));
+      if (initialKey === lastInitial.current) return;
+      lastInitial.current = initialKey;
+      setConfig((current) => (JSON.stringify(gridUrlState(current)) === JSON.stringify(gridUrlState(fresh)) ? current : fresh));
       return;
     }
-    setConfig(initial);
-    setSaved(key);
-  }, [initial, syncUrl]);
+    setConfig(fresh);
+    setSaved(initialKey);
+  }, [initialKey, syncUrl]);
   const urlState = JSON.stringify(gridUrlState(config));
   useEffect(() => {
     if (!syncUrl) return;
@@ -149,7 +167,6 @@ export function TaskGrid({
     if (url.search !== window.location.search) router.replace(`${url.pathname}${url.search}`, { scroll: false });
   }, [syncUrl, urlState, router]);
   if (fold.group !== config.group) setFold({ group: config.group, closed: groupsStartFolded(config.group), toggled: new Set() });
-  const isClosed = (key: string) => fold.closed !== fold.toggled.has(key);
   const toggleGroup = (key: string) => setFold((value) => ({ ...value, toggled: new Set(value.toggled.has(key) ? [...value.toggled].filter((item) => item !== key) : [...value.toggled, key]) }));
   const foldAll = (open: boolean) => setFold((value) => ({ ...value, closed: !open, toggled: new Set() }));
   const today = indiaDayOf(new Date(nowIso));
@@ -216,6 +233,94 @@ export function TaskGrid({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [selected.length]);
+
+  // ---- v1.61.0 (D-367): treegrid lines, subtasks, windowing and roving focus ----
+  const [expanded, setExpanded] = useState<Set<number>>(() => new Set());
+  const [focusKey, setFocusKey] = useState<string | null>(null);
+  const [gridLive, setGridLive] = useState("");
+  const pendingFocus = useRef<string | null>(null);
+  const hasSubtasks = Boolean(subtasks && Object.keys(subtasks).length);
+  const toggleSubtasks = (taskId: number) => setExpanded((value) => (value.has(taskId) ? new Set([...value].filter((one) => one !== taskId)) : new Set([...value, taskId])));
+  const onSubtasksAll = (open: boolean) => {
+    setExpanded(open ? new Set(expandableIds(groups, subtasks)) : new Set());
+    setGridLive(open ? "All subtasks shown." : "All subtasks hidden.");
+  };
+  const lines = useMemo(
+    () =>
+      flattenGrid(groups, {
+        isClosed: (key) => fold.closed !== fold.toggled.has(key),
+        subtasks,
+        expanded,
+        hideEmpty: config.hideEmpty,
+        addLine: (group) => Boolean((group.sectionId !== null && addTo?.projectId && sections?.some((item) => item.id === group.sectionId)) || (group.sectionId !== null && addTo?.mySections)),
+      }),
+    [groups, fold, subtasks, expanded, config.hideEmpty, addTo?.projectId, addTo?.mySections, sections],
+  );
+  const virtual = lines.length >= WINDOW_FROM;
+  const lineKeys = useMemo(() => lines.map((line) => line.key), [lines]);
+  // The choice shows at once; the server keeps it (densityAction).
+  const [rowDensity, setRowDensity] = useState(density);
+  useEffect(() => setRowDensity(density), [density]);
+  const rowEstimate = rowDensity === "COMPACT" ? 30 : 36;
+  const estimate = useCallback((index: number) => (lines[index]?.kind === "group" ? 56 : lines[index]?.kind === "add" ? 40 : rowEstimate), [lines, rowEstimate]);
+  const windowed = useWindowedLines(lineKeys, estimate, virtual);
+  const drawn = lines.slice(windowed.range.start, windowed.range.end).map((line, offset) => ({ line, index: windowed.range.start + offset }));
+  const drawnGroups: { group: GridGroupOut; from: number; lines: typeof drawn }[] = [];
+  for (const item of drawn) {
+    const last = drawnGroups.at(-1);
+    if (last && last.group.key === item.line.group.key) last.lines.push(item);
+    else drawnGroups.push({ group: item.line.group, from: item.index, lines: [item] });
+  }
+  const activeKey = focusKey && lineKeys.includes(focusKey) ? focusKey : (lineKeys[0] ?? null);
+  useEffect(() => {
+    const key = pendingFocus.current;
+    if (!key) return;
+    const row = windowed.container.current?.querySelector<HTMLElement>(`[data-line-key="${CSS.escape(key)}"]`);
+    if (row) {
+      pendingFocus.current = null;
+      row.focus();
+    }
+  });
+  const focusLine = (index: number) => {
+    const line = lines[index];
+    if (!line) return;
+    pendingFocus.current = line.key;
+    setFocusKey(line.key);
+    windowed.scrollToIndex(index);
+    windowed.container.current?.querySelector<HTMLElement>(`[data-line-key="${CSS.escape(line.key)}"]`)?.focus();
+  };
+  const onGridKey = (event: React.KeyboardEvent) => {
+    const row = event.target as HTMLElement;
+    // Only when a whole line has focus; inside a cell the controls keep their keys.
+    if (!row.matches("[data-line-index]")) return;
+    const index = Number(row.dataset.lineIndex);
+    const line = lines[index];
+    if (!line) return;
+    if (event.key === "Enter" && line.kind === "task") {
+      event.preventDefault();
+      router.push(paneLink(line.task.id), { scroll: false });
+      return;
+    }
+    if (event.key === " " && line.kind === "task" && bulk && line.parentId === null) {
+      event.preventDefault();
+      pick(line.task.id, event.shiftKey);
+      return;
+    }
+    const move = keyMove(lines, index, event.key, Math.max(5, Math.floor(window.innerHeight / rowEstimate) - 2));
+    if (!move) return;
+    event.preventDefault();
+    if ("focus" in move) focusLine(move.focus);
+    else {
+      if (line.kind === "group") {
+        toggleGroup(line.group.key);
+        setGridLive(`${line.group.name} ${move.open ? "shown" : "hidden"}.`);
+      } else if (line.kind === "task") {
+        toggleSubtasks(line.task.id);
+        setGridLive(`Subtasks of ${line.task.title} ${move.open ? "shown" : "hidden"}.`);
+      }
+      pendingFocus.current = line.key;
+    }
+  };
 
   const saveTab = async () => {
     if (!view) return;
@@ -360,12 +465,34 @@ export function TaskGrid({
                 {COLUMN_LABEL[column]}
               </label>
             ))}
+            {hasSubtasks && (
+              <div className="mt-2 space-y-1 border-t border-line pt-2">
+                <p className="mb-1 px-2 text-label font-semibold">Subtasks</p>
+                <button type="button" className="block w-full rounded px-2 py-1 text-left text-label hover:bg-surface-muted" onClick={() => onSubtasksAll(true)} data-testid="subtasks-expand-all">
+                  Expand all subtasks
+                </button>
+                <button type="button" className="block w-full rounded px-2 py-1 text-left text-label hover:bg-surface-muted" onClick={() => onSubtasksAll(false)} data-testid="subtasks-collapse-all">
+                  Collapse all subtasks
+                </button>
+              </div>
+            )}
+            {density && (
+              <div className="mt-2 border-t border-line pt-2" role="radiogroup" aria-label="Row density">
+                <p className="mb-1 px-2 text-label font-semibold">Rows</p>
+                {(["COMFORTABLE", "COMPACT"] as const).map((choice) => (
+                  <label key={choice} className="flex items-center gap-2 rounded px-2 py-1 text-label hover:bg-surface-muted">
+                    <input type="radio" name={`${testId}-density`} checked={rowDensity === choice} onChange={() => { setRowDensity(choice); void call(() => densityAction(choice), { success: false }); }} data-testid={`density-${choice.toLowerCase()}`} />{" "}
+                    {choice === "COMPACT" ? "Compact" : "Comfortable"}
+                  </label>
+                ))}
+              </div>
+            )}
             {view?.canSave && (
               <div className="mt-2 space-y-1 border-t border-line pt-2">
                 <button type="button" className="block w-full rounded px-2 py-1 text-left text-label hover:bg-surface-muted" onClick={() => void saveTab()}>
                   Save as a new tab…
                 </button>
-                {view.current && (
+                {view.current && !view.phaseA && (
                   <button
                     type="button"
                     className="block w-full rounded px-2 py-1 text-left text-label text-danger-600 hover:bg-danger-50"
@@ -393,7 +520,14 @@ export function TaskGrid({
               <Search aria-hidden="true" className="h-4 w-4" />
             </button>
           )}
-          {dirty && view?.canSave && view.current && (
+          {dirty && view?.phaseA && view.tabKey && (
+            <UnsavedView
+              canSave={view.canSave}
+              onReset={() => setConfig(JSON.parse(saved) as GridConfig)}
+              onSave={() => void call(() => projectTabAction(view.scopeId, { op: "save", key: view.tabKey!, config })).then((result) => result?.ok && setSaved(JSON.stringify(config)))}
+            />
+          )}
+          {dirty && !view?.phaseA && view?.canSave && view.current && (
             <button type="button" className="btn-primary btn-compact" onClick={() => void call(() => updateViewAction(view.current!.id, config)).then((result) => result?.ok && setSaved(JSON.stringify(config)))}>
               Save view
             </button>
@@ -402,9 +536,23 @@ export function TaskGrid({
       </div>
 
       {config.group !== "none" && groups.length > 0 && <FoldAllButtons onAll={foldAll} testId={`${testId}-fold-all`} />}
-      <div className="overflow-x-auto rounded-lg border border-line bg-surface">
-        <div role="table" aria-label="Tasks" className="min-w-max">
-          <div role="row" style={gridColumns} className="sticky top-0 z-10 grid border-b border-line bg-surface text-caption font-medium text-ink-muted">
+      <div className="overflow-x-auto rounded-lg border border-line bg-surface" data-density={rowDensity === "COMPACT" ? "compact" : undefined}>
+        {/* v1.61.0 (D-367, spec PRJ-03): an ARIA treegrid. Group headings are level 1,
+            tasks level 2 (1 without groups), subtasks one deeper; one line takes Tab
+            (roving focus), the arrow keys move and fold, Enter opens the task. Long
+            tables draw only the lines near the screen (useWindowedLines). */}
+        <div
+          ref={windowed.container}
+          role="treegrid"
+          aria-label="Tasks"
+          aria-rowcount={lines.length + 1}
+          aria-multiselectable={bulk || undefined}
+          className="min-w-max"
+          onKeyDown={onGridKey}
+          data-virtual={virtual ? "on" : undefined}
+          data-line-count={lines.length}
+        >
+          <div role="row" aria-rowindex={1} style={gridColumns} className="sticky top-0 z-10 grid min-h-header-row border-b border-line bg-surface text-caption font-medium text-ink-muted">
             <span role="columnheader" className="px-2 py-2">
               #
             </span>
@@ -413,13 +561,13 @@ export function TaskGrid({
             {fields.map((field) => sortHead(field.id, field.name, "truncate border-r border-line px-2 py-2", `f${field.id}`))}
           </div>
           {allShown.length === 0 && !(config.group === "section" && sections?.length) && <p className="px-4 py-8 text-center text-label text-ink-muted">{emptyText}</p>}
-          {groups.map((group) => {
-            // A list without groups (one nameless group) is never folded.
-            const closed = Boolean(group.name) && isClosed(group.key);
+          {windowed.range.padTop > 0 && <div aria-hidden="true" style={{ height: windowed.range.padTop }} data-testid="grid-spacer-top" />}
+          {drawnGroups.map((chunk) => {
+            const group = chunk.group;
             const section = group.sectionId !== null ? (sections?.find((item) => item.id === group.sectionId) ?? null) : null;
             return (
               <div
-                key={group.key}
+                key={`${group.key}-${chunk.from}`}
                 role="rowgroup"
                 aria-label={group.name || "Tasks"}
                 onDragOver={(event) => canDrag && event.preventDefault()}
@@ -429,133 +577,169 @@ export function TaskGrid({
                   setDragging(null);
                 }}
               >
-                {/* v1.49.0 (axe): the group heading is a row of its own, so the rowgroup holds only rows. */}
-                {group.name && (
-                  <div role="row" className="border-b border-line">
-                  <div role="cell" className="flex items-center gap-2 px-2 pb-2 pt-5">
-                    <button
-                      type="button"
-                      aria-expanded={!closed}
-                      aria-label={`${closed ? "Show" : "Hide"} ${group.name}`}
-                      onClick={() => toggleGroup(group.key)}
-                      className="rounded p-0.5 text-ink-muted hover:bg-surface-muted"
-                    >
-                      {closed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                    </button>
-                    {group.person && <PersonDot name={group.person} size="md" />}
-                    {section && sectionHeader ? (
-                      sectionHeader(section, group.rows.length)
-                    ) : (
-                      <h3 className="flex items-center gap-2 text-card-title font-semibold">
-                        {group.name} <span className="text-caption font-normal text-ink-muted">{group.rows.length}</span>
-                      </h3>
-                    )}
-                  </div>
-                  </div>
-                )}
-                {!closed &&
-                  group.rows.map((task, index) => {
-                    const open = ["OPEN", "IN_PROGRESS", "BLOCKED"].includes(task.status);
-                    const due = dueLabel(task.dueAt, now, open);
-                    const isOpen = openTask === String(task.id);
+                {chunk.lines.map(({ line, index }) => {
+                  const lineProps = {
+                    "aria-rowindex": index + 2,
+                    "aria-level": line.level,
+                    tabIndex: line.key === activeKey ? 0 : -1,
+                    "data-line-key": line.key,
+                    "data-line-index": index,
+                    ref: windowed.measure(line.key),
+                    onFocus: (event: React.FocusEvent) => {
+                      if (event.target === event.currentTarget) setFocusKey(line.key);
+                    },
+                  } as const;
+                  if (line.kind === "group")
                     return (
-                      <div
-                        key={`${group.key}-${task.id}`}
-                        role="row"
-                        tabIndex={-1}
-                        style={gridColumns}
-                        draggable={canDrag}
-                        onDragStart={() => setDragging(task.id)}
-                        onDragEnd={() => setDragging(null)}
-                        onDragOver={(event) => canDrag && event.preventDefault()}
-                        onDrop={(event) => {
-                          event.preventDefault();
-                          event.stopPropagation();
-                          if (dragging !== null && dragging !== task.id && section && onMove) onMove(dragging, section.id, task.id);
-                          setDragging(null);
-                        }}
-                        data-testid="task-row"
-                        data-task-id={task.id}
-                        aria-selected={bulk ? selected.includes(task.id) : undefined}
-                        onClickCapture={(event) => {
-                          if (!bulk || !(event.ctrlKey || event.metaKey || event.shiftKey)) return;
-                          // Controls inside the row (due date, priority, people…) keep their own clicks.
-                          if ((event.target as HTMLElement).closest("input, select, textarea, button, [role='combobox'], [role='listbox']")) return;
-                          event.preventDefault();
-                          event.stopPropagation();
-                          pick(task.id, event.shiftKey);
-                        }}
-                        className={`work-row group grid min-h-9 select-none items-center border-b border-line text-label hover:bg-surface-muted ${approvalRowClass(task.approval)} ${isOpen ? "bg-primary-50 outline outline-1 -outline-offset-1 outline-primary-600" : ""} ${selected.includes(task.id) ? "bg-primary-50 shadow-[inset_3px_0_0_var(--color-primary-600)]" : ""} ${dragging === task.id ? "opacity-50" : ""}`}
-                      >
-                        <span role="cell" className="px-2 text-caption text-ink-faint">
-                          {index + 1}
+                      <div key={line.key} role="row" aria-expanded={line.expanded} {...lineProps} className="border-b border-line focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus">
+                        <div role="gridcell" className="flex items-center gap-2 px-2 pb-2 pt-5">
+                          <button
+                            type="button"
+                            tabIndex={-1}
+                            aria-expanded={line.expanded}
+                            aria-label={`${line.expanded ? "Hide" : "Show"} ${group.name}`}
+                            onClick={() => toggleGroup(group.key)}
+                            className="inline-flex h-6 w-6 items-center justify-center rounded text-ink-muted hover:bg-surface-muted"
+                          >
+                            {line.expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                          </button>
+                          {group.person && <PersonDot name={group.person} size="md" />}
+                          {section && sectionHeader ? (
+                            sectionHeader(section, group.rows.length)
+                          ) : (
+                            <h3 className="flex items-center gap-2 text-card-title font-semibold">
+                              {group.name} <span className="text-caption font-normal text-ink-muted">{group.rows.length}</span>
+                            </h3>
+                          )}
+                          {view?.phaseA && <GroupMenu name={group.name} hideEmpty={config.hideEmpty} onHideEmpty={(on) => set({ hideEmpty: on })} onFoldAll={foldAll} subtasks={hasSubtasks ? onSubtasksAll : undefined} />}
+                        </div>
+                      </div>
+                    );
+                  if (line.kind === "add")
+                    return (
+                      <div key={line.key} role="row" {...lineProps} className="focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus">
+                        <div role="gridcell">{section && addTo?.projectId ? <AddTask projectId={addTo.projectId} sectionId={section.id} /> : group.sectionId !== null ? <AddTask mySectionId={group.sectionId} placeholder={`Add a task to ${group.name}…`} /> : null}</div>
+                      </div>
+                    );
+                  const task = line.task;
+                  const sub = line.parentId !== null;
+                  const open = ["OPEN", "IN_PROGRESS", "BLOCKED"].includes(task.status);
+                  const due = dueLabel(task.dueAt, now, open);
+                  const isOpen = openTask === String(task.id);
+                  const rowDrag = canDrag && !sub;
+                  return (
+                    <div
+                      key={line.key}
+                      role="row"
+                      {...lineProps}
+                      aria-expanded={line.expandable ? line.expanded : undefined}
+                      style={gridColumns}
+                      draggable={rowDrag}
+                      onDragStart={() => rowDrag && setDragging(task.id)}
+                      onDragEnd={() => setDragging(null)}
+                      onDragOver={(event) => rowDrag && event.preventDefault()}
+                      onDrop={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        if (dragging !== null && dragging !== task.id && section && onMove && !sub) onMove(dragging, section.id, task.id);
+                        setDragging(null);
+                      }}
+                      data-testid={sub ? "subtask-row" : "task-row"}
+                      data-task-id={task.id}
+                      aria-selected={bulk && !sub ? selected.includes(task.id) : undefined}
+                      onClickCapture={(event) => {
+                        if (sub || !bulk || !(event.ctrlKey || event.metaKey || event.shiftKey)) return;
+                        // Controls inside the row (due date, priority, people…) keep their own clicks.
+                        if ((event.target as HTMLElement).closest("input, select, textarea, button, [role='combobox'], [role='listbox']")) return;
+                        event.preventDefault();
+                        event.stopPropagation();
+                        pick(task.id, event.shiftKey);
+                      }}
+                      className={`work-row group grid min-h-row select-none items-center border-b border-line text-label hover:bg-surface-muted focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus ${approvalRowClass(task.approval)} ${isOpen ? "bg-row-active outline outline-1 -outline-offset-1 outline-primary-600" : ""} ${selected.includes(task.id) && !sub ? "bg-row-active shadow-[inset_3px_0_0_var(--color-primary-600)]" : ""} ${dragging === task.id ? "opacity-50" : ""}`}
+                    >
+                      <span role="gridcell" className="px-2 text-caption tabular-nums text-ink-faint">
+                        {line.number ?? ""}
+                      </span>
+                      <span role="gridcell" className="flex min-w-0 items-center gap-2 border-r border-line px-2 py-1 [contain:inline-size]" style={sub ? { paddingLeft: 28 } : undefined}>
+                        {line.expandable ? (
+                          <button
+                            type="button"
+                            tabIndex={-1}
+                            aria-label={`${line.expanded ? "Hide" : "Show"} subtasks of ${task.title}`}
+                            onClick={() => toggleSubtasks(task.id)}
+                            className="-ml-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded text-ink-muted hover:bg-surface-muted"
+                            data-testid="toggle-subtasks"
+                          >
+                            {line.expanded ? <ChevronDown aria-hidden="true" className="h-3.5 w-3.5" /> : <ChevronRight aria-hidden="true" className="h-3.5 w-3.5" />}
+                          </button>
+                        ) : hasSubtasks && !sub ? (
+                          <span aria-hidden="true" className="-ml-1 inline-block w-6" />
+                        ) : null}
+                        <TaskCheck taskId={task.id} done={task.status === "COMPLETED"} disabled={!task.canComplete} label={task.title} />
+                        <Link href={paneLink(task.id)} scroll={false} title={task.title} className={`line-clamp-2 min-w-0 break-words hover:underline ${task.status === "COMPLETED" ? "text-ink-muted line-through" : "text-ink"}`}>
+                          {task.title}
+                        </Link>
+                        <span className="flex shrink-0 items-center gap-2 text-caption text-ink-muted">
+                          <ApprovalBadge approval={task.approval} size="sm" />
+                          {task.isPeriodic && (
+                            <span role="img" aria-label="Periodic" title="Periodic: repeats" className="text-info-600">
+                              <Repeat aria-hidden="true" className="h-3.5 w-3.5" />
+                            </span>
+                          )}
+                          {task.subtasks > 0 && (
+                            <span title="Subtasks" className="inline-flex items-center gap-0.5">
+                              {task.subtasks} <GitBranch aria-hidden="true" className="h-3 w-3" />
+                            </span>
+                          )}
+                          {task.comments > 0 && (
+                            <span title={`${task.comments} comment${task.comments === 1 ? "" : "s"}`} className="inline-flex items-center gap-0.5">
+                              {task.comments} <MessageSquare aria-hidden="true" className="h-3 w-3" />
+                            </span>
+                          )}
                         </span>
-                        <span role="cell" className="flex min-w-0 items-center gap-2 border-r border-line px-2 py-1 [contain:inline-size]">
-                          <TaskCheck taskId={task.id} done={task.status === "COMPLETED"} disabled={!task.canComplete} label={task.title} />
-                          <Link href={paneLink(task.id)} scroll={false} title={task.title} className={`line-clamp-2 min-w-0 break-words hover:underline ${task.status === "COMPLETED" ? "text-ink-muted line-through" : "text-ink"}`}>
-                            {task.title}
-                          </Link>
-                          <span className="flex shrink-0 items-center gap-2 text-caption text-ink-muted">
-                            <ApprovalBadge approval={task.approval} size="sm" />
-                            {task.isPeriodic && (
-                              <span role="img" aria-label="Periodic" title="Periodic: repeats" className="text-info-600">
-                                <Repeat aria-hidden="true" className="h-3.5 w-3.5" />
+                      </span>
+                      {shown.map((column) => (
+                        <span key={column} role="gridcell" className="flex min-w-0 items-center border-r border-line px-2 py-1">
+                          {column === "due" &&
+                            (task.canEdit && open ? (
+                              <DueInput task={task} toneClass={due ? TONE_TEXT[due.tone] : ""} />
+                            ) : (
+                              <span className={due ? TONE_TEXT[due.tone] : "text-ink-faint"}>{due?.text ?? <CalendarDays aria-hidden="true" className="h-4 w-4" />}</span>
+                            ))}
+                          {column === "assignee" &&
+                            (editAssignee && people.length > 0 && task.canEdit && open ? (
+                              <span className="flex min-w-0 items-center gap-1.5">
+                                <PersonDot name={task.assigneeName} />
+                                <PersonSelect
+                                  ariaLabel={`Assignee of ${task.title}`}
+                                  options={people.some((person) => person.id === task.assigneeId) ? people : [{ id: task.assigneeId, label: task.assigneeName }, ...people]}
+                                  value={task.assigneeId}
+                                  onChange={(id) => {
+                                    if (id !== null && id !== task.assigneeId) void call(() => taskFieldsAction(task.id, { assigneeId: id }));
+                                  }}
+                                  compact
+                                  floating
+                                  className="min-w-0 flex-1 text-label"
+                                />
                               </span>
-                            )}
-                            {task.subtasks > 0 && (
-                              <span title="Subtasks" className="inline-flex items-center gap-0.5">
-                                {task.subtasks} <GitBranch aria-hidden="true" className="h-3 w-3" />
+                            ) : (
+                              <span className="flex min-w-0 items-center gap-1.5">
+                                <PersonDot name={task.assigneeName} />
+                                <span className="truncate">{task.assigneeName}</span>
                               </span>
-                            )}
-                            {task.comments > 0 && (
-                              <span title={`${task.comments} comment${task.comments === 1 ? "" : "s"}`} className="inline-flex items-center gap-0.5">
-                                {task.comments} <MessageSquare aria-hidden="true" className="h-3 w-3" />
-                              </span>
-                            )}
-                          </span>
-                        </span>
-                        {shown.map((column) => (
-                          <span key={column} role="cell" className="flex min-w-0 items-center border-r border-line px-2 py-1">
-                            {column === "due" &&
-                              (task.canEdit && open ? (
-                                <DueInput task={task} toneClass={due ? TONE_TEXT[due.tone] : ""} />
-                              ) : (
-                                <span className={due ? TONE_TEXT[due.tone] : "text-ink-faint"}>{due?.text ?? <CalendarDays aria-hidden="true" className="h-4 w-4" />}</span>
-                              ))}
-                            {column === "assignee" &&
-                              (editAssignee && people.length > 0 && task.canEdit && open ? (
-                                <span className="flex min-w-0 items-center gap-1.5">
-                                  <PersonDot name={task.assigneeName} />
-                                  <PersonSelect
-                                    ariaLabel={`Assignee of ${task.title}`}
-                                    options={people.some((person) => person.id === task.assigneeId) ? people : [{ id: task.assigneeId, label: task.assigneeName }, ...people]}
-                                    value={task.assigneeId}
-                                    onChange={(id) => {
-                                      if (id !== null && id !== task.assigneeId) void call(() => taskFieldsAction(task.id, { assigneeId: id }));
-                                    }}
-                                    compact
-                                    floating
-                                    className="min-w-0 flex-1 text-label"
-                                  />
-                                </span>
-                              ) : (
-                                <span className="flex min-w-0 items-center gap-1.5">
-                                  <PersonDot name={task.assigneeName} />
-                                  <span className="truncate">{task.assigneeName}</span>
-                                </span>
-                              ))}
-                            {column === "collaborators" && <CollaboratorsCell taskId={task.id} title={task.title} followers={task.followers} people={people} canEdit={task.canEdit && open && people.length > 0} />}
-                            {column === "createdBy" && (
-                              <span className="truncate text-ink-muted" title="Who made the task (can't be changed)">
-                                {task.createdByName}
-                              </span>
-                            )}
-                            {column === "projects" && (
-                              <span className="flex min-w-0 gap-1">
-                                {task.projects.slice(0, 2).map((project) =>
-                                  !projectsOn ? (
-                                    <LockedProjectName key={project.id} name={project.name} />
-                                  ) : (
+                            ))}
+                          {column === "collaborators" && <CollaboratorsCell taskId={task.id} title={task.title} followers={task.followers} people={people} canEdit={task.canEdit && open && people.length > 0} />}
+                          {column === "createdBy" && (
+                            <span className="truncate text-ink-muted" title="Who made the task (can't be changed)">
+                              {task.createdByName}
+                            </span>
+                          )}
+                          {column === "projects" && (
+                            <span className="flex min-w-0 gap-1">
+                              {task.projects.slice(0, 2).map((project) =>
+                                !projectsOn ? (
+                                  <LockedProjectName key={project.id} name={project.name} />
+                                ) : (
                                   <Link
                                     key={project.id}
                                     href={`/users/work/projects/${project.id}`}
@@ -564,66 +748,55 @@ export function TaskGrid({
                                     <span aria-hidden="true" className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ backgroundColor: COLOR_HEX[project.color] ?? COLOR_HEX.gray }} />
                                     <span className="truncate">{project.name}</span>
                                   </Link>
-                                  ),
-                                )}
-                              </span>
-                            )}
-                            {column === "visibility" && (
-                              <span className="flex min-w-0 items-center gap-1.5 text-ink-muted">
-                                {task.projects.length ? <Users aria-hidden="true" className="h-3.5 w-3.5 shrink-0" /> : <Lock aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />}
-                                <span className="truncate">{task.projects.length ? `${task.projects[0]!.name} members` : "Collaborators"}</span>
-                              </span>
-                            )}
-                            {column === "priority" &&
-                              (editPriority && task.canEdit && open ? (
-                                <select
-                                  aria-label={`Priority of ${task.title}`}
-                                  value={task.priority}
-                                  onChange={(event) => void call(() => taskFieldsAction(task.id, { priority: event.target.value }), { success: false })}
-                                  {...priorityControlProps(task.priority)}
-                                  className={`rounded-full border-0 px-2 py-0.5 text-caption ${priorityControlProps(task.priority).className}`}
-                                >
-                                  <option value="URGENT">Critical</option>
-                                  <option value="HIGH">Most Important</option>
-                                  <option value="IMPORTANT">Important</option>
-                                  <option value="ELEVATED">High</option>
-                                  <option value="ELEVATED">High</option>
-                                  <option value="NORMAL">Normal</option>
-                                </select>
-                              ) : (
-                                <TaskPriorityPill priority={task.priority} showNormal />
-                              ))}
-                            {column === "tags" && <TagsCell taskId={task.id} title={task.title} tags={task.tags} canEdit={task.canEdit && open} />}
-                          </span>
-                        ))}
-                        {fields.map((field) => (
-                          <span key={field.id} role="cell" className="min-w-0 border-r border-line px-1">
-                            <FieldInput taskId={task.id} field={{ ...field, name: `${field.name} of ${task.title}` }} value={values[task.id]?.[field.id] ?? ""} canChange={task.canEdit} compact />
-                          </span>
-                        ))}
-                      </div>
-                    );
-                  })}
-                {/* v1.49.0 (axe): the inline add box is a row and cell of the table too. */}
-                {!closed && section && addTo?.projectId && (
-                  <div role="row">
-                    <div role="cell">
-                      <AddTask projectId={addTo.projectId} sectionId={section.id} />
+                                ),
+                              )}
+                            </span>
+                          )}
+                          {column === "visibility" && (
+                            <span className="flex min-w-0 items-center gap-1.5 text-ink-muted">
+                              {task.projects.length ? <Users aria-hidden="true" className="h-3.5 w-3.5 shrink-0" /> : <Lock aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />}
+                              <span className="truncate">{task.projects.length ? `${task.projects[0]!.name} members` : "Collaborators"}</span>
+                            </span>
+                          )}
+                          {column === "priority" &&
+                            (editPriority && task.canEdit && open ? (
+                              <select
+                                aria-label={`Priority of ${task.title}`}
+                                value={task.priority}
+                                onChange={(event) => void call(() => taskFieldsAction(task.id, { priority: event.target.value }), { success: false })}
+                                {...priorityControlProps(task.priority)}
+                                className={`rounded-full border-0 px-2 py-0.5 text-caption ${priorityControlProps(task.priority).className}`}
+                              >
+                                <option value="URGENT">Critical</option>
+                                <option value="HIGH">Most Important</option>
+                                <option value="IMPORTANT">Important</option>
+                                <option value="ELEVATED">High</option>
+                                <option value="ELEVATED">High</option>
+                                <option value="NORMAL">Normal</option>
+                              </select>
+                            ) : (
+                              <TaskPriorityPill priority={task.priority} showNormal />
+                            ))}
+                          {column === "tags" && <TagsCell taskId={task.id} title={task.title} tags={task.tags} canEdit={task.canEdit && open} />}
+                        </span>
+                      ))}
+                      {fields.map((field) => (
+                        <span key={field.id} role="gridcell" className="min-w-0 border-r border-line px-1">
+                          {sub ? null : <FieldInput taskId={task.id} field={{ ...field, name: `${field.name} of ${task.title}` }} value={values[task.id]?.[field.id] ?? ""} canChange={task.canEdit} compact />}
+                        </span>
+                      ))}
                     </div>
-                  </div>
-                )}
-                {!closed && group.sectionId !== null && addTo?.mySections && (
-                  <div role="row">
-                    <div role="cell">
-                      <AddTask mySectionId={group.sectionId} placeholder={`Add a task to ${group.name}…`} />
-                    </div>
-                  </div>
-                )}
+                  );
+                })}
               </div>
             );
           })}
+          {windowed.range.padBottom > 0 && <div aria-hidden="true" style={{ height: windowed.range.padBottom }} data-testid="grid-spacer-bottom" />}
         </div>
       </div>
+      <span role="status" aria-live="polite" className="sr-only">
+        {gridLive}
+      </span>
       {bulk && allShown.length > 0 && (
         <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-ink-muted" data-testid="select-hint">
           <span>
@@ -846,5 +1019,39 @@ export function PersonDot({ name, size = "sm", ring }: { name: string; size?: "s
     >
       {initials(name)}
     </span>
+  );
+}
+
+// v1.61.0 (D-367, spec PRJ-17 section menu): a group heading's own menu.
+function GroupMenu({ name, hideEmpty, onHideEmpty, onFoldAll, subtasks }: { name: string; hideEmpty: boolean; onHideEmpty: (on: boolean) => void; onFoldAll: (open: boolean) => void; subtasks?: (open: boolean) => void }) {
+  const close = (event: React.SyntheticEvent) => {
+    const details = (event.currentTarget as HTMLElement).closest("details");
+    if (details) details.open = false;
+  };
+  const item = "block w-full rounded px-2 py-1 text-left text-label hover:bg-surface-muted";
+  return (
+    <Drop label={`More for ${name}`} icon={<MoreHorizontal aria-hidden="true" className="h-4 w-4" />} buttonClass="rounded p-1 text-ink-muted hover:bg-surface-muted hover:text-ink" panelClass="left-0 w-60" testId="group-menu-more">
+      <div className="space-y-0.5 pt-5">
+        <label className="flex items-center gap-2 rounded px-2 py-1 text-label hover:bg-surface-muted">
+          <input type="checkbox" checked={hideEmpty} onChange={(event) => onHideEmpty(event.target.checked)} data-testid="hide-empty-groups" /> Hide empty groups
+        </label>
+        {subtasks && (
+          <>
+            <button type="button" className={item} onClick={(event) => { close(event); subtasks(true); }}>
+              Expand all subtasks
+            </button>
+            <button type="button" className={item} onClick={(event) => { close(event); subtasks(false); }}>
+              Collapse all subtasks
+            </button>
+          </>
+        )}
+        <button type="button" className={item} onClick={(event) => { close(event); onFoldAll(true); }}>
+          Expand all groups
+        </button>
+        <button type="button" className={item} onClick={(event) => { close(event); onFoldAll(false); }}>
+          Collapse all groups
+        </button>
+      </div>
+    </Drop>
   );
 }

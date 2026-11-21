@@ -21,7 +21,8 @@ export const COLUMN_LABEL: Record<GridColumn, string> = {
 // v1.58.0 (D-354, owner: "sorting in all the tables asc to desc or vice versa in
 // all columns"): + collaborators, projects, visibility and tags, so every column
 // of the table sorts from its title (with `dir`).
-export const SORTS = ["none", "due", "start", "assignee", "createdBy", "createdOn", "completedOn", "likes", "alpha", "priority", "collaborators", "projects", "visibility", "tags"] as const;
+// v1.61.0 (D-367, spec PRJ-04): + "modified" (last changed).
+export const SORTS = ["none", "due", "start", "assignee", "createdBy", "createdOn", "modified", "completedOn", "likes", "alpha", "priority", "collaborators", "projects", "visibility", "tags"] as const;
 export type GridSort = (typeof SORTS)[number];
 export const SORT_LABEL: Record<GridSort, string> = {
   none: "None",
@@ -30,6 +31,7 @@ export const SORT_LABEL: Record<GridSort, string> = {
   assignee: "Assignee",
   createdBy: "Created by",
   createdOn: "Created on",
+  modified: "Last modified",
   completedOn: "Completed on",
   likes: "Likes",
   alpha: "Alphabetical",
@@ -72,6 +74,8 @@ export const gridConfigSchema = z.object({
   group: z.enum(GROUPS).default("none"),
   hidden: z.array(z.enum(GRID_COLUMNS)).max(8).default([]),
   search: z.string().max(100).default(""),
+  // v1.61.0 (D-367): the section menu's "Hide empty groups", saved with the view.
+  hideEmpty: z.boolean().default(false),
 });
 export type GridConfig = z.infer<typeof gridConfigSchema>;
 export const DEFAULT_GRID: GridConfig = gridConfigSchema.parse({});
@@ -94,6 +98,8 @@ export interface GridTask {
   dueAt: string | null; // ISO
   startsOn: string | null;
   createdAt: string;
+  updatedAt?: string | null; // v1.61.0 (D-367): the Modified sort
+  parentId?: number | null; // v1.61.0: set on a subtask shown under its task
   completedAt: string | null;
   likes: number;
   comments: number;
@@ -186,6 +192,7 @@ const SORT_VALUE: Record<Exclude<GridSort, "none">, (task: GridTask) => unknown>
   assignee: (task) => task.assigneeName,
   createdBy: (task) => task.createdByName,
   createdOn: (task) => task.createdAt,
+  modified: (task) => task.updatedAt ?? task.createdAt,
   completedOn: (task) => task.completedAt,
   likes: (task) => task.likes,
   alpha: (task) => task.title,
@@ -195,7 +202,7 @@ const SORT_VALUE: Record<Exclude<GridSort, "none">, (task: GridTask) => unknown>
   visibility: (task) => (task.projects.length ? `${task.projects[0]!.name} members` : "Collaborators"),
   tags: (task) => task.tags.map((tag) => tag.name).join(", "),
 };
-const NATURAL_DESC: ReadonlySet<GridSort> = new Set(["createdOn", "completedOn", "likes"]);
+const NATURAL_DESC: ReadonlySet<GridSort> = new Set(["createdOn", "modified", "completedOn", "likes"]);
 
 export function sortGridRows(rows: readonly GridTask[], config: Pick<GridConfig, "sort" | "dir" | "sortField">, values?: Record<number, Record<number, string>>): GridTask[] {
   const manual = [...rows].sort((a, b) => a.position - b.position || a.id - b.id);

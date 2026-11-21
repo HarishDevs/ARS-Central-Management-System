@@ -127,16 +127,13 @@ export function TaskCheck({ taskId, done, disabled, label, size = "md" }: { task
   );
 }
 
-export const COLOR_HEX: Record<string, string> = {
-  green: "#2f855a",
-  blue: "#2b6cb0",
-  teal: "#2c7a7b",
-  amber: "#b7791f",
-  red: "#c53030",
-  purple: "#6b46c1",
-  pink: "#b83280",
-  gray: "#718096",
-};
+// v1.61.0 (D-367): a project's colour key maps to a theme identity token
+// (light and dark in styles/globals.css), no longer a hex value in code. The
+// saved keys stay the same; red and green move off the status hues (orange,
+// a calmer green).
+export const PROJECT_IDENTITY: Record<string, number> = { blue: 1, purple: 2, pink: 3, red: 4, amber: 5, green: 6, teal: 7, gray: 8 };
+export const identityColor = (key: string) => `var(--color-identity-${PROJECT_IDENTITY[key] ?? 8})`;
+export const COLOR_HEX: Record<string, string> = Object.fromEntries(Object.keys(PROJECT_IDENTITY).map((key) => [key, identityColor(key)]));
 export function ProjectDot({ color, className = "h-2.5 w-2.5" }: { color: string; className?: string }) {
   return <span aria-hidden="true" className={`inline-block shrink-0 rounded-sm ${className}`} style={{ backgroundColor: COLOR_HEX[color] ?? COLOR_HEX.gray }} />;
 }

@@ -69,7 +69,7 @@ export function ProjectHeader({
   const statuses: MenuItem[] = STATUS_KINDS.map((kind) => ({ label: STATUS_KIND_LABEL[kind], href: `${base}?view=overview&status=${kind}#post-status` }));
   return (
     <header className="mb-4 flex flex-wrap items-center gap-3" data-testid="project-header">
-      <span aria-hidden="true" className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-caption font-bold text-white" style={{ backgroundColor: COLOR_HEX[color] ?? COLOR_HEX.gray }}>
+      <span aria-hidden="true" className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-caption font-bold text-on-solid" style={{ backgroundColor: COLOR_HEX[color] ?? COLOR_HEX.gray }}>
         {initials(name)}
       </span>
       <div className="min-w-0">

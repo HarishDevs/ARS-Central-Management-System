@@ -255,7 +255,7 @@ function SectionTitle({ section, count }: { section: MySectionRow; count: number
 
 // D-220: My Tasks as the shared table (owner's screenshot): your sections as
 // groups by default, or any grouping; drag to place (your order only).
-export function MyTasksGrid({ rows, sections, initial, view, people, projects, meId, nowIso, fixed = false }: { rows: GridTask[]; sections: MySectionRow[]; initial: GridConfig; view: GridView; people: { id: number; label: string }[]; projects: { id: number; name: string }[]; meId: number; nowIso: string; fixed?: boolean }) {
+export function MyTasksGrid({ rows, sections, initial, view, people, projects, meId, nowIso, fixed = false, density }: { rows: GridTask[]; sections: MySectionRow[]; initial: GridConfig; view: GridView; people: { id: number; label: string }[]; projects: { id: number; name: string }[]; meId: number; nowIso: string; fixed?: boolean; density?: "COMFORTABLE" | "COMPACT" }) {
   const { call } = useWorkCall();
   const place = (taskId: number, sectionId: number, beforeId: number | null) => {
     const list = rows.filter((task) => task.sectionId === sectionId && task.id !== taskId).sort((a, b) => a.position - b.position);
@@ -280,6 +280,7 @@ export function MyTasksGrid({ rows, sections, initial, view, people, projects, m
       meId={meId}
       nowIso={nowIso}
       view={view}
+      density={density}
       testId="my-grid"
       emptyText="Nothing here. Clear the filters, or add a task."
     />

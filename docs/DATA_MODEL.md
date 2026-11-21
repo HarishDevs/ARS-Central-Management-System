@@ -928,7 +928,7 @@ Migration names are shortened to their date-time prefix; the full file is `datab
 | `task_field_values` | Projects | Custom field values on tasks | 202610301200 |
 | `work_digest_sends` | Tasks | Daily digests already sent | 202610301200 |
 | `department_holidays` | Calendar | Holidays of one department only | 202610301200 |
-| `work_views` | Tasks | Saved view tabs for My Tasks and projects | 202610301400 |
+| `work_views` | Tasks | Saved view tabs for My Tasks and projects; since v1.61.0 a project tab has a `view_type` (LIST, BOARD, CALENDAR, TIMELINE, OVERVIEW) and one tab per project `is_default` | 202610301400, 202611221000 |
 | `schema_migrations` | Runner | Migration files already applied | `migrate.js` |
 | `schema_migration_progress` | Runner | Statements done in a file that failed halfway | `migrate.js` |
 
@@ -999,6 +999,12 @@ JSON is used for engine and form data that changes shape between versions, not f
 
 ### Times
 Times are stored in UTC (`DATETIME`, set by `CURRENT_TIMESTAMP` or the app). India dates are plain `DATE` columns: `holidays.holiday_on`, `department_holidays.holiday_on`, `delegations.starts_on` / `ends_on`, `work_digest_sends.day`. Event and audit tables use `DATETIME(3)` (milliseconds) so their order is stable.
+
+## v1.61.0: project tabs for every view (migration 202611221000_pm_a_views_prefs, D-367)
+- `work_views.view_type` ENUM('LIST','BOARD','CALENDAR','TIMELINE','OVERVIEW') default LIST (existing tabs are List tabs) and `work_views.is_default` (one per project; the tab that opens first). Up to 50 tabs per project (30 for My Tasks). `config_json` holds the List's grid view (filters, sort, groups, columns, `hideEmpty`) or the Board's (`incomplete`, `showDone`, `mine`, `dueWithin`, `sort`, `dir`, `sortField`, `search`); other views store `{}`.
+- `projects.view_tabs_set`: FALSE = the strip is the five built-in views plus saved List tabs (computed); set TRUE the first time an owner or editor changes the strip, when the built-in views are written as `work_views` rows.
+- `user_settings` key `work.density` = `COMPACT` (absent = Comfortable): a person's row height in task lists.
+- Audit: `PROJECT_TABS_CHANGED` (metadata `op`: add, rename, default, duplicate, remove, reorder, save).
 
 ## v1.47.0: coloured choices and request priority (no schema change)
 - Form JSON (`workflow_versions.form_json`, `module_type_versions.form_json`, `custom_approval_settings.form_json`): choice fields (CHOICE, RADIO, MULTI_CHOICE) may carry `optionColors`: `{ "<option>": "red" | "orange" | "yellow" | "green" | "teal" | "blue" | "purple" | "pink" | "grey" }`.
