@@ -17,7 +17,7 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 **Multi-level approvals in any custom manner.** The engine must support any number of levels in any combination: sequential, parallel, any-one, any-N-of-M, conditional and hybrid. Approvers can come from any source, and levels can be added or skipped by rules. Build the engine for this from the first engine phase (P2). The drag-and-drop designer (P3) is only the screen for building it. Check every task against this.
 
 ## Now / Next
-- **Next (21 Nov 2026):** Project Management + Forms: Step 0 discovery done (docs/pm-module/DISCOVERY.md); waiting for the owner's approval and decisions (Q-034).
+- **Next (21 Nov 2026):** Project Management + Forms: Step 0 discovery done (docs/pm-module/DISCOVERY.md); approved 21 Nov 2026 (D-366): phases A to E in one stretch.
 - [x] PM-00 (21 Nov 2026) Step 0 discovery: gap analysis, token and component mapping, plan
 - [ ] PM-A Phase A foundations (after approval)
 - [ ] PM-B Phase B planning and data
