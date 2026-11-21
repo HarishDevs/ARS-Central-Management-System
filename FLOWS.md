@@ -1889,6 +1889,47 @@ The application audit (`application-audit/`) found these gaps between flows and 
 - **F-59 Bulk import:** the import doesn't apply the rule that only the Super Admin changes another IT Admin's contact details (AUD-01). Fix planned: V181-A2.
 - **F-121 Page access:** an action posted from an address that is no configured page isn't restricted (AUD-14). Fix planned: V181-A7.
 
+## F-PM-MYTABS: Task Summary tabs and Recently assigned (v1.63.0, D-369; extends F-PM-TABS)
+```mermaid
+flowchart LR
+  O[Open Task Summary] --> P{?tab= / ?view= / default tab}
+  P --> V[List, Board or Calendar tab of this person]
+  V -->|List: change filters, sort, groups| U[Unsaved changes]
+  U -->|Reset| V
+  U -->|Save view| S[Saved for this person] --> V
+  V -->|+ Add tab: List, Board, Calendar| A{Strip stored? work.my_tabs_set}
+  A -->|no| M[Write List, Board, Calendar as rows] --> N[New tab last, unique name, opens]
+  A -->|yes| N
+  V -->|tab menu| X[Rename / Set as default / Duplicate / Copy link / Move / Remove]
+  V -->|Alt + arrow or drag| R[Reorder, announced]
+```
+- Only the person's own strip: a tab id from anyone else's is "Not found". One tab always stays; at most 30.
+- Sections: Overdue → **Recently assigned** (open, given by someone else in the last 3 days, any due date) → Due today → Due in the next 7 days → Completed today. Behind `pm_foundations`; off, as F-162 / D-313.
+
+## F-PM-HOME: Home greeting and widgets (v1.63.0, D-369)
+```mermaid
+flowchart TD
+  H[Open Home] --> G[Date and Good morning / afternoon / evening, name]
+  G --> F{Approvals or Task Management}
+  F -->|Approvals| AP[Approval Overview, unchanged]
+  F -->|Task Management| L{home_layouts row?}
+  L -->|no| D[Default widgets for the person's modules]
+  L -->|yes| R[Stored widgets, minus kinds no longer allowed]
+  D --> W[Widgets draw; only those on Home load data]
+  R --> W
+  W -->|Customise| C[Controls on each widget]
+  C -->|drag handle, or Space then arrows then Space; Escape cancels; Alt + arrow| MV[Move, announced]
+  C -->|Half / Full width| SZ[Resize]
+  C -->|Remove / Add widget / Reset| CH[Change the set]
+  MV --> SV[Save with version]
+  SZ --> SV
+  CH --> SV
+  SV -->|stale version| RL[Changed in another window: reload]
+  SV -->|ok| W
+  W -->|type in Private notepad| NP[Autosave after 1.2 s or on leaving the box] --> NV[home_notes, owner only, versioned]
+```
+- Kinds: My Tasks, Projects (Recent / Starred), Latest status updates, Private notepad, My weekly workload, Tasks I've assigned, People; Forms waits for phase C. Each once, at most 20; the server refuses kinds of modules the person lacks. Without Projects, the locked "coming soon" card stays after the widgets (D-307).
+
 ## F-PM-TABS: Project tabs for every view (v1.61.0, D-367; extends F-162)
 ```mermaid
 flowchart LR

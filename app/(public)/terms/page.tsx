@@ -39,6 +39,7 @@ export default function TermsPage() {
           <li>Deleting a task or project is undone with Undo or restored from Deleted within 30 days. After 30 days it is removed for good and can&apos;t be brought back, so restore anything you still need in time.</li>
           <li>Reactions on comments are seen by everyone who can see the comment: use them as you would any work message. Your stars and sidebar order are yours alone.</li>
           <li>A project&apos;s tabs and saved views are shared with everyone in the project. Only its owners and editors add, rename, reorder, remove or save them; change them with care.</li>
+          <li>The private notepad on Home is for your work notes. Only you see it in the app, but it is stored with your other records: don&apos;t keep passwords or other people&apos;s personal details in it.</li>
           <li>You can edit or delete your own comments, and IT can edit or delete any comment. Every earlier version is kept and shown to the people who can see the comment, so edit to correct, not to rewrite what was agreed.</li>
           <li>
             Meetings: the Coordinator records the points, attendance and minutes accurately, and the Meeting Owner approves them only after reading them. Approved minutes are shared with the

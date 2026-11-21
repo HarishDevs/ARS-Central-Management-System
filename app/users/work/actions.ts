@@ -20,7 +20,7 @@ import { getDbPool } from "@/lib/db/client";
 import type { RowDataPacket } from "mysql2/promise";
 import type { HolidayHit } from "@/server/work/holidays";
 import { z } from "zod";
-import { changeTabs } from "@/server/work/view-tabs-service";
+import { changeMyTabs, changeTabs } from "@/server/work/view-tabs-service";
 import { setUserSetting } from "@/lib/db/repositories/user-settings.repository";
 import { CELEBRATION_LABEL, CELEBRATION_SETTING, clampPaneWidth, PANE_SETTING, parseCelebration, SIDEBAR_LISTS, SIDEBAR_SORT_LABEL, SIDEBAR_SORTS, type SidebarList, type SidebarSort } from "@/server/work/pm-rules";
 import { moveSidebarProject, setSidebarSort } from "@/server/work/sidebar";
@@ -566,6 +566,26 @@ export async function projectTabAction(projectId: number, input: unknown): Promi
     return { ok: true, message: result.message, value: result.value };
   } catch (error) {
     logError("projectTabAction failed", error);
+    return { ok: false, message: "Couldn't do that. Please try again." };
+  }
+}
+
+// v1.63.0 (D-369, PM-A13): the person's own My Tasks tabs (List, Board,
+// Calendar), with the same menu as a project's. Only ever the signed-in
+// person's strip: a tab of anyone else's is "not found".
+export async function myTasksTabAction(input: unknown): Promise<ActionResult & { value?: { id: number | null } }> {
+  const me = await actor();
+  if (!me || (me.modules && !hasModule({ roles: me.roles, modules: me.modules }, "TASK"))) return NOT_FOUND;
+  if (!(await featureOn("pm_foundations", me))) return { ok: false, message: "Tabs for every view aren't switched on yet." };
+  const parsed = tabInput.safeParse(input);
+  if (!parsed.success) return { ok: false, message: "That change isn't valid." };
+  try {
+    const result = await changeMyTabs(parsed.data, me);
+    if (!result.ok) return { ok: false, message: result.message };
+    refresh();
+    return { ok: true, message: result.message, value: result.value };
+  } catch (error) {
+    logError("myTasksTabAction failed", error);
     return { ok: false, message: "Couldn't do that. Please try again." };
   }
 }

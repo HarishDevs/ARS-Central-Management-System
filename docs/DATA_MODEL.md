@@ -1000,6 +1000,11 @@ JSON is used for engine and form data that changes shape between versions, not f
 ### Times
 Times are stored in UTC (`DATETIME`, set by `CURRENT_TIMESTAMP` or the app). India dates are plain `DATE` columns: `holidays.holiday_on`, `department_holidays.holiday_on`, `delegations.starts_on` / `ends_on`, `work_digest_sends.day`. Event and audit tables use `DATETIME(3)` (milliseconds) so their order is stable.
 
+## v1.63.0: Home widgets, private notepad, My Tasks tabs (migration 202611221200_pm_a_home_widgets, D-369)
+- `home_layouts` (user_id PK → users, `widgets_json` JSON `[{ "kind": "my_tasks" | "projects" | "status_updates" | "notepad" | "workload" | "assigned" | "people", "size": "half" | "full" }]` in order, at most 20, each kind once; `version` INT for optimistic saves; updated_at). No row = the default layout. Kinds of modules the person lacks are dropped when read and refused when saved (`server/home/widgets.ts`). `forms` is reserved for phase C.
+- `home_notes` (user_id PK → users, `body` MEDIUMTEXT, the app's formatting text, at most 50,000 characters; `version`; updated_at): the private notepad, read and written only for the signed-in person.
+- My Tasks tabs: `work_views` rows with `scope = 'MY_TASKS'`, `scope_id` = the person, `view_type` LIST / BOARD / CALENDAR (up to 30); `user_settings` key `work.my_tabs_set` = '1' once the person's strip is stored (like `projects.view_tabs_set`). Audit `MY_TASKS_TABS_CHANGED` (entity USER).
+
 ## v1.62.0: reactions, sidebar order, the 30-day purge (migration 202611221100_pm_a_reactions_sidebar, D-368)
 - `comment_reactions` (comment_id → task_comments, user_id → users, `reaction` ENUM THUMBS_UP, HEART, TADA, SMILE, EYES, CHECK, created_at; PK comment+user+reaction): emoji reactions on task comments, toggled per person.
 - `work_project_order` (user_id, `list_key` STARRED | DEPARTMENTS, project_id → projects, `position` DOUBLE; PK user+list+project): a person's manual order of the sidebar's Starred and Departments lists. Stars themselves stay in `work_favourites`.

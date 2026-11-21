@@ -15,7 +15,11 @@ import { getDbPool } from "@/lib/db/client";
 import type { RowDataPacket } from "mysql2/promise";
 import { TaskCalendar } from "@/features/work/TaskCalendar";
 import { indiaDayOf } from "@/features/work/format";
-import { listTaskItems, listVisibleProjects, listWorkViews, workDensity } from "@/lib/db/repositories/work.repository";
+import { listMyTabs, listTaskItems, listVisibleProjects, listWorkViews, workDensity } from "@/lib/db/repositories/work.repository";
+import { buildStrip, MY_TASKS_VIEWS, parseTabConfig, pickTab, tabHref } from "@/server/work/view-tabs";
+import { ViewTabs } from "@/features/work/ViewTabs";
+import { summarySection, summarySections } from "@/server/work/my-summary";
+import type { GridConfig } from "@/server/work/grid";
 import { featureOn } from "@/server/settings/features";
 import { LiveRefresh } from "@/features/work/useLiveRefresh";
 import { workPage } from "@/server/work/page-context";
@@ -55,7 +59,14 @@ export default async function MyTasksPage({
     if (paneTask) redirect(`/users/tasks/${paneTask}`);
     return <MobileTasks userId={user.id} tab={params.tab} sort={params.sort} group={params.group} projectsOn={hasModule(user, "PROJECT")} />;
   }
-  const view = params.view === "board" || params.view === "calendar" ? params.view : "list";
+  // v1.63.0 (D-369, PM-A13): with "pm_foundations" on, My Tasks has the
+  // person's own tab strip (List, Board, Calendar and any they add), like a project.
+  const pmOn = await featureOn("pm_foundations", user);
+  const tabData = pmOn ? await listMyTabs(user.id) : null;
+  const strip = tabData ? buildStrip(tabData.rows, tabData.tabsSet, tabData.defaultView, MY_TASKS_VIEWS) : [];
+  const activeTab = tabData ? pickTab(strip, { tab: params.tab, view: params.view }) : null;
+  const activeRow = activeTab?.id ? (tabData?.rows.find((row) => row.id === activeTab.id) ?? null) : null;
+  const view = activeTab ? (activeTab.type.toLowerCase() as "list" | "board" | "calendar") : params.view === "board" || params.view === "calendar" ? params.view : "list";
   const showDone = true;
   const now = new Date();
   const today = indiaDayOf(now);
@@ -65,10 +76,13 @@ export default async function MyTasksPage({
   const weekEnd = indiaDayOf(new Date(now.getTime() + 7 * 86_400_000));
   const todayStart = new Date(`${today}T00:00:00+05:30`);
   const IST_DUE = "DATE(DATE_ADD(t.due_at, INTERVAL 330 MINUTE))";
+  // v1.63.0 (D-369): with the switch on, open tasks given by someone else in
+  // the last 3 days are listed too (Recently assigned), whatever their due date.
+  const recentSince = new Date(now.getTime() - 3 * 86_400_000);
   const where = [
     "t.assignee_id = ?",
     "t.deleted_at IS NULL",
-    `((t.status IN ('OPEN', 'IN_PROGRESS', 'BLOCKED') AND t.due_at IS NOT NULL AND ${IST_DUE} <= ?) OR (t.status = 'COMPLETED' AND t.completed_at >= ?))`,
+    `((t.status IN ('OPEN', 'IN_PROGRESS', 'BLOCKED') AND t.due_at IS NOT NULL AND ${IST_DUE} <= ?) OR (t.status = 'COMPLETED' AND t.completed_at >= ?)${pmOn ? " OR (t.status IN ('OPEN', 'IN_PROGRESS', 'BLOCKED') AND t.created_by <> t.assignee_id AND t.assigned_at >= ?)" : ""})`,
   ];
   // D-257 / v1.54.3: the summary cards, counted in the database, for the
   // same tasks the summary lists.
@@ -90,26 +104,17 @@ export default async function MyTasksPage({
     { key: "done", label: "Completed today", value: Number(cardRow?.done_today ?? 0), icon: CheckCircle2, tone: "text-success-600" },
   ];
   const [list, digestOff] = await Promise.all([
-    listTaskItems(where, [user.id, weekEnd, todayStart], "t.due_at IS NULL, t.due_at, t.id", 1000),
+    listTaskItems(where, [user.id, weekEnd, todayStart, ...(pmOn ? [recentSince] : [])], "t.due_at IS NULL, t.due_at, t.id", 1000),
     getDbPool()
       .query<RowDataPacket[]>("SELECT 1 FROM user_settings WHERE user_id = ? AND setting_key = 'work.digest' AND value = 'OFF'", [user.id])
       .then(([rows]) => rows.length > 0),
   ]);
   // v1.54.4 (owner): Task Summary's own sections, by date (not the person's
   // sections): Overdue, Due today, Due in the next 7 days, Completed today.
-  const SUMMARY = [
-    { id: -1, name: "Overdue", system: "SUMMARY" },
-    { id: -2, name: "Due today", system: "SUMMARY" },
-    { id: -3, name: "Due in the next 7 days", system: "SUMMARY" },
-    { id: -4, name: "Completed today", system: "SUMMARY" },
-  ];
-  const summarySection = (task: { status: string; dueAt: Date | null }) => {
-    if (task.status === "COMPLETED") return -4;
-    const day = task.dueAt ? indiaDayOf(task.dueAt) : today;
-    return day < today ? -1 : day === today ? -2 : -3;
-  };
+  // v1.63.0 (D-369): plus "Recently assigned" with the switch on (server/work/my-summary.ts).
+  const SUMMARY = summarySections(pmOn);
   const rows = list.items.map((task) => {
-    const sectionId = summarySection(task);
+    const sectionId = summarySection({ status: task.status, dueDay: task.dueAt ? indiaDayOf(task.dueAt) : null, assignedAt: task.assignedAt, selfAssigned: task.createdBy === user.id }, today, now, pmOn);
     // By due date within each section.
     const position = task.dueAt ? task.dueAt.getTime() / 1000 : 9e9;
     return {
@@ -131,17 +136,17 @@ export default async function MyTasksPage({
     };
   });
   // D-220: the List is the shared table, with the person's saved tabs.
-  const [savedTabs, gridPeople, gridProjects] = await Promise.all([listWorkViews("MY_TASKS", user.id), peopleOptions(), listVisibleProjects(viewer)]);
+  const [savedTabs, gridPeople, gridProjects] = await Promise.all([pmOn ? Promise.resolve([]) : listWorkViews("MY_TASKS", user.id), peopleOptions(), listVisibleProjects(viewer)]);
   const currentTab = savedTabs.find((item) => String(item.id) === params.tab) ?? null;
   // v1.61.0 (D-367): the row density choice (with "pm_foundations" on).
-  const density = (await featureOn("pm_foundations", user)) ? await workDensity(user.id) : undefined;
+  const density = pmOn ? await workDensity(user.id) : undefined;
   const gridRows = list.items.map((task) => {
     const row = rows.find((item) => item.id === task.id)!;
     return toGridTask(task, user.id, true, row.sectionId, row.position);
   });
   const link = (changes: Record<string, string | null>) => {
     const query = new URLSearchParams({
-      ...(view !== "list" ? { view } : {}),
+      ...(activeTab ? (activeTab.id !== null ? { tab: String(activeTab.id) } : { view: activeTab.type.toLowerCase() }) : view !== "list" ? { view } : {}),
       ...(showDone ? { done: "1" } : {}),
     });
     for (const [key, value] of Object.entries(changes)) {
@@ -188,7 +193,9 @@ export default async function MyTasksPage({
       {/* v1.61.0 (D-366): fresh every 15 s while visible, on focus and after changes. */}
       <LiveRefresh />
       <WithPane pane={pane}>
+        {activeTab && <ViewTabs scope="MY_TASKS" base="/users/work/my-tasks" strip={strip} activeKey={activeTab.key} canEdit label="Task Summary views" />}
         <div className="mb-4 flex flex-wrap items-center gap-2">
+          {!activeTab && (
           <nav aria-label="Task Summary views" className="flex flex-wrap gap-1 border-b border-line" data-testid="view-tabs">
             {VIEWS.map((item) => (
               <span key={item.key} className="contents">
@@ -213,6 +220,7 @@ export default async function MyTasksPage({
               </span>
             ))}
           </nav>
+          )}
           <span className="ml-auto">
             <DigestToggle on={!digestOff} />
           </span>
@@ -239,17 +247,22 @@ export default async function MyTasksPage({
             todayDay={today}
             canEdit
             meId={user.id}
-            monthHref={`${link({ view: "calendar" })}&month=`}
+            monthHref={`${activeTab ? tabHref("/users/work/my-tasks", activeTab) : link({ view: "calendar" })}&month=`}
             holidays={await calendarHolidays(undefined, viewer.departmentId)}
           />
         ) : view === "list" ? (
           <MyTasksGrid
+            key={activeTab?.key ?? `list:${currentTab?.id ?? ""}`}
             rows={gridRows}
             sections={SUMMARY}
             fixed
             density={density}
-            initial={currentTab ? parseGridConfig(currentTab.config) : { ...DEFAULT_GRID, group: "section" }}
-            view={{ scope: "MY_TASKS", scopeId: user.id, canSave: true, current: currentTab ? { id: currentTab.id, name: currentTab.name } : null }}
+            initial={activeTab ? (parseTabConfig("LIST", activeRow?.config) as GridConfig) : currentTab ? parseGridConfig(currentTab.config) : { ...DEFAULT_GRID, group: "section" }}
+            view={
+              activeTab
+                ? { scope: "MY_TASKS", scopeId: user.id, canSave: true, current: activeTab.id ? { id: activeTab.id, name: activeTab.name } : null, tabKey: activeTab.key, tabName: activeTab.name, phaseA: true }
+                : { scope: "MY_TASKS", scopeId: user.id, canSave: true, current: currentTab ? { id: currentTab.id, name: currentTab.name } : null }
+            }
             people={gridPeople}
             projects={gridProjects.map((project) => ({ id: project.id, name: project.name }))}
             meId={user.id}

@@ -31,10 +31,18 @@ export const VIEW_CATALOGUE: readonly CatalogueEntry[] = [
   { type: "MESSAGES", label: "Messages", description: "Conversations with the project's members.", available: false },
   { type: "NOTE", label: "Note", description: "A page of notes for the project.", available: false },
 ];
-export const addableViews = (): CatalogueEntry[] => VIEW_CATALOGUE.filter((entry) => entry.available);
+// v1.63.0 (D-369, PM-A13): My Tasks has its own strip, per person, with the
+// three views My Tasks draws (List, Board, Calendar).
+export type TabScope = "PROJECT" | "MY_TASKS";
+export const MY_TASKS_VIEWS: readonly TabView[] = ["LIST", "BOARD", "CALENDAR"];
+export const addableViews = (scope: TabScope = "PROJECT"): CatalogueEntry[] =>
+  VIEW_CATALOGUE.filter((entry) => entry.available && (scope === "PROJECT" || (MY_TASKS_VIEWS as readonly string[]).includes(entry.type)));
+export const allowedView = (scope: TabScope, type: unknown): type is TabView => isTabView(type) && (scope === "PROJECT" || MY_TASKS_VIEWS.includes(type));
 export const isTabView = (value: unknown): value is TabView => typeof value === "string" && (TAB_VIEWS as readonly string[]).includes(value);
 
 export const MAX_PROJECT_TABS = 50;
+export const MAX_MY_TABS = 30; // D-220's limit for a person's own tabs
+export const maxTabs = (scope: TabScope) => (scope === "PROJECT" ? MAX_PROJECT_TABS : MAX_MY_TABS);
 export const TAB_NAME_MAX = 60;
 
 // A tab's name: spaces folded, 1–60 characters, no control characters.
@@ -121,16 +129,18 @@ export interface StripTab {
   isDefault: boolean;
 }
 export const BASE_ORDER: readonly TabView[] = ["OVERVIEW", "LIST", "BOARD", "TIMELINE", "CALENDAR"];
+export const baseOrder = (scope: TabScope): readonly TabView[] => (scope === "PROJECT" ? BASE_ORDER : MY_TASKS_VIEWS);
 const defaultType = (defaultView: string): TabView => (isTabView(defaultView.toUpperCase()) ? (defaultView.toUpperCase() as TabView) : "LIST");
 
 // The project's tabs in order. Before the strip is stored (tabsSet false):
 // the five built-in views, with the saved List tabs (D-220) after List.
-export function buildStrip(rows: readonly TabRow[], tabsSet: boolean, defaultView: string): StripTab[] {
+// v1.63.0 (D-369): My Tasks passes its own built-in views (List, Board, Calendar).
+export function buildStrip(rows: readonly TabRow[], tabsSet: boolean, defaultView: string, base: readonly TabView[] = BASE_ORDER): StripTab[] {
   const ordered = [...rows].sort((a, b) => a.position - b.position || a.id - b.id);
   let strip: StripTab[];
   if (tabsSet) strip = ordered.map((row) => ({ key: `t${row.id}`, id: row.id, type: row.type, name: row.name, isDefault: row.isDefault }));
   else
-    strip = BASE_ORDER.flatMap((type) => [
+    strip = base.flatMap((type) => [
       { key: `v${type}`, id: null, type, name: TAB_VIEW_LABEL[type], isDefault: false },
       ...(type === "LIST" ? ordered.map((row) => ({ key: `t${row.id}`, id: row.id, type: row.type, name: row.name, isDefault: row.isDefault })) : []),
     ]);
@@ -209,11 +219,11 @@ export function materialisePlan(strip: readonly StripTab[]): { key: string; id: 
 export const canRemoveTab = (strip: readonly StripTab[]) => strip.length > 1;
 
 // The menu's choices for one tab (editors only; the server checks again).
-export function tabMenu(tab: StripTab, strip: readonly StripTab[], canEdit: boolean): ("rename" | "default" | "duplicate" | "copy" | "remove")[] {
+export function tabMenu(tab: StripTab, strip: readonly StripTab[], canEdit: boolean, max: number = MAX_PROJECT_TABS): ("rename" | "default" | "duplicate" | "copy" | "remove")[] {
   const out: ("rename" | "default" | "duplicate" | "copy" | "remove")[] = [];
   if (canEdit) out.push("rename");
   if (canEdit && !tab.isDefault) out.push("default");
-  if (canEdit && strip.length < MAX_PROJECT_TABS) out.push("duplicate");
+  if (canEdit && strip.length < max) out.push("duplicate");
   out.push("copy");
   if (canEdit && canRemoveTab(strip)) out.push("remove");
   return out;

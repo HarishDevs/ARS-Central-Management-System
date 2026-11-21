@@ -35,6 +35,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
       "The tiles count what's waiting for you, what's overdue, your open requests and changes asked of you. Click one to open the list.",
       "Drafts you haven't submitted are listed here, so you can carry on where you left off.",
       "At the top, switch between Approvals and Task Management (My Work: your tasks for a period, projects, latest updates and weekly workload). Approvers start on Approvals, everyone else on Task Management.",
+      "On Task Management, Customise arranges your widgets (move, width, remove, add) and the Private notepad keeps notes only you see.",
     ],
     path: "/users",
     // D-265: approvers see the approval cards, everyone else My Work's.
@@ -121,7 +122,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     intro: "Everything given to you, from every project, in your own sections (Overdue, Recently assigned, Today, Upcoming, Later).",
     points: [
       "Tick a task to complete it; click its name to open it beside the list (comments, files, subtasks, followers).",
-      "List, Board and Calendar views; Filter, Sort and Group like any list. Periodic tasks repeat by themselves.",
+      "List, Board and Calendar views, and your own tabs (+ adds one; its ⋯ menu renames, sets the default or removes it); Filter, Sort and Group like any list, then Save view. Periodic tasks repeat by themselves.",
       "The morning summary email lists what's due; switch it off here.",
     ],
     path: "/users/work/my-tasks",

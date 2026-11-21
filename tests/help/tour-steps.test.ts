@@ -36,4 +36,11 @@ describe("onboarding tour steps", () => {
     expect(points).toContain("Starred");
     expect(points).toContain("Undo");
   });
+
+  it("Home mentions Customise and the private notepad, and My Tasks its own tabs (v1.63.0, D-369)", () => {
+    const home = TOUR_STEPS.find((step) => step.id === "overview")?.points.join(" ") ?? "";
+    expect(home).toContain("Customise");
+    expect(home).toContain("Private notepad");
+    expect(TOUR_STEPS.find((step) => step.id === "tasks")?.points.join(" ")).toContain("Save view");
+  });
 });

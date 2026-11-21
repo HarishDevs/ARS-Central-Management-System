@@ -17,11 +17,12 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 **Multi-level approvals in any custom manner.** The engine must support any number of levels in any combination: sequential, parallel, any-one, any-N-of-M, conditional and hybrid. Approvers can come from any source, and levels can be added or skipped by rules. Build the engine for this from the first engine phase (P2). The drag-and-drop designer (P3) is only the screen for building it. Check every task against this.
 
 ## Now / Next
-- **Now (22 Nov 2026):** **v1.62.0** PM phase A part 2: Board keyboard moves and field chips, the right-side task pane, reactions, completion animation and celebrations, Undo for complete and delete, Starred and Departments in the sidebar, the 30-day purge (D-368). **Owner:** back up, run migration 202611221100_pm_a_reactions_sidebar.sql (after 202611221000), publish; before switching "Projects: tabs for every view… (phase A)" on, restore anything deleted over 30 days ago that should stay (or untick the purge in Admin → Task settings).
-- **Next (22 Nov 2026):** PM-A12 (Home greeting and widget sections) and PM-A13 (My Tasks tab management), then phases B to E (D-366).
+- **Now (22 Nov 2026):** **v1.63.0** PM phase A part 3: Task Summary tabs per person and Recently assigned; Home greeting, customisable widgets (keyboard and drag), People and a private notepad (D-369). **Owner:** back up, run migration 202611221200_pm_a_home_widgets.sql (after 202611221100), publish.
+- **Earlier (22 Nov 2026):** **v1.62.0** PM phase A part 2: Board keyboard moves and field chips, the right-side task pane, reactions, completion animation and celebrations, Undo for complete and delete, Starred and Departments in the sidebar, the 30-day purge (D-368). **Owner:** back up, run migration 202611221100_pm_a_reactions_sidebar.sql (after 202611221000), publish; before switching "Projects: tabs for every view… (phase A)" on, restore anything deleted over 30 days ago that should stay (or untick the purge in Admin → Task settings).
+- **Next (22 Nov 2026):** PM-A14 (widgets for people without Approvals) when convenient; phase B (custom fields, dependencies, editable Timeline/Gantt, Calendar week, status update extras) (D-366).
 - **Earlier (22 Nov 2026):** **v1.61.0** PM phase A part 1: tabs for every view, the windowed keyboard List, 15 s refresh, theme tokens (D-367). **Owner:** back up, run migration 202611221000_pm_a_views_prefs.sql, publish, then switch "Projects: tabs for every view… (phase A)" to IT only or On.
 - [x] PM-00 (21 Nov 2026) Step 0 discovery: gap analysis, token and component mapping, plan
-- [ ] PM-A Phase A foundations (in progress: part 1 in v1.61.0, part 2 in v1.62.0)
+- [ ] PM-A Phase A foundations (in progress: part 1 in v1.61.0, part 2 in v1.62.0, part 3 in v1.63.0; PM-A14 left)
   - [x] PM-A1 (22 Nov 2026) Theme tokens: row-active, identity 1–8 (COLOR_HEX moved to tokens), row heights/density, pane width, popover z, type steps, mono font
   - [x] PM-A2 (22 Nov 2026) Feature switch pm_foundations (default OFF; ON in e2e)
   - [x] PM-A3 (22 Nov 2026) Tabs for every view: catalogue, rename, default, duplicate, copy link, remove, keyboard/drag reorder, Save view / Unsaved / Reset, server rules and permissions
@@ -33,8 +34,9 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
   - [x] PM-A9 (22 Nov 2026) Completion animation (our own CSS, theme tokens), celebrations Off / Occasional / Always (Profile; Admin default), none with reduced motion, Undo for complete and delete (also bulk delete)
   - [~] PM-A10 (22 Nov 2026) Sidebar: Starred projects (keyboard reorder, sort menu) and Departments with a sort menu: done. Home greeting and widget sections moved to PM-A12 (not in this chunk's brief)
   - [x] PM-A11 (22 Nov 2026) Purge job after 30 days in Deleted (Admin setting, default on; audit per batch; Deleted pages show the date; integration-tested with past dates)
-  - [ ] PM-A12 Home greeting and widget sections (from PM-A10)
-  - [ ] PM-A13 My Tasks: tab management like project tabs (deferred from part 2: My Tasks keeps the D-220 list-only tabs)
+  - [x] PM-A12 (22 Nov 2026) Home greeting and widget sections (from PM-A10): greeting with date, customisable widgets (add, remove, keyboard and drag reorder, half/full, reset), My Tasks, Tasks I've assigned, Projects Recent/Starred, status updates, People, private notepad; Forms slot hidden until phase C (D-369)
+  - [x] PM-A13 (22 Nov 2026) My Tasks: tab management like project tabs, per person (List/Board/Calendar, rename, default, duplicate, copy link, remove, keyboard reorder, Save view / Reset), Recently assigned section (D-369)
+  - [ ] PM-A14 Home widgets for people without the Approval module (their module Home keeps the Task home; from D-369)
 - [ ] PM-B Phase B planning and data
 - [ ] PM-C Phase C forms
 - [ ] PM-D Phase D reporting, workload, automations, portfolios

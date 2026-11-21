@@ -39,7 +39,7 @@ export async function TaskHome({
   params: { tab?: string; given?: string; task?: string; home?: string };
   basePath: string;
   greet?: boolean;
-  part?: "all" | "others";
+  part?: "all" | "others" | "given"; // v1.63.0 (D-369): "given" = only Tasks I've assigned (a Home widget)
 }) {
   const tab: Tab = params.tab === "overdue" || params.tab === "completed" ? params.tab : "upcoming";
   const given: Tab = params.given === "overdue" || params.given === "completed" || params.given === "upcoming" ? params.given : "week";
@@ -75,7 +75,7 @@ export async function TaskHome({
     listTaskItems(...givenWhere(given), 8),
     full && projectsOn ? homeProjects(viewer, 8) : [],
     full && projectsOn ? recentStatusUpdates(viewer, 5) : [],
-    teamWorkload(viewer.teamIds, user.id),
+    part === "given" ? Promise.resolve([]) : teamWorkload(viewer.teamIds, user.id),
     full ? countTaskItems(["t.assignee_id = ?", "t.deleted_at IS NULL", "t.status = 'COMPLETED'", "t.completed_at >= ?"], [user.id, new Date(now.getTime() - 7 * 86_400_000)]) : 0,
     Promise.all((["week", "upcoming", "overdue"] as Tab[]).map((which) => count(givenWhere(which)))),
     !full ? 0 : getDbPool()
@@ -90,8 +90,8 @@ export async function TaskHome({
   const tabLink = (key: Tab, label: string, param: "tab" | "given", current: Tab, extra?: string) => (
     <Link
       key={key}
-      href={`${basePath}?${new URLSearchParams({ ...(params.home ? { home: params.home } : {}), ...(param === "tab" ? { tab: key, given } : { ...(part === "others" && params.tab ? { tab: params.tab } : { tab }), given: key }) })}`}
-      scroll={part === "others" ? false : undefined}
+      href={`${basePath}?${new URLSearchParams({ ...(params.home ? { home: params.home } : {}), ...(param === "tab" ? { tab: key, given } : { ...(part !== "all" && params.tab ? { tab: params.tab } : { tab }), given: key }) })}`}
+      scroll={part !== "all" ? false : undefined}
       aria-current={current === key ? "page" : undefined}
       className={`border-b-2 px-2 py-1 text-label ${current === key ? "border-primary-600 font-semibold text-primary-700" : "border-transparent text-ink-muted hover:text-ink"}`}
     >
@@ -103,9 +103,8 @@ export async function TaskHome({
   const links = paneLinks(basePath, params);
   const paneId = paneTaskId(params.task);
   const pane = paneId ? <TaskPane taskId={paneId} user={user} closeHref={links.close} /> : null;
-  const givenAndTeam = (
-    <>
-      <section className="card px-5 py-4" aria-labelledby="home-given">
+  const givenSection = (
+      <section className="card min-w-0 px-5 py-4" aria-labelledby="home-given">
         <div className="mb-2 flex items-center justify-between">
           <h2 id="home-given" className="font-semibold">
             Tasks I&apos;ve assigned
@@ -122,6 +121,10 @@ export async function TaskHome({
         </nav>
         <TaskLines hrefFor={links.open} items={givenList.items} now={now} meId={user.id} empty="Nothing here." showAssignee />
       </section>
+  );
+  const givenAndTeam = (
+    <>
+      {givenSection}
       {team.length > 0 && (
         <section className="card px-5 py-4 xl:col-span-2" aria-labelledby="home-team">
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
@@ -145,6 +148,7 @@ export async function TaskHome({
       )}
     </>
   );
+  if (part === "given") return <>{givenSection}</>;
   if (part === "others") return <div className="mt-6 grid gap-6 xl:grid-cols-2">{givenAndTeam}</div>;
   return (
     <>

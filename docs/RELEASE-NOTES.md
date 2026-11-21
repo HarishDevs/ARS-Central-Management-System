@@ -1,5 +1,16 @@
 # Release notes
 
+## v1.63.0 (22 Nov 2026): Your Home widgets, a private notepad, Task Summary tabs (Project Management phase A, part 3)
+Behind the same feature switch as v1.61.0 and v1.62.0 (**Projects: tabs for every view… (phase A)**), Off until IT turns it on.
+- **A greeting:** Home opens with today's date and "Good morning / afternoon / evening" with your name, on Approvals and on Task Management.
+- **Your widgets:** on Task Management, Home's sections are now widgets you arrange with **Customise**: move them (drag the handle, or focus it and press **Space**, **↑ / ↓**, **Space**; **Escape** cancels; **Alt + ↑ / ↓** moves at once), make them **Half** or **Full width**, **Remove** them and **Add** them back, or **Reset**. Your layout is kept for you on every device.
+- **Widgets:** My Tasks (Upcoming / Overdue / Completed / All), **Projects** (**Recent** or **Starred**), Latest status updates, **Private notepad**, My weekly workload, Tasks I've assigned, and **People** (who you report to, and your team's open and overdue tasks). Only widgets of the modules you have are offered.
+- **Private notepad:** notes and links with formatting, saved by itself as you type; only you see it.
+- **Task Summary tabs:** your own **List**, **Board** and **Calendar** tabs, with **Rename**, **Set as default**, **Duplicate**, **Copy link**, **Move left / right** and **Remove** (Alt + ← / → reorders); a List tab's filters, sort and groups are kept with **Save view** (**Reset** goes back).
+- **Recently assigned:** tasks someone gave you in the last 3 days have their own section in Task Summary, after Overdue.
+- The Approvals view of Home and its tables are unchanged.
+- **Owner steps:** back up the database, run `database/migrations/202611221200_pm_a_home_widgets.sql` (after 202611221100; adds the layout and notepad tables; rollback inside), then publish v1.63.0.
+
 ## v1.62.0 (22 Nov 2026): Board from the keyboard, the task pane beside the view, reactions, celebrations, Undo, Starred projects, the 30-day clean-up (Project Management phase A, part 2)
 Behind the same feature switch as v1.61.0 (**Projects: tabs for every view… (phase A)**), Off until IT turns it on, except where noted.
 - **Board:** move a card without a mouse: focus it, press **Space** to pick it up, **↑ / ↓** to move it between cards and **← / →** between columns, then **Space** or **Enter** to drop it (**Escape** puts it back). A screen reader hears each step. **Alt + ↑ / ↓** still work. The arrow keys also move between cards, and **Enter** opens one. Cards show the project's field values (e.g. "Cost: 100"), and each column says how many tasks it holds.

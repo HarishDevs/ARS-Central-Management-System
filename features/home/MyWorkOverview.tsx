@@ -41,6 +41,22 @@ import { hasModule } from "@/server/modules/modules";
 import { ComingSoonCard, ComingSoonChip, LockedProjectName } from "@/features/ui/ComingSoon";
 import { SortTh } from "@/features/ui/SortTh";
 import { nextDir, parseColumnSort, sqlDir } from "@/server/lists/sorting";
+import { HomeWidgets } from "@/features/home/HomeWidgets";
+import { HomeNotepad } from "@/features/home/HomeNotepad";
+import { TeamWorkloadTable } from "@/features/work/TeamWorkloadTable";
+import { teamWorkload } from "@/lib/db/repositories/work.repository";
+import type { WidgetItem, WidgetKind } from "@/server/home/widgets";
+
+// v1.63.0 (D-369, PM-A12): with "pm_foundations" on, Home's sections are the
+// person's own widgets (order, width, which ones), plus the private notepad
+// and People (the reporting line). The page passes the layout here.
+export interface HomeWidgetSetup {
+  layout: WidgetItem[];
+  version: number;
+  addable: { kind: WidgetKind; title: string; description: string }[];
+  note: { body: string; version: number };
+  given: React.ReactNode; // "Tasks I've assigned" (TaskHome part "given")
+}
 
 // D-265 (owner's My Work brief): Home → Task Management. Every figure is
 // counted from the task records with the same rules as My Tasks (India days;
@@ -85,12 +101,16 @@ export async function MyWorkOverview({
   query,
   switcher,
   others,
+  widgets,
+  greeting,
 }: {
   user: Awaited<ReturnType<typeof workPage>>["user"];
   viewer: WorkViewer;
   query: Record<string, string | undefined>;
   switcher: React.ReactNode;
   others: React.ReactNode;
+  widgets?: HomeWidgetSetup;
+  greeting?: React.ReactNode;
 }) {
   const now = new Date();
   const today = indiaDayOf(now);
@@ -116,15 +136,25 @@ export async function MyWorkOverview({
   // D-307 (owner): Projects is its own module. Without it, project cards are
   // locked ("Coming soon") and a task's project is its name only, no link.
   const projectsOn = hasModule(user, "PROJECT");
-  const [summary, list, projects, taskEvents, statusPosts, workload, profile] = await Promise.all([
+  // v1.63.0 (D-369): only the widgets on the person's Home load their data.
+  const shown = (kind: WidgetKind) => !widgets || widgets.layout.some((item) => item.kind === kind);
+  const projectScope = widgets && query.pw === "starred" ? "starred" : "recent";
+  const [summary, list, projectRows, taskEvents, statusPosts, workload, profile, team] = await Promise.all([
     workSummary(user.id, today, period),
-    listTaskItems(...sortedWhere(tab), PAGE, (page - 1) * PAGE),
-    projectsOn ? homeProjects(viewer, 4) : Promise.resolve([]),
-    workActivity(user.id, limit),
-    projectsOn ? recentStatusUpdates(viewer, limit) : Promise.resolve([] as StatusUpdate[]),
-    weeklyWorkload(user.id, period),
+    shown("my_tasks") ? listTaskItems(...sortedWhere(tab), PAGE, (page - 1) * PAGE) : Promise.resolve({ items: [] as WorkTaskItem[], total: 0 }),
+    projectsOn && shown("projects") ? homeProjects(viewer, widgets ? 40 : 4) : Promise.resolve([]),
+    shown("status_updates") ? workActivity(user.id, limit) : Promise.resolve([] as WorkActivity[]),
+    projectsOn && shown("status_updates") ? recentStatusUpdates(viewer, limit) : Promise.resolve([] as StatusUpdate[]),
+    shown("workload") ? weeklyWorkload(user.id, period) : Promise.resolve({ assigned: [] as number[], completed: [] as number[] }),
     personProfile(user.id).catch(() => null),
+    widgets && shown("people") ? teamWorkload(viewer.teamIds, user.id) : Promise.resolve([]),
   ]);
+  // Projects widget (spec §3.7): Recent (last opened first) or Starred.
+  const projects = !widgets
+    ? projectRows
+    : projectScope === "starred"
+      ? projectRows.filter((project) => project.starred).slice(0, 6)
+      : [...projectRows].sort((a, b) => (b.recentAt?.getTime() ?? 0) - (a.recentAt?.getTime() ?? 0)).slice(0, 6);
   // The timeline: task events and project status posts, newest first.
   const activity: ({ kind: "task"; event: WorkActivity } | { kind: "status"; update: StatusUpdate })[] = [
     ...taskEvents.map((event) => ({ kind: "task" as const, event })),
@@ -194,55 +224,7 @@ export async function MyWorkOverview({
     },
   ];
 
-  return (
-    <div data-testid="my-work-overview">
-      <QuietRefresh />
-      <header className="mb-5 flex flex-wrap items-start justify-between gap-4">
-        <div className="flex min-w-0 items-start gap-3">
-          <span className="page-icon grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary-50 text-primary-700" aria-hidden="true">
-            <Layers className="h-6 w-6" />
-          </span>
-          <div className="min-w-0">
-            <h1 className="text-title font-semibold tracking-tight">My Work – Overview</h1>
-            <p className="text-label text-ink-muted">
-              Welcome back, <span className="font-medium text-ink">{user.name}</span>
-              {role && <span> · {role}</span>}
-            </p>
-            <p className="text-label text-ink-muted">Your tasks, projects and recent updates in one place.</p>
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          {switcher}
-          <PeriodPicker value={period.key} from={period.fromDay} to={period.toDay} base={{ home: "tasks", tab }} />
-        </div>
-      </header>
-
-      <nav aria-label="Quick actions" className="mb-5 flex flex-wrap gap-2" data-testid="work-quick-actions">
-        <CreateTaskButton />
-        <QuickLink href="/users/work/my-tasks" icon={<ListChecks className="h-4 w-4" />} label="View all tasks" />
-        {projectsOn ? <QuickLink href="/users/work/projects" icon={<FolderKanban className="h-4 w-4" />} label="Projects" /> : <ComingSoonChip label="Projects" className="rounded-lg border border-line" />}
-        <QuickLink href="/users/work/search" icon={<Search className="h-4 w-4" />} label="Search tasks" />
-        <QuickLink href="/users/calendar" icon={<CalendarDays className="h-4 w-4" />} label="Calendar" />
-      </nav>
-
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4" data-testid="work-kpis">
-        {cards.map((card) => (
-          <Link key={card.key} href={card.href} className="card-link status-card flex items-center gap-3 px-4 py-3" data-testid={`work-kpi-${card.key}`}>
-            <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${card.tone}`} aria-hidden="true">
-              <card.icon className="h-5 w-5" />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-2xl font-bold tabular-nums leading-tight">{card.value}</span>
-              <span className="block text-label font-medium">{card.label}</span>
-              <span className="block truncate text-caption text-ink-muted">{card.note}</span>
-            </span>
-            {card.key === "completed" && <Change value={card.change} label={PREVIOUS_LABEL[period.key]} />}
-          </Link>
-        ))}
-      </div>
-
-      <WithPane pane={pane}>
-        <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
+  const myTasksNode = (
           <section className="card min-w-0 px-4 py-4 sm:px-5" aria-labelledby="mw-tasks">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <h2 id="mw-tasks" className="text-[calc(17px*var(--text-scale,1))] font-semibold">
@@ -382,8 +364,8 @@ export async function MyWorkOverview({
               </>
             )}
           </section>
-
-          {!projectsOn ? (
+  );
+  const projectsNode = !projectsOn ? (
             <ComingSoonCard title="Projects" body="Projects will open here once it is released for you." lines={4} testId="mw-projects-soon" />
           ) : (
           <section className="card min-w-0 px-4 py-4 sm:px-5" aria-labelledby="mw-projects">
@@ -395,7 +377,29 @@ export async function MyWorkOverview({
                 All projects <ArrowRight aria-hidden="true" className="h-4 w-4" />
               </Link>
             </div>
-            {projects.length === 0 ? (
+            {widgets && (
+              <nav aria-label="Which projects" className="mb-3 flex gap-1 border-b border-line" data-testid="projects-scope">
+                {(
+                  [
+                    ["recent", "Recent"],
+                    ["starred", "Starred"],
+                  ] as const
+                ).map(([key, label]) => (
+                  <Link
+                    key={key}
+                    href={href(key === "starred" ? { pw: "starred" } : {})}
+                    scroll={false}
+                    aria-current={projectScope === key ? "page" : undefined}
+                    className={`-mb-px border-b-2 px-3 py-1.5 text-label ${projectScope === key ? "border-primary-600 font-semibold text-primary-700" : "border-transparent text-ink-muted hover:text-ink"}`}
+                  >
+                    {label}
+                  </Link>
+                ))}
+              </nav>
+            )}
+            {projects.length === 0 && projectScope === "starred" ? (
+              <p className="py-6 text-center text-label text-ink-muted">No starred projects. Star a project from its header to keep it here.</p>
+            ) : projects.length === 0 ? (
               <div className="py-6 text-center text-label text-ink-muted">
                 <p>No projects yet.</p>
                 <Link href="/users/work/projects/new" className="link">
@@ -437,8 +441,8 @@ export async function MyWorkOverview({
               </ul>
             )}
           </section>
-          )}
-
+          );
+  const activityNode = (
           <section className="card min-w-0 px-4 py-4 sm:px-5" aria-labelledby="mw-activity">
             <div className="mb-3 flex items-center justify-between">
               <h2 id="mw-activity" className="text-[calc(17px*var(--text-scale,1))] font-semibold">
@@ -506,7 +510,65 @@ export async function MyWorkOverview({
               </ol>
             )}
           </section>
-
+  );
+  // v1.63.0 (D-369): People, the person's reporting line (spec §3.9, our
+  // version: who they report to, and everyone below them with their tasks).
+  const peopleNode = (
+    <section className="card min-w-0 px-4 py-4 sm:px-5" aria-labelledby="mw-people" data-testid="people-widget">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <h2 id="mw-people" className="text-[calc(17px*var(--text-scale,1))] font-semibold">
+          People
+        </h2>
+        {team.length > 0 && (
+          <span className="flex gap-3 text-label">
+            <Link href="/users/work/search?team=1" className="link">
+              Their open tasks
+            </Link>
+            <Link href="/users/work/search?team=1&overdue=1" className="link">
+              Overdue
+            </Link>
+          </span>
+        )}
+      </div>
+      <p className="mb-2 text-label text-ink-muted">
+        {profile?.managerName ? (
+          <>
+            You report to <span className="font-medium text-ink">{profile.managerName}</span>
+            {profile.managerDesignation ? ` (${profile.managerDesignation})` : ""}.
+          </>
+        ) : (
+          "No reporting manager is set for you."
+        )}{" "}
+        {team.length > 0 ? `${team.length} ${team.length === 1 ? "person is" : "people are"} below you in the reporting line.` : "Nobody reports to you."}
+      </p>
+      {team.length > 0 && (
+        <div className="overflow-x-auto">
+          <TeamWorkloadTable rows={team} />
+        </div>
+      )}
+    </section>
+  );
+  const nodeFor = (kind: WidgetKind): React.ReactNode => {
+    switch (kind) {
+      case "my_tasks":
+        return myTasksNode;
+      case "projects":
+        return projectsNode;
+      case "status_updates":
+        return activityNode;
+      case "workload":
+        return workloadNode;
+      case "assigned":
+        return widgets?.given ?? null;
+      case "people":
+        return peopleNode;
+      case "notepad":
+        return widgets ? <HomeNotepad initialText={widgets.note.body} version={widgets.note.version} /> : null;
+      case "forms":
+        return null; // Phase C
+    }
+  };
+  const workloadNode = (
           <section className="card min-w-0 px-4 py-4 sm:px-5" aria-labelledby="mw-workload">
             <h2 id="mw-workload" className="mb-1 text-[calc(17px*var(--text-scale,1))] font-semibold">
               My weekly workload
@@ -516,8 +578,78 @@ export async function MyWorkOverview({
             </p>
             <WorkloadChart assigned={workload.assigned} completed={workload.completed} caption={`Tasks assigned and completed by day, ${period.label.toLowerCase()}`} />
           </section>
+  );
+  return (
+    <div data-testid="my-work-overview">
+      <QuietRefresh />
+      {greeting && <div className="mb-4">{greeting}</div>}
+      <header className="mb-5 flex flex-wrap items-start justify-between gap-4">
+        <div className="flex min-w-0 items-start gap-3">
+          <span className="page-icon grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary-50 text-primary-700" aria-hidden="true">
+            <Layers className="h-6 w-6" />
+          </span>
+          <div className="min-w-0">
+            <h1 className="text-title font-semibold tracking-tight">My Work – Overview</h1>
+            {greeting ? (
+              role && <p className="text-label text-ink-muted">{role}</p>
+            ) : (
+              <p className="text-label text-ink-muted">
+                Welcome back, <span className="font-medium text-ink">{user.name}</span>
+                {role && <span> · {role}</span>}
+              </p>
+            )}
+            <p className="text-label text-ink-muted">Your tasks, projects and recent updates in one place.</p>
+          </div>
         </div>
-        {others}
+        <div className="flex flex-wrap items-center gap-3">
+          {switcher}
+          <PeriodPicker value={period.key} from={period.fromDay} to={period.toDay} base={{ home: "tasks", tab }} />
+        </div>
+      </header>
+
+      <nav aria-label="Quick actions" className="mb-5 flex flex-wrap gap-2" data-testid="work-quick-actions">
+        <CreateTaskButton />
+        <QuickLink href="/users/work/my-tasks" icon={<ListChecks className="h-4 w-4" />} label="View all tasks" />
+        {projectsOn ? <QuickLink href="/users/work/projects" icon={<FolderKanban className="h-4 w-4" />} label="Projects" /> : <ComingSoonChip label="Projects" className="rounded-lg border border-line" />}
+        <QuickLink href="/users/work/search" icon={<Search className="h-4 w-4" />} label="Search tasks" />
+        <QuickLink href="/users/calendar" icon={<CalendarDays className="h-4 w-4" />} label="Calendar" />
+      </nav>
+
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4" data-testid="work-kpis">
+        {cards.map((card) => (
+          <Link key={card.key} href={card.href} className="card-link status-card flex items-center gap-3 px-4 py-3" data-testid={`work-kpi-${card.key}`}>
+            <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${card.tone}`} aria-hidden="true">
+              <card.icon className="h-5 w-5" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-2xl font-bold tabular-nums leading-tight">{card.value}</span>
+              <span className="block text-label font-medium">{card.label}</span>
+              <span className="block truncate text-caption text-ink-muted">{card.note}</span>
+            </span>
+            {card.key === "completed" && <Change value={card.change} label={PREVIOUS_LABEL[period.key]} />}
+          </Link>
+        ))}
+      </div>
+
+      <WithPane pane={pane}>
+        {widgets ? (
+          <HomeWidgets
+            version={widgets.version}
+            addable={widgets.addable}
+            widgets={widgets.layout.map((item) => ({ kind: item.kind, size: item.size, node: nodeFor(item.kind) }))}
+            extra={!projectsOn ? projectsNode : undefined}
+          />
+        ) : (
+          <>
+            <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
+              {myTasksNode}
+              {projectsNode}
+              {activityNode}
+              {workloadNode}
+            </div>
+            {others}
+          </>
+        )}
       </WithPane>
     </div>
   );

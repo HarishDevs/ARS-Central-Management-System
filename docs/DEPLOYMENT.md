@@ -209,6 +209,10 @@ Stops anyone reaching the GoDaddy server directly, around Cloudflare (and faking
 1. https://approval.arssteels.net → **Continue with Google** → **itsupport@arsenergy.co.in** (D-082). The seed created this Super Admin, User ID `itadmin`. `itadmin@arssteels.co.in` can't be used: it's only an alias, and Google reports the main address.
 2. You land on **My approvals**. Your name at the top right opens a menu whose **Switch space** section shows Admin and Super Admin.
 
+### G0h. Home widgets, private notepad and Task Summary tabs (v1.63.0)
+1. Back up the database, then run `database/migrations/202611221200_pm_a_home_widgets.sql` (after 202611221100). It adds `home_layouts` and `home_notes` (both empty until people customise Home or write a note). Task Summary tabs need no schema change. Rollback inside.
+2. Publish v1.63.0. Everything new is behind the same switch as v1.61.0 and v1.62.0 (**"Projects: tabs for every view, faster list and row density (phase A)"**): the Home greeting and widgets, the notepad, Task Summary tabs and Recently assigned. With it Off, Home and Task Summary are as before.
+
 ### G0g. Reactions, task pane, sidebar and the 30-day clean-up (v1.62.0)
 1. Back up the database, then run `database/migrations/202611221100_pm_a_reactions_sidebar.sql`. It adds `comment_reactions` and `work_project_order` and replaces the `task_events` delete trigger so the clean-up can remove the history of a task deleted more than 30 days ago (nothing else may delete it). If the migration skips the two trigger blocks for lack of rights, run them once in phpMyAdmin. Rollback inside.
 2. Publish v1.62.0. Everything new is behind the same switch as v1.61.0 (**"Projects: tabs for every view, faster list and row density (phase A)"**), except Undo after deleting a task.

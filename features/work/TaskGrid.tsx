@@ -9,7 +9,7 @@ import { LockedProjectName } from "@/features/ui/ComingSoon";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FoldAllButtons } from "@/features/ui/GroupFold";
-import { deleteViewAction, densityAction, projectTabAction, saveViewAction, taskFieldsAction, updateViewAction } from "@/app/users/work/actions";
+import { deleteViewAction, densityAction, myTasksTabAction, projectTabAction, saveViewAction, taskFieldsAction, updateViewAction } from "@/app/users/work/actions";
 import { UnsavedView } from "@/features/work/UnsavedView";
 import { useWindowedLines, WINDOW_FROM } from "@/features/work/useWindowedLines";
 import { expandableIds, flattenGrid, keyMove } from "@/server/work/tree";
@@ -524,7 +524,7 @@ export function TaskGrid({
             <UnsavedView
               canSave={view.canSave}
               onReset={() => setConfig(JSON.parse(saved) as GridConfig)}
-              onSave={() => void call(() => projectTabAction(view.scopeId, { op: "save", key: view.tabKey!, config })).then((result) => result?.ok && setSaved(JSON.stringify(config)))}
+              onSave={() => void call(() => (view.scope === "MY_TASKS" ? myTasksTabAction({ op: "save", key: view.tabKey!, config }) : projectTabAction(view.scopeId, { op: "save", key: view.tabKey!, config }))).then((result) => result?.ok && setSaved(JSON.stringify(config)))}
             />
           )}
           {dirty && !view?.phaseA && view?.canSave && view.current && (

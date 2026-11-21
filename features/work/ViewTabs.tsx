@@ -4,12 +4,12 @@ import { ChevronLeft, ChevronRight, Copy, Link2, MoreHorizontal, Pencil, Plus, S
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { projectTabAction } from "@/app/users/work/actions";
+import { myTasksTabAction, projectTabAction } from "@/app/users/work/actions";
 import { Drop } from "@/features/ui/Drop";
 import { useToast } from "@/features/ui/Toast";
 import { COPY_BLOCKED, copyText } from "@/features/ui/clipboard";
 import { useWorkCall } from "@/features/work/client";
-import { addableViews, moveKey, placeKey, tabHref, tabMenu, TAB_NAME_MAX, type StripTab } from "@/server/work/view-tabs";
+import { addableViews, maxTabs, moveKey, placeKey, tabHref, tabMenu, TAB_NAME_MAX, type StripTab, type TabScope } from "@/server/work/view-tabs";
 
 // v1.61.0 (D-367, spec PRJ-15): the project's tab strip. Every tab is a view
 // (List, Board, Calendar, Timeline, Overview) with its own saved state. Owners
@@ -17,7 +17,9 @@ import { addableViews, moveKey, placeKey, tabHref, tabMenu, TAB_NAME_MAX, type S
 // sets it as the default, duplicates it, copies its link or removes it.
 // Reorder by dragging, or with the keyboard: Alt + ← / → on a focused tab
 // (announced), or "Move left / right" in its menu. Everyone else can copy links.
-export function ViewTabs({ projectId, base, strip, activeKey, canEdit }: { projectId: number; base: string; strip: StripTab[]; activeKey: string | null; canEdit: boolean }) {
+// v1.63.0 (D-369, PM-A13): the same strip for a person's My Tasks (scope
+// MY_TASKS): their own tabs, List / Board / Calendar only.
+export function ViewTabs({ projectId = 0, scope = "PROJECT", base, strip, activeKey, canEdit, label = "Project views" }: { projectId?: number; scope?: TabScope; base: string; strip: StripTab[]; activeKey: string | null; canEdit: boolean; label?: string }) {
   const { call, pending } = useWorkCall();
   const toast = useToast();
   const router = useRouter();
@@ -32,7 +34,7 @@ export function ViewTabs({ projectId, base, strip, activeKey, canEdit }: { proje
   const focusTab = (key: string) => requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-tab-key="${key}"] a`)?.focus());
 
   const run = async (input: Parameters<typeof projectTabAction>[1], success?: string | false) => {
-    const result = await call(() => projectTabAction(projectId, input), success === undefined ? {} : { success });
+    const result = await call(() => (scope === "MY_TASKS" ? myTasksTabAction(input) : projectTabAction(projectId, input)), success === undefined ? {} : { success });
     return result?.ok ? result : null;
   };
   const reorder = async (next: string[], moved: string) => {
@@ -54,10 +56,10 @@ export function ViewTabs({ projectId, base, strip, activeKey, canEdit }: { proje
 
   return (
     <div className="mb-3 border-b border-line">
-      <nav aria-label="Project views" className="flex flex-wrap items-end gap-0.5" data-testid="view-tabs">
+      <nav aria-label={label} className="flex flex-wrap items-end gap-0.5" data-testid="view-tabs">
         {tabs.map((tab, index) => {
           const active = tab.key === activeKey;
-          const menu = tabMenu(tab, tabs, canEdit);
+          const menu = tabMenu(tab, tabs, canEdit, maxTabs(scope));
           return (
             <span
               key={tab.key}
@@ -209,7 +211,7 @@ export function ViewTabs({ projectId, base, strip, activeKey, canEdit }: { proje
           >
             <p className="mb-2 font-semibold">Add a tab</p>
             <ul className="space-y-0.5" aria-label="Views">
-              {addableViews().map((entry) => (
+              {addableViews(scope).map((entry) => (
                 <li key={entry.type}>
                   <button
                     type="button"

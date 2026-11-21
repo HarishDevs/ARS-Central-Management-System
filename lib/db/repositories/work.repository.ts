@@ -8,7 +8,7 @@ import type { MySystemSection, WorkSearch } from "@/server/work/rules";
 import { MY_SECTION_NAMES, MY_SECTION_ORDER } from "@/server/work/rules";
 import type { TaskPriority } from "@/server/modules/settings";
 import type { TaskStatus } from "@/server/modules/task-rules";
-import type { TabRow, TabView } from "@/server/work/view-tabs";
+import type { TabRow, TabScope, TabView } from "@/server/work/view-tabs";
 
 // D-215: Task & Project Management data. Every list that shows tasks uses
 // visibleTaskClause, the SQL twin of server/work/access.ts taskRights().view.
@@ -1115,14 +1115,24 @@ export async function listWorkViews(scope: "MY_TASKS" | "PROJECT", scopeId: numb
 }
 
 // v1.61.0 (D-367): a project's tabs of every view type, and whether its strip is stored.
-export async function listProjectTabs(projectId: number, db: Queryable = getDbPool()): Promise<{ rows: TabRow[]; tabsSet: boolean; defaultView: string }> {
-  const [[project], [rows]] = await Promise.all([
-    db.query<Row[]>("SELECT view_tabs_set, default_view FROM projects WHERE id = ?", [projectId]),
-    db.query<Row[]>("SELECT id, view_type, name, config_json, is_default, position FROM work_views WHERE scope = 'PROJECT' AND scope_id = ? ORDER BY position, id", [projectId]),
+// v1.63.0 (D-369, PM-A13): the same for a person's My Tasks (scope MY_TASKS,
+// scope_id = the person). Whether a person's strip is stored is the
+// user_settings key "work.my_tabs_set"; a project keeps projects.view_tabs_set.
+export interface TabOwner {
+  scope: TabScope;
+  id: number;
+}
+export const MY_TABS_SET = "work.my_tabs_set";
+export async function listTabs(owner: TabOwner, db: Queryable = getDbPool()): Promise<{ rows: TabRow[]; tabsSet: boolean; defaultView: string }> {
+  const [[flag], [rows]] = await Promise.all([
+    owner.scope === "PROJECT"
+      ? db.query<Row[]>("SELECT view_tabs_set AS tabs_set, default_view FROM projects WHERE id = ?", [owner.id])
+      : db.query<Row[]>("SELECT TRUE AS tabs_set, 'LIST' AS default_view FROM user_settings WHERE user_id = ? AND setting_key = ? AND value = '1'", [owner.id, MY_TABS_SET]),
+    db.query<Row[]>("SELECT id, view_type, name, config_json, is_default, position FROM work_views WHERE scope = ? AND scope_id = ? ORDER BY position, id", [owner.scope, owner.id]),
   ]);
   return {
-    tabsSet: Boolean(project[0]?.view_tabs_set),
-    defaultView: String(project[0]?.default_view ?? "LIST"),
+    tabsSet: Boolean(flag[0]?.tabs_set),
+    defaultView: String(flag[0]?.default_view ?? "LIST"),
     rows: rows.map((row) => ({
       id: num(row.id),
       type: String(row.view_type) as TabView,
@@ -1133,17 +1143,25 @@ export async function listProjectTabs(projectId: number, db: Queryable = getDbPo
     })),
   };
 }
+export const listProjectTabs = (projectId: number, db: Queryable = getDbPool()) => listTabs({ scope: "PROJECT", id: projectId }, db);
+export const listMyTabs = (userId: number, db: Queryable = getDbPool()) => listTabs({ scope: "MY_TASKS", id: userId }, db);
+export async function findTab(owner: TabOwner, id: number, db: Queryable = getDbPool()): Promise<TabRow | null> {
+  const [rows] = await db.query<Row[]>("SELECT id, view_type, name, config_json, is_default, position FROM work_views WHERE id = ? AND scope = ? AND scope_id = ?", [id, owner.scope, owner.id]);
+  const row = rows[0];
+  if (!row) return null;
+  return { id: num(row.id), type: String(row.view_type) as TabView, name: String(row.name), config: typeof row.config_json === "string" ? JSON.parse(row.config_json) : row.config_json, isDefault: Boolean(row.is_default), position: Number(row.position) };
+}
 export async function findProjectTab(id: number, db: Queryable = getDbPool()): Promise<(TabRow & { projectId: number }) | null> {
   const [rows] = await db.query<Row[]>("SELECT id, scope_id, view_type, name, config_json, is_default, position FROM work_views WHERE id = ? AND scope = 'PROJECT'", [id]);
   const row = rows[0];
   if (!row) return null;
   return { id: num(row.id), projectId: num(row.scope_id), type: String(row.view_type) as TabView, name: String(row.name), config: typeof row.config_json === "string" ? JSON.parse(row.config_json) : row.config_json, isDefault: Boolean(row.is_default), position: Number(row.position) };
 }
-export async function insertProjectTab(projectId: number, input: { type: TabView; name: string; config: unknown; position: number; isDefault?: boolean }, by: number, db: Queryable): Promise<number | "DUPLICATE"> {
+export async function insertTab(owner: TabOwner, input: { type: TabView; name: string; config: unknown; position: number; isDefault?: boolean }, by: number, db: Queryable): Promise<number | "DUPLICATE"> {
   try {
     const [result] = await db.query<ResultSetHeader>(
-      "INSERT INTO work_views (scope, scope_id, view_type, name, config_json, position, is_default, created_by) VALUES ('PROJECT', ?, ?, ?, ?, ?, ?, ?)",
-      [projectId, input.type, input.name, JSON.stringify(input.config ?? {}), input.position, Boolean(input.isDefault), by],
+      "INSERT INTO work_views (scope, scope_id, view_type, name, config_json, position, is_default, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      [owner.scope, owner.id, input.type, input.name, JSON.stringify(input.config ?? {}), input.position, Boolean(input.isDefault), by],
     );
     return result.insertId;
   } catch (error) {
@@ -1151,12 +1169,15 @@ export async function insertProjectTab(projectId: number, input: { type: TabView
     throw error;
   }
 }
-export async function setTabPositions(projectId: number, ids: readonly number[], db: Queryable): Promise<void> {
-  for (const [index, id] of ids.entries()) await db.query<ResultSetHeader>("UPDATE work_views SET position = ? WHERE id = ? AND scope = 'PROJECT' AND scope_id = ?", [(index + 1) * 1024, id, projectId]);
+export const insertProjectTab = (projectId: number, input: Parameters<typeof insertTab>[1], by: number, db: Queryable) => insertTab({ scope: "PROJECT", id: projectId }, input, by, db);
+export async function setOwnerTabPositions(owner: TabOwner, ids: readonly number[], db: Queryable): Promise<void> {
+  for (const [index, id] of ids.entries()) await db.query<ResultSetHeader>("UPDATE work_views SET position = ? WHERE id = ? AND scope = ? AND scope_id = ?", [(index + 1) * 1024, id, owner.scope, owner.id]);
 }
-export async function setDefaultTab(projectId: number, id: number, db: Queryable): Promise<void> {
-  await db.query<ResultSetHeader>("UPDATE work_views SET is_default = (id = ?) WHERE scope = 'PROJECT' AND scope_id = ?", [id, projectId]);
+export const setTabPositions = (projectId: number, ids: readonly number[], db: Queryable) => setOwnerTabPositions({ scope: "PROJECT", id: projectId }, ids, db);
+export async function setOwnerDefaultTab(owner: TabOwner, id: number, db: Queryable): Promise<void> {
+  await db.query<ResultSetHeader>("UPDATE work_views SET is_default = (id = ?) WHERE scope = ? AND scope_id = ?", [id, owner.scope, owner.id]);
 }
+export const setDefaultTab = (projectId: number, id: number, db: Queryable) => setOwnerDefaultTab({ scope: "PROJECT", id: projectId }, id, db);
 export async function renameWorkView(id: number, name: string, db: Queryable = getDbPool()): Promise<"DUPLICATE" | "OK"> {
   try {
     await db.query<ResultSetHeader>("UPDATE work_views SET name = ? WHERE id = ?", [name, id]);
@@ -1166,12 +1187,16 @@ export async function renameWorkView(id: number, name: string, db: Queryable = g
     throw error;
   }
 }
-export async function markProjectTabsSet(projectId: number, db: Queryable): Promise<void> {
-  await db.query<ResultSetHeader>("UPDATE projects SET view_tabs_set = TRUE WHERE id = ?", [projectId]);
+export async function markTabsSet(owner: TabOwner, db: Queryable): Promise<void> {
+  if (owner.scope === "PROJECT") await db.query<ResultSetHeader>("UPDATE projects SET view_tabs_set = TRUE WHERE id = ?", [owner.id]);
+  else await db.query<ResultSetHeader>("INSERT INTO user_settings (user_id, setting_key, value) VALUES (?, ?, '1') ON DUPLICATE KEY UPDATE value = '1'", [owner.id, MY_TABS_SET]);
 }
-export async function lockProjectRow(projectId: number, db: Queryable): Promise<void> {
-  await db.query<Row[]>("SELECT id FROM projects WHERE id = ? FOR UPDATE", [projectId]);
+export const markProjectTabsSet = (projectId: number, db: Queryable) => markTabsSet({ scope: "PROJECT", id: projectId }, db);
+// Serialises changes to one strip (the project row, or the person's row).
+export async function lockTabOwner(owner: TabOwner, db: Queryable): Promise<void> {
+  await db.query<Row[]>(owner.scope === "PROJECT" ? "SELECT id FROM projects WHERE id = ? FOR UPDATE" : "SELECT id FROM users WHERE id = ? FOR UPDATE", [owner.id]);
 }
+export const lockProjectRow = (projectId: number, db: Queryable) => lockTabOwner({ scope: "PROJECT", id: projectId }, db);
 export async function findWorkView(id: number, db: Queryable = getDbPool()): Promise<{ id: number; scope: "MY_TASKS" | "PROJECT"; scopeId: number; name: string } | null> {
   const [rows] = await db.query<Row[]>("SELECT id, scope, scope_id, name FROM work_views WHERE id = ?", [id]);
   return rows[0] ? { id: num(rows[0].id), scope: rows[0].scope as "MY_TASKS" | "PROJECT", scopeId: num(rows[0].scope_id), name: String(rows[0].name) } : null;

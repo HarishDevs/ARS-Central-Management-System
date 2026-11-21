@@ -26,7 +26,11 @@ import { MobileHome } from "@/features/mobile/MobileHome";
 import { isHiddenHref, navAccess } from "@/server/authorization/page-access";
 import { workViewer } from "@/server/work/task-access";
 import { TaskHome } from "@/features/work/TaskHome";
-import { MyWorkOverview } from "@/features/home/MyWorkOverview";
+import { MyWorkOverview, type HomeWidgetSetup } from "@/features/home/MyWorkOverview";
+import { HomeGreeting } from "@/features/home/HomeGreeting";
+import { homeAccess, homeLayoutFor } from "@/server/home/home-service";
+import { addableWidgets } from "@/server/home/widgets";
+import { getHomeNote } from "@/lib/db/repositories/home.repository";
 import { MeetingHome } from "@/features/meetings/MeetingHome";
 import { DeleteDraftButton, PeriodPicker, QuietRefresh } from "@/features/home/HomeClient";
 import { approvalInsights, isApproverForHome, myRequestCounts } from "@/lib/db/repositories/overview.repository";
@@ -98,6 +102,10 @@ export default async function UsersHome({ searchParams }: { searchParams: Promis
   const focus: HomeFocus =
     query.tour ? "approvals" : query.home === "meetings" && meetingsOn ? "meetings" : !tasksOn ? "approvals" : (asked ?? ((await isApproverForHome(user.id).catch(() => true)) ? "approvals" : "tasks"));
   const overview = query.view === "overview";
+  // v1.63.0 (D-369, PM-A12): with "pm_foundations" on, Home greets with the
+  // date and the time of day, and Task Management's sections are the person's
+  // own widgets. The approval parts of Home are unchanged.
+  const pmOn = await featureOn("pm_foundations", user).catch(() => false);
   const name = displayName(user.name);
   const words = name.split(/\s+/);
   const greetingName = words.length <= 2 ? name : words[0];
@@ -109,11 +117,29 @@ export default async function UsersHome({ searchParams }: { searchParams: Promis
 
   if (focus === "tasks") {
     const viewer = await workViewer(user);
+    let widgets: HomeWidgetSetup | undefined;
+    if (pmOn) {
+      const access = await homeAccess(user);
+      const [layout, note] = await Promise.all([homeLayoutFor(user, access), getHomeNote(user.id)]);
+      widgets = {
+        layout: layout.widgets,
+        version: layout.version,
+        addable: addableWidgets(layout.widgets, access).map((entry) => ({ kind: entry.kind, title: entry.title, description: entry.description })),
+        note,
+        given: layout.widgets.some((item) => item.kind === "assigned") ? (
+          <Suspense fallback={<p className="card px-5 py-4 text-label text-ink-muted" role="status">Loading…</p>}>
+            <TaskHome user={user} viewer={viewer} params={{ tab: query.tab, given: query.given, home: "tasks" }} basePath="/users" greet={false} part="given" />
+          </Suspense>
+        ) : null,
+      };
+    }
     return (
       <MyWorkOverview
         user={user}
         viewer={viewer}
         query={query}
+        widgets={widgets}
+        greeting={pmOn ? <HomeGreeting name={user.name} /> : undefined}
         switcher={<HomeFocusSwitch focus={focus} overview={overview} choices={choices} locked={lockedChoices} />}
         others={
           <Suspense
@@ -198,6 +224,11 @@ export default async function UsersHome({ searchParams }: { searchParams: Promis
   return (
     <div data-testid="approval-overview">
       <QuietRefresh />
+      {pmOn && (
+        <div className="mb-4">
+          <HomeGreeting name={user.name} />
+        </div>
+      )}
       <header className="mb-6 flex flex-wrap items-center justify-between gap-4" data-tour="page-header">
         <div className="flex min-w-0 items-center gap-3">
           <span className="page-icon grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary-50 text-primary-700" aria-hidden="true">
@@ -205,7 +236,7 @@ export default async function UsersHome({ searchParams }: { searchParams: Promis
           </span>
           <div className="min-w-0">
             <h1 className="text-title font-semibold tracking-tight">Approval Overview</h1>
-            <p className="text-label text-ink-muted">Welcome back, {greetingName}. What needs you first, then where your requests are.</p>
+            <p className="text-label text-ink-muted">{pmOn ? "" : `Welcome back, ${greetingName}. `}What needs you first, then where your requests are.</p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
