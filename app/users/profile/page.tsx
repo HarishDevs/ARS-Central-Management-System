@@ -18,6 +18,10 @@ import { parseTextSize, parseWorkspaceView, TEXT_SIZE_SETTING, WORKSPACE_VIEW_SE
 import { ViewSwitch } from "@/features/shell/ViewSwitch";
 import { photoUrl } from "@/server/profile/photo";
 import type { RoleCode } from "@/types/auth";
+import { CelebrationChoice } from "@/features/work/CelebrationChoice";
+import { featureOn } from "@/server/settings/features";
+import { loadSetting } from "@/server/work/holiday-store";
+import { CELEBRATION_SETTING, parseCelebration, parsePmExtras, PM_EXTRAS_KEY } from "@/server/work/pm-rules";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
 export const metadata: Metadata = { title: "Profile" };
@@ -92,6 +96,9 @@ export default async function ProfilePage() {
     { label: "Member since", value: day(profile.createdAt) },
     { label: "Last sign-in", value: profile.lastLoginAt ? formatIndiaTime(profile.lastLoginAt) : "—" },
   ];
+  // v1.62.0 (D-368): celebrations when completing a task ("pm_foundations").
+  const celebrationOwn = (await featureOn("pm_foundations", user)) ? parseCelebration(await getUserSetting(user.id, CELEBRATION_SETTING).catch(() => null)) : undefined;
+  const celebrationDefault = celebrationOwn === undefined ? null : parsePmExtras(await loadSetting(PM_EXTRAS_KEY).catch(() => null)).celebrations;
   return (
     <>
       <PageHeader title="Profile" description="Your photo and About me are yours to change; IT keeps the rest in Admin → Users." />
@@ -131,6 +138,11 @@ export default async function ProfilePage() {
         <div className="mt-4 border-t border-line pt-4">
           <ViewSwitch initial={parseWorkspaceView(view)} initialText={parseTextSize(textSize)} />
         </div>
+        {celebrationDefault && (
+          <div className="mt-4 border-t border-line pt-4">
+            <CelebrationChoice initial={celebrationOwn ?? celebrationDefault} fromDefault={!celebrationOwn} />
+          </div>
+        )}
       </section>
     </>
   );

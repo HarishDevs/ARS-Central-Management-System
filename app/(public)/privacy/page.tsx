@@ -46,7 +46,7 @@ export default function PrivacyPage() {
             <strong>Sign-in and security records</strong>: sign-in times, the method used, IP address and browser details, to protect accounts and to show people their own sign-in history. When a Google sign-in is refused, the reason and a shortened form of the Google email (for example ra***@gmail.com) are kept so IT can help.
           </li>
           <li>
-            <strong>Work records</strong> people create in the app: approval requests and decisions, comments and mentions (with every earlier version of an edited or deleted comment, who changed it and when), tasks and projects (with their saved tabs and views, and each person&apos;s row-height choice for task lists; with their descriptions, files, followers and
+            <strong>Work records</strong> people create in the app: approval requests and decisions, comments and mentions (with every earlier version of an edited or deleted comment, who changed it and when), tasks and projects (with their saved tabs and views, and each person&apos;s row-height choice for task lists; emoji reactions on task comments and who gave them; each person&apos;s starred projects and the order and sort of their sidebar project lists, their task pane width and their celebrations choice; with their descriptions, files, followers and
             history), information notices and acknowledgements, meetings (who owns, coordinates and attends them, their points, attendance, minutes, decisions, action items and follow-up notes), tickets (what was asked, its form answers and files, who raised, coordinated and did the work, remarks, the confirmation with an optional rating and feedback; the requester&apos;s name, employee ID, department and email are shown to the ticket&apos;s coordinators and the assigned employee),
             calendar entries people add, and attached files and pasted images.
           </li>
@@ -167,7 +167,8 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>Work records</strong> are kept as ARS&apos;s business records, following ARS&apos;s retention rules. Accounts are switched off rather than deleted, to keep the history of decisions
-            intact. Records under a legal hold are kept until the hold is released.
+            intact. Records under a legal hold are kept until the hold is released. <strong>Deleted tasks and projects</strong> stay in Deleted for 30 days (they can be restored); after that they are removed
+            for good with their comments, reactions, files, fields and history, unless IT has turned this off. A ticket&apos;s or meeting&apos;s task and the tasks of a request under a legal hold are never removed this way.
           </li>
           <li>
             <strong>AI conversations</strong> are removed after the period IT sets (unless a legal hold applies). <strong>Backups</strong> are kept for a limited number of days, then deleted.

@@ -29,6 +29,9 @@ import { peopleOptions, workPage } from "@/server/work/page-context";
 import { calendarHolidays } from "@/server/work/holiday-store";
 import type { RowDataPacket } from "mysql2/promise";
 import { RichText } from "@/features/work/RichText";
+import { isMobileLayout } from "@/server/ui/layout-mode";
+import { getUserSetting } from "@/lib/db/repositories/user-settings.repository";
+import { clampPaneWidth, PANE_SETTING } from "@/server/work/pm-rules";
 
 export const metadata: Metadata = { title: "Project" };
 export const dynamic = "force-dynamic";
@@ -153,7 +156,9 @@ export default async function ProjectPage({
   // D-219: a task opens in the pane beside the view.
   const links = paneLinks(base, { ...query, created: undefined, view });
   const paneId = paneTaskId(query.task);
-  const pane = paneId ? <TaskPane taskId={paneId} user={user} closeHref={links.close} /> : null;
+  // v1.62.0 (D-368): with "pm_foundations" on (and not on a phone), the task opens in the right-side pane at the person's width.
+  const sideWidth = pmOn && paneId && !(await isMobileLayout()) ? clampPaneWidth(await getUserSetting(user.id, PANE_SETTING).catch(() => null)) : null;
+  const pane = paneId ? <TaskPane taskId={paneId} user={user} closeHref={links.close} side={sideWidth ? { width: sideWidth } : null} /> : null;
 
   return (
     <>
@@ -217,7 +222,7 @@ export default async function ProjectPage({
       </nav>
       )}
 
-      <WithPane pane={pane}>
+      <WithPane pane={pane} sideWidth={sideWidth}>
         {(view === "list" || view === "board") && (
           <ProjectWorkspace
             key={activeTab?.key ?? `${view}:${currentTab?.id ?? ""}`}

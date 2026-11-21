@@ -30,4 +30,10 @@ describe("onboarding tour steps", () => {
     expect(steps.map((step) => step.id)).toContain("notifications"); // no page of its own
     expect(tourStepsFor(() => true)).toHaveLength(TOUR_STEPS.length);
   });
+
+  it("the Projects step mentions Starred projects and Undo (v1.62.0, D-368)", () => {
+    const points = TOUR_STEPS.find((step) => step.id === "projects")?.points.join(" ") ?? "";
+    expect(points).toContain("Starred");
+    expect(points).toContain("Undo");
+  });
 });

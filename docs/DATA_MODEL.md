@@ -1000,6 +1000,14 @@ JSON is used for engine and form data that changes shape between versions, not f
 ### Times
 Times are stored in UTC (`DATETIME`, set by `CURRENT_TIMESTAMP` or the app). India dates are plain `DATE` columns: `holidays.holiday_on`, `department_holidays.holiday_on`, `delegations.starts_on` / `ends_on`, `work_digest_sends.day`. Event and audit tables use `DATETIME(3)` (milliseconds) so their order is stable.
 
+## v1.62.0: reactions, sidebar order, the 30-day purge (migration 202611221100_pm_a_reactions_sidebar, D-368)
+- `comment_reactions` (comment_id → task_comments, user_id → users, `reaction` ENUM THUMBS_UP, HEART, TADA, SMILE, EYES, CHECK, created_at; PK comment+user+reaction): emoji reactions on task comments, toggled per person.
+- `work_project_order` (user_id, `list_key` STARRED | DEPARTMENTS, project_id → projects, `position` DOUBLE; PK user+list+project): a person's manual order of the sidebar's Starred and Departments lists. Stars themselves stay in `work_favourites`.
+- `user_settings` keys: `work.pane_w` (task pane width, 380–720 px), `work.celebrations` (OFF, OCCASIONAL, ALWAYS; absent = the Admin default), `work.sidebar_starred_sort` and `work.sidebar_departments_sort` (MANUAL, AZ, RECENT).
+- `system_settings` key `tasks.pm_extras` JSON `{ "celebrations": "OCCASIONAL", "purge": true }` (Admin → Task settings).
+- `trg_task_events_no_delete` now allows deleting the history of a task that has been deleted for more than 30 days (only the purge job does); updates stay refused.
+- Purge job `workPurge`: removes tasks with `deleted_at` older than 30 days (not ticket or meeting tasks, not tasks of requests under a legal hold, not a parent whose subtask stays) and every row on them (reactions, likes, comment versions, comments, files and their stored copies, dependencies, tags, followers, field values, reminders, My Tasks places, project links, history, rule sends, calendar links), subtasks first; and projects deleted over 30 days ago with their sections, fields (and values), members, status updates, events, tabs, stars, recents and sidebar order (their tasks stay). Audit: `WORK_TASKS_PURGED`, `WORK_PROJECTS_PURGED` (one per batch).
+
 ## v1.61.0: project tabs for every view (migration 202611221000_pm_a_views_prefs, D-367)
 - `work_views.view_type` ENUM('LIST','BOARD','CALENDAR','TIMELINE','OVERVIEW') default LIST (existing tabs are List tabs) and `work_views.is_default` (one per project; the tab that opens first). Up to 50 tabs per project (30 for My Tasks). `config_json` holds the List's grid view (filters, sort, groups, columns, `hideEmpty`) or the Board's (`incomplete`, `showDone`, `mine`, `dueWithin`, `sort`, `dir`, `sortField`, `search`); other views store `{}`.
 - `projects.view_tabs_set`: FALSE = the strip is the five built-in views plus saved List tabs (computed); set TRUE the first time an owner or editor changes the strip, when the built-in views are written as `work_views` rows.

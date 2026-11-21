@@ -4,7 +4,7 @@ import { Trash2 } from "lucide-react";
 import { useState } from "react";
 import { addFieldAction, bulkAction, digestChoiceAction, fieldValueAction, fromTemplateAction, recurrenceAction, removeFieldAction, saveTemplateAction } from "@/app/users/work/actions";
 import { FieldError, ResultMessage, SubmitButton, useActionForm } from "@/features/ui/form";
-import { useWorkCall } from "@/features/work/client";
+import { useDeleteWithUndo, useWorkCall } from "@/features/work/client";
 import { FIELD_KIND_LABEL, FIELD_KINDS, recurrenceLabel, RECURRENCE_KINDS, type Recurrence } from "@/server/work/more-rules";
 import { PRIVACY, PRIVACY_LABEL } from "@/server/work/access";
 import { ConfirmButton } from "@/features/ui/ConfirmButton";
@@ -302,6 +302,7 @@ export function FromTemplateForm({ templates, copyFrom, departments, defaultName
 // ---- bulk actions ----------------------------------------------------------------------
 export function BulkBar({ ids, clear, people, sections, projectId }: { ids: number[]; clear: () => void; people?: { id: number; label: string; detail?: string }[]; sections?: { id: number; name: string }[]; projectId?: number }) {
   const { call, pending } = useWorkCall();
+  const { remove: removeMany } = useDeleteWithUndo();
   const [op, setOp] = useState("COMPLETE");
   const [value, setValue] = useState("");
   if (!ids.length) return null;
@@ -318,7 +319,11 @@ export function BulkBar({ ids, clear, people, sections, projectId }: { ids: numb
               : op === "TAG"
                 ? { tag: value }
                 : {};
-    const result = await call((choice) => bulkAction(ids, op, { ...payload, ...(choice?.moveTo && op === "DUE" ? { dueDay: choice.moveTo } : {}), holidayOk: choice?.holidayOk }));
+    // v1.62.0 (D-368): a bulk delete offers Undo too.
+    const result =
+      op === "DELETE"
+        ? await removeMany(ids, `Deleted ${ids.length} task${ids.length === 1 ? "" : "s"}.`, () => bulkAction(ids, "DELETE", {}))
+        : await call((choice) => bulkAction(ids, op, { ...payload, ...(choice?.moveTo && op === "DUE" ? { dueDay: choice.moveTo } : {}), holidayOk: choice?.holidayOk }));
     if (result?.ok) {
       clear();
       setValue("");

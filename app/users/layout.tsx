@@ -11,6 +11,10 @@ import { workViewer } from "@/server/work/task-access";
 import { chatAccess } from "@/server/ai/policy";
 import { PushKeeper } from "@/features/pwa/PushKeeper";
 import { ProjectsAccess } from "@/features/work/projects-access";
+import { CelebrationProvider } from "@/features/work/celebrate";
+import { getUserSetting } from "@/lib/db/repositories/user-settings.repository";
+import { loadSetting } from "@/server/work/holiday-store";
+import { CELEBRATION_SETTING, parseCelebration, parsePmExtras, PM_EXTRAS_KEY } from "@/server/work/pm-rules";
 
 export const dynamic = "force-dynamic";
 
@@ -32,14 +36,22 @@ export default async function UsersLayout({ children }: { children: React.ReactN
           .then((access) => !access.policy.emergencyStop && access.modes.length > 0)
           .catch(() => false)
       : false;
+  // v1.62.0 (D-368): the completion animation and celebrations ("pm_foundations"):
+  // the person's choice, else the default IT set in Task settings (Occasional).
+  const pmOn = await featureOn("pm_foundations", user);
+  const celebration = pmOn
+    ? (parseCelebration(await getUserSetting(user.id, CELEBRATION_SETTING).catch(() => null)) ?? parsePmExtras(await loadSetting(PM_EXTRAS_KEY).catch(() => null)).celebrations)
+    : "OFF";
   return (
     <AppShell area="users" user={user} nav={await usersNav(user)}>
+      <CelebrationProvider enabled={pmOn} choice={celebration}>
       <ProjectsAccess on={projectsOn}>
         {children}
         <HolidayPrompt />
         <PushKeeper userId={user.id} />
         {creator && <TaskCreator projects={creator.projects} people={creator.people} meId={user.id} ai={ai} />}
       </ProjectsAccess>
+      </CelebrationProvider>
     </AppShell>
   );
 }

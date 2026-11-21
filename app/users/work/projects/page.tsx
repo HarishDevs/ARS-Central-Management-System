@@ -9,6 +9,8 @@ import { countTemplateTasks, parseTemplate } from "@/server/work/more-rules";
 import { listDeletedProjects, listTemplates, listVisibleProjects } from "@/lib/db/repositories/work.repository";
 import { PRIVACY_LABEL, STATUS_KIND_LABEL, STATUS_KIND_TONE } from "@/server/work/access";
 import { workPage } from "@/server/work/page-context";
+import { purgeActive } from "@/server/work/purge-status";
+import { purgeText } from "@/server/work/pm-rules";
 
 export const metadata: Metadata = { title: "Projects" };
 export const dynamic = "force-dynamic";
@@ -25,6 +27,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
     show === "deleted" ? listDeletedProjects(viewer) : Promise.resolve([]),
     listTemplates(viewer),
   ]);
+  const purging = show === "deleted" ? await purgeActive() : false;
   const tab = (key: string, label: string) => (
     <Link key={key} href={key === "all" ? "/users/work/projects" : `/users/work/projects?show=${key}`} aria-current={show === key ? "page" : undefined} className={`rounded-full px-3 py-1 text-label ${show === key ? "bg-primary-50 text-primary-700" : "text-ink-muted hover:text-ink"}`}>
       {label}
@@ -75,12 +78,16 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
             )
           ) : show === "deleted" ? (
             deleted.length === 0 ? (
-              <EmptyState title="No deleted projects" body="Projects you delete stay here for 30 days." />
+              <EmptyState title="No deleted projects" body={`Projects you delete stay here for 30 days${purging ? ", then they are removed for good" : ""}.`} />
             ) : (
               <ul className="card divide-y divide-line">
                 {deleted.map((project) => (
                   <li key={project.id} className="flex items-center gap-3 px-4 py-3">
                     <span className="flex-1">{project.name}</span>
+                    {/* v1.62.0 (D-368): when it goes for good. */}
+                    <span className="text-caption text-ink-muted" data-testid="purge-note">
+                      {purgeText(project.deletedAt, new Date(), purging)}
+                    </span>
                     <ProjectCommandButton projectId={project.id} command="RESTORE" label="Restore" />
                   </li>
                 ))}

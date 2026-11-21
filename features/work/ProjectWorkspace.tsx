@@ -4,7 +4,8 @@ import { ApprovalBadge, approvalRowClass } from "@/features/work/ApprovalLink";
 import { ArrowDown, ArrowUp, ArrowUpDown, CalendarClock, ChevronDown, ChevronRight, GitBranch, GripVertical, Heart, Lock, MessageSquare, Plus, Repeat, Trash2, Diamond } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { dropTarget, focusNeighbour, lift, moveLifted, positionText, previewColumn, type Lifted } from "@/features/work/board-keys";
 import { addSectionAction, projectTabAction, moveTaskAction, quickAddAction, quickAddManyAction, sectionAction, taskFieldsAction } from "@/app/users/work/actions";
 import { TaskCheck, usePaneLink, useWorkCall } from "@/features/work/client";
 import { dueLabel, indiaDayOf, TONE_TEXT } from "@/features/work/format";
@@ -133,6 +134,9 @@ export function ProjectWorkspace({
   const foldAll = (open: boolean) => setFold((value) => ({ ...value, closed: !open, toggled: new Set() }));
   const openTask = useSearchParams().get("task");
   const [dragging, setDragging] = useState<number | null>(null);
+  // v1.62.0 (D-368): the Board card lifted from the keyboard (Space).
+  const [lifted, setLifted] = useState<Lifted | null>(null);
+  const router = useRouter();
   const [live, setLive] = useState("");
   const [selected, setSelected] = useState<number[]>([]);
   const paneLink = usePaneLink();
@@ -387,55 +391,134 @@ export function ProjectWorkspace({
   );
 
   if (layout === "BOARD") {
+    // v1.62.0 (D-368): each column's cards in the order shown; a lifted card
+    // (keyboard move) shows at its new place until dropped.
+    const columns = sections.map((section) => inSection(section.id).map((task) => task.id));
+    const byId = new Map(visible.map((task) => [task.id, task]));
+    const focusCard = (id: number) => requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-card-id="${id}"]`)?.focus());
+    const cardKeys = (event: React.KeyboardEvent<HTMLLIElement>, task: BoardTask) => {
+      if (event.altKey) return keyMove(event, task); // Alt+arrows as before
+      if (event.target !== event.currentTarget) return; // keys inside the card's own buttons and links
+      const key = event.key;
+      if (lifted) {
+        const name = (col: number) => sections[col]?.name ?? "the column";
+        if (key.startsWith("Arrow")) {
+          event.preventDefault();
+          const next = moveLifted(columns, lifted, key);
+          setLifted(next);
+          setLive(positionText(columns, next, name(next.col)));
+          focusCard(task.id);
+        } else if (key === " " || key === "Enter") {
+          event.preventDefault();
+          const target = dropTarget(columns, lifted);
+          const section = sections[target.col];
+          const where = positionText(columns, lifted, name(target.col));
+          setLifted(null);
+          if (section && target.moved) {
+            setLive(`Dropped ${task.title}. ${where}`);
+            void move(task.id, section.id, target.beforeId).then(() => setLive(`Dropped ${task.title}. ${where}`));
+          } else setLive(`Dropped ${task.title}. It stays where it was.`);
+          focusCard(task.id);
+        } else if (key === "Escape") {
+          event.preventDefault();
+          event.stopPropagation();
+          setLifted(null);
+          setLive(`Move cancelled. ${task.title} is back in ${name(lifted.fromCol)}.`);
+          focusCard(task.id);
+        }
+        return;
+      }
+      if (key === " ") {
+        event.preventDefault();
+        if (!canDrag) {
+          setLive(canEdit ? "Moving is off while a sort, filter or search is on." : "You can't move tasks in this project.");
+          return;
+        }
+        const start = lift(columns, task.id);
+        if (!start) return;
+        setLifted(start);
+        setLive(`Picked up ${task.title}. ${positionText(columns, start, sections[start.col]?.name ?? "")} Use the arrow keys to move it, Space or Enter to drop it, Escape to cancel.`);
+      } else if (key === "Enter") {
+        event.preventDefault();
+        router.push(paneLink(task.id), { scroll: false });
+      } else if (key.startsWith("Arrow") || key === "Home" || key === "End") {
+        const next = focusNeighbour(columns, task.id, key);
+        if (next !== null) {
+          event.preventDefault();
+          focusCard(next);
+        }
+      }
+    };
     return (
       <div>
         {toolbar}
+        {canEdit && (
+          <p id="board-keys-help" className="sr-only">
+            Press Space to pick up a card, the arrow keys to move it between cards and columns, Space or Enter to drop it, Escape to cancel. Alt and the up or down arrow also move it.
+          </p>
+        )}
         <div className="scroll-hint flex gap-3 overflow-x-auto pb-4" data-testid="board">
-          {sections.map((section, index) => (
-            <section
-              key={section.id}
-              aria-label={section.name}
-              className={`kanban-col flex w-[304px] shrink-0 flex-col rounded-xl border border-t-4 border-line bg-surface-muted ${columnAccent(index)}`}
-              onDragOver={(event) => canDrag && event.preventDefault()}
-              onDrop={(event) => {
-                event.preventDefault();
-                if (dragging !== null) void move(dragging, section.id, null);
-                setDragging(null);
-              }}
-            >
-              <SectionHeader section={section} sections={sections} count={inSection(section.id).length} canEdit={canEdit} />
-              <ul className="flex-1 space-y-2 px-2 pb-2" aria-label={`Tasks in ${section.name}`}>
-                {inSection(section.id).map((task) => (
-                  <li
-                    key={task.id}
-                    draggable={canDrag}
-                    onDragStart={() => setDragging(task.id)}
-                    onDragEnd={() => setDragging(null)}
-                    onDragOver={(event) => canDrag && event.preventDefault()}
-                    onDrop={(event) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      if (dragging !== null && dragging !== task.id) void move(dragging, section.id, task.id);
-                      setDragging(null);
-                    }}
-                    onKeyDown={(event) => keyMove(event, task)}
-                    className={`kanban-card rounded-lg border border-line bg-surface p-3.5 shadow-card hover:border-line-strong ${approvalRowClass(task.approval)} ${dragging === task.id ? "opacity-50" : ""} ${openTask === String(task.id) ? "outline outline-2 outline-primary-600" : ""}`}
-                    data-testid="board-card"
-                  >
-                    <div className="flex items-start gap-2">
-                      <TaskCheck taskId={task.id} done={task.status === "COMPLETED"} disabled={!(canEdit || task.assigneeId === meId) || task.status === "CANCELLED"} label={task.title} size="sm" />
-                      <Link href={paneLink(task.id)} scroll={false} className="line-clamp-2 min-w-0 flex-1 text-label font-medium text-ink hover:underline">
-                        {task.isMilestone && <Diamond aria-label="Milestone" className="mr-1 inline h-3.5 w-3.5 text-primary-600" />}
-                        <span className={task.status === "COMPLETED" ? "text-ink-muted line-through" : ""}>{task.title}</span>
-                      </Link>
-                    </div>
-                    <TaskMeta task={task} now={now} />
-                  </li>
-                ))}
-              </ul>
-              {canEdit && <AddTask projectId={projectId} sectionId={section.id} compact />}
-            </section>
-          ))}
+          {sections.map((section, index) => {
+            const ids = previewColumn(columns[index] ?? [], index, lifted);
+            const count = columns[index]?.length ?? 0;
+            return (
+              <section
+                key={section.id}
+                aria-label={`${section.name}, ${count} task${count === 1 ? "" : "s"}`}
+                className={`kanban-col flex w-[304px] shrink-0 flex-col rounded-xl border border-t-4 border-line bg-surface-muted ${columnAccent(index)}`}
+                onDragOver={(event) => canDrag && event.preventDefault()}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  if (dragging !== null) void move(dragging, section.id, null);
+                  setDragging(null);
+                }}
+                data-testid="board-column"
+              >
+                <SectionHeader section={section} sections={sections} count={count} canEdit={canEdit} />
+                <ul className="flex-1 space-y-2 px-2 pb-2" aria-label={`Tasks in ${section.name}`}>
+                  {ids.map((id) => {
+                    const task = byId.get(id);
+                    if (!task) return null;
+                    const isLifted = lifted?.taskId === task.id;
+                    return (
+                      <li
+                        key={task.id}
+                        tabIndex={0}
+                        data-card-id={task.id}
+                        aria-label={`${task.title}${isLifted ? ", picked up" : ""}`}
+                        aria-describedby={canEdit ? "board-keys-help" : undefined}
+                        draggable={canDrag && !lifted}
+                        onDragStart={() => setDragging(task.id)}
+                        onDragEnd={() => setDragging(null)}
+                        onDragOver={(event) => canDrag && event.preventDefault()}
+                        onDrop={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          if (dragging !== null && dragging !== task.id) void move(dragging, section.id, task.id);
+                          setDragging(null);
+                        }}
+                        onKeyDown={(event) => cardKeys(event, task)}
+                        className={`kanban-card rounded-lg border border-line bg-surface p-3.5 shadow-card hover:border-line-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-600 ${approvalRowClass(task.approval)} ${dragging === task.id ? "opacity-50" : ""} ${isLifted ? "pm-lifted shadow-overlay" : ""} ${openTask === String(task.id) ? "outline outline-2 outline-primary-600" : ""}`}
+                        data-testid="board-card"
+                        data-lifted={isLifted || undefined}
+                      >
+                        <div className="flex items-start gap-2">
+                          <TaskCheck taskId={task.id} done={task.status === "COMPLETED"} disabled={!(canEdit || task.assigneeId === meId) || task.status === "CANCELLED"} label={task.title} size="sm" />
+                          <Link href={paneLink(task.id)} scroll={false} tabIndex={-1} className="line-clamp-2 min-w-0 flex-1 text-label font-medium text-ink hover:underline">
+                            {task.isMilestone && <Diamond aria-label="Milestone" className="mr-1 inline h-3.5 w-3.5 text-primary-600" />}
+                            <span className={task.status === "COMPLETED" ? "text-ink-muted line-through" : ""}>{task.title}</span>
+                          </Link>
+                        </div>
+                        <FieldChips fields={fields} values={values[task.id]} />
+                        <TaskMeta task={task} now={now} />
+                      </li>
+                    );
+                  })}
+                </ul>
+                {canEdit && <AddTask projectId={projectId} sectionId={section.id} compact />}
+              </section>
+            );
+          })}
           {canEdit && <AddSection projectId={projectId} afterId={sections.at(-1)?.id ?? null} board />}
         </div>
       </div>
@@ -665,6 +748,23 @@ export function ProjectWorkspace({
       </div>
       <BulkBar ids={selected.filter((one) => tasks.some((task) => task.id === one))} clear={() => setSelected([])} people={people} sections={sections} projectId={projectId} />
     </div>
+  );
+}
+
+// v1.62.0 (D-368, spec Board card "field chips"): the project's field values
+// set on this card (empty ones left out), name and value, at most three.
+function FieldChips({ fields, values }: { fields: FieldView[]; values?: Record<number, string> }) {
+  const set = fields.filter((field) => (values?.[field.id] ?? "").trim() !== "");
+  if (!set.length) return null;
+  return (
+    <ul className="mt-2 flex flex-wrap gap-1" aria-label="Fields" data-testid="card-fields">
+      {set.slice(0, 3).map((field) => (
+        <li key={field.id} className="max-w-full truncate rounded-md bg-surface-muted px-1.5 py-0.5 text-caption text-ink">
+          <span className="text-ink-muted">{field.name}:</span> {values?.[field.id]}
+        </li>
+      ))}
+      {set.length > 3 && <li className="rounded-md px-1 text-caption text-ink-muted">+{set.length - 3} more</li>}
+    </ul>
   );
 }
 

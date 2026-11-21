@@ -24,7 +24,8 @@ import { taskWorkView } from "@/server/work/task-view";
 import { TaskCompleteButton } from "@/features/work/client";
 import { TaskShareButton } from "@/features/work/ShareDialogs";
 import { visibilityText } from "@/features/work/visibility";
-import { ArrowLeft, CalendarDays, MoreHorizontal } from "lucide-react";
+import { ArrowLeft, CalendarDays, Eye, Maximize2, MoreHorizontal, X } from "lucide-react";
+import { PaneMoreMenu, TaskLikeButton } from "@/features/work/PaneParts";
 import { isMobileLayout } from "@/server/ui/layout-mode";
 import { SheetButton } from "@/features/mobile/BottomSheet";
 import { CopyLinkButton } from "@/features/work/client";
@@ -76,7 +77,7 @@ export const TASK_EVENT_TEXT: Record<string, string> = {
 // all the actions"): the whole task, shared by its full page and the popup
 // opened from a list (?task=<id>). In the popup the breadcrumbs make way for
 // a bar with Open full page and Close.
-export async function TaskDetail({ taskId, user, query, popup }: { taskId: number; user: AuthenticatedUser; query: { created?: string; project?: string }; popup?: { closeHref: string } }) {
+export async function TaskDetail({ taskId, user, query, popup }: { taskId: number; user: AuthenticatedUser; query: { created?: string; project?: string }; popup?: { closeHref: string; side?: boolean } }) {
   const loaded = await loadTaskFor(taskId, user);
   if (!loaded) {
     if (!popup) notFound();
@@ -239,6 +240,41 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
           { label: task.taskNo },
         ]}
       />}
+      {popup?.side ? (
+        // v1.62.0 (D-368, spec PRJ views §13.1): the pane's action bar, then the task's name.
+        <header className="mb-4 space-y-3">
+          <div className="-mx-4 -mt-4 flex flex-wrap items-center gap-1 border-b border-line bg-surface px-3 py-2 sm:-mx-5 sm:-mt-5" role="toolbar" aria-label="Task actions" data-testid="pane-bar">
+            {canTick && <TaskCompleteButton taskId={task.id} done={task.status === "COMPLETED"} disabled={!(actions.has("COMPLETE") || actions.has("REOPEN"))} title={task.title} />}
+            <span className="flex-1" />
+            <TaskShareButton taskId={task.id} title={task.title} followers={panel.followers} people={panel.people} visibility={visibilityText(links)} canAdd={rights.comment} collaborators />
+            <TaskShareButton taskId={task.id} title={task.title} followers={panel.followers} people={panel.people} visibility={visibilityText(links)} canAdd={rights.comment} compact />
+            <TaskLikeButton taskId={task.id} liked={panel.likes.some((person) => person.id === user.id)} count={panel.likes.length} names={panel.likes.map((person) => person.name)} />
+            <CopyLinkButton path={`/users/tasks/${task.id}`} />
+            <Link href={`/users/tasks/${task.id}`} aria-label="Open full page" title="Full screen (the task's own page)" className="grid h-8 w-8 place-items-center rounded-md text-ink-muted hover:bg-surface-muted hover:text-ink" data-testid="pane-full">
+              <Maximize2 aria-hidden="true" className="h-4 w-4" />
+            </Link>
+            <PaneMoreMenu taskId={task.id} title={task.title} canDelete={rights.edit && !task.deletedAt} closeHref={popup.closeHref} />
+            <Link href={popup.closeHref} scroll={false} aria-label="Close task" aria-keyshortcuts="Escape" title="Close" className="grid h-8 w-8 place-items-center rounded-md text-ink-muted hover:bg-surface-muted hover:text-ink" data-testid="close-pane">
+              <X aria-hidden="true" className="h-5 w-5" />
+            </Link>
+          </div>
+          {view.pmOn && <VisibilityBanner text={visibilityText(links)} />}
+          <p className="font-mono text-caption text-ink-muted">
+            {task.taskNo} · {task.typeName}
+          </p>
+          <h2 className="text-[22px] font-semibold leading-tight text-ink">{task.title}</h2>
+          <div className="flex flex-wrap gap-2">
+            <Badge tone={STATUS_TONE[task.status]}>{TASK_STATUS_LABEL[task.status]}</Badge>
+            <TaskPriorityPill priority={task.priority} showNormal />
+            {late && <Badge tone="danger">Overdue</Badge>}
+            {task.isMilestone && <Badge tone="primary">Milestone</Badge>}
+            <Badge tone={panel.adhoc ? "neutral" : "info"}>{panel.adhoc ? "Ad hoc" : panel.recurrence ? `Periodic: ${recurrenceLabel(panel.recurrence)}` : "Periodic"}</Badge>
+            {task.deletedAt && <Badge tone="danger">Deleted</Badge>}
+          </div>
+        </header>
+      ) : (
+      <>
+      {view.pmOn && <VisibilityBanner text={visibilityText(links)} />}
       <PageHeader title={task.title} meta={`${task.taskNo} · ${task.typeName} (version ${versionNo})`}>
         <TaskShareButton taskId={task.id} title={task.title} followers={panel.followers} people={panel.people} visibility={visibilityText(links)} canAdd={rights.comment} />
         {/* D-219: complete or reopen in one click, as in Asana (types that need a note or file say so). */}
@@ -253,6 +289,8 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
         <Badge tone={panel.adhoc ? "neutral" : "info"}>{panel.adhoc ? "Ad hoc" : panel.recurrence ? `Periodic: ${recurrenceLabel(panel.recurrence)}` : "Periodic"}</Badge>
         {task.deletedAt && <Badge tone="danger">Deleted</Badge>}
       </PageHeader>
+      </>
+      )}
       </>
       )}
       {parentJourney && (
@@ -271,7 +309,7 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
           Task {task.taskNo} created{task.assigneeId !== user.id ? ` and ${task.assigneeName} was told` : ""}.
         </p>
       )}
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div className={popup?.side ? "grid gap-6" : "grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]"}>
         <div className="space-y-6">
           <section className="card space-y-4 px-5 py-4" aria-labelledby="details">
             <h2 id="details" className="font-semibold">
@@ -412,6 +450,16 @@ function activityKind(eventType: string): "comment" | "done" | "created" | "upda
 }
 
 const DUE_DAY = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata" });
+
+// v1.62.0 (D-368, spec CMP-28): who can see this task, above its details.
+function VisibilityBanner({ text }: { text: string }) {
+  return (
+    <p className="mb-3 flex items-start gap-2 rounded-md bg-surface-muted px-3 py-2 text-label text-ink-muted" data-testid="visibility-banner">
+      <Eye aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
+      <span>{text}</span>
+    </p>
+  );
+}
 
 function Fact({ label, value }: { label: string; value: string }) {
   return (

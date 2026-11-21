@@ -8,7 +8,7 @@ import { useState } from "react";
 import { deleteTaskAction, dependencyAction, followAction, likeAction, moveTaskAction, parentAction, subtaskOrderAction, tagAction, taskFieldsAction, taskProjectAction } from "@/app/users/work/actions";
 import { FieldError, ResultMessage, SubmitButton, useActionForm } from "@/features/ui/form";
 import { PersonSelect } from "@/features/ui/PersonSelect";
-import { openCreateTask, ProjectDot, TaskCheck, usePaneLink, useWorkCall } from "@/features/work/client";
+import { openCreateTask, ProjectDot, TaskCheck, useDeleteWithUndo, usePaneLink, useWorkCall } from "@/features/work/client";
 import { dueLabel, TONE_TEXT } from "@/features/work/format";
 import { AddTask } from "@/features/work/ProjectWorkspace";
 import { FieldInput, RepeatEditor, type FieldView } from "@/features/work/MoreParts";
@@ -309,6 +309,7 @@ export function TaskWorkSide({ data }: { data: PanelData }) {
   const [follower, setFollower] = useState<number | "">("");
   const following = data.followers.some((person) => person.id === data.meId);
   const [confirming, setConfirming] = useState(false);
+  const { remove: removeTask } = useDeleteWithUndo();
   if (data.deleted) return null;
   return (
     // v1.54.1 (owner): a collapsible card; the summary line says what's inside.
@@ -420,7 +421,7 @@ export function TaskWorkSide({ data }: { data: PanelData }) {
           {confirming ? (
             <span className="flex flex-wrap items-center gap-2 text-label">
               Delete this task{data.subtasks.length ? " and its subtasks" : ""}? It can be restored for 30 days.
-              <button type="button" className="btn-danger btn-compact" onClick={() => void call(() => deleteTaskAction(data.taskId))}>
+              <button type="button" className="btn-danger btn-compact" onClick={() => void removeTask([data.taskId], `Deleted: ${data.title}`)}>
                 Yes, delete
               </button>
               <button type="button" className="btn-secondary btn-compact" onClick={() => setConfirming(false)}>

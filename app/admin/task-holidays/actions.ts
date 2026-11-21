@@ -10,6 +10,7 @@ import { addDepartmentHoliday, loadHolidaySettings, loadSetting, removeDepartmen
 import { DIGEST_SETTINGS_KEY, digestSettingsSchema, parseDigestSettings, parseRecurrenceSettings, RECURRENCE_SETTINGS_KEY, recurrenceSettingsSchema } from "@/server/work/more-rules";
 import { personFacts } from "@/lib/db/repositories/tasks.repository";
 import { moveHolidayTasks, tellHolidayTasks } from "@/server/work/service";
+import { parseCelebration, parsePmExtras, PM_EXTRAS_KEY, pmExtrasSchema } from "@/server/work/pm-rules";
 
 // D-217: Admin → Task holidays. IT (with access to the page) sets what tasks
 // do on holidays, and moves or tells about tasks due on a holiday.
@@ -106,4 +107,23 @@ export async function departmentHolidayAction(_previous: ActionResult | null, fo
   }
   revalidatePath("/admin/task-holidays");
   return { ok: true, message: command === "remove" ? "Removed." : "Added." };
+}
+
+// v1.62.0 (D-368): the celebration default for everyone (people can choose
+// their own in Profile) and the purge of Deleted after 30 days (default on).
+export async function savePmExtrasAction(_previous: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  const actor = await getAdminActor("admin.task_holidays");
+  if (!actor) return NOT_FOUND;
+  const parsed = pmExtrasSchema.safeParse({ celebrations: parseCelebration(formData.get("celebrations")) ?? undefined, purge: formData.get("purge") === "on" });
+  if (!parsed.success || !parseCelebration(formData.get("celebrations"))) return { ok: false, message: "Check the choices." };
+  try {
+    const before = parsePmExtras(await loadSetting(PM_EXTRAS_KEY));
+    await saveJsonSetting(PM_EXTRAS_KEY, parsed.data, actor.id);
+    await recordAudit({ actorUserId: actor.id, action: "TASK_SETTINGS", entityType: "SETTING", entityId: PM_EXTRAS_KEY, sessionId: actor.sessionId, ipAddress: actor.ipAddress, metadata: { before, after: parsed.data } });
+  } catch (error) {
+    logError("savePmExtrasAction failed", error);
+    return { ok: false, message: "Couldn't save. Please try again." };
+  }
+  revalidatePath("/admin/task-holidays");
+  return { ok: true, message: "Saved." };
 }

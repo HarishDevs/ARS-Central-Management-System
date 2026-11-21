@@ -16,6 +16,8 @@ import { versionWithType } from "@/lib/db/repositories/module-types.repository";
 import { deliverOutbox } from "@/server/approvals/service";
 import { projectMessages, taskMessages } from "@/server/modules/messages";
 import { actOnTask, type TaskActor } from "@/server/modules/tasks";
+import { isReaction } from "@/server/work/pm-rules";
+import { toggleReaction } from "@/lib/db/repositories/pm.repository";
 import { indiaLocalToUtc, mayCreate, parseTaskSettings, PRIORITY_LABEL, TASK_PRIORITIES, type TaskPriority } from "@/server/modules/settings";
 import { mayAssignTo, OPEN_STATUSES } from "@/server/modules/task-rules";
 import {
@@ -784,6 +786,16 @@ export async function likeComment(commentId: number, actor: TaskActor): Promise<
   const comment = await repo.findComment(commentId);
   if (!comment || comment.deletedAt || !(await taskFor(comment.taskId, actor))) return fail(NOT_FOUND);
   return { ok: true, value: { liked: await repo.toggleLike("COMMENT", commentId, actor.id) } };
+}
+
+// v1.62.0 (D-368, spec CMP-30/31): an emoji reaction on a comment, toggled
+// per person. Anyone who can see the task may react (like Like); a deleted
+// comment or a task the person can't see is "not found".
+export async function reactToComment(commentId: number, reaction: string, actor: TaskActor): Promise<WorkResult<{ on: boolean }>> {
+  if (!isReaction(reaction)) return fail("Choose one of the reactions.");
+  const comment = await repo.findComment(commentId);
+  if (!comment || comment.deletedAt || !(await taskFor(comment.taskId, actor))) return fail(NOT_FOUND);
+  return { ok: true, value: { on: await toggleReaction(commentId, actor.id, reaction) } };
 }
 
 // ---- dependencies and tags ----------------------------------------------------------------

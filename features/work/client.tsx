@@ -3,11 +3,12 @@
 import { Check, Link2, Plus } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { completeAction } from "@/app/users/work/actions";
+import { completeAction, deleteTaskAction } from "@/app/users/work/actions";
 import { actionErrorMessage, guardCall, UNEXPECTED } from "@/features/ui/form";
 import { useToast } from "@/features/ui/Toast";
 import type { ActionResult } from "@/lib/http/action-result";
 import { COPY_BLOCKED, copyText } from "@/features/ui/clipboard";
+import { useCelebrate, useCelebrationState } from "@/features/work/celebrate";
 
 // D-215: small shared pieces of the Task & Project Management screens.
 
@@ -80,13 +81,19 @@ export function TaskCheck({ taskId, done, disabled, label, size = "md" }: { task
   const [busy, setBusy] = useState(false);
   const [optimistic, setOptimistic] = useState<boolean | null>(null);
   const shown = optimistic ?? done;
+  // v1.62.0 (D-368): the new check animation and celebrations ("pm_foundations").
+  const pm = useCelebrationState().enabled;
+  const celebrate = useCelebrate();
+  const self = useRef<HTMLButtonElement>(null);
   const toggle = async () => {
     if (busy || disabled) return;
     setBusy(true);
     setOptimistic(!shown);
     const result = await call(() => completeAction(taskId), { success: false });
     if (!result?.ok) setOptimistic(null);
-    else if (!shown)
+    // The toast below ("Completed: …", polite) is the announcement.
+    else if (!shown) celebrate(self.current);
+    if (result?.ok && !shown)
       toast({
         tone: "success",
         title: `Completed: ${label}`,
@@ -95,8 +102,11 @@ export function TaskCheck({ taskId, done, disabled, label, size = "md" }: { task
     setBusy(false);
   };
   const box = size === "sm" ? "h-4 w-4" : "h-5 w-5";
+  const animate = shown && optimistic !== null;
   return (
+    <>
     <button
+      ref={self}
       type="button"
       role="checkbox"
       aria-checked={shown}
@@ -112,18 +122,19 @@ export function TaskCheck({ taskId, done, disabled, label, size = "md" }: { task
       // D-234 (Fitts): the circle stays small, but the area that takes the
       // click reaches 8px around it (about 36px), like Asana's.
       className={`relative flex ${box} shrink-0 items-center justify-center rounded-full border transition before:absolute before:-inset-2 before:rounded-full before:content-[''] ${
-        shown ? `border-success-600 bg-success-600 text-on-solid ${optimistic !== null ? "brand-pop" : ""}` : "border-line-strong text-transparent hover:border-success-600 hover:text-success-600"
+        shown ? `border-success-600 bg-success-600 text-on-solid ${pm ? `pm-check-done ${animate ? "pm-check-anim" : ""}` : animate ? "brand-pop" : ""}` : "border-line-strong text-transparent hover:border-success-600 hover:text-success-600"
       } disabled:cursor-not-allowed disabled:opacity-60`}
     >
-      {/* v1.42.0 brand: the tick draws itself when the task is completed here. */}
-      {shown && optimistic !== null ? (
+      {/* v1.42.0 brand: the tick draws itself when the task is completed here (v1.62.0: our own check animation). */}
+      {animate ? (
         <svg viewBox="0 0 24 24" className="h-3 w-3" aria-hidden="true" data-testid="task-done-tick">
-          <path d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" className="brand-draw-tick" />
+          <path d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" className={pm ? "pm-check-draw" : "brand-draw-tick"} />
         </svg>
       ) : (
         <Check aria-hidden="true" className="h-3 w-3" strokeWidth={3} />
       )}
     </button>
+    </>
   );
 }
 
@@ -190,10 +201,15 @@ export function HolidayPrompt() {
 // D-219: Asana's "Mark complete" button for a task's page and panel header.
 export function TaskCompleteButton({ taskId, done, disabled, title }: { taskId: number; done: boolean; disabled?: boolean; title: string }) {
   const { call, pending } = useWorkCall();
+  const toast = useToast();
+  const celebrate = useCelebrate();
+  const pm = useCelebrationState().enabled;
+  const self = useRef<HTMLButtonElement>(null);
   const [shown, setShown] = useState(done);
   useEffect(() => setShown(done), [done]);
   return (
     <button
+      ref={self}
       type="button"
       aria-pressed={shown}
       disabled={disabled || pending}
@@ -201,8 +217,13 @@ export function TaskCompleteButton({ taskId, done, disabled, title }: { taskId: 
       onClick={() => {
         const next = !shown;
         setShown(next);
-        void call(() => completeAction(taskId), { success: next ? `Completed: ${title}` : "Reopened." }).then((result) => {
-          if (!result?.ok) setShown(!next);
+        // v1.62.0 (D-368): completing here also offers Undo, like a row's tick.
+        void call(() => completeAction(taskId), { success: next && pm ? false : next ? `Completed: ${title}` : "Reopened." }).then((result) => {
+          if (!result?.ok) return setShown(!next);
+          if (next && pm) {
+            celebrate(self.current);
+            toast({ tone: "success", title: `Completed: ${title}`, action: { label: "Undo", onClick: () => void call(() => completeAction(taskId), { success: "Reopened." }) } });
+          }
         });
       }}
       data-testid="mark-complete"
@@ -263,4 +284,32 @@ export function CreateTaskButton({ label = "Create task" }: { label?: string }) 
       <Plus aria-hidden="true" className="h-4 w-4" /> {label}
     </button>
   );
+}
+
+// v1.62.0 (D-368, BR-DEL-001): deleting a task offers Undo (restores it and
+// its subtasks), like completing one. Several tasks (the bulk bar) at once too.
+export function useDeleteWithUndo() {
+  const { call, pending } = useWorkCall();
+  const toast = useToast();
+  const remove = useCallback(
+    async (taskIds: readonly number[], label: string, run?: () => Promise<ActionResult>) => {
+      const result = await call(run ?? (() => deleteTaskAction(taskIds[0]!)), { success: false });
+      if (!result?.ok) return result;
+      toast({
+        tone: "success",
+        title: label,
+        body: "You can also restore it from Deleted for 30 days.",
+        action: {
+          label: "Undo",
+          onClick: async () => {
+            for (const id of taskIds) await call(() => deleteTaskAction(id, true), { success: false });
+            toast({ tone: "success", title: taskIds.length === 1 ? "Task restored." : `${taskIds.length} tasks restored.` });
+          },
+        },
+      });
+      return result;
+    },
+    [call, toast],
+  );
+  return { remove, pending };
 }

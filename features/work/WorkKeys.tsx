@@ -41,6 +41,8 @@ export function WorkKeys() {
         event.stopPropagation();
       };
       if (key === "escape") {
+        // v1.62.0 (D-368): Escape first cancels a Board card lifted from the keyboard.
+        if (document.querySelector("[data-lifted]")) return;
         const pane = document.querySelector<HTMLElement>("[data-task-pane]");
         if (pane?.dataset.closeHref) {
           take();

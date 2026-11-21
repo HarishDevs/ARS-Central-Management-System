@@ -11,6 +11,9 @@ import { recurrenceOf } from "@/server/work/service-more";
 import { rightsOn, workViewer } from "@/server/work/task-access";
 import type { PanelData } from "@/features/work/TaskWorkPanel";
 import type { CommentView } from "@/features/work/CommentThread";
+import { featureOn } from "@/server/settings/features";
+import { reactionRows } from "@/lib/db/repositories/pm.repository";
+import { groupReactions } from "@/server/work/pm-rules";
 
 // D-215 / D-219: everything the task page and the task panel show beside the
 // task's own details (projects, subtasks, waiting for, tags, followers,
@@ -65,6 +68,9 @@ export async function taskWorkView(task: TaskRecord, user: { id: number; roles: 
     recurrenceOn: recurrenceSettings.enabled,
     fields: links.map((link, index) => ({ projectId: link.projectId, fields: linkFields[index]!.map((field) => ({ id: field.id, name: field.name, kind: field.kind, options: field.options })), values: ownValues.get(task.id) ?? {} })),
   };
+  // v1.62.0 (D-368): emoji reactions beside Like ("pm_foundations").
+  const pmOn = await featureOn("pm_foundations", user).catch(() => false);
+  const reactions = pmOn ? groupReactions(await reactionRows(comments.map((comment) => comment.id), user.id)) : null;
   const commentViews: CommentView[] = comments.map((comment) => ({
     id: comment.id,
     parentCommentId: comment.parentCommentId,
@@ -77,8 +83,9 @@ export async function taskWorkView(task: TaskRecord, user: { id: number; roles: 
     when: indiaDateTimeText(comment.createdAt),
     likes: comment.likes,
     likedByMe: comment.likedByMe,
+    reactions: reactions ? (reactions.get(comment.id) ?? []) : undefined,
   }));
   // D-222: the other people an ad hoc task was given to (their own copies).
   const group = await assignGroup(task.id);
-  return { panel, comments: commentViews, rights, chain, links, viewer, people, group };
+  return { panel, comments: commentViews, rights, chain, links, viewer, people, group, pmOn };
 }

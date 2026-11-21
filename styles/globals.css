@@ -74,6 +74,10 @@
   --pane-w: 440px;
   --z-popover: 40;
   --font-mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Consolas, "Liberation Mono", monospace;
+  /* v1.62.0 (D-368): the completion check's timings (fast, like the spec's ≤250 ms). */
+  --t-check: 160ms;
+  --t-fill: 120ms;
+  --t-pop: 200ms;
   /* D-253: the approval road (TMT road tracker). */
   --road-surface: #3b4656;
   --road-edge: #2b3441;
@@ -1474,4 +1478,56 @@ body:has([data-testid="m-comment-dock"][data-open="1"]) .picbot-launcher {
    Compact rows use --row-h-compact; the list reads --row-h. */
 [data-density="compact"] {
   --row-h: var(--row-h-compact);
+}
+
+/* v1.62.0 (D-368, DEC-011): our own completion check. The circle fills with
+   the success colour, the tick draws itself and the circle gives a small
+   spring pop. Theme tokens only; under reduced motion it just shows the end
+   state. The celebration layer (features/work/celebrate.tsx) is decorative. */
+.pm-check-done {
+  transition: background-color var(--t-fill) ease, border-color var(--t-fill) ease;
+}
+.pm-check-draw {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pm-check-anim {
+    animation: pm-check-pop var(--t-pop) linear(0, 0.25 8%, 0.82 22%, 1.08 34%, 1.12 40%, 1.04 54%, 0.99 68%, 1) var(--t-fill) both;
+  }
+  .pm-check-anim .pm-check-draw {
+    animation: pm-check-draw var(--t-check) ease-out both;
+  }
+}
+@keyframes pm-check-draw { from { stroke-dashoffset: 24; } to { stroke-dashoffset: 0; } }
+@keyframes pm-check-pop { 0% { scale: 1; } 40% { scale: 1.18; } 100% { scale: 1; } }
+.pm-celebration {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: var(--z-toast);
+  overflow: hidden;
+}
+.pm-celebration-piece {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pm-check-done { transition: none; }
+  .pm-celebration { display: none; }
+}
+
+/* v1.62.0 (D-368, spec CMP-27): the task pane beside a project view on wide
+   screens (its width is --pane-w, set per person); a centred popup below that. */
+@media (min-width: 1024px) {
+  [data-pane-side] .pm-with-pane {
+    padding-right: calc(var(--pane-w) + 0.75rem);
+  }
+}
+/* A lifted Board card (keyboard move). */
+.pm-lifted {
+  outline: 2px dashed var(--color-primary-600, currentColor);
+  outline-offset: 2px;
 }

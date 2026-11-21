@@ -1,8 +1,9 @@
 "use client";
 
-import { Heart, Pin, SendHorizontal } from "lucide-react";
+import { Heart, Pin, SendHorizontal, SmilePlus } from "lucide-react";
 import { useEffect, useState } from "react";
-import { commentAction, commentChangeAction, likeAction } from "@/app/users/work/actions";
+import { commentAction, commentChangeAction, likeAction, reactionAction } from "@/app/users/work/actions";
+import { reactionLabel, REACTIONS, type ReactionCount } from "@/server/work/pm-rules";
 import { FieldError, ResultMessage, SubmitButton, useActionForm } from "@/features/ui/form";
 import { useWorkCall } from "@/features/work/client";
 import { ConfirmButton } from "@/features/ui/ConfirmButton";
@@ -29,6 +30,7 @@ export interface CommentView {
   when: string; // already formatted (India time)
   likes: number;
   likedByMe: boolean;
+  reactions?: ReactionCount[]; // v1.62.0 (D-368): set when reactions are on
 }
 
 export function CommentThread({ taskId, comments, meId, canComment, canPin, people, isAdmin, docked = false }: { taskId: number; comments: CommentView[]; meId: number; canComment: boolean; canPin: boolean; people: Mentionable[]; isAdmin: boolean; docked?: boolean }) {
@@ -118,6 +120,7 @@ function CommentItem({ comment, meId, canPin, isAdmin }: { comment: CommentView;
           {comment.likedByMe ? "Liked" : "Like"}
           {comment.likes > 0 && ` · ${comment.likes}`}
         </button>
+        {comment.reactions && <Reactions commentId={comment.id} reactions={comment.reactions} />}
         {(canPin || mine) && comment.parentCommentId === null && (
           <button type="button" className="text-ink-muted hover:text-ink" onClick={() => void call(() => commentChangeAction(comment.id, { pinned: !comment.isPinned }), { success: false })}>
             {comment.isPinned ? "Unpin" : "Pin"}
@@ -241,5 +244,52 @@ function ReplyBox({ taskId, parentId, people }: { taskId: number; parentId: numb
         <ResultMessage result={result} />
       </form>
     </li>
+  );
+}
+
+// v1.62.0 (D-368, spec CMP-30/31): emoji reactions beside Like. Each pill is a
+// toggle (aria-pressed) whose name says the reaction, how many and whether
+// you gave it; "Add reaction" opens the six choices.
+function Reactions({ commentId, reactions }: { commentId: number; reactions: ReactionCount[] }) {
+  const { call, pending } = useWorkCall();
+  const [picking, setPicking] = useState(false);
+  const toggle = (key: string) => void call(() => reactionAction(commentId, key), { success: false }).then(() => setPicking(false));
+  return (
+    <span className="inline-flex flex-wrap items-center gap-1" data-testid="reactions">
+      {reactions.map((item) => {
+        const emoji = REACTIONS.find((one) => one.key === item.key)?.emoji;
+        return (
+          <button
+            key={item.key}
+            type="button"
+            aria-pressed={item.mine}
+            aria-label={reactionLabel(item.key, item.count, item.mine)}
+            title={reactionLabel(item.key, item.count, item.mine)}
+            disabled={pending}
+            onClick={() => toggle(item.key)}
+            className={`inline-flex h-6 items-center gap-1 rounded-full border px-2 text-caption tabular-nums ${item.mine ? "border-primary-600 bg-primary-50 text-primary-700" : "border-line text-ink-muted hover:border-line-strong"}`}
+            data-testid="reaction-pill"
+          >
+            <span aria-hidden="true">{emoji}</span>
+            <span aria-hidden="true">{item.count}</span>
+          </button>
+        );
+      })}
+      <button type="button" aria-expanded={picking} aria-label="Add reaction" title="Add reaction" onClick={() => setPicking((value) => !value)} className="inline-flex h-6 w-6 items-center justify-center rounded-full text-ink-muted hover:bg-surface-muted hover:text-ink" data-testid="add-reaction">
+        <SmilePlus aria-hidden="true" className="h-3.5 w-3.5" />
+      </button>
+      {picking && (
+        <span role="group" aria-label="Choose a reaction" className="inline-flex items-center gap-0.5 rounded-full border border-line bg-raised px-1 shadow-overlay">
+          {REACTIONS.map((item) => {
+            const mine = reactions.some((one) => one.key === item.key && one.mine);
+            return (
+              <button key={item.key} type="button" aria-pressed={mine} aria-label={`React with ${item.name}`} disabled={pending} onClick={() => toggle(item.key)} className={`grid h-7 w-7 place-items-center rounded-full text-[15px] hover:bg-surface-muted ${mine ? "bg-primary-50" : ""}`} data-testid={`react-${item.key}`}>
+                <span aria-hidden="true">{item.emoji}</span>
+              </button>
+            );
+          })}
+        </span>
+      )}
+    </span>
   );
 }

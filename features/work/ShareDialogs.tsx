@@ -217,13 +217,23 @@ function ProjectShareDialog({ projectId, name, privacy, departmentId, department
   );
 }
 
-export function TaskShareButton(props: { taskId: number; title: string; followers: { id: number; name: string }[]; people: { id: number; label: string }[]; visibility: string; canAdd: boolean; compact?: boolean }) {
+export function TaskShareButton(props: { taskId: number; title: string; followers: { id: number; name: string }[]; people: { id: number; label: string }[]; visibility: string; canAdd: boolean; compact?: boolean; collaborators?: boolean }) {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className={props.compact ? "inline-flex items-center gap-1 rounded px-2 py-1 text-label text-ink-muted hover:bg-surface-muted hover:text-ink" : "btn-secondary btn-compact inline-flex items-center gap-1"} data-testid="share-task">
-        <Share2 aria-hidden="true" className="h-4 w-4" /> Share
-      </button>
+      {/* v1.62.0 (D-368): the task pane's "Add or remove collaborators" button opens the same dialog. */}
+      {props.collaborators ? (
+        <button type="button" onClick={() => setOpen(true)} aria-label={`Collaborators: ${props.followers.length}. Add or remove collaborators`} title="Collaborators" className="inline-flex h-8 items-center gap-1 rounded-md px-2 text-label text-ink-muted hover:bg-surface-muted hover:text-ink" data-testid="pane-collaborators">
+          <Users aria-hidden="true" className="h-4 w-4" />
+          <span aria-hidden="true" className="tabular-nums">
+            {props.followers.length}
+          </span>
+        </button>
+      ) : (
+        <button type="button" onClick={() => setOpen(true)} className={props.compact ? "inline-flex items-center gap-1 rounded px-2 py-1 text-label text-ink-muted hover:bg-surface-muted hover:text-ink" : "btn-secondary btn-compact inline-flex items-center gap-1"} data-testid="share-task">
+          <Share2 aria-hidden="true" className="h-4 w-4" /> Share
+        </button>
+      )}
       {open && <TaskShareDialog {...props} onClose={() => setOpen(false)} />}
     </>
   );

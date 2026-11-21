@@ -21,6 +21,9 @@ import type { RowDataPacket } from "mysql2/promise";
 import type { HolidayHit } from "@/server/work/holidays";
 import { z } from "zod";
 import { changeTabs } from "@/server/work/view-tabs-service";
+import { setUserSetting } from "@/lib/db/repositories/user-settings.repository";
+import { CELEBRATION_LABEL, CELEBRATION_SETTING, clampPaneWidth, PANE_SETTING, parseCelebration, SIDEBAR_LISTS, SIDEBAR_SORT_LABEL, SIDEBAR_SORTS, type SidebarList, type SidebarSort } from "@/server/work/pm-rules";
+import { moveSidebarProject, setSidebarSort } from "@/server/work/sidebar";
 
 // D-215: Task & Project Management actions. Each checks the session and the
 // page's access (requireApiArea), then the service checks the person's
@@ -614,4 +617,82 @@ export async function privacyAction(projectId: number, privacy: string, departme
 export async function permissionsAction(projectId: number, permissions: unknown): Promise<ActionResult> {
   const project = id(projectId);
   return project ? runProject("permissions", await actorForProjects(), (me) => work.setPermissions(project, permissions, me)) : NOT_FOUND;
+}
+
+// ---- v1.62.0 (D-368, PM phase A part 2) ---------------------------------------------------
+// Behind the "pm_foundations" switch: reactions, the task pane's width, the
+// celebration choice, and the sidebar's Starred and Departments lists.
+const PM_OFF: ActionResult = { ok: false, message: "This isn't switched on yet." };
+async function actorForPm(): Promise<TaskActor | null | "OFF"> {
+  const me = await actor();
+  if (!me) return null;
+  return (await featureOn("pm_foundations", me)) ? me : "OFF";
+}
+
+export async function reactionAction(commentId: number, reaction: string): Promise<ActionResult & { value?: { on: boolean } }> {
+  const comment = id(commentId);
+  if (!comment) return NOT_FOUND;
+  const me = await actorForPm();
+  if (me === "OFF") return PM_OFF;
+  return run("reaction", me, (who) => work.reactToComment(comment, reaction, who));
+}
+
+export async function paneWidthAction(width: number): Promise<ActionResult> {
+  const me = await actorForPm();
+  if (me === "OFF") return PM_OFF;
+  if (!me) return NOT_FOUND;
+  try {
+    await setUserSetting(me.id, PANE_SETTING, String(clampPaneWidth(width)));
+    return { ok: true, message: "Saved." };
+  } catch (error) {
+    logError("paneWidthAction failed", error);
+    return { ok: false, message: "Couldn't save. Please try again." };
+  }
+}
+
+export async function celebrationAction(value: string): Promise<ActionResult> {
+  const me = await actorForPm();
+  if (me === "OFF") return PM_OFF;
+  if (!me) return NOT_FOUND;
+  const choice = parseCelebration(value);
+  if (!choice) return { ok: false, message: "Choose Off, Occasional or Always." };
+  try {
+    await setUserSetting(me.id, CELEBRATION_SETTING, choice);
+    revalidatePath("/users", "layout");
+    return { ok: true, message: `Celebrations: ${CELEBRATION_LABEL[choice]}.` };
+  } catch (error) {
+    logError("celebrationAction failed", error);
+    return { ok: false, message: "Couldn't save. Please try again." };
+  }
+}
+
+export async function sidebarMoveAction(list: string, projectId: number, direction: string): Promise<ActionResult> {
+  const project = id(projectId);
+  if (!project || !(SIDEBAR_LISTS as readonly string[]).includes(list) || (direction !== "up" && direction !== "down")) return NOT_FOUND;
+  const me = await actorForPm();
+  if (me === "OFF") return PM_OFF;
+  if (!me || !projectsAllowed(me)) return NOT_FOUND;
+  try {
+    const result = await moveSidebarProject(me, list as SidebarList, project, direction);
+    if (result.ok) revalidatePath("/users", "layout");
+    return result;
+  } catch (error) {
+    logError("sidebarMoveAction failed", error);
+    return { ok: false, message: "Couldn't do that. Please try again." };
+  }
+}
+
+export async function sidebarSortAction(list: string, sort: string): Promise<ActionResult> {
+  if (!(SIDEBAR_LISTS as readonly string[]).includes(list) || !(SIDEBAR_SORTS as readonly string[]).includes(sort)) return NOT_FOUND;
+  const me = await actorForPm();
+  if (me === "OFF") return PM_OFF;
+  if (!me || !projectsAllowed(me)) return NOT_FOUND;
+  try {
+    await setSidebarSort(me, list as SidebarList, sort as SidebarSort);
+    revalidatePath("/users", "layout");
+    return { ok: true, message: `Sorted: ${SIDEBAR_SORT_LABEL[sort as SidebarSort]}.` };
+  } catch (error) {
+    logError("sidebarSortAction failed", error);
+    return { ok: false, message: "Couldn't do that. Please try again." };
+  }
 }

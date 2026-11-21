@@ -47,6 +47,9 @@ import { NotificationBell } from "@/features/shell/NotificationBell";
 import { isHiddenHref, navAccess } from "@/server/authorization/page-access";
 import { ViewOnlyNote } from "@/features/shell/ViewOnlyNote";
 import type { AppArea, AuthenticatedUser } from "@/types/auth";
+import { WorkSidebar } from "@/features/work/WorkSidebar";
+import { loadSidebar } from "@/server/work/sidebar";
+import { featureOn } from "@/server/settings/features";
 
 // The three spaces of the one app (D-034, S9-03: called "spaces" on screen).
 export const SPACE_LABEL: Record<AppArea, string> = { users: "Central Management System", admin: "Admin", superadmin: "Super Admin" };
@@ -203,6 +206,8 @@ export async function AppShell({ area, user, nav, children }: { area: AppArea; u
     else if (!rail.some((entry) => entry.kind === "group" && entry.section === item.section)) rail.push({ kind: "group", section: item.section, href: item.href, label: item.section });
   }
   const sidebarCollapsed = (await cookies()).get(SIDEBAR_COOKIE)?.value === "rail";
+  // v1.62.0 (D-368): Starred and department projects under the links (Projects module and "pm_foundations").
+  const workSidebar = area === "users" && visible("/users/work/projects") && hasModule(user, "PROJECT") && (await featureOn("pm_foundations", user).catch(() => false)) ? await loadSidebar(user).catch(() => null) : null;
   // D-233: IT's maintenance notice, if any (a failed read shows none).
   const maintenance = await getSettingValue("general.maintenance_notice").catch(() => null);
   // D-230: the person's photo in the account menu.
@@ -241,6 +246,7 @@ export async function AppShell({ area, user, nav, children }: { area: AppArea; u
           <p className="shrink-0 px-6 pt-4 text-caption font-semibold uppercase tracking-wider text-ink-faint">{SPACE_LABEL[area]}</p>
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain" data-testid="sidebar-scroll">
             <SideNav items={sideItems} collapsible={area !== "admin"} chats={chats} />
+            {workSidebar && <WorkSidebar starred={workSidebar.starred} departments={workSidebar.departments} departmentName={workSidebar.departments.departmentName} />}
           </div>
         </SidebarFrame>
       )}

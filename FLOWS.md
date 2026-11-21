@@ -21,6 +21,10 @@ The number of levels and how they combine is unlimited. There are no fixed "Leve
 | F-212 | Meeting Management: schedule, points and MOM approval, action tasks, follow-ups | Built 10 Nov 2026 (v1.51.0) |
 | F-PM-TABS | Project tabs for every view, Save view / Reset | Built 22 Nov 2026 (v1.61.0, behind pm_foundations) |
 | F-PM-LIST | The List as a keyboard treegrid, windowed; 15 s refresh | Built 22 Nov 2026 (v1.61.0) |
+| F-PM-BOARD-KEYS | Board: move a card from the keyboard (Space, arrows, Enter, Escape), announced | Built 22 Nov 2026 (v1.62.0, behind pm_foundations) |
+| F-PM-PANE | Task pane beside the view, resize kept; reactions; complete and delete with Undo; celebrations | Built 22 Nov 2026 (v1.62.0) |
+| F-PM-SIDEBAR | Starred and department projects in the sidebar, sort and reorder | Built 22 Nov 2026 (v1.62.0) |
+| F-PM-PURGE | Deleted tasks and projects removed for good after 30 days | Built 22 Nov 2026 (v1.62.0) |
 | F-01 | Google sign-in | Built 28 Sep 2026 (live test pending Firebase Admin values) |
 | F-02 | User ID + password + OTP | Built 28 Sep 2026 (live send pending the CEOITBox key) |
 | F-03 | New-login detection and alert | Built 28 Sep 2026 (device cookie; location later) |
@@ -1913,6 +1917,57 @@ flowchart TD
   T -->|Space| SEL[Select for bulk actions]
 ```
 - 150 lines or more: only the lines near the screen are drawn (spacers keep the scroll height). Every open project view, My Tasks and the task pane refresh every 15 s while visible, on focus, and after a change (paused when hidden or while typing).
+
+## F-PM-BOARD-KEYS: Move a Board card from the keyboard (v1.62.0, D-368)
+```mermaid
+flowchart TD
+  F[Focus a card] -->|Arrows, Home, End| F
+  F -->|Enter| P[Open the task pane]
+  F -->|Space, owner or editor, no sort or filter| L[Picked up: position N of M in Section, announced]
+  F -->|Space while a sort, filter or search is on| N[Announced: moving is off]
+  L -->|Up / Down: between cards; Left / Right: between columns| L
+  L -->|Space or Enter| D[Dropped: saved like a drag, announced]
+  L -->|Escape| C[Cancelled: back where it was, announced]
+  F -->|Alt + Up / Down, Alt + Shift + Up / Down| M[Moved at once, as before]
+```
+- The server checks every move (moveInProject): only owners and editors; anyone else is refused.
+
+## F-PM-PANE: The task pane, reactions, completion and Undo (v1.62.0, D-368)
+```mermaid
+flowchart LR
+  V[Project view, window 1024 px or wider] -->|open a task| SP[Pane on the right at the person's width]
+  V2[Smaller window or phone] -->|open a task| CP[Centred window or full screen]
+  SP -->|drag the edge, or Left / Right on it| W[New width 380-720 px, saved for the person]
+  SP --> B[Bar: Mark complete, Collaborators, Like, Copy link, Open full page, More, Close]
+  B -->|Mark complete| K[Tick animation; celebration by choice, never with reduced motion] --> U1[Undo reopens]
+  B -->|More, Delete, confirm| DEL[Deleted, pane closes] --> U2[Undo restores it and its subtasks]
+  SP --> R[Comment reaction: toggle one of six; deny when the task can't be seen]
+```
+- Celebrations: the person's choice (Profile: Off / Occasional / Always), else the Admin default (Task settings, Occasional). Occasional is about one in four.
+- The visibility line says who can see the task (members of its projects, or its people and the managers above the assignee).
+
+## F-PM-SIDEBAR: Starred and department projects (v1.62.0, D-368)
+```mermaid
+flowchart LR
+  S[Star a project: header or project list] --> ST[Sidebar: Starred]
+  DP[Project shared with my department: privacy or as a member] --> DE[Sidebar: Departments]
+  ST & DE -->|sort menu| O{Manual / A-Z / Recently opened}
+  O -->|Manual: Alt + Up / Down or the arrows| MV[Moved, saved, announced]
+```
+- Only projects the person can see are listed; leaving a private project takes it out of Starred.
+
+## F-PM-PURGE: Removed for good after 30 days in Deleted (v1.62.0, D-368)
+```mermaid
+flowchart TD
+  J[Job runner, every 5 minutes] --> Q{Phase A switch not Off and Admin purge on?}
+  Q -->|no| X[Nothing]
+  Q -->|yes| T[Tasks deleted over 30 days ago, not ticket or meeting tasks, not under a legal hold]
+  T --> K{All its subtasks go too?}
+  K -->|no| KEEP[Kept]
+  K -->|yes| DT[Delete its rows, subtasks first, one transaction, one audit entry per batch; files removed after]
+  J --> PR[Projects deleted over 30 days ago] --> DPJ[Delete sections, fields, members, tabs, stars; its tasks only leave it]
+```
+- The Deleted pages say when each item goes ("Removed for good on 22 Dec 2026 (in 30 days)").
 
 ## F-COMMENT-EDIT: Edit or delete a comment (v1.60.0, D-365)
 ```mermaid

@@ -1,6 +1,7 @@
 "use client";
 
-import { departmentHolidayAction, holidayTasksAction, saveTaskExtrasAction, saveTaskHolidaySettingsAction } from "@/app/admin/task-holidays/actions";
+import { departmentHolidayAction, holidayTasksAction, savePmExtrasAction, saveTaskExtrasAction, saveTaskHolidaySettingsAction } from "@/app/admin/task-holidays/actions";
+import { CELEBRATION_LABEL, CELEBRATIONS, PURGE_DAYS, type PmExtras } from "@/server/work/pm-rules";
 import type { DigestSettings, RecurrenceSettings } from "@/server/work/more-rules";
 import { FieldError, ResultMessage, SubmitButton, useActionForm } from "@/features/ui/form";
 import { HOLIDAY_MODE_LABEL, HOLIDAY_MODES, type HolidaySettings } from "@/server/work/holidays";
@@ -169,6 +170,35 @@ export function RemoveDepartmentHolidayButton({ departmentId, date }: { departme
         Remove
       </button>
       {result && !result.ok && <ResultMessage result={result} />}
+    </form>
+  );
+}
+
+// v1.62.0 (D-368): celebrations default and the 30-day purge of Deleted.
+export function PmExtrasForm({ extras }: { extras: PmExtras }) {
+  const { result, pending, onSubmit } = useActionForm(savePmExtrasAction);
+  return (
+    <form onSubmit={onSubmit} className="space-y-4 px-5 py-4" aria-label="Celebrations and deleted items">
+      <fieldset className="space-y-2">
+        <legend className="field-label">Celebrations when someone completes a task (default)</legend>
+        <select name="celebrations" defaultValue={extras.celebrations} className="field-input h-9 w-auto py-0" aria-label="Celebrations default">
+          {CELEBRATIONS.map((choice) => (
+            <option key={choice} value={choice}>
+              {CELEBRATION_LABEL[choice]}
+            </option>
+          ))}
+        </select>
+        <p className="text-caption text-ink-muted">Occasional is about one completion in four. Each person can choose their own in Profile; nothing moves for people whose device asks for reduced motion.</p>
+      </fieldset>
+      <fieldset className="space-y-2">
+        <legend className="field-label">Deleted tasks and projects</legend>
+        <label className="flex items-start gap-2 text-body">
+          <input type="checkbox" name="purge" defaultChecked={extras.purge} className="mt-1" /> Remove them for good after {PURGE_DAYS} days in Deleted (with their comments, files and fields)
+        </label>
+        <p className="text-caption text-ink-muted">Off: they stay in Deleted (restorable by the people who could restore them) until this is turned on again. A ticket&apos;s or meeting&apos;s task, and tasks of requests under a legal hold, are always kept.</p>
+      </fieldset>
+      <ResultMessage result={result} />
+      <SubmitButton pending={pending}>Save</SubmitButton>
     </form>
   );
 }

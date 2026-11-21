@@ -36,6 +36,8 @@ export default function TermsPage() {
           </li>
           <li>Don&apos;t try to access records you aren&apos;t given, get around security, or disrupt the service.</li>
           <li>Tasks, projects, comments, mentions and notices are work records: keep them to work, and mention or add people only where they need to know.</li>
+          <li>Deleting a task or project is undone with Undo or restored from Deleted within 30 days. After 30 days it is removed for good and can&apos;t be brought back, so restore anything you still need in time.</li>
+          <li>Reactions on comments are seen by everyone who can see the comment: use them as you would any work message. Your stars and sidebar order are yours alone.</li>
           <li>A project&apos;s tabs and saved views are shared with everyone in the project. Only its owners and editors add, rename, reorder, remove or save them; change them with care.</li>
           <li>You can edit or delete your own comments, and IT can edit or delete any comment. Every earlier version is kept and shown to the people who can see the comment, so edit to correct, not to rewrite what was agreed.</li>
           <li>

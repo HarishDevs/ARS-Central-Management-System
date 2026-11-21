@@ -148,6 +148,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
     points: [
       "All projects lists what you're in; New project sets one up step by step (or from a template).",
       "Each project has List, Board, Calendar, Timeline and Overview (status updates), and its own members and permissions.",
+      "Star a project to keep it in the sidebar under Starred; a task opens beside the view, and completing or deleting one offers Undo.",
     ],
     path: "/users/work/projects",
     target: HEADER,

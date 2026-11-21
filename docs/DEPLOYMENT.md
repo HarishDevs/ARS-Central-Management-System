@@ -209,6 +209,11 @@ Stops anyone reaching the GoDaddy server directly, around Cloudflare (and faking
 1. https://approval.arssteels.net → **Continue with Google** → **itsupport@arsenergy.co.in** (D-082). The seed created this Super Admin, User ID `itadmin`. `itadmin@arssteels.co.in` can't be used: it's only an alias, and Google reports the main address.
 2. You land on **My approvals**. Your name at the top right opens a menu whose **Switch space** section shows Admin and Super Admin.
 
+### G0g. Reactions, task pane, sidebar and the 30-day clean-up (v1.62.0)
+1. Back up the database, then run `database/migrations/202611221100_pm_a_reactions_sidebar.sql`. It adds `comment_reactions` and `work_project_order` and replaces the `task_events` delete trigger so the clean-up can remove the history of a task deleted more than 30 days ago (nothing else may delete it). If the migration skips the two trigger blocks for lack of rights, run them once in phpMyAdmin. Rollback inside.
+2. Publish v1.62.0. Everything new is behind the same switch as v1.61.0 (**"Projects: tabs for every view, faster list and row density (phase A)"**), except Undo after deleting a task.
+3. **Before switching it on (IT only or On):** the job runner starts removing tasks and projects that have been in Deleted for more than 30 days at its next run. Restore anything you want to keep first, or untick **Admin → Task settings → Deleted tasks and projects** to keep them. The default celebrations (Occasional) are set on the same page.
+
 ### G0f. Project tabs for every view (v1.61.0)
 1. Back up the database, then run `database/migrations/202611221000_pm_a_views_prefs.sql`. It adds `work_views.view_type` and `work_views.is_default`, and `projects.view_tabs_set` (existing saved tabs stay List tabs; no data changes). Rollback inside.
 2. Publish v1.61.0. The new behaviour is behind **Super Admin → Settings → Feature switches → "Projects: tabs for every view, faster list and row density (phase A)"**, which is **Off** until you switch it to IT team only (a trial) or On. The faster refresh (every 15 s while a project view, My Tasks or a task is open) and the new project colours apply to everyone at once.

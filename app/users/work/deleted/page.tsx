@@ -7,6 +7,8 @@ import { RestoreTaskButton } from "@/features/work/SearchParts";
 import { listDeletedTasks } from "@/lib/db/repositories/work.repository";
 import { indiaDateTimeText } from "@/server/modules/settings";
 import { workPage } from "@/server/work/page-context";
+import { purgeActive } from "@/server/work/purge-status";
+import { purgeText } from "@/server/work/pm-rules";
 
 export const metadata: Metadata = { title: "Deleted tasks" };
 export const dynamic = "force-dynamic";
@@ -15,10 +17,11 @@ export const dynamic = "force-dynamic";
 // (with their subtasks). Deleted projects are under Projects → Deleted.
 export default async function DeletedTasksPage() {
   const { user } = await workPage();
-  const tasks = await listDeletedTasks(user.id);
+  const [tasks, purging] = await Promise.all([listDeletedTasks(user.id), purgeActive()]);
+  const now = new Date();
   return (
     <>
-      <PageHeader title="Deleted tasks" icon={Trash2} description="Deleted tasks stay here for 30 days. Restoring one brings back its subtasks, projects and comments." />
+      <PageHeader title="Deleted tasks" icon={Trash2} description={`Deleted tasks stay here for 30 days${purging ? ", then they are removed for good" : ""}. Restoring one brings back its subtasks, projects and comments.`} />
       {tasks.length === 0 ? (
         <EmptyState title="Nothing deleted" body="Tasks you create or delete appear here for 30 days after they are deleted." />
       ) : (
@@ -28,7 +31,9 @@ export default async function DeletedTasksPage() {
               <Link href={`/users/tasks/${task.id}`} className="min-w-0 flex-1 truncate">
                 <span className="font-mono text-caption text-ink-muted">{task.taskNo}</span> {task.title}
               </Link>
-              <span className="text-caption text-ink-muted">Deleted {indiaDateTimeText(task.deletedAt)}</span>
+              <span className="text-caption text-ink-muted">
+                Deleted {indiaDateTimeText(task.deletedAt)} · <span data-testid="purge-note">{purgeText(task.deletedAt, now, purging)}</span>
+              </span>
               <RestoreTaskButton taskId={task.id} />
             </li>
           ))}

@@ -296,6 +296,18 @@ export const AUTOMATIONS: readonly Automation[] = [
     owner: "IT team",
   },
   {
+    key: "workPurge",
+    name: "Purge deleted tasks and projects",
+    what: "Removes for good the tasks and projects that have been in Deleted for more than 30 days, with their comments, reactions, files, fields and links (v1.62.0, D-368). A ticket's or meeting's task, or one linked to a request under a legal hold, is kept.",
+    trigger: "Every job run, while the Projects phase A switch isn't Off and Admin → Task settings has the purge on (default on).",
+    everyMinutes: 5,
+    retry: "Up to 500 tasks and 50 projects a run; the next run carries on with the rest.",
+    idempotency: "Only rows still deleted and older than 30 days are removed; running twice removes nothing more.",
+    onFailure: "Recorded here; the batch's transaction rolls back, so nothing is half-removed.",
+    recovery: "None needed. Purged items can only come back from a backup.",
+    owner: "IT team",
+  },
+  {
     key: "ticketConfirmations",
     name: "Ticket confirmations",
     what: "Tickets whose work is done and wait for the requester: a reminder after 2 and after 3 working days, and the ticket closes by itself (Closed – auto closed) after 4 complete working days without an answer (Working Calendar: weekly offs and holidays skipped). v1.55.0.",
@@ -369,6 +381,10 @@ const STEPS: Record<string, () => Promise<StepResult>> = {
   ai: () => runAiStep(),
   hodWeekly: () => runHodWeekly(),
   workTasks: async () => ({ ...(await backfillWorkMirrors()) }),
+  workPurge: async () => {
+    const { runWorkPurge } = await import("@/server/work/purge");
+    return { ...(await runWorkPurge()) };
+  },
   ticketConfirmations: async () => {
     const { runTicketConfirmations } = await import("@/server/tickets/service");
     return { ...(await runTicketConfirmations()) };
