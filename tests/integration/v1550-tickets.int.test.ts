@@ -1,10 +1,11 @@
+import { changeComment, commentVersions } from "@/server/comments/change";
 import { beforeAll, describe, expect, it } from "vitest";
 import type { RowDataPacket } from "mysql2/promise";
 import { getDbPool } from "@/lib/db/client";
 import { createModuleType, publishTypeDraft, saveTypeDraft } from "@/server/modules/config";
-import { saveTicketFormSetup, findTicket, ticketBoard } from "@/lib/db/repositories/tickets.repository";
+import { saveTicketFormSetup, findTicket, listTicketComments, ticketBoard } from "@/lib/db/repositories/tickets.repository";
 import { analyticsTickets } from "@/lib/db/repositories/ticket-analytics.repository";
-import { assignTicket, confirmTicket, raiseTicket, reopenTicket, runTicketConfirmations, workOnTicket } from "@/server/tickets/service";
+import { assignTicket, commentOnTicket, confirmTicket, raiseTicket, reopenTicket, runTicketConfirmations, workOnTicket } from "@/server/tickets/service";
 import type { TaskActor } from "@/server/modules/tasks";
 import { insertTask } from "@/lib/db/repositories/tasks.repository";
 import { generalTypeVersion } from "@/lib/db/repositories/work.repository";
@@ -142,6 +143,23 @@ describe("work, confirmation and reopening", () => {
     expect(await tasksOf(id)).toHaveLength(0);
     const [notice] = await q<{ n: number }>("SELECT COUNT(*) AS n FROM notifications WHERE user_id = ? AND entity_type = 'TICKET' AND entity_id = ?", [people.requester!.id, id]);
     expect(Number(notice!.n)).toBeGreaterThan(0);
+  });
+
+  it("v1.60.0 (D-365): a remark is edited or deleted by its author and IT; an internal one stays hidden from the requester", async () => {
+    const { id } = await raise("Install Zoom");
+    expect((await commentOnTicket({ ticketId: id, body: "Need it before Monday", internal: false, files: [] }, people.requester!)).ok).toBe(true);
+    expect((await commentOnTicket({ ticketId: id, body: "Licence pending", internal: true, files: [] }, people.coordinator!)).ok).toBe(true);
+    const [open, hidden] = await listTicketComments(id, true);
+    expect(await changeComment("TICKET", open!.id, { body: "x" }, people.stranger!)).toMatchObject({ ok: false, message: "Not found." });
+    expect(await changeComment("TICKET", open!.id, { body: "x" }, people.coordinator!)).toMatchObject({ ok: false });
+    expect(await changeComment("TICKET", open!.id, { body: "Need it before Tuesday" }, people.requester!)).toMatchObject({ ok: true });
+    expect(await changeComment("TICKET", hidden!.id, { body: "x" }, people.requester!)).toMatchObject({ ok: false, message: "Not found." });
+    expect(await commentVersions("TICKET", hidden!.id, people.requester!)).toMatchObject({ ok: false });
+    expect(await changeComment("TICKET", hidden!.id, { delete: true }, people.admin!)).toMatchObject({ ok: true });
+    const after = await listTicketComments(id, true);
+    expect(after.map((row) => [row.body, row.edited, row.deleted])).toEqual([["Need it before Tuesday", true, false], ["", false, true]]);
+    const versions = await commentVersions("TICKET", open!.id, people.coordinator!);
+    expect(versions.ok && versions.value.map((version) => version.body)).toEqual(["Need it before Monday"]);
   });
 
   it("only the requester confirms; the assignee can't confirm for them", async () => {

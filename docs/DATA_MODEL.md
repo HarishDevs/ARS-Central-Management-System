@@ -842,7 +842,8 @@ Migration names are shortened to their date-time prefix; the full file is `datab
 | `approval_tasks` | Approvals | Approval and work steps, for queues | 202609291201 |
 | `approval_events` | Approvals | Append-only request timeline | 202609291201 |
 | `rate_limit_hits` | Security | Sliding-window rate-limit counters | 202609301200 |
-| `request_comments` | Approvals | Append-only discussion on a request | 202610011200 |
+| `request_comments` | Approvals | Discussion on a request; rows never deleted; since v1.60.0 the text can be edited or marked deleted (earlier text in `comment_versions`) | 202610011200, 202611211000 |
+| `comment_versions` | Approvals, Tickets, Tasks | Append-only: the text a request comment, ticket remark or task comment had before each edit or delete (D-365) | 202611211000 |
 | `delegations` | Approvals | Out of office: who acts for whom, and when | 202610011200 |
 | `task_reminders` | Approvals | Reminders and escalations already sent per step | 202610011200 |
 | `holidays` | Calendar | Organisation holidays for the working calendar | 202610011300 |

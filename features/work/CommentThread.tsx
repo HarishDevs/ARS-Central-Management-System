@@ -8,6 +8,7 @@ import { useWorkCall } from "@/features/work/client";
 import { ConfirmButton } from "@/features/ui/ConfirmButton";
 import { RichEditor } from "@/features/ui/RichEditor";
 import { RichText } from "@/features/work/RichText";
+import { ShowEdits } from "@/features/comments/EditableComment";
 
 // A person to mention: the picker shows "Name - code" (label) with the
 // department; the comment keeps the plain name.
@@ -69,7 +70,13 @@ function CommentItem({ comment, meId, canPin, isAdmin }: { comment: CommentView;
   const { call, pending: busy } = useWorkCall();
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState(comment.body);
-  if (comment.deleted) return <p className="text-label italic text-ink-muted">This comment was deleted.</p>;
+  if (comment.deleted)
+    return (
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="text-label italic text-ink-muted">This comment was deleted.</p>
+        <ShowEdits target="TASK" commentId={comment.id} deleted />
+      </div>
+    );
   const mine = comment.authorId === meId;
   return (
     <div className={`rounded-md ${comment.isPinned ? "border border-primary-600/30 bg-primary-50/40 p-2" : ""}`} data-testid="comment">
@@ -82,6 +89,7 @@ function CommentItem({ comment, meId, canPin, isAdmin }: { comment: CommentView;
         <span className="font-semibold text-ink">{comment.authorName}</span>
         <span>{comment.when}</span>
         {comment.edited && <span>(edited)</span>}
+        {comment.edited && <ShowEdits target="TASK" commentId={comment.id} />}
       </div>
       {editing ? (
         <form
@@ -115,13 +123,14 @@ function CommentItem({ comment, meId, canPin, isAdmin }: { comment: CommentView;
             {comment.isPinned ? "Unpin" : "Pin"}
           </button>
         )}
-        {mine && !editing && (
-          <button type="button" className="text-ink-muted hover:text-ink" onClick={() => setEditing(true)}>
+        {/* v1.60.0 (D-365, owner): the author and IT edit; every earlier text is kept. */}
+        {(mine || isAdmin) && !editing && (
+          <button type="button" className="text-ink-muted hover:text-ink" onClick={() => setEditing(true)} data-testid="comment-edit">
             Edit
           </button>
         )}
         {(mine || isAdmin) && (
-          <ConfirmButton title="Delete this comment?" body="It's removed for everyone on this task." className="text-ink-muted hover:text-danger-600" onConfirm={() => call(() => commentChangeAction(comment.id, { delete: true }), { success: "Comment deleted." })}>
+          <ConfirmButton title="Delete this comment?" body="It shows as deleted for everyone on this task; what it said stays in its history." className="text-ink-muted hover:text-danger-600" onConfirm={() => call(() => commentChangeAction(comment.id, { delete: true }), { success: "Comment deleted." })}>
             Delete
           </ConfirmButton>
         )}

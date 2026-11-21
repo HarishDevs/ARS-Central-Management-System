@@ -11,6 +11,7 @@ import { insertOutbox } from "@/lib/db/repositories/outbox.repository";
 import { canViewRequest, findRequest, nextRequestNumber } from "@/lib/db/repositories/approvals.repository";
 import { appendTaskEvent, findTask, insertTask, personFacts, updateTask, type TaskRecord } from "@/lib/db/repositories/tasks.repository";
 import * as repo from "@/lib/db/repositories/work.repository";
+import { applyCommentChange, lockCommentBody } from "@/lib/db/repositories/comment-versions.repository";
 import { versionWithType } from "@/lib/db/repositories/module-types.repository";
 import { deliverOutbox } from "@/server/approvals/service";
 import { projectMessages, taskMessages } from "@/server/modules/messages";
@@ -743,24 +744,39 @@ export async function changeComment(commentId: number, change: { body?: string; 
   const loaded = await taskFor(comment.taskId, actor);
   if (!loaded) return fail(NOT_FOUND);
   const author = comment.authorId === actor.id;
+  // v1.60.0 (D-365, owner): the author and IT admins edit or delete; every
+  // earlier text is kept in comment_versions.
+  const mayChange = author || loaded.viewer.isAdmin;
   if (change.body !== undefined) {
-    if (!author) return fail("Only its author can edit a comment.");
+    if (!mayChange) return fail("Only its author and IT can edit a comment.");
     const text = change.body.trim();
     if (!text || text.length > 4000) return fail("Write 1 to 4000 characters.");
-    await repo.updateComment(commentId, { body: text }, getDbPool());
+    await withTransaction(async (connection) => {
+      const current = await lockCommentBody("TASK", commentId, connection);
+      if (!current || current.deleted || current.body === text) return;
+      await applyCommentChange("TASK", commentId, current.body, { body: text }, actor.id, connection);
+      if (!author) await recordAudit({ actorUserId: actor.id, action: "TASK_COMMENT_EDITED", entityType: "TASK", entityId: comment.taskId, sessionId: actor.sessionId, ipAddress: actor.ipAddress ?? null, metadata: { commentId } }, connection);
+    });
   }
   if (change.pinned !== undefined) {
     if (!(author || atLeastEditor(loaded.rights))) return fail("Only its author and the task's editors can pin a comment.");
     await repo.updateComment(commentId, { pinned: change.pinned }, getDbPool());
   }
   if (change.delete) {
-    if (!(author || loaded.viewer.isAdmin)) return fail("Only its author can delete a comment.");
+    if (!mayChange) return fail("Only its author and IT can delete a comment.");
     await withTransaction(async (connection) => {
-      await repo.updateComment(commentId, { deletedBy: actor.id }, connection);
+      const current = await lockCommentBody("TASK", commentId, connection);
+      if (!current || current.deleted) return;
+      await applyCommentChange("TASK", commentId, current.body, { delete: true }, actor.id, connection);
       if (!author) await recordAudit({ actorUserId: actor.id, action: "TASK_COMMENT_REMOVED", entityType: "TASK", entityId: comment.taskId, sessionId: actor.sessionId, ipAddress: actor.ipAddress ?? null, metadata: { commentId } }, connection);
     });
   }
   return { ok: true, value: undefined };
+}
+// v1.60.0: may this person see a task comment's earlier versions (they see the task)?
+export async function taskCommentVersions(commentId: number, actor: TaskActor): Promise<boolean> {
+  const comment = await repo.findComment(commentId);
+  return Boolean(comment && (await taskFor(comment.taskId, actor)));
 }
 const atLeastEditor = (rights: { edit: boolean }) => rights.edit;
 

@@ -1882,3 +1882,14 @@ The application audit (`application-audit/`) found these gaps between flows and 
 - **F-31 SLA, reminder, escalation** and **F-79 FYI steps:** escalation managers and FYI recipients receive links they can't open (AUD-09). Planned for Phase B.
 - **F-59 Bulk import:** the import doesn't apply the rule that only the Super Admin changes another IT Admin's contact details (AUD-01). Fix planned: V181-A2.
 - **F-121 Page access:** an action posted from an address that is no configured page isn't restricted (AUD-14). Fix planned: V181-A7.
+
+## F-COMMENT-EDIT: Edit or delete a comment (v1.60.0, D-365)
+```mermaid
+flowchart LR
+  C[Comment on a request, ticket remark or task comment] -->|author or IT: Edit| E[Text saved; old text to comment_versions; shows edited]
+  C -->|author or IT: Delete| D[Marked deleted; last text to comment_versions; shows This comment was deleted]
+  E -->|anyone who sees it: Show edits| V[Earlier versions, who and when]
+  D -->|anyone who sees it: Show what it said| V
+```
+- Rights: the author and IT admins (IT_ADMIN, SUPER_ADMIN), no time limit; others are refused; people who can't see the request/ticket/task (or an internal remark) get "Not found".
+- Request comment rows are never deleted (DB trigger); only their text and marks change. comment_versions is append-only. Editing doesn't notify anyone again.

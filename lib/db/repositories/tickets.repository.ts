@@ -307,14 +307,16 @@ export interface TicketComment {
   body: string;
   internal: boolean;
   createdAt: Date;
+  edited: boolean; // v1.60.0 (D-365)
+  deleted: boolean; // shown as "This remark was deleted."
 }
 export async function insertTicketComment(ticketId: number, authorId: number, body: string, internal: boolean, db: Queryable): Promise<number> {
   const [result] = await db.query<ResultSetHeader>("INSERT INTO ticket_comments (ticket_id, author_id, body, internal) VALUES (?, ?, ?, ?)", [ticketId, authorId, body, internal]);
   return result.insertId;
 }
 export async function listTicketComments(ticketId: number, includeInternal: boolean, db: Queryable = getDbPool()): Promise<TicketComment[]> {
-  const [rows] = await db.query<Row[]>(`SELECT c.*, u.name AS author_name FROM ticket_comments c JOIN users u ON u.id = c.author_id WHERE c.ticket_id = ? AND c.deleted_at IS NULL ${includeInternal ? "" : "AND c.internal = FALSE"} ORDER BY c.id`, [ticketId]);
-  return rows.map((row) => ({ id: num(row.id), authorId: num(row.author_id), authorName: String(row.author_name), body: String(row.body), internal: Boolean(row.internal), createdAt: new Date(row.created_at as string) }));
+  const [rows] = await db.query<Row[]>(`SELECT c.*, u.name AS author_name FROM ticket_comments c JOIN users u ON u.id = c.author_id WHERE c.ticket_id = ? ${includeInternal ? "" : "AND c.internal = FALSE"} ORDER BY c.id`, [ticketId]);
+  return rows.map((row) => ({ id: num(row.id), authorId: num(row.author_id), authorName: String(row.author_name), body: row.deleted_at ? "" : String(row.body), internal: Boolean(row.internal), createdAt: new Date(row.created_at as string), edited: row.edited_at !== null && row.edited_at !== undefined, deleted: row.deleted_at !== null && row.deleted_at !== undefined }));
 }
 
 // ---- lists ------------------------------------------------------------------------------------

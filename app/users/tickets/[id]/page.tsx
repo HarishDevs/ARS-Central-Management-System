@@ -1,4 +1,5 @@
 import { ItemChecklist } from "@/features/modules/ItemChecklist";
+import { EditableComment } from "@/features/comments/EditableComment";
 import { checklistsFor, mayTickTicket } from "@/server/records/item-checks";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -54,8 +55,8 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   // reflected in both ticket and task"): the task's comments and activity show here too.
   const [taskComments, taskEvents] = ticket.taskId ? await Promise.all([listTaskComments(ticket.taskId, user.id), listTaskEvents(ticket.taskId)]) : [[], []];
   const remarks = [
-    ...comments.map((comment) => ({ key: `r${comment.id}`, authorName: comment.authorName, createdAt: comment.createdAt, body: comment.body, internal: comment.internal, fromTask: false })),
-    ...taskComments.filter((comment) => !comment.deletedAt).map((comment) => ({ key: `t${comment.id}`, authorName: comment.authorName, createdAt: comment.createdAt, body: comment.body, internal: false, fromTask: true })),
+    ...comments.map((comment) => ({ key: `r${comment.id}`, id: comment.id, authorId: comment.authorId, authorName: comment.authorName, createdAt: comment.createdAt, body: comment.body, internal: comment.internal, fromTask: false, edited: comment.edited, deleted: comment.deleted })),
+    ...taskComments.filter((comment) => !comment.deletedAt).map((comment) => ({ key: `t${comment.id}`, id: comment.id, authorId: comment.authorId, authorName: comment.authorName, createdAt: comment.createdAt, body: comment.body, internal: false, fromTask: true, edited: comment.editedAt !== null, deleted: false })),
   ].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
   const timeline = [
     ...events.map((event) => ({ kind: "ticket" as const, at: event.createdAt, event })),
@@ -169,7 +170,17 @@ export default async function Page({ params, searchParams }: { params: Promise<{
                       {comment.internal ? " · Internal" : ""}
                       {comment.fromTask ? ` · on task ${ticket.taskNo ?? ""}` : ""}
                     </p>
-                    <RichText text={comment.body} />
+                    {/* v1.60.0 (D-365): the author and IT edit or delete a remark; earlier versions kept. */}
+                    <EditableComment
+                      target={comment.fromTask ? "TASK" : "TICKET"}
+                      commentId={comment.id}
+                      body={comment.body}
+                      edited={comment.edited}
+                      deleted={comment.deleted}
+                      canChange={!comment.fromTask && (comment.authorId === user.id || viewer.isAdmin)}
+                      maxLength={4000}
+                      noun="remark"
+                    />
                   </li>
                 ))}
               </ul>

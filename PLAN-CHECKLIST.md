@@ -17,7 +17,8 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 **Multi-level approvals in any custom manner.** The engine must support any number of levels in any combination: sequential, parallel, any-one, any-N-of-M, conditional and hybrid. Approvers can come from any source, and levels can be added or skipped by rules. Build the engine for this from the first engine phase (P2). The drag-and-drop designer (P3) is only the screen for building it. Check every task against this.
 
 ## Now / Next
-- **Now (20 Nov 2026):** **v1.59.5** Add subtask opens the Create task window (D-364). **Owner:** publish (no migration; if v1.59.3 isn't live yet, run its migration 202611201000 first).
+- **Now (21 Nov 2026):** **v1.60.0** edit and delete every comment, versions kept (D-365). **Owner:** back up, run migration 202611211000_comment_edits.sql (and 202611201000 first if v1.59.3 isn't live), publish.
+- [x] COL-12 (21 Nov 2026) Edit and delete on request comments, ticket remarks and task comments (author and IT), every earlier version kept and shown
 - [x] TSK-60 (20 Nov 2026) Add subtask button and the + open the Create task window for a subtask
 - [x] TKT-22 (20 Nov 2026) Status by department: a table for each form, plus a combined table for a category with several forms
 - [x] TKT-21 (20 Nov 2026) Ticket assignment without a task; Start work / Mark resolved on the ticket and its Assigned to me row; open linked tasks cancelled

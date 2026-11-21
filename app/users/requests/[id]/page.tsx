@@ -39,7 +39,7 @@ import { STATUS_WORD } from "@/features/ui/labels";
 import { listApproverOptions } from "@/lib/db/repositories/approvers.repository";
 import { RequestForm } from "@/features/requests/RequestForm";
 import { CommentForm } from "@/features/requests/Discussion";
-import { RichText } from "@/features/work/RichText";
+import { EditableComment } from "@/features/comments/EditableComment";
 import { AddFilesForm } from "@/features/requests/Attachments";
 import { AttachmentList } from "@/features/requests/AttachmentList";
 import { hasAnyApproval } from "@/lib/db/repositories/attachments.repository";
@@ -441,12 +441,20 @@ export default async function RequestPage({
               ) : (
                 <ul className="mb-4 space-y-3">
                   {view.comments.map((comment) => (
-                    <li key={comment.id} className="text-label">
+                    <li key={comment.id} className="text-label" data-testid="request-comment">
                       <p>
                         <span className="font-medium">{comment.authorName}</span> <span className="text-caption text-ink-muted">· {formatIndiaTime(comment.createdAt)}</span>
                       </p>
-                      {/* v1.52.2 (owner): comments show their formatting. */}
-                      <RichText text={comment.body} className="mt-0.5" />
+                      {/* v1.52.2 (owner): comments show their formatting. v1.60.0 (D-365): the author and IT edit or delete; earlier versions kept. */}
+                      <EditableComment
+                        target="REQUEST"
+                        commentId={comment.id}
+                        body={comment.body}
+                        edited={comment.edited}
+                        deleted={comment.deleted}
+                        canChange={comment.authorId === user.id || user.roles.includes("IT_ADMIN") || user.roles.includes("SUPER_ADMIN")}
+                        maxLength={2000}
+                      />
                     </li>
                   ))}
                 </ul>

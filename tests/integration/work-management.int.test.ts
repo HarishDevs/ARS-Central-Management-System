@@ -1,3 +1,4 @@
+import { listCommentVersions } from "@/lib/db/repositories/comment-versions.repository";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { RowDataPacket } from "mysql2/promise";
 import { getDbPool } from "@/lib/db/client";
@@ -169,7 +170,10 @@ describe("Task & Project Management (D-215)", () => {
     expect(reply.ok).toBe(true);
     expect((await work.addComment(parentTask, "Nested", reply.ok ? reply.value.id : 0, who(member))).ok).toBe(false);
     expect((await work.changeComment(rootId, { body: "edited" }, who(member))).ok).toBe(false); // not the author
+    // v1.60.0 (D-365): the author edits; every earlier text is kept, also on delete.
+    expect((await work.changeComment(rootId, { body: "Edited by its author" }, who(colleague))).ok).toBe(true);
     expect((await work.changeComment(rootId, { delete: true }, who(colleague))).ok).toBe(true);
+    expect((await listCommentVersions("TASK", rootId)).map((version) => version.kind)).toEqual(["EDIT", "DELETE"]);
     const comments = await repo.listComments(parentTask, member);
     expect(comments.find((comment) => comment.id === rootId)?.deletedAt).not.toBeNull();
   });

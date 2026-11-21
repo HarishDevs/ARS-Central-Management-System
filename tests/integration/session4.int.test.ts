@@ -4,6 +4,7 @@ import { getDbPool } from "@/lib/db/client";
 import { listPendingTasksFor } from "@/lib/db/repositories/approvals.repository";
 import { createWorkflow, decideTask, handOverPendingTasks, publishVersion, submitCustomRequest, submitRequest, type Actor } from "@/server/approvals/service";
 import { addComment, createDelegation, stopDelegation } from "@/server/approvals/collab";
+import { changeComment, commentVersions } from "@/server/comments/change";
 import { setActive } from "@/server/admin/users";
 import { runSlaChecks } from "@/server/jobs/sla";
 import { indiaToday, listComments } from "@/lib/db/repositories/collab.repository";
@@ -134,15 +135,40 @@ describe("handover and deactivation (F-16)", () => {
 });
 
 describe("comments (F-15)", () => {
-  it("participants comment; others can't; comments can't be changed", async () => {
+  it("participants comment; others can't; only the text can change (v1.60.0)", async () => {
     const workflowId = await liveWorkflow(oneStep([approver]));
     const requestId = await raise(workflowId);
     expect(await addComment(requestId, "Quote attached by email", person(requester))).toMatchObject({ ok: true });
     expect(await addComment(requestId, "Thanks, checking", person(approver))).toMatchObject({ ok: true });
     expect(await addComment(requestId, "Sneaky", person(other))).toMatchObject({ ok: false, code: "NOT_FOUND" });
     expect((await listComments(requestId)).map((comment) => comment.authorName)).toEqual(["Requester", "Approver A"]);
-    await expect(getDbPool().query("UPDATE request_comments SET body = 'x'")).rejects.toThrow(/append-only/);
+    // v1.60.0 (D-365): the text may change (versions kept); who wrote it may not; rows are never deleted.
+    await expect(getDbPool().query("UPDATE request_comments SET author_id = author_id + 1 WHERE request_id = ?", [requestId])).rejects.toThrow(/only the text may change/);
     await expect(getDbPool().query("DELETE FROM request_comments")).rejects.toThrow(/append-only/);
+  });
+
+  it("v1.60.0 (D-365): the author and IT edit or delete a comment; others can't; every earlier text is kept", async () => {
+    const workflowId = await liveWorkflow(oneStep([approver]));
+    const requestId = await raise(workflowId);
+    await addComment(requestId, "Quote is 1,20,000", person(requester));
+    const [first] = await listComments(requestId);
+    const commentId = first!.id;
+    expect(await changeComment("REQUEST", commentId, { body: "Sneaky" }, person(approver))).toMatchObject({ ok: false, message: /author and IT/ });
+    expect(await changeComment("REQUEST", commentId, { body: "x" }, person(other))).toMatchObject({ ok: false, message: "Not found." });
+    expect(await changeComment("REQUEST", commentId, { body: "Quote is 1,25,000" }, person(requester))).toMatchObject({ ok: true, message: "Comment saved." });
+    expect(await changeComment("REQUEST", commentId, { body: "Quote is 1,25,000 (with GST)" }, admin(adminId))).toMatchObject({ ok: true });
+    const [edited] = await listComments(requestId);
+    expect(edited).toMatchObject({ body: "Quote is 1,25,000 (with GST)", edited: true, deleted: false });
+    const versions = await commentVersions("REQUEST", commentId, person(approver));
+    expect(versions.ok && versions.value.map((version) => [version.kind, version.body])).toEqual([["EDIT", "Quote is 1,20,000"], ["EDIT", "Quote is 1,25,000"]]);
+    expect(await commentVersions("REQUEST", commentId, person(other))).toMatchObject({ ok: false });
+    expect(await changeComment("REQUEST", commentId, { delete: true }, person(requester))).toMatchObject({ ok: true, message: "Comment deleted." });
+    const [gone] = await listComments(requestId);
+    expect(gone).toMatchObject({ body: "", deleted: true });
+    expect(await changeComment("REQUEST", commentId, { body: "again" }, person(requester))).toMatchObject({ ok: false });
+    const after = await commentVersions("REQUEST", commentId, person(requester));
+    expect(after.ok && after.value.at(-1)).toMatchObject({ kind: "DELETE", body: "Quote is 1,25,000 (with GST)" });
+    await expect(getDbPool().query("DELETE FROM comment_versions")).rejects.toThrow(/append-only/);
   });
 });
 

@@ -97,7 +97,7 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
   // remarks, files and timeline (internal remarks only for those who see them).
   const ticketSide = task.ticketId ? await loadTicketFor(task.ticketId, user).catch(() => null) : null;
   const [ticketRemarks, ticketEvents, ticketFiles] = ticketSide
-    ? await Promise.all([listTicketComments(ticketSide.ticket.id, ticketSide.internal), listTicketEvents(ticketSide.ticket.id, ticketSide.internal), listRecordFiles("TICKET", ticketSide.ticket.id)])
+    ? await Promise.all([listTicketComments(ticketSide.ticket.id, ticketSide.internal).then((rows) => rows.filter((row) => !row.deleted)), listTicketEvents(ticketSide.ticket.id, ticketSide.internal), listRecordFiles("TICKET", ticketSide.ticket.id)])
     : [[], [], []];
   // v1.51.0 (D-300): the meeting an action-item task came from (like projects).
   const fromMeeting = await meetingOfTask(task.id).catch(() => null);

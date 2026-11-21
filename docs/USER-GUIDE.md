@@ -159,7 +159,7 @@ At the top of a request page, under its title and number, the **approval journey
 While it's open: **Withdraw** on the request. The approvers are told.
 
 ### Comments and mentions
-Comments on a request can't be edited or removed. To tell someone in particular, type `@` and their User ID (or tap their name under the box). Only people who can already see the request are told; if someone couldn't be told, you see their User ID after posting.
+**Edit and delete (v1.60.0):** the person who wrote a comment, and IT, see **Edit** and **Delete** under it, on requests, ticket remarks and task comments alike, with no time limit. An edited comment shows **(edited)**; **Show edits** lists what it said before each change, with who changed it and when. A deleted comment shows "This comment was deleted" (**Show what it said** shows its last text). Editing doesn't tell anyone again. To tell someone in particular, type `@` and their User ID (or tap their name under the box). Only people who can already see the request are told; if someone couldn't be told, you see their User ID after posting.
 
 ### Download a summary
 **Download PDF** at the top of a request: details, levels, who decided what, files and history.

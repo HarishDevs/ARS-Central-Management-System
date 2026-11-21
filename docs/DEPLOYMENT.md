@@ -209,6 +209,10 @@ Stops anyone reaching the GoDaddy server directly, around Cloudflare (and faking
 1. https://approval.arssteels.net → **Continue with Google** → **itsupport@arsenergy.co.in** (D-082). The seed created this Super Admin, User ID `itadmin`. `itadmin@arssteels.co.in` can't be used: it's only an alias, and Google reports the main address.
 2. You land on **My approvals**. Your name at the top right opens a menu whose **Switch space** section shows Admin and Super Admin.
 
+### G0e. Edit and delete comments (v1.60.0)
+1. Back up the database, then run `database/migrations/202611211000_comment_edits.sql`. It adds `comment_versions` (append-only), edit/delete columns on request, ticket and task comments, and swaps the request-comment "no update" trigger for one that lets only the text change (rows still can't be deleted). Rollback inside.
+2. Publish v1.60.0.
+
 ### G0d. Tickets without tasks (v1.59.3)
 1. Back up the database, then run `database/migrations/202611201000_ticket_tasks_retired.sql`. It cancels the tasks still open that belong to a ticket, each with a note in its history; data only, safe to run twice, rollback inside.
 2. Publish v1.59.3. Assigning a ticket no longer makes a task; the assignee starts and resolves it on the ticket.

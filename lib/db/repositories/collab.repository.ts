@@ -13,6 +13,8 @@ export interface CommentItem {
   authorName: string;
   body: string;
   createdAt: Date;
+  edited: boolean; // v1.60.0 (D-365): the text was changed (earlier versions kept)
+  deleted: boolean;
 }
 
 export async function insertComment(requestId: number, authorId: number, body: string, db: Queryable = getDbPool()): Promise<number> {
@@ -21,11 +23,11 @@ export async function insertComment(requestId: number, authorId: number, body: s
 }
 
 export async function listComments(requestId: number, db: Queryable = getDbPool()): Promise<CommentItem[]> {
-  const [rows] = await db.query<(RowDataPacket & { id: number; author_id: number; name: string; body: string; created_at: Date })[]>(
-    "SELECT c.id, c.author_id, u.name, c.body, c.created_at FROM request_comments c JOIN users u ON u.id = c.author_id WHERE c.request_id = ? ORDER BY c.id",
+  const [rows] = await db.query<(RowDataPacket & { id: number; author_id: number; name: string; body: string; created_at: Date; edited_at: Date | null; deleted_at: Date | null })[]>(
+    "SELECT c.id, c.author_id, u.name, c.body, c.created_at, c.edited_at, c.deleted_at FROM request_comments c JOIN users u ON u.id = c.author_id WHERE c.request_id = ? ORDER BY c.id",
     [requestId],
   );
-  return rows.map((row) => ({ id: row.id, authorId: row.author_id, authorName: row.name, body: row.body, createdAt: row.created_at }));
+  return rows.map((row) => ({ id: row.id, authorId: row.author_id, authorName: row.name, body: row.deleted_at ? "" : row.body, createdAt: row.created_at, edited: row.edited_at !== null, deleted: row.deleted_at !== null }));
 }
 
 // The requester plus everyone with a pending task (who hears about a comment).

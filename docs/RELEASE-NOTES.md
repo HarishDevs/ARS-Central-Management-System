@@ -1,5 +1,11 @@
 # Release notes
 
+## v1.60.0 (21 Nov 2026): Edit and delete every comment (owner)
+- **Every comment can be edited and deleted:** comments on requests (Discussion), ticket remarks and task comments. **Edit** and **Delete** show under each comment for the person who wrote it and for IT.
+- **Nothing is lost:** an edited comment is marked **(edited)**, and **Show edits** lists what it said before each change, with who changed it and when. A deleted comment shows "This comment was deleted", and **Show what it said** shows its last text. Everyone who can see the comment can see its earlier versions.
+- No time limit. Task comments already had Edit for their author; IT can now edit them too, and their versions are kept the same way.
+- **Owner steps:** back up the database, run `database/migrations/202611211000_comment_edits.sql` (adds the versions table and edit/delete marks; request comments still can't be removed from the database; rollback inside), then publish v1.60.0.
+
 ## v1.59.5 (20 Nov 2026): Add a subtask with the Create task window (owner)
 - On a task's page, **Subtasks** has an **Add subtask** button, and the **+** beside "Add a subtask..." is now a button too. Both open the same **Create task** window (name, for Myself or Others, project, description, due date and time, priority, periodic, files, collaborators), titled **Create subtask** and showing the task it goes under.
 - **Create subtask** makes it under this task and you stay on the task, which lists it. Typing a name and pressing Enter still adds a quick subtask (due today).

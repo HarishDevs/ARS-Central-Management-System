@@ -19,7 +19,7 @@ export default function TermsPage() {
     <PublicPage>
       <Prose>
         <h1>Terms of use</h1>
-        <p className="text-label text-ink-muted">Effective 20 November 2026 · approved by the head of IT, 2 November 2026</p>
+        <p className="text-label text-ink-muted">Effective 21 November 2026 · approved by the head of IT, 2 November 2026</p>
         <p>
           ARS CMS (approval.arssteels.net) is provided by {COMPANY} (&ldquo;ARS&rdquo;) for its employees to carry out company work. By signing in you agree to these terms and to ARS&apos;s
           policies that apply to company systems.
@@ -36,6 +36,7 @@ export default function TermsPage() {
           </li>
           <li>Don&apos;t try to access records you aren&apos;t given, get around security, or disrupt the service.</li>
           <li>Tasks, projects, comments, mentions and notices are work records: keep them to work, and mention or add people only where they need to know.</li>
+          <li>You can edit or delete your own comments, and IT can edit or delete any comment. Every earlier version is kept and shown to the people who can see the comment, so edit to correct, not to rewrite what was agreed.</li>
           <li>
             Meetings: the Coordinator records the points, attendance and minutes accurately, and the Meeting Owner approves them only after reading them. Approved minutes are shared with the
             participants and their action items become tasks for the people named.

@@ -5,7 +5,7 @@ import { FieldError, ResultMessage, SubmitButton, useActionForm } from "@/featur
 import { Hint } from "@/features/ui/Hint";
 import { RichEditor } from "@/features/ui/RichEditor";
 
-// F-15: comments can't be edited or deleted; they are part of the history.
+// F-15: the discussion on a request. v1.60.0 (D-365): comments can be edited or deleted by their author and IT; every earlier text is kept.
 export function CommentForm({ requestId, people = [] }: { requestId: number; people?: { loginId: string; name: string; departmentName?: string | null }[] }) {
   const { result, pending, formRef, onSubmit } = useActionForm(commentAction, { resetOnSuccess: true });
   // #9: a mention is "@UserID" in the text; v1.52.2 (owner): the box formats

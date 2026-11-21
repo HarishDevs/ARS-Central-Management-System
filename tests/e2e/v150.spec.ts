@@ -120,6 +120,17 @@ test("#9 #10 a mention and the PDF summary, both limited to who can see it", asy
   await page.getByRole("button", { name: "Post comment" }).click();
   await expect(page.getByText(/Not notified .*@E2E_STAFF/)).toBeVisible();
 
+  // v1.60.0 (D-365, owner): the author edits a comment; "Show edits" keeps what it first said.
+  await page.reload();
+  const mine = page.getByTestId("request-comment").last(); // the one just posted
+  await mine.getByTestId("comment-edit").click();
+  await mine.getByLabel("Edit comment").fill("Thanks, all clear");
+  await mine.getByRole("button", { name: "Save" }).click();
+  await expect(mine).toContainText("Thanks, all clear");
+  await expect(mine).toContainText("(edited)");
+  await mine.getByTestId("show-edits").click();
+  await expect(mine.getByTestId("comment-versions")).toContainText("fyi");
+
   const pdf = await page.request.get(`/api/requests/${bulkPaths[1]!.split("/").pop()}/summary.pdf`);
   expect(pdf.status()).toBe(200);
   expect(pdf.headers()["content-type"]).toBe("application/pdf");
