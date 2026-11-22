@@ -251,9 +251,9 @@ export async function AppShell({ area, user, nav, children }: { area: AppArea; u
           homeHref={`/${area}`}
           homeLabel={`ARS Green Steel: ${SPACE_LABEL[area]} home`}
           rail={rail}
-          create={area === "users" ? { approval: items.some((item) => item.href === "/users/custom"), task: tasksOn, project: projectsOn, portfolio: portfoliosOn, information: items.some((item) => item.href === "/users/information/new") } : null}
+          create={area === "users" ? { approval: items.some((item) => item.href === "/users/custom"), task: tasksOn, project: projectsOn, portfolio: portfoliosOn, information: items.some((item) => item.href === "/users/information/new"), meeting: items.some((item) => item.href === "/users/meetings/new"), ticket: items.some((item) => item.href === "/users/tickets/new") } : null}
         >
-          {area === "users" && <CreateMenu approval={items.some((item) => item.href === "/users/custom")} task={tasksOn} project={projectsOn} portfolio={portfoliosOn} information={items.some((item) => item.href === "/users/information/new")} />}
+          {area === "users" && <CreateMenu approval={items.some((item) => item.href === "/users/custom")} task={tasksOn} project={projectsOn} portfolio={portfoliosOn} information={items.some((item) => item.href === "/users/information/new")} meeting={items.some((item) => item.href === "/users/meetings/new")} ticket={items.some((item) => item.href === "/users/tickets/new")} />}
           <p className="shrink-0 px-6 pt-4 text-caption font-semibold uppercase tracking-wider text-ink-faint">{SPACE_LABEL[area]}</p>
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain" data-testid="sidebar-scroll">
             <SideNav items={sideItems} collapsible={area !== "admin"} chats={chats} />

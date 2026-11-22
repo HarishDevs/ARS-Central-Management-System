@@ -39,7 +39,8 @@ import { DeleteDraftButton, PeriodPicker, QuietRefresh } from "@/features/home/H
 import { approvalInsights, isApproverForHome, myRequestCounts } from "@/lib/db/repositories/overview.repository";
 import { indiaDayOf } from "@/features/work/format";
 import { parsePeriod } from "@/server/work/period";
-import { AlertTriangle, ArrowRight, BarChart3, CheckCircle2, Clock3, FileEdit, FilePlus2, FileText, Inbox, Layers, PenSquare, Repeat2 } from "lucide-react";
+import { AlertTriangle, ArrowRight, BarChart3, CalendarClock, CalendarDays, CalendarPlus, CheckCircle2, ClipboardCheck, Clock3, FileEdit, FilePlus2, FileText, Inbox, Layers, ListChecks, PenSquare, Repeat2, Search, UserCheck } from "lucide-react";
+import { QuickActions, type QuickAction } from "@/features/home/QuickActions";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
 export const metadata: Metadata = { title: "Home" };
@@ -153,7 +154,27 @@ export default async function UsersHome({ searchParams }: { searchParams: Promis
 
   if (focus === "meetings") {
     const base: Record<string, string> = { home: "meetings", ...(overview ? { view: "overview" } : {}) };
-    return <MeetingHome user={user} greetingName={greetingName ?? name} query={query} base={base} figures={!isHiddenHref("/users/meetings/dashboard", (await navAccess(user)).hidden)} switcher={<HomeFocusSwitch focus={focus} overview={overview} choices={choices} locked={lockedChoices} />} />;
+    const meetingHidden = (await navAccess(user)).hidden;
+    // v1.77.1 (owner): the basic quick actions, as on the Task Management overview.
+    const meetingQuick: QuickAction[] = [
+      { href: "/users/meetings/new", label: "Schedule meeting", icon: <CalendarPlus className="h-4 w-4" />, primary: true },
+      { href: "/users/meetings", label: "All meetings", icon: <CalendarClock className="h-4 w-4" /> },
+      { href: "/users/meetings?tab=approve", label: "To approve", icon: <ClipboardCheck className="h-4 w-4" /> },
+      { href: "/users/meetings?tab=mine", label: "My meetings", icon: <FileEdit className="h-4 w-4" /> },
+      { href: "/users/meetings/follow-ups", label: "Follow-ups", icon: <ListChecks className="h-4 w-4" /> },
+      { href: "/users/calendar", label: "Calendar", icon: <CalendarDays className="h-4 w-4" /> },
+    ].filter((item) => !isHiddenHref(item.href, meetingHidden));
+    return (
+      <MeetingHome
+        user={user}
+        greetingName={greetingName ?? name}
+        query={query}
+        base={base}
+        figures={!isHiddenHref("/users/meetings/dashboard", meetingHidden)}
+        switcher={<HomeFocusSwitch focus={focus} overview={overview} choices={choices} locked={lockedChoices} />}
+        quick={<QuickActions items={meetingQuick} testId="meeting-quick-actions" />}
+      />
+    );
   }
 
   if (focus === "tasks") {
@@ -255,6 +276,17 @@ export default async function UsersHome({ searchParams }: { searchParams: Promis
   ];
   const keep = { home: "approvals", ...(overview ? { view: "overview" } : {}), ...(recentSort.sortBy ? { sortBy: `hr.${recentSort.sortBy}`, dir: recentSort.dir } : {}) };
   const hours = insights?.avgHours ?? null;
+  const approvalHidden = (await navAccess(user)).hidden;
+  // v1.77.1 (owner): the basic quick actions, as on the Task Management overview. D-206: New request opens the page where people choose their own approvers.
+  const approvalQuick: QuickAction[] = [
+    { href: "/users/custom", label: "New request", icon: <FilePlus2 className="h-4 w-4" />, primary: true },
+    { href: "/users/queue", label: "Waiting for me", icon: <Inbox className="h-4 w-4" /> },
+    { href: "/users/requests", label: "My requests", icon: <FileText className="h-4 w-4" /> },
+    { href: "/users/approved-by-me", label: "Approved by me", icon: <CheckCircle2 className="h-4 w-4" /> },
+    { href: "/users/delegation", label: "Delegate", icon: <UserCheck className="h-4 w-4" /> },
+    { href: "/users/reports", label: "Reports", icon: <BarChart3 className="h-4 w-4" /> },
+    { href: "/users/search", label: "Search", icon: <Search className="h-4 w-4" /> },
+  ].filter((item) => !isHiddenHref(item.href, approvalHidden));
 
   return (
     <div data-testid="approval-overview">
@@ -276,12 +308,9 @@ export default async function UsersHome({ searchParams }: { searchParams: Promis
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {choices.length + lockedChoices.length > 1 && <HomeFocusSwitch focus={focus} overview={overview} choices={choices} locked={lockedChoices} />}
-          {/* D-206 (owner): New request opens the page where people choose their own approvers. */}
-          <Link href="/users/custom" className="btn-primary btn-compact inline-flex items-center gap-1.5">
-            <FilePlus2 aria-hidden="true" className="h-4 w-4" /> New request
-          </Link>
         </div>
       </header>
+      <QuickActions items={approvalQuick} testId="approval-quick-actions" />
       {!onboarded && <FirstUseChecklist hidden={(await navAccess(user)).hidden.has("users.queue") ? ["/users/queue", "/users/delegation"] : []} />}
       <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 xl:grid-cols-4" data-tour="overview-tiles">
         {tiles.map((tile) => (

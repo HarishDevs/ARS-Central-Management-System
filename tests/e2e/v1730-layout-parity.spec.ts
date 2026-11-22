@@ -361,6 +361,8 @@ test("My Tasks: the title's ▾ menu; Home: Add widgets and each widget's Action
   expect(await axe(page, "[data-testid=my-tasks-header]")).toEqual([]);
 
   await page.goto("/users?home=tasks");
+  // v1.77.1 (owner): Customise (and Add widgets when any is left) sit at the right end of the quick-action row.
+  await expect(page.getByTestId("work-quick-actions").getByTestId("customise-home")).toBeVisible();
   const widget = page.getByTestId("home-widget").first();
   const menu = widget.getByTestId("widget-actions");
   await trigger(menu).click();

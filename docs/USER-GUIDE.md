@@ -19,7 +19,8 @@ The account menu works with the keyboard too: **↓ / ↑** move, **Enter** choo
 
 ### The sidebar (Compact view)
 From the top:
-- **+ Create:** a new approval request, task, project, portfolio or information (only what you can create).
+- **+ Create:** a new approval request, task, project, portfolio, meeting, ticket or information (only what you can create).
+- **Quick actions (v1.77.1):** each Home overview has a row of buttons under its title. Approvals: New request, Waiting for me, My requests, Approved by me, Delegate, Reports, Search. Task Management: Create task, View all tasks, Projects, Search tasks, Calendar, with **+ Add widgets** and **Customise** at the right end. Meetings: Schedule meeting, All meetings, To approve, My meetings, Follow-ups, Calendar. Only pages you can open are shown.
 - **Home** and **Inbox**.
 - **My Approvals:** New request, My pending requests, My approved requests, Waiting for me, Approved by me, Collaborating, Approval templates. If your designation isn't an approver designation you see only New request, My pending requests, My approved requests and Collaborating (Approval templates is still reached from New request). A request you open highlights the list it belongs to for you (for example Waiting for me when it needs your decision).
 - **Tasks:** My Tasks, Assigned by me, Team tasks, Periodic tasks, Task search, New task.
@@ -223,7 +224,7 @@ While it's open: **Withdraw** on the request. The approvers are told.
   - **A task's ⋯:** **Create follow-up task** (a new task "Follow-up: <name>", with a link back in its description) and **Duplicate task** ("<name> (copy)" with the same description, priority and project) open the **Create task** window filled in: check it and create it. Every new-task rule applies (one assignee, a due date).
   - **Create task ▾** at the bottom of the window: **Create and add another** creates the task and keeps the window open, emptied, for the next one.
   - **Task Summary:** the **▾** beside the title: Add task, **Morning summary email** (on or off), Table with filters, Calendar feed, Print. Each task on the Board and the list has a **⋯** (Open task details, Copy task link, Go to its project) and shows its comment count.
-  - **Home:** **+ Add widgets** at the top adds a widget at the end; each widget's **⋯** (Actions): Move up, Move down, Half width or Full width, Remove widget. **Customise** still shows the drag handles and Reset.
+  - **Home:** **+ Add widgets** (at the right end of the quick-action row) adds a widget at the end; each widget's **⋯** (Actions): Move up, Move down, Half width or Full width, Remove widget. **Customise** still shows the drag handles and Reset.
   - **Portfolios page:** cards (a **New portfolio** tile, then each portfolio with its star and **⋯**: Open portfolio, Copy portfolio link, star, Join); **View as list** switches to a list and back.
   - **A portfolio:** **▾** next to the name (Edit portfolio details, Copy portfolio link, Set colour, Export or sync › Print, Archive, Leave, Delete portfolio); the people pictures open **Share**; **Add work ▾** also offers Create new project and Create new portfolio; **Filter**, **Sort** and **Group** are dropdown menus; each column's **▾** sorts it (and groups by Status, Owner or Priority); each row's **⋯** has Open, Copy link and **Remove from this portfolio**.
   - **Form builder:** the bar at the top says who may submit (**Change** opens Settings), then View form, **Share form**, Copy link and **⋯** (Duplicate form, Unpublish, Delete form).

@@ -3,6 +3,7 @@
 import { ArrowDown, ArrowUp, Check, GripVertical, LayoutGrid, MoreHorizontal, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { homeLayoutAction } from "@/app/users/home-actions";
 import { Menu, type MenuItem } from "@/features/ui/Menu";
 import { useToast } from "@/features/ui/Toast";
@@ -35,6 +36,10 @@ export function HomeWidgets({ widgets, version, addable, extra }: { widgets: Boa
     setLayout(widgets.map(({ kind, size }) => ({ kind, size })));
     setAt(version);
   }, [serverKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  // v1.77.1 (owner, 22 Nov 2026): the toolbar is drawn in the quick-action row
+  // (#home-widgets-toolbar-slot) when the page provides it; otherwise here.
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
+  useEffect(() => setSlot(document.getElementById("home-widgets-toolbar-slot")), []);
   const nodes = new Map(widgets.map((item) => [item.kind, item.node]));
   const title = (kind: WidgetKind) => widgetEntry(kind).title;
   const focusHandle = (kind: WidgetKind) => requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-widget-handle="${kind}"]`)?.focus());
@@ -100,7 +105,9 @@ export function HomeWidgets({ widgets, version, addable, extra }: { widgets: Boa
   return (
     <div data-testid="home-widgets" data-editing={editing ? "on" : undefined}>
       {/* v1.73.0 (D-396, spec HOME §3.1.1, §3.15): "+ Add widgets" is always in the header (a dropdown of the widgets not on Home); Customise shows the move handles and Reset. */}
-      <div className="mb-3 flex flex-wrap items-center justify-end gap-2" role="toolbar" aria-label="Home widgets">
+      {(() => {
+        const toolbar = (
+      <div className={slot ? "flex flex-wrap items-center gap-2" : "mb-3 flex flex-wrap items-center justify-end gap-2"} role="toolbar" aria-label="Home widgets">
         {addable.length > 0 && (
           <Menu
             label="Add widgets"
@@ -153,6 +160,9 @@ export function HomeWidgets({ widgets, version, addable, extra }: { widgets: Boa
           {editing ? "Done" : "Customise"}
         </button>
       </div>
+        );
+        return slot ? createPortal(toolbar, slot) : toolbar;
+      })()}
       <span role="status" aria-live="polite" className="sr-only" data-testid="home-live">
         {live}
       </span>

@@ -26,6 +26,7 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 - [x] TS-R2-6 (23 Nov 2026) Board toolbar per tab (Filter, Sort, Group = columns, Search, auto-save, Reset); Calendar per tab (Weeks/Months, Filter, Show weekends)
 - [x] TS-R2-7 (23 Nov 2026) Avatar → profile; tests (unit, integration matrix, e2e share/manager/revoke/fields/board/calendar, axe light/dark, phone); general pages; living files
 - **Now (22 Nov 2026):** **v1.76.2** one-time restore of the 22 Nov backup on start (D-403). **Owner:** add secrets RESTORE_CONFIRM and RESTORE_BACKUP_KEY, Update Preview, check the data, Publish, remove the secrets, run the two optional trigger files.
+- [x] UI-77a (22 Nov 2026) Quick actions on Approval and Meeting overviews; Add widgets/Customise in the Task quick-action row; + Create adds Meeting and Ticket (v1.77.1)
 - [ ] BK-1 (planned 22 Nov 2026, after the motion review) Backup, Restore and Migrate centre in Super Admin — brief docs/ops/BACKUP-CENTRE-BRIEF.md: full encrypted package (DB + attachments + secrets, owner passphrase), all destinations/sources, safety snapshot before restore, app-to-app and DB-to-DB migration GoDaddy <-> VPS
 - [x] OPS-38 (22 Nov 2026) Append-only history enforced by a code test (triggers can't be created on GoDaddy)
 - [x] OPS-37 (22 Nov 2026) Warn: never use Database Manager Import for partial SQL; owner steps skip the optional trigger files

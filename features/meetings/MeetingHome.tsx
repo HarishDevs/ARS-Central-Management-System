@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertTriangle, ArrowRight, CalendarClock, CalendarPlus, ClipboardCheck, FilePenLine, Lightbulb, ListChecks } from "lucide-react";
+import { AlertTriangle, ArrowRight, CalendarClock, ClipboardCheck, FilePenLine, Lightbulb, ListChecks } from "lucide-react";
 import { FollowUpBadge, MeetingStatusBadge, PointsBadge, whenText } from "@/features/meetings/MeetingParts";
 import { KpiGrid, pct, TallyTable, tallyMeetings } from "@/features/meetings/MeetingStats";
 import { PeriodPicker } from "@/features/home/HomeClient";
@@ -40,6 +40,7 @@ export async function MeetingHome({
   query,
   base,
   figures,
+  quick,
 }: {
   user: { id: number; roles: readonly string[] };
   greetingName: string;
@@ -47,6 +48,7 @@ export async function MeetingHome({
   query: Record<string, string | undefined>;
   base: Record<string, string>;
   figures: boolean;
+  quick?: React.ReactNode;
 }) {
   const scope = await scopeFor(user);
   const period = parsePeriod({ period: query.period, from: query.from, to: query.to }, indiaDayOf(new Date()), "month");
@@ -147,11 +149,10 @@ export async function MeetingHome({
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {switcher}
-          <Link href="/users/meetings/new" className="btn-primary btn-compact inline-flex items-center gap-1.5">
-            <CalendarPlus aria-hidden="true" className="h-4 w-4" /> Schedule meeting
-          </Link>
         </div>
       </header>
+      {/* v1.77.1 (owner): quick actions row (Schedule meeting first), as on the Task Management overview. */}
+      {quick}
 
       <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 xl:grid-cols-4" data-testid="meeting-tiles">
         {tiles.map((tile) => (

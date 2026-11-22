@@ -617,6 +617,8 @@ export async function MyWorkOverview({
         {projectsOn ? <QuickLink href="/users/work/projects" icon={<FolderKanban className="h-4 w-4" />} label="Projects" /> : <ComingSoonChip label="Projects" className="rounded-lg border border-line" />}
         <QuickLink href="/users/work/search" icon={<Search className="h-4 w-4" />} label="Search tasks" />
         <QuickLink href="/users/calendar" icon={<CalendarDays className="h-4 w-4" />} label="Calendar" />
+        {/* v1.77.1 (owner, 22 Nov 2026): Add widgets and Customise sit at the right end of this row (HomeWidgets renders them here through a portal). */}
+        {widgets && <div id="home-widgets-toolbar-slot" className="ml-auto flex flex-wrap items-center gap-2" />}
       </nav>
 
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4" data-testid="work-kpis">

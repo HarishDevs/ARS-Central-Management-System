@@ -1,5 +1,12 @@
 # Release notes
 
+## v1.77.1 (22 Nov 2026): Quick actions on every overview; Create offers meetings and tickets
+- **Task Management overview:** **+ Add widgets** and **Customise** moved up to the right end of the quick-action row (Create task, View all tasks, Projects, Search tasks, Calendar).
+- **Approval overview:** a quick-action row: **New request** (moved here from the header), Waiting for me, My requests, Approved by me, Delegate, Reports, Search.
+- **Meeting overview:** a quick-action row: **Schedule meeting** (moved here from the header), All meetings, To approve, My meetings, Follow-ups, Calendar.
+- **+ Create** in the sidebar now also offers **Meeting** (Schedule a meeting) and **Ticket** (Raise a ticket), each only for people who can open that page.
+- Only pages you can open are shown. No data, rule or migration changes.
+
 ## v1.77.0 (23 Nov 2026): Task Summary, organise and share: Share read-only, your team's Task Summary, Customise › Fields, Board and Calendar tab settings
 Comes with the Projects phase A switch. Migration `202611231100_task_summary_r2.sql` (runs on start; no triggers).
 - **Share:** the lock button beside Task Summary's title lets chosen people open your Task Summary, read-only. **Invite** works once you choose someone; they are told. The list shows who can see it: you, your managers in the reporting line (always, read-only) and the people you added, each with **Remove**.
