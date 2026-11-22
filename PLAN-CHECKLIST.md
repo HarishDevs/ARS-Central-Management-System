@@ -18,6 +18,7 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 
 ## Now / Next
 - **Now (22 Nov 2026):** **v1.76.2** one-time restore of the 22 Nov backup on start (D-403). **Owner:** add secrets RESTORE_CONFIRM and RESTORE_BACKUP_KEY, Update Preview, check the data, Publish, remove the secrets, run the two optional trigger files.
+- [x] OPS-37 (22 Nov 2026) Warn: never use Database Manager Import for partial SQL; owner steps skip the optional trigger files
 - [x] OPS-36 (22 Nov 2026) Encrypted backup bundle + restore-on-start (guarded, run once, never blocks start)
 - **Now (22 Nov 2026):** **v1.76.1** the app starts on an empty database (D-402). **Owner:** Update Preview, restart the preview, import the backup in Database Manager, publish, run the two optional trigger files.
 - [x] OPS-35 (22 Nov 2026) Oldest migrations' triggers optional; guard covers every migration

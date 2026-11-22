@@ -1,3 +1,6 @@
+-- WARNING (22 Nov 2026): do NOT load this file with GoDaddy Database Manager ->
+-- Import database. The importer drops EVERY table first and empties the
+-- database. The app works without these triggers; skip them on GoDaddy.
 -- v1.9.0 / v1.62.0 / v1.71.2: optional append-only guards for the task and
 -- information history (task_events, info_events). The app only ever inserts
 -- into these tables, so it works without them; they add a database-level lock

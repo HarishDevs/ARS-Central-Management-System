@@ -830,6 +830,9 @@
 
 ## 5. Work log (newest first)
 
+### 22 Nov 2026 (after v1.76.2: the optional trigger files emptied the database again)
+- The owner ran `database/optional/v1600_comment_triggers.sql` and `v190_append_only_triggers.sql` through Database Manager → Import database, as Claude's D-402/D-403 owner steps said ("run once in the Database Manager"). That importer drops every table before running the file, so the database was emptied again (very likely also the cause of the first loss at 21:05). The files themselves only drop/create triggers. Fix (part of D-403, no new decision number to avoid clashing with the R2 agent's D-404+): owner steps now say skip the trigger files; a warning heads both files and DEPLOYMENT Part B. Recovery: set RESTORE_CONFIRM and RESTORE_BACKUP_KEY again and restart; ops_restores was dropped with everything else, so the restore runs again.
+
 ### 22 Nov 2026 (v1.76.2: one-time restore on start-up)
 - D-403. Import in the Database Manager still failed; the live database is an empty rebuild. Bundled the backup encrypted, added restore-on-start.js (guards: confirm secret, key, checksum, refuse if data exists, lock, run-once marker, never blocks start). Verified on a local copy (41 s, 200 users, 581 requests, migrations then add 202611231000). Tests: tests/ops/restore-on-start.test.ts.
 - General pages: release notes and DEPLOYMENT G0u. Privacy, terms, guide, help, tour, checklist: no change (restores existing data the same way the documented backup restore does; nothing new is collected, shown or ruled).

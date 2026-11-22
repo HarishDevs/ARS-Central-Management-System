@@ -80,6 +80,8 @@ The app sends email as **no_reply@approval.arssteels.net** through Resend (repli
 ---
 
 ## Part B: The database (the app's Hosted Database)
+
+> **Warning (22 Nov 2026, D-403):** GoDaddy's Database Manager → **Import database** drops **every table** before it runs the file. Use it only to load a **full backup**. Never use it for the small files in `database/optional/` or any other partial SQL: the database is emptied and only the statements in that file remain.
 GoDaddy's Node.js hosting provisions a MySQL database **with the app**: **App → Settings → Hosted Database**. The preview and live environments share it. Use it; the cPanel database isn't needed.
 
 ### B1. Create the tables: automatic on the first start (recommended)
@@ -214,7 +216,7 @@ Stops anyone reaching the GoDaddy server directly, around Cloudflare (and faking
 2. **Update Preview** (or Publish): on start the app restores the bundled backup (`database/restore/ars-db-20261122-152503.sql.gz.enc`, 22 Nov 2026 8:55 pm IST) once, then the migrations add anything newer. It takes about a minute; the log shows `[restore-on-start] restored … statements`.
 3. Sign in and check requests, tasks and users are back. Then **Publish to Live**.
 4. Remove both secrets (a second start skips anyway: the restore is recorded in table `ops_restores`).
-5. Run `database/optional/v1600_comment_triggers.sql` and `database/optional/v190_append_only_triggers.sql` once in the Database Manager.
+5. **Skip the two optional trigger files** (`database/optional/*.sql`). The app works without them. **Never use Database Manager → Import database for them (or for any partial SQL): the importer drops every table first.** That is what emptied the database twice on 22 Nov 2026.
 6. Re-enter anything done after 8:55 pm IST on 22 Nov 2026.
 
 ### G0t. Task Summary: range per tab, My sections and rules, CSV (v1.76.0)

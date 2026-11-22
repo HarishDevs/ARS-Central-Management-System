@@ -1,3 +1,6 @@
+-- WARNING (22 Nov 2026): do NOT load this file with GoDaddy Database Manager ->
+-- Import database. The importer drops EVERY table first and empties the
+-- database. The app works without these triggers; skip them on GoDaddy.
 -- v1.60.0 (D-365) / v1.63.1 / v1.71.1: the comment triggers, for hosted MySQL
 -- where the app's database user can't create triggers (binary logging needs
 -- SUPER), so the migrations skip them with a warning.

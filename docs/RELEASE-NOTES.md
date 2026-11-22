@@ -7,13 +7,13 @@
 2. **Update Preview** (or Publish): on start the app restores the bundled backup (`database/restore/ars-db-20261122-152503.sql.gz.enc`, 22 Nov 2026 8:55 pm IST) once, then the migrations add anything newer. It takes about a minute; the log shows `[restore-on-start] restored … statements`.
 3. Sign in and check requests, tasks and users are back. Then **Publish to Live**.
 4. Remove both secrets (a second start skips anyway: the restore is recorded in table `ops_restores`).
-5. Run `database/optional/v1600_comment_triggers.sql` and `database/optional/v190_append_only_triggers.sql` once in the Database Manager.
+5. **Skip the two optional trigger files** (`database/optional/*.sql`). The app works without them. **Never use Database Manager → Import database for them (or for any partial SQL): the importer drops every table first.** That is what emptied the database twice on 22 Nov 2026.
 6. Re-enter anything done after 8:55 pm IST on 22 Nov 2026.
 
 ## v1.76.1 (22 Nov 2026): Fix: the app could not start on an empty database
 - After the live database's tables were deleted (22 Nov 2026), the app (preview and live) could no longer start: on an empty database `npm start` runs every migration, and the three oldest (September/October 2026) created triggers that GoDaddy's MySQL refuses. Those trigger blocks are now optional, like every other trigger since v1.9.0, so a fresh or emptied database is rebuilt and the app starts. Databases that already ran them are not affected.
 - The guard test now checks every migration, not only those since v1.9.0.
-- **Owner steps:** Update Preview → Restart Preview App (it now starts and rebuilds an empty schema) → Database Manager → Import the backup `.sql` → Publish to Live → run `database/optional/v1600_comment_triggers.sql` and `database/optional/v190_append_only_triggers.sql` once in the Database Manager.
+- **Owner steps:** Update Preview → Restart Preview App (it now starts and rebuilds an empty schema) → Database Manager → Import the backup `.sql` → Publish to Live. (Correction, 22 Nov 2026: do **not** run the optional trigger files through Database Manager → Import: it drops every table first.)
 
 ## v1.76.0 (23 Nov 2026): Task Summary for daily use: all your tasks in a tab, your own sections with rules, and CSV
 Comes with the Projects phase A switch. Migration `202611231000_task_summary_r1.sql` (runs on start).
