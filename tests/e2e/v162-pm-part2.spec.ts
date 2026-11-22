@@ -236,9 +236,12 @@ test("starring a project puts it in the sidebar's Starred list, which sorts and 
   await expect(starred.getByRole("status")).toContainText(`${moving} moved to position`);
   await expect.poll(async () => (await names()).findIndex((name) => name.includes(moving))).toBeGreaterThan(Math.min(first, second));
   // The sort menu.
-  await page.getByTestId("sidebar-sort-starred").locator("summary").click();
-  await page.getByTestId("sidebar-sort-starred").getByRole("button", { name: "A–Z" }).click();
-  await expect(page.getByTestId("sidebar-sort-starred").locator("summary")).toHaveAttribute("aria-label", /A–Z/);
+  // v1.73.0 (D-396): the section's options are a dropdown menu (radio items).
+  const sortMenu = page.getByTestId("sidebar-sort-starred");
+  await sortMenu.locator("button[aria-haspopup]").click();
+  await sortMenu.getByRole("menuitemradio", { name: "A–Z" }).click();
+  await expect(sortMenu.locator("button[aria-haspopup]")).toHaveAttribute("aria-label", /A–Z/);
+  await page.keyboard.press("Escape");
   expect(await axe(page, "[data-testid=work-sidebar]")).toEqual([]);
   await page.screenshot({ path: "test-results/v162-sidebar.png" });
 });

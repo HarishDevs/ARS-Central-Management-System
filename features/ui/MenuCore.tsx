@@ -16,6 +16,9 @@ import { menuMove, menuTypeahead } from "@/features/ui/menu-keys";
 // closes it and moves on. Entries: plain items (links or actions), radio and
 // checkbox items (aria-checked, the menu stays open), headings, separators,
 // disabled items and one level of submenus.
+// v1.73.0 (D-396): used on every PM screen (part 2); a picker's radio item can
+// close the menu (`close`), and a menu inside a transformed window is placed
+// from that window (`fixedOrigin`).
 export interface MenuItem {
   label: string;
   href?: string;
@@ -30,10 +33,25 @@ export interface MenuItem {
   download?: boolean;
   testId?: string;
   badge?: string; // v1.72.2: a count on the right (e.g. unread)
+  close?: boolean; // v1.73.0 (D-396): a radio or checkbox item that closes the menu once chosen (a picker)
   items?: MenuItem[]; // kind "submenu"
 }
 
 type Place = React.CSSProperties;
+
+// v1.73.0 (D-396): a transformed (or filtered) ancestor, such as the centred
+// Create task window, becomes the containing block of a position: fixed menu,
+// so the menu's place is measured from that ancestor instead of the window.
+function fixedOrigin(element: HTMLElement): { left: number; top: number; bottom: number } {
+  for (let node = element.parentElement; node && node !== document.body; node = node.parentElement) {
+    const style = getComputedStyle(node);
+    if (style.transform !== "none" || style.filter !== "none" || style.perspective !== "none" || /paint|layout|strict|content/.test(style.contain) || /transform|filter/.test(style.willChange)) {
+      const rect = node.getBoundingClientRect();
+      return { left: rect.left, top: rect.top, bottom: rect.bottom };
+    }
+  }
+  return { left: 0, top: 0, bottom: window.innerHeight };
+}
 
 function usePlace(open: boolean, anchor: React.RefObject<HTMLElement | null>, panel: React.RefObject<HTMLElement | null>, align: "left" | "right", side: "below" | "right"): Place {
   const [place, setPlace] = useState<Place>({ position: "fixed", opacity: 0 });
@@ -49,7 +67,8 @@ function usePlace(open: boolean, anchor: React.RefObject<HTMLElement | null>, pa
         const fitsRight = box.right + width + 4 <= window.innerWidth - 8;
         const left = fitsRight ? box.right + 2 : Math.max(8, box.left - width - 2);
         const top = Math.max(8, Math.min(box.top - 4, window.innerHeight - Math.min(height, window.innerHeight - 16) - 8));
-        setPlace({ position: "fixed", left, top, maxHeight: window.innerHeight - 16, zIndex: "calc(var(--z-popover) + 1)" });
+        const origin = fixedOrigin(element);
+        setPlace({ position: "fixed", left: left - origin.left, top: top - origin.top, maxHeight: window.innerHeight - 16, zIndex: "calc(var(--z-popover) + 1)" });
         return;
       }
       const below = window.innerHeight - box.bottom - 8;
@@ -57,7 +76,8 @@ function usePlace(open: boolean, anchor: React.RefObject<HTMLElement | null>, pa
       const up = below < Math.min(height, 260) && above > below;
       const wanted = align === "right" ? box.right - width : box.left;
       const left = Math.min(Math.max(8, wanted), Math.max(8, window.innerWidth - width - 8));
-      setPlace({ position: "fixed", left, maxHeight: Math.max(140, (up ? above : below) - 4), zIndex: "var(--z-popover)", ...(up ? { bottom: window.innerHeight - box.top + 4 } : { top: box.bottom + 4 }) });
+      const origin = fixedOrigin(element);
+      setPlace({ position: "fixed", left: left - origin.left, maxHeight: Math.max(140, (up ? above : below) - 4), zIndex: "var(--z-popover)", ...(up ? { bottom: origin.bottom - box.top + 4 } : { top: box.bottom + 4 - origin.top }) });
     };
     measure();
     window.addEventListener("resize", measure);
@@ -84,6 +104,7 @@ export function Menu({
   onOpenChange,
   menuLabel,
   header,
+  className = "relative inline-flex",
 }: {
   label: string;
   trigger: React.ReactNode;
@@ -96,6 +117,7 @@ export function Menu({
   onOpenChange?: (open: boolean) => void;
   menuLabel?: string; // the list's name when it differs from the button's
   header?: React.ReactNode; // v1.72.2 (D-394): plain words above the items (who you are), not focusable
+  className?: string; // v1.73.0 (D-396): the wrapper's classes (e.g. "relative flex" for a full-width button)
 }) {
   const [open, setOpenState] = useState(false);
   const box = useRef<HTMLDivElement>(null);
@@ -130,7 +152,7 @@ export function Menu({
   };
 
   return (
-    <div ref={box} className="relative inline-flex" data-testid={testId} data-open={open || undefined}>
+    <div ref={box} className={className} data-testid={testId} data-open={open || undefined}>
       <button
         ref={button}
         type="button"
@@ -298,7 +320,7 @@ function MenuList({ id, label, items, style, className, onClose, onBack, ref, ba
             onMouseEnter={() => setSub(null)}
             onClick={() => {
               if (item.disabled) return;
-              if (item.kind === "radio" || item.kind === "checkbox") {
+              if ((item.kind === "radio" || item.kind === "checkbox") && !item.close) {
                 item.onSelect?.();
                 return;
               }

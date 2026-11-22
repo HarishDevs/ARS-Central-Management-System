@@ -7,23 +7,24 @@ import { followAction, quickAddAction, recurrenceAction, taskFieldsAction } from
 import { taskAction } from "@/app/users/tasks/actions";
 import { draftTaskTextAction } from "@/app/users/ai/actions";
 import { CREATE_TASK_EVENT, ProjectDot, useWorkCall, type CreateTaskDetail } from "@/features/work/client";
+import { Menu } from "@/features/ui/Menu";
 import { RichEditor } from "@/features/ui/RichEditor";
 import { useProjectsOn } from "@/features/work/projects-access";
 import { mentionIds } from "@/features/work/rich-text";
 import { RECURRENCE_KINDS, type Recurrence } from "@/server/work/more-rules";
 
-// D-221 (owner): "Create → Task" anywhere in the app opens Asana's Draft
+// D-221 (owner): "Create â†’ Task" anywhere in the app opens Asana's Draft
 // task panel (bottom right). Mounted once in the users layout; anything can
 // ask for it with CREATE_TASK_EVENT (detail.projectId picks the project).
 type RailProject = { id: number; name: string; color: string };
 type Person = { id: number; label: string; detail?: string };
 
 export function TaskCreator({ projects, people, meId, ai = false }: { projects: RailProject[]; people: Person[]; meId: number; ai?: boolean }) {
-  const [open, setOpen] = useState<{ projectId: number | null; parentId?: number | null; parentLabel?: string; milestone?: boolean; at?: number } | null>(null);
+  const [open, setOpen] = useState<{ projectId: number | null; parentId?: number | null; parentLabel?: string; milestone?: boolean; prefill?: CreateTaskDetail["prefill"]; at?: number } | null>(null);
   useEffect(() => {
     const onCreate = (event: Event) => {
       const detail = (event as CustomEvent<CreateTaskDetail | null>).detail;
-      setOpen({ projectId: detail?.projectId ?? null, parentId: detail?.parentId ?? null, parentLabel: detail?.parentLabel, milestone: Boolean(detail?.milestone), at: Date.now() });
+      setOpen({ projectId: detail?.projectId ?? null, parentId: detail?.parentId ?? null, parentLabel: detail?.parentLabel, milestone: Boolean(detail?.milestone), prefill: detail?.prefill, at: Date.now() });
     };
     window.addEventListener(CREATE_TASK_EVENT, onCreate);
     return () => window.removeEventListener(CREATE_TASK_EVENT, onCreate);
@@ -52,6 +53,7 @@ export function TaskCreator({ projects, people, meId, ai = false }: { projects: 
       parentId={open.parentId ?? null}
       parentLabel={open.parentLabel}
       milestone={Boolean(open.milestone)}
+      prefill={open.prefill}
       ai={ai}
     />
   ) : null;
@@ -78,7 +80,7 @@ const sizeText = (bytes: number) => (bytes < 1024 * 1024 ? `${Math.max(1, Math.r
 // right: Task name; "For <people> in <project>"; Description; then the
 // due date, repeat (periodic) and Create task. Ad hoc unless a repeat is set.
 // D-238 (owner's Asana screenshots): the toolbar under the description: + (more),
-// Formatting, Emoji, @mention, Attach (or paste an image), ✨ Pico Bot (only for
+// Formatting, Emoji, @mention, Attach (or paste an image), âœ¨ Pico Bot (only for
 // people it answers), the due date and repeat; collaborators beside Create task;
 // "/" in the description opens the same commands. The panel is taller than wide
 // and grows a step at a time with the screen.
@@ -91,6 +93,7 @@ function CreateTaskDialog({
   parentId = null,
   parentLabel,
   milestone = false,
+  prefill,
   ai,
 }: {
   onClose: () => void;
@@ -101,11 +104,14 @@ function CreateTaskDialog({
   parentId?: number | null;
   parentLabel?: string;
   milestone?: boolean;
+  prefill?: CreateTaskDetail["prefill"];
   ai: boolean;
 }) {
   const router = useRouter();
   const { call, pending } = useWorkCall();
-  const [title, setTitle] = useState("");
+  const [title, setTitle] = useState(prefill?.title ?? "");
+  // v1.73.0 (D-396): "Create and add another" keeps the window open for the next task.
+  const [again, setAgain] = useState(false);
   // D-222: an ad hoc task may go to several people (one copy each); a periodic one to one.
   // D-224: for myself by default; "Others" picks people by searching.
   const [forWhom, setForWhom] = useState<"self" | "others">("self");
@@ -113,11 +119,11 @@ function CreateTaskDialog({
   const [due, setDue] = useState("");
   const [dueTime, setDueTime] = useState("23:59"); // v1.54.7 (owner): 11:59 pm unless changed
   const [project, setProject] = useState<number | "">(defaultProject ?? "");
-  const [description, setDescription] = useState("");
+  const [description, setDescription] = useState(prefill?.description ?? "");
   const [editorKey, setEditorKey] = useState(0); // remounts the editor when Pico Bot (or Undo) replaces the text
   const [periodic, setPeriodic] = useState(false);
   // D-259: priority, set on the new task(s) right after they are made.
-  const [priority, setPriority] = useState<"LOW" | "NORMAL" | "ELEVATED" | "IMPORTANT" | "HIGH" | "URGENT">("NORMAL");
+  const [priority, setPriority] = useState<"LOW" | "NORMAL" | "ELEVATED" | "IMPORTANT" | "HIGH" | "URGENT">((["LOW", "NORMAL", "ELEVATED", "IMPORTANT", "HIGH", "URGENT"] as const).find((value) => value === prefill?.priority) ?? "NORMAL");
   const assignees = forWhom === "self" || periodic ? [meId] : others;
   const [kind, setKind] = useState<Recurrence["kind"]>("WEEKLY");
   const [every, setEvery] = useState(1);
@@ -196,7 +202,7 @@ function CreateTaskDialog({
     }
   };
 
-  const submit = async () => {
+  const submit = async (another = false) => {
     if (!title.trim() || assignees.length === 0 || !due) {
       if (!due) setPicking("due");
       return;
@@ -232,6 +238,18 @@ function CreateTaskDialog({
     }
     const follow = [...new Set([...collaborators, ...mentionIds(body)])].filter((person) => person !== meId && !assignees.includes(person));
     for (const person of follow) await call(() => followAction(id, person, true), { success: false });
+    // v1.73.0 (D-396): Create and add another: the window stays, emptied of the task's own words and files.
+    if (another) {
+      setTitle("");
+      setDescription("");
+      setEditorKey((value) => value + 1);
+      setFiles([]);
+      setBeforeAi(null);
+      setAgain(true);
+      router.refresh();
+      window.requestAnimationFrame(() => name.current?.focus());
+      return;
+    }
     onClose();
     // v1.59.5 (owner): a subtask made from its parent stays on the parent, which shows it.
     if (parentId !== null) {
@@ -265,7 +283,7 @@ function CreateTaskDialog({
     >
       <header className="draft-head flex items-center gap-2 border-b border-line px-4 py-2.5">
         <h2 id="draft-task-title" className="flex-1 font-semibold">
-          {parentId !== null ? "Create subtask" : milestone ? "Create milestone" : "Create task"} <span className="text-caption font-normal text-ink-muted">· draft</span>
+          {parentId !== null ? "Create subtask" : milestone ? "Create milestone" : (prefill?.heading ?? "Create task")} <span className="text-caption font-normal text-ink-muted">Â· draft</span>
           {parentId !== null && (
             <span className="ml-2 text-caption font-normal text-ink-muted" data-testid="create-parent">
               under {parentLabel ?? "this task"}
@@ -476,7 +494,6 @@ function CreateTaskDialog({
                   <option value="HIGH">Most Important</option>
                   <option value="IMPORTANT">Important</option>
                   <option value="ELEVATED">High</option>
-                  <option value="ELEVATED">High</option>
                   <option value="NORMAL">Normal</option>
                 </select>
               </div>
@@ -561,31 +578,6 @@ function CreateTaskDialog({
             }}
           />
           <footer className="draft-foot relative flex flex-wrap items-center gap-0.5 border-t border-line px-3 py-2" role="toolbar" aria-label="Task tools">
-            {pop === "plus" && (
-              <ul role="menu" aria-label="More" className={`${popover} left-0 w-56 py-1`}>
-                {[
-                  ...(projectsOn ? [{ label: "Add to a project", run: () => setPicking("project") }] : []),
-                  { label: "Set a due date", run: openDue },
-                  { label: "Repeat (periodic)", run: openRepeat },
-                  { label: "Attach a file", run: () => filePicker.current?.click() },
-                  { label: "Add collaborators", run: () => setPop("collab") },
-                ].map((item) => (
-                  <li key={item.label} role="none">
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={() => {
-                        setPop("");
-                        item.run();
-                      }}
-                      className="block w-full rounded px-3 py-1.5 text-left text-label hover:bg-surface-muted"
-                    >
-                      {item.label}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
             {pop === "collab" && (
               <div className={`${popover} right-0 w-72`} data-testid="collaborators-editor">
                 <p className="mb-1 px-1 text-label font-semibold">Collaborators</p>
@@ -621,17 +613,23 @@ function CreateTaskDialog({
                 />
               </div>
             )}
-            <button
-              type="button"
-              aria-label="More"
+            {/* v1.73.0 (D-396): the + menu is the shared dropdown (arrow keys, Escape back to +). */}
+            <Menu
+              label="More"
               title="More"
-              aria-haspopup="menu"
-              aria-expanded={pop === "plus"}
-              onClick={() => setPop(pop === "plus" ? "" : "plus")}
-              className={tool(pop === "plus")}
-            >
-              <Plus aria-hidden="true" className="h-4 w-4" />
-            </button>
+              align="left"
+              buttonClass={tool()}
+              menuClass="w-56"
+              testId="create-more"
+              trigger={<Plus aria-hidden="true" className="h-4 w-4" />}
+              items={[
+                ...(projectsOn ? [{ label: "Add to a project", onSelect: () => setPicking("project") }] : []),
+                { label: "Set a due date", onSelect: openDue },
+                { label: "Repeat (periodic)", onSelect: openRepeat },
+                { label: "Attach a file", onSelect: () => filePicker.current?.click() },
+                { label: "Add collaborators", onSelect: () => setPop("collab") },
+              ]}
+            />
             <span aria-hidden="true" className="mx-0.5 h-5 w-px bg-line" />
             <button type="button" aria-label="Attach a file or paste an image" title="Attach a file or paste an image" onClick={() => filePicker.current?.click()} className={tool(files.length > 0)}>
               <Paperclip aria-hidden="true" className="h-4 w-4" />
@@ -684,14 +682,34 @@ function CreateTaskDialog({
               <button type="button" onClick={onClose} className="btn-ghost btn-compact hidden lg:inline-flex">
                 Cancel
               </button>
-              <button
-                type="submit"
-                disabled={pending || !title.trim() || assignees.length === 0 || !due}
-                title={assignees.length === 0 ? "Choose who the task is for" : !due ? "Choose a due date" : undefined}
-                className="btn-primary btn-compact"
-              >
-                {parentId !== null ? "Create subtask" : "Create task"}
-              </button>
+              {/* v1.73.0 (D-396): a split button: Create task â”‚ â–¾ Create and add another. */}
+              <span className="inline-flex">
+                <button
+                  type="submit"
+                  disabled={pending || !title.trim() || assignees.length === 0 || !due}
+                  title={assignees.length === 0 ? "Choose who the task is for" : !due ? "Choose a due date" : undefined}
+                  className="btn-primary btn-compact rounded-r-none"
+                >
+                  {parentId !== null ? "Create subtask" : "Create task"}
+                </button>
+                <Menu
+                  label="Create options"
+                  title="Create options"
+                  buttonClass="btn-primary btn-compact ml-px rounded-l-none px-1.5"
+                  menuClass="w-60"
+                  testId="create-split"
+                  trigger={<ChevronDown aria-hidden="true" className="h-4 w-4" />}
+                  items={[
+                    { label: parentId !== null ? "Create subtask" : "Create task", shortcut: "Ctrl+Enter", disabled: pending || !title.trim() || assignees.length === 0 || !due, onSelect: () => void submit() },
+                    { label: "Create and add another", hint: "The window stays open for the next one", disabled: pending || !title.trim() || assignees.length === 0 || !due, onSelect: () => void submit(true), testId: "create-another" },
+                  ]}
+                />
+              </span>
+              {again && (
+                <span role="status" className="sr-only">
+                  Task created. Type the next one.
+                </span>
+              )}
             </span>
           </footer>
         </form>
@@ -737,7 +755,7 @@ function PersonSearch({
         aria-controls={listId}
         aria-autocomplete="list"
         aria-activedescendant={matches[at] ? `${listId}-${matches[at].id}` : undefined}
-        placeholder="Type a name…"
+        placeholder="Type a nameâ€¦"
         value={query}
         onChange={(event) => {
           setQuery(event.target.value);

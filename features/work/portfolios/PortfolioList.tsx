@@ -1,6 +1,10 @@
 "use client";
 
-import { ArrowDownWideNarrow, ArrowUpNarrowWide, Briefcase, Lock, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Briefcase, ChevronDown, ExternalLink, Filter, FolderKanban, Group, Link2, Lock, MoreHorizontal, Plus, Trash2, X } from "lucide-react";
+import { Menu, type MenuItem } from "@/features/ui/Menu";
+import { useToast } from "@/features/ui/Toast";
+import { COPY_BLOCKED, copyText } from "@/features/ui/clipboard";
+import { SortMenu, ViewSearch } from "@/features/work/ViewToolbar";
 import Link from "next/link";
 import { Fragment, useId, useMemo, useRef, useState } from "react";
 import { addWorkAction, portfolioValueAction, priorityAction, removeWorkAction } from "@/app/users/work/portfolio-actions";
@@ -80,7 +84,6 @@ export function PortfolioList({
   people: { id: number; label: string }[];
   choices: { projects: { id: number; name: string; color: string }[]; portfolios: { id: number; name: string; color: string; items: number }[] };
 }) {
-  const id = useId();
   const [filter, setFilter] = useState<QuickFilter>("all");
   const [sort, setSort] = useState<PortfolioSort>("manual");
   const [descending, setDescending] = useState(false);
@@ -88,60 +91,79 @@ export function PortfolioList({
   const [query, setQuery] = useState("");
   const shown = useMemo(() => groupRows(sortRows(filterRows(rows, filter, meId, query), sort, descending), group, (status) => STATUS_KIND_LABEL[status]), [rows, filter, meId, query, sort, descending, group]);
   const count = shown.reduce((sum, item) => sum + item.rows.length, 0);
-  const columns = 7 + fields.length + (canEdit ? 1 : 0);
+  const columns = 8 + fields.length;
   const inList = new Set(rows.filter((row): row is VisibleRow => !row.masked).map((row) => `${row.kind === "PROJECT" ? "project" : "portfolio"}:${row.id}`));
   return (
     <section aria-label="List" data-testid="portfolio-list-tab">
-      <div className="mb-3 flex flex-wrap items-end gap-2">
-        {canEdit && <AddWork portfolioId={portfolioId} choices={choices} exclude={inList} />}
-        <div className="ml-auto flex flex-wrap items-end gap-2">
-          <div>
-            <label htmlFor={`${id}-filter`} className="block text-caption text-ink-muted">
-              Filter
-            </label>
-            <select id={`${id}-filter`} value={filter} onChange={(event) => setFilter(event.target.value as QuickFilter)} className="field-input h-8 w-auto text-label" data-testid="portfolio-filter">
-              {QUICK_FILTERS.map((key) => (
-                <option key={key} value={key}>
-                  {QUICK_FILTER_LABEL[key]}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label htmlFor={`${id}-sort`} className="block text-caption text-ink-muted">
-              Sort
-            </label>
-            <span className="flex items-center gap-1">
-              <select id={`${id}-sort`} value={sort} onChange={(event) => setSort(event.target.value as PortfolioSort)} className="field-input h-8 w-auto text-label" data-testid="portfolio-sort">
-                {SORTS.map((key) => (
-                  <option key={key} value={key}>
-                    {SORT_LABEL[key]}
-                  </option>
-                ))}
-              </select>
-              <button type="button" aria-pressed={descending} aria-label={descending ? "Sorted high to low; sort low to high" : "Sorted low to high; sort high to low"} disabled={sort === "manual"} onClick={() => setDescending((value) => !value)} className="btn-secondary btn-compact h-8">
-                {descending ? <ArrowDownWideNarrow aria-hidden="true" className="h-4 w-4" /> : <ArrowUpNarrowWide aria-hidden="true" className="h-4 w-4" />}
-              </button>
-            </span>
-          </div>
-          <div>
-            <label htmlFor={`${id}-group`} className="block text-caption text-ink-muted">
-              Group
-            </label>
-            <select id={`${id}-group`} value={group} onChange={(event) => setGroup(event.target.value as PortfolioGroup)} className="field-input h-8 w-auto text-label" data-testid="portfolio-group">
-              {GROUPS.map((key) => (
-                <option key={key} value={key}>
-                  {GROUP_LABEL[key]}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label htmlFor={`${id}-q`} className="block text-caption text-ink-muted">
-              Search this view
-            </label>
-            <input id={`${id}-q`} type="search" value={query} onChange={(event) => setQuery(event.target.value)} className="field-input h-8 w-44 text-label" placeholder="Name…" />
-          </div>
+      {/* v1.73.0 (D-396, spec PORTFOLIOS §3.5, §3.9-§3.11): Add work ▾ on the left; Filter, Sort, Group and Search this view on the right, as dropdown menus. */}
+      <div className="mb-3 flex flex-wrap items-start gap-2" role="toolbar" aria-label="Portfolio list tools">
+        {canEdit && (
+          <span className="inline-flex items-start gap-0">
+            <AddWork portfolioId={portfolioId} choices={choices} exclude={inList} />
+            <Menu
+              label="More ways to add work"
+              trigger={<ChevronDown aria-hidden="true" className="h-4 w-4" />}
+              buttonClass="btn-secondary btn-compact ml-1 px-1.5"
+              align="left"
+              menuClass="w-56"
+              testId="add-work-more"
+              items={[
+                { label: "Create new project", icon: <FolderKanban className="h-4 w-4" />, href: "/users/work/projects/new" },
+                { label: "Create new portfolio", icon: <Briefcase className="h-4 w-4" />, href: "/users/work/portfolios/new" },
+              ]}
+            />
+          </span>
+        )}
+        <div className="ml-auto flex flex-wrap items-center gap-1">
+          <span className={filter !== "all" ? "tb-pill" : "inline-flex items-center"}>
+            <Menu
+              label={filter !== "all" ? `Filters: 1, ${QUICK_FILTER_LABEL[filter]}` : "Filter"}
+              trigger={
+                <>
+                  <Filter aria-hidden="true" className="h-4 w-4" /> {filter !== "all" ? "Filters: 1" : "Filter"}
+                </>
+              }
+              buttonClass="tb-btn"
+              menuClass="w-56"
+              testId="portfolio-filter"
+              items={[
+                { kind: "heading", label: "Quick filters" },
+                ...QUICK_FILTERS.filter((key) => key !== "all").map((key): MenuItem => ({ kind: "radio", label: QUICK_FILTER_LABEL[key], checked: filter === key, onSelect: () => setFilter(filter === key ? "all" : key), testId: `filter-${key}` })),
+                { kind: "separator", label: "" },
+                { label: "Clear", icon: <X className="h-4 w-4" />, disabled: filter === "all", onSelect: () => setFilter("all"), testId: "filter-clear" },
+              ]}
+            />
+          </span>
+          <SortMenu
+            entries={SORT_ORDER.map((key) => ({ key, label: key === "manual" ? "None (order added)" : key === "name" ? "Alphabetical" : SORT_LABEL[key] }))}
+            current={sort}
+            dir={descending ? "desc" : "asc"}
+            onPick={(key) => setSort(key as PortfolioSort)}
+            onDir={(dir) => setDescending(dir === "desc")}
+            onClear={() => {
+              setSort("manual");
+              setDescending(false);
+            }}
+          />
+          <span className={group !== "none" ? "tb-pill" : "inline-flex items-center"}>
+            <Menu
+              label={group !== "none" ? `Group: ${GROUP_LABEL[group]}` : "Group"}
+              trigger={
+                <>
+                  <Group aria-hidden="true" className="h-4 w-4" /> {group !== "none" ? `Group: ${GROUP_LABEL[group]}` : "Group"}
+                </>
+              }
+              buttonClass="tb-btn"
+              menuClass="w-56"
+              testId="portfolio-group"
+              items={[
+                ...GROUP_ORDER.map((key): MenuItem => ({ kind: "radio", label: GROUP_LABEL[key], checked: group === key, onSelect: () => setGroup(key), testId: `group-${key}` })),
+                { kind: "separator", label: "" },
+                { label: "Clear", icon: <X className="h-4 w-4" />, disabled: group === "none", onSelect: () => setGroup("none"), testId: "group-clear" },
+              ]}
+            />
+          </span>
+          <ViewSearch value={query} onChange={setQuery} />
         </div>
       </div>
       <p className="sr-only" role="status" aria-live="polite">
@@ -157,24 +179,28 @@ export function PortfolioList({
             <caption className="sr-only">Projects and portfolios in this portfolio</caption>
             <thead className="border-b border-line text-caption text-ink-muted">
               <tr>
-                <th scope="col" className="px-3 py-2 font-medium">
-                  Name
-                </th>
-                <th scope="col" className="px-3 py-2 font-medium">
-                  Status
-                </th>
-                <th scope="col" className="px-3 py-2 font-medium">
-                  Task progress
-                </th>
-                <th scope="col" className="px-3 py-2 font-medium">
-                  Due date
-                </th>
-                <th scope="col" className="px-3 py-2 font-medium">
-                  Owner
-                </th>
-                <th scope="col" className="px-3 py-2 font-medium">
-                  Priority
-                </th>
+                {(
+                  [
+                    ["Name", "name", null],
+                    ["Status", "status", "status"],
+                    ["Task progress", "progress", null],
+                    ["Due date", "due", null],
+                    ["Owner", "owner", "owner"],
+                    ["Priority", "priority", "priority"],
+                  ] as const
+                ).map(([label, sortKey, groupKey]) => (
+                  <ColumnHead
+                    key={label}
+                    label={label}
+                    sorted={sort === sortKey ? (descending ? "desc" : "asc") : null}
+                    onSort={(dir) => {
+                      setSort(sortKey);
+                      setDescending(dir === "desc");
+                    }}
+                    grouped={groupKey ? group === groupKey : null}
+                    onGroup={groupKey ? () => setGroup(group === groupKey ? "none" : groupKey) : null}
+                  />
+                ))}
                 {fields.map((field) => (
                   <th key={field.id} scope="col" className="px-3 py-2 font-medium">
                     {field.name}
@@ -183,11 +209,9 @@ export function PortfolioList({
                 <th scope="col" className="px-3 py-2 font-medium">
                   <span className="sr-only">Overdue</span>
                 </th>
-                {canEdit && (
-                  <th scope="col" className="px-3 py-2 font-medium">
-                    <span className="sr-only">Remove</span>
-                  </th>
-                )}
+                <th scope="col" className="px-3 py-2 font-medium">
+                  <span className="sr-only">Actions</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -218,13 +242,50 @@ export function PortfolioList({
   );
 }
 
-function RemoveButton({ portfolioId, itemId, name }: { portfolioId: number; itemId: number; name: string }) {
-  const { call, pending } = useWorkCall();
+const SORT_ORDER: PortfolioSort[] = ["manual", "status", "owner", "due", "name", "progress", "priority"].filter((key): key is PortfolioSort => (SORTS as readonly string[]).includes(key));
+const GROUP_ORDER: PortfolioGroup[] = ["owner", "status", "priority", "kind"].filter((key): key is PortfolioGroup => (GROUPS as readonly string[]).includes(key));
+
+// v1.73.0 (D-396, spec PORTFOLIOS §3.5 "Show options for <column> column"):
+// each column's dropdown: Sort ascending, Sort descending, Group by this (where it groups).
+function ColumnHead({ label, sorted, onSort, grouped, onGroup }: { label: string; sorted: "asc" | "desc" | null; onSort: (dir: "asc" | "desc") => void; grouped: boolean | null; onGroup: (() => void) | null }) {
   return (
-    <button type="button" aria-label={`Remove ${name} from this portfolio`} title="Remove from this portfolio" disabled={pending} className="rounded p-1 text-ink-muted hover:text-danger-600" onClick={() => void call(() => removeWorkAction(portfolioId, itemId))} data-testid="remove-work">
-      <Trash2 aria-hidden="true" className="h-4 w-4" />
-    </button>
+    <th scope="col" aria-sort={sorted === "asc" ? "ascending" : sorted === "desc" ? "descending" : undefined} className="px-3 py-1.5 font-medium">
+      <span className="inline-flex items-center gap-0.5">
+        {label}
+        <Menu
+          label={`Show options for ${label} column`}
+          title={`Options for ${label}`}
+          trigger={<ChevronDown aria-hidden="true" className="h-3.5 w-3.5" />}
+          buttonClass="grid h-6 w-6 place-items-center rounded text-ink-faint hover:bg-surface-muted hover:text-ink"
+          align="left"
+          menuClass="w-52"
+          testId="column-menu"
+          items={[
+            { kind: "radio", close: true, label: "Sort ascending", icon: <ArrowUp className="h-4 w-4" />, checked: sorted === "asc", onSelect: () => onSort("asc") },
+            { kind: "radio", close: true, label: "Sort descending", icon: <ArrowDown className="h-4 w-4" />, checked: sorted === "desc", onSelect: () => onSort("desc") },
+            ...(onGroup ? [{ kind: "checkbox" as const, close: true, label: "Group by this column", checked: Boolean(grouped), onSelect: onGroup }] : []),
+          ]}
+        />
+      </span>
+    </th>
   );
+}
+
+// v1.73.0 (D-396, spec PORTFOLIOS §3.1 #9 / §3.5): each row's ⋯ menu: Open, Copy link, Remove from this portfolio.
+function RowMenu({ portfolioId, itemId, name, href, canEdit }: { portfolioId: number; itemId: number; name: string; href: string | null; canEdit: boolean }) {
+  const { call } = useWorkCall();
+  const toast = useToast();
+  const items: MenuItem[] = [
+    ...(href
+      ? [
+          { label: "Open", icon: <ExternalLink className="h-4 w-4" />, href },
+          { label: "Copy link", icon: <Link2 className="h-4 w-4" />, onSelect: () => void copyText(`${window.location.origin}${href}`).then((done) => toast(done ? { tone: "success", title: "Link copied." } : { tone: "error", title: `${COPY_BLOCKED} ${window.location.origin}${href}` })) },
+        ]
+      : []),
+    ...(canEdit ? [...(href ? [{ kind: "separator" as const, label: "" }] : []), { label: "Remove from this portfolio", icon: <Trash2 className="h-4 w-4" />, tone: "danger" as const, onSelect: () => void call(() => removeWorkAction(portfolioId, itemId)), testId: "remove-work" }] : []),
+  ];
+  if (!items.length) return null;
+  return <Menu label={`Actions for ${name}`} trigger={<MoreHorizontal aria-hidden="true" className="h-4 w-4" />} buttonClass="grid h-7 w-7 place-items-center rounded text-ink-muted hover:bg-surface-muted hover:text-ink" menuClass="w-56" testId="row-menu" items={items} />;
 }
 
 function MaskedLine({ row, columns, canEdit, portfolioId }: { row: Extract<PortfolioRow, { masked: true }>; columns: number; canEdit: boolean; portfolioId: number }) {
@@ -237,14 +298,12 @@ function MaskedLine({ row, columns, canEdit, portfolioId }: { row: Extract<Portf
           <span className="font-medium">{maskedName(row)}</span>
         </span>
       </th>
-      <td colSpan={columns - 1 - (canEdit ? 1 : 0)} className="px-3 py-2 text-caption text-ink-muted">
+      <td colSpan={columns - 2} className="px-3 py-2 text-caption text-ink-muted">
         Added by {row.addedByName} on {added.getUTCDate()} {MONTHS[added.getUTCMonth()]} {added.getUTCFullYear()}. You don&apos;t have access: ask {row.addedByName} or the {row.kind === "PROJECT" ? "project" : "portfolio"}&apos;s owner for access.
       </td>
-      {canEdit && (
-        <td className="px-3 py-2">
-          <RemoveButton portfolioId={portfolioId} itemId={row.itemId} name={maskedName(row)} />
-        </td>
-      )}
+      <td className="px-3 py-2">
+        <RowMenu portfolioId={portfolioId} itemId={row.itemId} name={maskedName(row)} href={null} canEdit={canEdit} />
+      </td>
     </tr>
   );
 }
@@ -298,11 +357,9 @@ function Line({ row, fields, canEdit, portfolioId, people }: { row: VisibleRow; 
         </td>
       ))}
       <td className="whitespace-nowrap px-3 py-2 text-caption">{row.counts.overdue > 0 && <span className="text-danger-600">{row.counts.overdue} overdue</span>}</td>
-      {canEdit && (
-        <td className="px-3 py-2">
-          <RemoveButton portfolioId={portfolioId} itemId={row.itemId} name={row.name} />
-        </td>
-      )}
+      <td className="px-3 py-2">
+        <RowMenu portfolioId={portfolioId} itemId={row.itemId} name={row.name} href={href} canEdit={canEdit} />
+      </td>
     </tr>
   );
 }

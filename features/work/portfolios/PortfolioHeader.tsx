@@ -1,6 +1,6 @@
 "use client";
 
-import { Briefcase, ChevronDown, Copy, Lock, Settings2, Share2, Trash2, X } from "lucide-react";
+import { Archive, Briefcase, ChevronDown, Copy, Download, Info, Link2, LogOut, Palette, Printer, Settings, Settings2, Share2, Trash2, Lock, X } from "lucide-react";
 import { useId, useState } from "react";
 import { addPortfolioFieldAction, portfolioCommandAction, portfolioMemberAction, removePortfolioFieldAction, updatePortfolioAction } from "@/app/users/work/portfolio-actions";
 import { Dialog, ConfirmDialog } from "@/features/ui/Dialog";
@@ -76,14 +76,21 @@ export function PortfolioHeader({
     const link = `${window.location.origin}${base}`;
     void copyText(link).then((done) => toast(done ? { tone: "success", title: "Portfolio link copied." } : { tone: "error", title: `${COPY_BLOCKED} ${link}` }));
   };
+  // v1.73.0 (D-396, spec PORTFOLIOS §3.13): the actions in the spec's order:
+  // portfolio details, Copy portfolio link, Set colour (with the current one),
+  // Export or sync › Print, then Archive, Leave and Delete (owners only where
+  // the spec says admins). Editors see a note that some items are for owners.
   const actions: MenuItem[] = [
-    ...(can.edit ? [{ label: can.manage ? "Edit details" : "Set colour", onSelect: () => setOpen("details") }] : []),
-    { label: "Copy portfolio link", onSelect: copyLink },
-    ...(can.manage ? [{ label: portfolio.archived ? "Restore from archive" : "Archive", onSelect: () => void call(() => portfolioCommandAction(portfolio.id, portfolio.archived ? "UNARCHIVE" : "ARCHIVE")) }] : []),
-    ...(isMember && !can.manage ? [{ label: "Leave portfolio", onSelect: () => void call(() => portfolioCommandAction(portfolio.id, "LEAVE")) }] : []),
-    ...(can.manage ? [{ label: "Delete portfolio", tone: "danger" as const, onSelect: () => setOpen("delete") }] : []),
+    ...(can.manage ? [{ label: "Edit portfolio details", icon: <Settings className="h-4 w-4" />, onSelect: () => setOpen("details") }] : []),
+    { label: "Copy portfolio link", icon: <Link2 className="h-4 w-4" />, onSelect: copyLink },
+    ...(can.edit ? [{ label: "Set colour", icon: <Palette className="h-4 w-4" style={{ color: COLOR_HEX[portfolio.color] ?? COLOR_HEX.gray }} />, hint: COLOR_LABEL[portfolio.color] ?? undefined, onSelect: () => setOpen("details") }] : []),
+    { kind: "submenu" as const, label: "Export or sync", icon: <Download className="h-4 w-4" />, testId: "portfolio-export", items: [{ label: "Print", icon: <Printer className="h-4 w-4" />, onSelect: () => window.print() }] },
+    ...(can.manage || isMember ? [{ kind: "separator" as const, label: "" }] : []),
+    ...(can.manage ? [{ label: portfolio.archived ? "Restore from archive" : "Archive", icon: <Archive className="h-4 w-4" />, onSelect: () => void call(() => portfolioCommandAction(portfolio.id, portfolio.archived ? "UNARCHIVE" : "ARCHIVE")) }] : []),
+    ...(isMember && !can.manage ? [{ label: "Leave portfolio", icon: <LogOut className="h-4 w-4" />, onSelect: () => void call(() => portfolioCommandAction(portfolio.id, "LEAVE")) }] : []),
+    ...(can.manage ? [{ label: "Delete portfolio", icon: <Trash2 className="h-4 w-4" />, tone: "danger" as const, onSelect: () => setOpen("delete") }] : []),
   ];
-  const statuses: MenuItem[] = STATUS_KINDS.map((kind) => ({ label: STATUS_KIND_LABEL[kind], href: `${base}?tab=progress&status=${kind}#post-status` }));
+  const statuses: MenuItem[] = STATUS_KINDS.map((kind) => ({ label: STATUS_KIND_LABEL[kind], hint: portfolio.status === kind ? "Current status" : undefined, icon: <span aria-hidden="true" className={`inline-block h-2.5 w-2.5 rounded-full ${STATUS_DOT[kind]}`} />, href: `${base}?tab=progress&status=${kind}#post-status` }));
   const pill = (
     <span className="inline-flex items-center gap-1.5 rounded-full border border-line px-2.5 py-0.5 text-caption">
       <span aria-hidden="true" className={`h-2 w-2 rounded-full ${portfolio.status ? STATUS_DOT[portfolio.status] : "border border-ink-faint"}`} />
@@ -98,21 +105,36 @@ export function PortfolioHeader({
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-1">
           <h1 className="truncate text-title font-semibold tracking-tight">{portfolio.name}</h1>
-          <Menu label={`Actions for ${portfolio.name}`} trigger={<ChevronDown aria-hidden="true" className="h-4 w-4" />} items={actions} align="left" />
+          <Menu
+            label={`Actions for ${portfolio.name}`}
+            trigger={<ChevronDown aria-hidden="true" className="h-4 w-4" />}
+            items={actions}
+            align="left"
+            menuClass="w-64"
+            testId="portfolio-actions"
+            header={
+              can.edit && !can.manage ? (
+                <p className="flex items-start gap-2 px-3 py-2 text-caption text-ink-muted">
+                  <Info aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0" /> Some actions are for the portfolio&apos;s owners only.
+                </p>
+              ) : undefined
+            }
+          />
           <PortfolioStar portfolioId={portfolio.id} starred={starred} name={portfolio.name} />
-          {can.edit ? <Menu label={portfolio.status ? `Set a status. Current status: ${STATUS_KIND_LABEL[portfolio.status]}` : "Set a status. Current status: No recent updates"} trigger={pill} items={statuses} align="left" /> : pill}
+          {can.edit ? <Menu label={portfolio.status ? `Set a status. Current status: ${STATUS_KIND_LABEL[portfolio.status]}` : "Set a status. Current status: No recent updates"} trigger={pill} items={statuses} align="left" testId="portfolio-status-menu" /> : pill}
         </div>
         <p className="text-caption text-ink-muted">{meta}</p>
       </div>
       <div className="ml-auto flex flex-wrap items-center gap-2">
-        <span className="flex -space-x-1.5" aria-label={`${members.length} member${members.length === 1 ? "" : "s"}`}>
+        {/* v1.73.0 (D-396, spec §3.4 #6): the avatars are the "Manage portfolio members" button (the Share dialog). */}
+        <button type="button" onClick={() => setOpen("share")} className="flex -space-x-1.5 rounded-full hover:opacity-90" aria-label={`Manage portfolio members (${members.length} member${members.length === 1 ? "" : "s"})`} title="Manage portfolio members" data-testid="portfolio-members">
           {members.slice(0, 5).map((member) => (
             <span key={member.id} title={member.name} className="inline-flex h-7 w-7 items-center justify-center rounded-full border-2 border-surface bg-primary-50 text-[length:calc(10px*var(--text-scale,1))] font-semibold text-primary-700">
               {initials(member.name)}
             </span>
           ))}
           {members.length > 5 && <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-full border-2 border-surface bg-surface-muted px-1 text-caption">+{members.length - 5}</span>}
-        </span>
+        </button>
         <button type="button" className="btn-secondary btn-compact inline-flex items-center gap-1" onClick={() => setOpen("share")} data-testid="portfolio-share">
           {portfolio.privacy === "PRIVATE" ? <Lock aria-hidden="true" className="h-4 w-4" /> : <Share2 aria-hidden="true" className="h-4 w-4" />} Share
         </button>
@@ -121,9 +143,6 @@ export function PortfolioHeader({
             <Settings2 aria-hidden="true" className="h-4 w-4" /> Customize
           </button>
         )}
-        <button type="button" onClick={copyLink} aria-label="Copy portfolio link" title="Copy portfolio link" className="btn-secondary btn-compact">
-          <Copy aria-hidden="true" className="h-4 w-4" />
-        </button>
       </div>
       <Dialog open={open === "details"} onClose={close} title={can.manage ? "Portfolio details" : "Portfolio colour"} size="md">
         {open === "details" && <DetailsForm portfolio={portfolio} members={members} departments={departments} manage={can.manage} onDone={close} />}

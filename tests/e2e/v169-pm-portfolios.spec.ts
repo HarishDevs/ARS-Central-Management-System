@@ -84,13 +84,20 @@ test("New portfolio steps: name, projects, people; the List rolls up task progre
   expect(await axe(page, "main")).toEqual([]);
 
   // Sort and filter.
-  await page.getByTestId("portfolio-sort").selectOption("progress");
+  // v1.73.0 (D-396): Filter, Sort and Group are dropdown menus (spec PORTFOLIOS §3.9-§3.11).
+  await page.getByTestId("portfolio-list-tab").getByTestId("sort-menu").locator("button[aria-haspopup]").click();
+  await page.getByRole("menuitemradio", { name: "Task progress" }).click();
+  await page.keyboard.press("Escape");
   await expect(page.getByTestId("portfolio-row").first()).toContainText(secret);
-  await page.getByTestId("portfolio-filter").selectOption("overdue");
+  await page.getByTestId("portfolio-filter").locator("button[aria-haspopup]").click();
+  await page.getByRole("menuitemradio", { name: "Has overdue tasks" }).click();
+  await page.keyboard.press("Escape");
   await expect(page.getByTestId("portfolio-row")).toHaveCount(0);
-  await page.getByTestId("portfolio-filter").selectOption("all");
+  await page.getByTestId("portfolio-filter").locator("button[aria-haspopup]").click();
+  await page.getByRole("menuitem", { name: "Clear" }).click();
 
   // Remove one and add it back with the keyboard (Add work combobox).
+  await row(page, secret).getByTestId("row-menu").locator("button[aria-haspopup]").click();
   await row(page, secret).getByTestId("remove-work").click();
   await expect(page.getByTestId("portfolio-row")).toHaveCount(1);
   const input = page.getByTestId("add-work-input");

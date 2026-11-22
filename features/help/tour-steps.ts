@@ -137,6 +137,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
       "Name it; it's for Myself, or choose Others (type part of a name). Pick a project if it belongs to one.",
       "In the description, type / for the menu, @ to mention someone (they follow the task), or paste a screenshot to attach it.",
       "The toolbar adds a due date, a repeat (periodic), files, emoji and collaborators. They're told straight away.",
+      "Create task ▾ has Create and add another, which keeps the window open for the next task. A task's ⋯ makes a follow-up task or a duplicate.",
     ],
     path: "/users/work/my-tasks",
     target: '[data-testid="create-menu"]',

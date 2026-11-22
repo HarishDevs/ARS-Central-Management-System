@@ -40,6 +40,13 @@ describe("onboarding tour steps", () => {
     expect(points).toContain("Customize");
   });
 
+  it("the new-task step mentions Create and add another, follow-ups and duplicates (v1.73.0, D-396)", () => {
+    const points = TOUR_STEPS.find((step) => step.id === "new-task")?.points.join(" ") ?? "";
+    expect(points).toContain("Create and add another");
+    expect(points).toContain("follow-up");
+    expect(points).toContain("duplicate");
+  });
+
   it("the Projects step mentions custom fields and Add field (v1.64.0, D-371)", () => {
     const points = TOUR_STEPS.find((step) => step.id === "projects")?.points.join(" ") ?? "";
     expect(points).toContain("Add field");

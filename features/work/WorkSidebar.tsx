@@ -1,11 +1,11 @@
 "use client";
 
-import { ArrowDown, ArrowUp, ArrowUpDown, Briefcase, Star, Users } from "lucide-react";
+import { ArrowDown, ArrowUp, Briefcase, FolderKanban, MoreHorizontal, Plus, Star, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useId, useRef, useState } from "react";
+import { useId, useState } from "react";
 import { sidebarMoveAction, sidebarSortAction } from "@/app/users/work/actions";
-import { inside } from "@/features/ui/inside";
+import { Menu } from "@/features/ui/Menu";
 import { identityColor, ProjectDot, useWorkCall } from "@/features/work/client";
 import { SIDEBAR_SORT_LABEL, SIDEBAR_SORTS, type SidebarList, type SidebarSort } from "@/server/work/pm-rules";
 
@@ -25,12 +25,12 @@ export function WorkSidebar({ starred, departments, departmentName, portfolios =
     <div className="space-y-1 px-2 pb-3" data-testid="work-sidebar">
       <ProjectSection title="Starred" icon={<Star aria-hidden="true" className="h-3 w-3" />} data={starred} empty="Star a project (☆ in its header or the project list) to keep it here." />
       {portfolios && <PortfolioLinks items={portfolios} />}
-      {departmentName && <ProjectSection title={departmentName} heading="Departments" icon={<Users aria-hidden="true" className="h-3 w-3" />} data={departments} empty="No projects are shared with your department yet." />}
+      {departmentName && <ProjectSection title={departmentName} heading="Departments" icon={<Users aria-hidden="true" className="h-3 w-3" />} data={departments} empty="No projects are shared with your department yet." newMenu={<NewMenu label={departmentName} portfolios={portfolios !== null} />} />}
     </div>
   );
 }
 
-function ProjectSection({ title, heading, icon, data, empty }: { title: string; heading?: string; icon: React.ReactNode; data: SidebarSectionView; empty: string }) {
+function ProjectSection({ title, heading, icon, data, empty, newMenu }: { title: string; heading?: string; icon: React.ReactNode; data: SidebarSectionView; empty: string; newMenu?: React.ReactNode }) {
   const { call, pending } = useWorkCall();
   const pathname = usePathname();
   const [live, setLive] = useState("");
@@ -47,6 +47,7 @@ function ProjectSection({ title, heading, icon, data, empty }: { title: string; 
           <span className="truncate">{title}</span>
         </h2>
         <SortMenu list={data.list} sort={data.sort} label={title} />
+        {newMenu}
       </div>
       {data.items.length === 0 ? (
         <p className="px-2 py-1 text-caption text-ink-muted">{empty}</p>
@@ -120,38 +121,50 @@ function PortfolioLinks({ items }: { items: { id: number; name: string; color: s
   );
 }
 
+// v1.73.0 (D-396, spec NAV §3.4 / O-10): the section's options are the shared
+// dropdown menu, "Sort projects" in the spec's order (A–Z, Recently opened,
+// Manual = the spec's "Top"), radio items that keep the menu open.
 function SortMenu({ list, sort, label }: { list: SidebarList; sort: SidebarSort; label: string }) {
   const { call, pending } = useWorkCall();
-  const box = useRef<HTMLDetailsElement>(null);
-  useEffect(() => {
-    const close = (event: MouseEvent) => {
-      if (box.current?.open && !inside(event, box.current)) box.current.open = false;
-    };
-    document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
-  }, []);
+  const order: SidebarSort[] = ["AZ", "RECENT", "MANUAL"];
   return (
-    <details ref={box} className="relative" data-testid={`sidebar-sort-${list.toLowerCase()}`}>
-      <summary aria-label={`Sort ${label}: ${SIDEBAR_SORT_LABEL[sort]}`} title={`Sort: ${SIDEBAR_SORT_LABEL[sort]}`} className="grid h-6 w-6 cursor-pointer list-none place-items-center rounded text-ink-faint hover:bg-surface-muted hover:text-ink [&::-webkit-details-marker]:hidden">
-        <ArrowUpDown aria-hidden="true" className="h-3.5 w-3.5" />
-      </summary>
-      <div role="group" aria-label={`Sort ${label}`} className="absolute right-0 z-popover mt-1 w-44 rounded-lg border border-line bg-raised p-1 text-label shadow-overlay">
-        {SIDEBAR_SORTS.map((choice) => (
-          <button
-            key={choice}
-            type="button"
-            aria-pressed={choice === sort}
-            disabled={pending}
-            onClick={() => {
-              if (box.current) box.current.open = false;
-              if (choice !== sort) void call(() => sidebarSortAction(list, choice), { success: false });
-            }}
-            className={`flex w-full items-center rounded px-2 py-1.5 text-left hover:bg-surface-muted ${choice === sort ? "font-semibold text-primary-700" : ""}`}
-          >
-            {SIDEBAR_SORT_LABEL[choice]}
-          </button>
-        ))}
-      </div>
-    </details>
+    <Menu
+      label={`${label} options. Sort: ${SIDEBAR_SORT_LABEL[sort]}`}
+      title={`Sort: ${SIDEBAR_SORT_LABEL[sort]}`}
+      trigger={<MoreHorizontal aria-hidden="true" className="h-3.5 w-3.5" />}
+      buttonClass="grid h-6 w-6 place-items-center rounded text-ink-faint hover:bg-surface-muted hover:text-ink"
+      menuClass="w-52"
+      testId={`sidebar-sort-${list.toLowerCase()}`}
+      items={[
+        { kind: "heading", label: "Sort projects" },
+        ...order.filter((choice) => SIDEBAR_SORTS.includes(choice)).map((choice) => ({
+          kind: "radio" as const,
+          label: SIDEBAR_SORT_LABEL[choice],
+          checked: choice === sort,
+          disabled: pending,
+          onSelect: () => {
+            if (choice !== sort) void call(() => sidebarSortAction(list, choice), { success: false });
+          },
+        })),
+      ]}
+    />
+  );
+}
+
+// v1.73.0 (D-396, spec NAV §3.5): the department section's "+": New project, New portfolio.
+function NewMenu({ label, portfolios }: { label: string; portfolios: boolean }) {
+  return (
+    <Menu
+      label={`New project${portfolios ? " or portfolio" : ""} in ${label}`}
+      title={portfolios ? "New project or portfolio" : "New project"}
+      trigger={<Plus aria-hidden="true" className="h-3.5 w-3.5" />}
+      buttonClass="grid h-6 w-6 place-items-center rounded text-ink-faint hover:bg-surface-muted hover:text-ink"
+      menuClass="w-48"
+      testId="sidebar-new"
+      items={[
+        { label: "New project", icon: <FolderKanban className="h-4 w-4" />, href: "/users/work/projects/new" },
+        ...(portfolios ? [{ label: "New portfolio", icon: <Briefcase className="h-4 w-4" />, href: "/users/work/portfolios/new" }] : []),
+      ]}
+    />
   );
 }

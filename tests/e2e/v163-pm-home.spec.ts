@@ -151,7 +151,7 @@ test("Home: greeting with the date; customise widgets with the keyboard; width, 
 
   // Add it back from the menu: it comes last.
   await page.getByTestId("customise-home").click();
-  await page.getByTestId("add-widget").locator("summary").click();
+  await page.getByTestId("add-widget").locator("button[aria-haspopup]").click(); // v1.73.0 (D-396): a dropdown menu
   await page.getByTestId("add-widget-workload").click();
   await expect.poll(() => widgetKinds(page)).toEqual(["notepad", "my_tasks", "projects", "status_updates", "assigned", "people", "forms", "workload"]);
   await expect(page.getByTestId("workload-chart")).toBeVisible();

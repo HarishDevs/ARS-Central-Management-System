@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, Filter, Link2, Lock, Plus, ZoomIn, ZoomOut } from "lucide-react";
+import { ArrowUpDown, ChevronDown, ChevronLeft, ChevronRight, Filter, Group, Link2, Lock, Plus, Settings2, ZoomIn, ZoomOut } from "lucide-react";
 import { Menu } from "@/features/ui/Menu";
+const SCHEDULE_SORT_LABEL = { start: "Start date", due: "Due date", name: "Alphabetical" } as const;
 import { Dialog } from "@/features/ui/Dialog";
 import { AddTaskSplit } from "@/features/work/ViewToolbar";
 import { taskFieldsAction } from "@/app/users/work/actions";
@@ -82,6 +83,10 @@ export function ScheduleView({
   // v1.72.0 (D-387, spec PV §4 "filter Incomplete/Complete/All"): the view's Filter menu.
   const [show, setShow] = useState<"all" | "incomplete" | "completed">("all");
   const [mineOnly, setMineOnly] = useState(false);
+  // v1.73.0 (D-396, spec PV §4 "Sort · Group · Options"): rows sort by start
+  // date (as before), due date or name; group by section (as before) or none.
+  const [sortBy, setSortBy] = useState<"start" | "due" | "name">("start");
+  const [groupBy, setGroupBy] = useState<"section" | "none">("section");
   const tasks = useMemo(() => allTasks.filter((task) => (show === "all" || (show === "completed") === (task.status === "COMPLETED")) && (!mineOnly || task.assigneeId === meId)), [allTasks, show, mineOnly, meId]);
   const storageKey = `work.schedule.${mode.toLowerCase()}.zoom`;
   const [zoom, setZoom] = useState<Zoom>(gantt ? "months" : "weeks");
@@ -132,20 +137,26 @@ export function ScheduleView({
   const canvasW = range.span * px;
   const at = (day: string) => dayDiff(range.from, day);
 
-  // Rows: each section (collapsible) and its tasks by start date.
+  // Rows: each section (collapsible) and its tasks by start date (or the chosen sort); or one list without sections.
   const rows: Row[] = useMemo(() => {
     const known = new Set(sections.map((section) => section.id));
+    const order = (a: ScheduleTask, b: ScheduleTask) =>
+      (sortBy === "name" ? a.title.localeCompare(b.title) : sortBy === "due" ? indiaDay(a.dueAt).localeCompare(indiaDay(b.dueAt)) : (a.startsOn ?? indiaDay(a.dueAt)).localeCompare(b.startsOn ?? indiaDay(b.dueAt))) || a.id - b.id;
     const out: Row[] = [];
     let index = 0;
+    if (groupBy === "none") {
+      for (const task of [...tasks].sort(order)) out.push({ kind: "task", task, index: index++ });
+      return out;
+    }
     for (const section of sections) {
-      const mine = tasks.filter((task) => (known.has(task.sectionId) ? task.sectionId : sections[0]?.id) === section.id).sort((a, b) => (a.startsOn ?? indiaDay(a.dueAt)).localeCompare(b.startsOn ?? indiaDay(b.dueAt)) || a.id - b.id);
+      const mine = tasks.filter((task) => (known.has(task.sectionId) ? task.sectionId : sections[0]?.id) === section.id).sort(order);
       if (!mine.length) continue;
       out.push({ kind: "section", id: section.id, name: section.name, count: mine.length });
       if (collapsed.has(section.id)) continue;
       for (const task of mine) out.push({ kind: "task", task, index: index++ });
     }
     return out;
-  }, [sections, tasks, collapsed]);
+  }, [sections, tasks, collapsed, sortBy, groupBy]);
   const rowOf = useMemo(() => new Map(rows.flatMap((row, i) => (row.kind === "task" ? [[row.task.id, i] as const] : []))), [rows]);
   const taskRows = rows.filter((row): row is Extract<Row, { kind: "task" }> => row.kind === "task");
 
@@ -411,6 +422,54 @@ export function ScheduleView({
               ]}
             />
           </span>
+          <span className={sortBy !== "start" ? "tb-pill" : "inline-flex items-center"}>
+            <Menu
+              label={sortBy !== "start" ? `Sort: ${SCHEDULE_SORT_LABEL[sortBy]}` : "Sort"}
+              trigger={
+                <>
+                  <ArrowUpDown aria-hidden="true" className="h-4 w-4" /> {sortBy !== "start" ? `Sort: ${SCHEDULE_SORT_LABEL[sortBy]}` : "Sort"}
+                </>
+              }
+              buttonClass="tb-btn"
+              menuClass="w-52"
+              testId="schedule-sort"
+              items={(["start", "due", "name"] as const).map((key) => ({ kind: "radio" as const, label: SCHEDULE_SORT_LABEL[key], checked: sortBy === key, onSelect: () => setSortBy(key) }))}
+            />
+          </span>
+          <span className={groupBy !== "section" ? "tb-pill" : "inline-flex items-center"}>
+            <Menu
+              label={groupBy === "none" ? "Group: None" : "Group: Sections"}
+              trigger={
+                <>
+                  <Group aria-hidden="true" className="h-4 w-4" /> {groupBy === "none" ? "Group: None" : "Group"}
+                </>
+              }
+              buttonClass="tb-btn"
+              menuClass="w-48"
+              testId="schedule-group"
+              items={[
+                { kind: "radio", label: "Sections", checked: groupBy === "section", onSelect: () => setGroupBy("section") },
+                { kind: "radio", label: "None", checked: groupBy === "none", onSelect: () => setGroupBy("none") },
+              ]}
+            />
+          </span>
+          <Menu
+            label="Options"
+            trigger={
+              <>
+                <Settings2 aria-hidden="true" className="h-4 w-4" /> Options
+              </>
+            }
+            buttonClass="tb-btn"
+            menuClass="w-56"
+            testId="schedule-options"
+            items={[
+              { label: "Expand all sections", disabled: groupBy === "none" || collapsed.size === 0, onSelect: () => setCollapsed(new Set()) },
+              { label: "Collapse all sections", disabled: groupBy === "none", onSelect: () => setCollapsed(new Set(sections.map((section) => section.id))) },
+              { kind: "separator", label: "" },
+              { label: "Go to today", onSelect: () => { if (scroller.current) scroller.current.scrollLeft = Math.max(0, todayX - 160); } },
+            ]}
+          />
         </span>
         {!tasks.length && <p className="w-full text-label text-ink-muted">No tasks match this filter.</p>}
         <p id={hintId} className="w-full text-caption text-ink-muted">

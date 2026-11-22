@@ -2341,6 +2341,24 @@ flowchart LR
 ```
 - Layers, low to high: header, sticky bars, drawers (task pane, phone menu, Pico Bot), popovers (menus, pickers, listboxes), dialogs, toasts, tour, brand splash. Native modal dialogs sit in the top layer above all of these; popovers inside a dialog are part of it.
 
+## F-PM-MENUS-2: The other PM screens' menus, inline rename, follow-up and duplicate (v1.73.0, D-396; extends F-PM-MENUS)
+```mermaid
+flowchart LR
+  T[Owner clicks the project name] --> X[Text box with the name selected]
+  X -->|Enter or leaving the box| RN[renameProjectAction: owners only, 2-150 characters; history + audit] --> H[Header shows the new name; focus on the name]
+  X -->|Escape| H0[Old name back; focus on the name]
+  K[Task ⋯] -->|Create follow-up task| CF[Create task window: Follow-up: name, a link back, same project]
+  K -->|Duplicate task| CD[Create task window: name copy, description, priority, project]
+  CF --> CW[Person checks it]
+  CD --> CW
+  CW -->|Create task| NEW[quickAddAction: every new-task rule applies] --> CL[Window closes]
+  CW -->|▾ Create and add another| NEW2[Task created] --> E[Window stays open, emptied, focus on the name]
+  P[Picker dropdown: trigger, step action, column sort] -->|radio item with close| PC[Choice made; menu closes; focus back on the button]
+```
+- Same menu component (`features/ui/MenuCore.tsx`) on: Task Summary (title ▾, each task's ⋯), Home (+ Add widgets, each widget's Actions ⋯), the Portfolios page (card ⋯, View as list), a portfolio (actions ▾, status, Add work ▾, Filter, Sort, Group, column ▾, row ⋯), the form builder's header bar (⋯: Duplicate form, Unpublish, Delete form), the Dashboard widget's More actions (Duplicate, Size ›), Workload (unit, measure), the automation builder (Choose trigger, Add step, Do this), Timeline/Gantt (Sort, Group, Options), the Calendar (Filter), the sidebar (section ⋯, department +), + Create, and the Create task window (+, Create task ▾).
+- A radio or checkbox item normally keeps the menu open (part 1); a picker's item has `close: true` and closes it. A menu inside a transformed window (the centred Create task window) is placed from that window.
+- Duplicate widget: `dashboardAction` save with no id (the 20-widget limit and editor rights are checked on the server as for a new widget). Duplicate form, Unpublish and Delete form use the existing form actions (owners and editors; delete asks first).
+
 ## F-PM-MENUS: Project screens' dropdown menus and Customize panel (v1.72.0, D-387)
 ```mermaid
 flowchart LR

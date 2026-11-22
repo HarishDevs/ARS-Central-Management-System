@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowDown, ArrowUp, CircleAlert, GitBranch, Plus, Trash2, UserCheck, Zap } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, CircleAlert, GitBranch, Plus, Trash2, UserCheck, Zap } from "lucide-react";
+import { Menu, type MenuItem } from "@/features/ui/Menu";
 import {
   becomeAutomationOwnerAction,
   discardAutomationDraftAction,
@@ -384,17 +385,13 @@ function TriggerCard({ trigger, onChange, problems, readOnly, props }: { trigger
       </h2>
       <p className="text-caption text-ink-muted">Tasks in this project.</p>
       <div>
-        <label htmlFor="trigger-type" className="field-label">
-          Trigger
-        </label>
-        <select
-          id="trigger-type"
-          className="field-input h-9"
+        <p className="field-label" id="trigger-type-label">
+          Choose trigger
+        </p>
+        <TriggerPicker
+          value={trigger?.type ?? null}
           disabled={readOnly}
-          value={trigger?.type ?? ""}
-          onChange={(event) => {
-            const type = event.target.value as TriggerType | "";
-            if (!type) return onChange(null);
+          onPick={(type) => {
             const base: Trigger = { type };
             if (type === "STATUS_CHANGED") base.status = "COMPLETED";
             if (type === "DUE_APPROACHING") base.days = 1;
@@ -402,18 +399,7 @@ function TriggerCard({ trigger, onChange, problems, readOnly, props }: { trigger
             if (type === "WEBHOOK") base.webhookMode = "CREATE";
             onChange(base);
           }}
-        >
-          <option value="">Choose what starts this rule</option>
-          {TRIGGER_GROUPS.map((group) => (
-            <optgroup key={group.label} label={group.label}>
-              {group.types.map((type) => (
-                <option key={type} value={type}>
-                  {TRIGGER_LABEL[type]}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
+        />
       </div>
       {trigger && (trigger.type === "TASK_ADDED" || trigger.type === "MOVED_TO_SECTION" || (trigger.type === "WEBHOOK" && trigger.webhookMode !== "UPDATE")) && (
         <Select id="trigger-section" label={trigger.type === "WEBHOOK" ? "New tasks go to the section" : "Section"} value={trigger.sectionId ?? ""} disabled={readOnly} onChange={(value) => set({ sectionId: num(value) })} options={[{ value: "", label: trigger.type === "WEBHOOK" ? "The first section" : "Any section" }, ...props.sections.map((section) => ({ value: section.id, label: section.name }))]} />
@@ -469,6 +455,46 @@ function TriggerCard({ trigger, onChange, problems, readOnly, props }: { trigger
   );
 }
 
+// v1.73.0 (D-396, spec PC §2.3-§2.4): the trigger is a dropdown menu, as in
+// the spec's builder: first where it starts ("Something happens to a task ›",
+// the catalogue grouped as the spec groups it), then Run by hand, On a
+// schedule and Web request received. Radio items show the current choice.
+const OWN_STARTS: TriggerType[] = ["MANUAL", "SCHEDULED", "WEBHOOK"];
+function TriggerPicker({ value, disabled, onPick }: { value: TriggerType | null; disabled: boolean; onPick: (type: TriggerType) => void }) {
+  const radio = (type: TriggerType): MenuItem => ({ kind: "radio", close: true, label: TRIGGER_LABEL[type], checked: value === type, onSelect: () => value !== type && onPick(type), testId: `trigger-${type.toLowerCase()}` });
+  const inProject = TRIGGER_GROUPS.flatMap((group) => {
+    const types = group.types.filter((type) => !OWN_STARTS.includes(type));
+    return types.length ? [{ kind: "heading" as const, label: group.label === "Other starts" ? "Forms" : group.label }, ...types.map(radio)] : [];
+  });
+  const items: MenuItem[] = [
+    { kind: "submenu", label: "Something happens to a task", hint: "In this project", items: inProject, testId: "trigger-task-events" },
+    { kind: "separator", label: "" },
+    ...OWN_STARTS.map(radio),
+  ];
+  if (disabled) return <p className="field-input flex h-9 items-center" aria-labelledby="trigger-type-label">{value ? TRIGGER_LABEL[value] : "Not set"}</p>;
+  return (
+    <Menu
+      label={`Trigger: ${value ? TRIGGER_LABEL[value] : "Choose what starts this rule"}`}
+      align="left"
+      className="relative flex"
+      buttonClass="field-input flex h-9 w-full items-center justify-between gap-2 text-left"
+      menuClass="w-72"
+      testId="trigger-type"
+      trigger={
+        <>
+          <span className={`truncate ${value ? "" : "text-ink-muted"}`}>{value ? TRIGGER_LABEL[value] : "Choose what starts this rule"}</span>
+          <ChevronDown aria-hidden="true" className="h-4 w-4 shrink-0 text-ink-muted" />
+        </>
+      }
+      items={items}
+    />
+  );
+}
+
+// The step's action, the same way ("Do this"): the spec's action catalogue, grouped.
+const stepItems = (current: StepType | null, onPick: (type: StepType) => void): MenuItem[] =>
+  STEP_GROUPS.flatMap((group) => [{ kind: "heading" as const, label: group.label }, ...group.types.map((type): MenuItem => ({ kind: current === null ? "item" : "radio", close: true, label: STEP_LABEL[type], checked: current === type, onSelect: () => current !== type && onPick(type), testId: `step-${type.toLowerCase()}` }))]);
+
 // ---- steps --------------------------------------------------------------------------------------
 function StepList({ steps, label, onChange, problemsAt, readOnly, props, nested, canAdd }: { steps: Step[]; label: string; onChange: (steps: Step[]) => void; problemsAt: (where: string) => string[]; readOnly: boolean; props: BuilderProps; nested?: boolean; canAdd: boolean }) {
   const items = steps.map((step, index) => (
@@ -486,11 +512,28 @@ function StepList({ steps, label, onChange, problemsAt, readOnly, props, nested,
       onRemove={() => onChange(steps.filter((item) => item.key !== step.key))}
     />
   ));
-  const add = !readOnly && (
-    <button type="button" className="btn-secondary btn-compact inline-flex items-center gap-1" disabled={!canAdd} onClick={() => onChange([...steps, newStep()])} aria-label={`Add ${label.toLowerCase()}`} data-testid={nested ? undefined : "add-step"}>
-      <Plus aria-hidden="true" className="h-4 w-4" /> Add {label.toLowerCase()}
-    </button>
-  );
+  // v1.73.0 (D-396, spec PC §2.3 "What happens next?"): Add step is a dropdown of the actions; the new step has the chosen action.
+  const add =
+    !readOnly &&
+    (canAdd ? (
+      <Menu
+        label={`Add ${label.toLowerCase()}`}
+        align="left"
+        buttonClass="btn-secondary btn-compact inline-flex items-center gap-1"
+        menuClass="w-64"
+        testId={nested ? undefined : "add-step"}
+        trigger={
+          <>
+            <Plus aria-hidden="true" className="h-4 w-4" /> Add {label.toLowerCase()} <ChevronDown aria-hidden="true" className="h-4 w-4" />
+          </>
+        }
+        items={stepItems(null, (type) => onChange([...steps, newStep(type)]))}
+      />
+    ) : (
+      <button type="button" className="btn-secondary btn-compact inline-flex items-center gap-1" disabled aria-label={`Add ${label.toLowerCase()}`} data-testid={nested ? undefined : "add-step"}>
+        <Plus aria-hidden="true" className="h-4 w-4" /> Add {label.toLowerCase()}
+      </button>
+    ));
   if (nested)
     return (
       <div className="space-y-2 pt-2">
@@ -536,20 +579,30 @@ function StepCard({ step, title, first, last, problems, readOnly, props, onChang
         )}
       </div>
       <div>
-        <label htmlFor={`${id}-type`} className="field-label">
+        <p className="field-label" id={`${id}-type-label`}>
           Do this
-        </label>
-        <select id={`${id}-type`} className="field-input h-9" value={step.type} disabled={readOnly} onChange={(event) => onChange({ key: step.key, type: event.target.value as StepType })}>
-          {STEP_GROUPS.map((group) => (
-            <optgroup key={group.label} label={group.label}>
-              {group.types.map((type) => (
-                <option key={type} value={type}>
-                  {STEP_LABEL[type]}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
+        </p>
+        {readOnly ? (
+          <p className="field-input flex h-9 items-center" aria-labelledby={`${id}-type-label`}>
+            {STEP_LABEL[step.type]}
+          </p>
+        ) : (
+          <Menu
+            label={`Do this: ${STEP_LABEL[step.type]}`}
+            align="left"
+            className="relative flex"
+            buttonClass="field-input flex h-9 w-full items-center justify-between gap-2 text-left"
+            menuClass="w-64"
+            testId="step-type"
+            trigger={
+              <>
+                <span className="truncate">{STEP_LABEL[step.type]}</span>
+                <ChevronDown aria-hidden="true" className="h-4 w-4 shrink-0 text-ink-muted" />
+              </>
+            }
+            items={stepItems(step.type, (type) => onChange({ key: step.key, type }))}
+          />
+        )}
       </div>
       {(step.type === "MOVE_TO_SECTION" || step.type === "CREATE_TASK") && (
         <Select id={`${id}-section`} label={step.type === "CREATE_TASK" ? "In the section" : "Section"} value={step.sectionId ?? ""} disabled={readOnly} onChange={(value) => set({ sectionId: num(value) })} options={[{ value: "", label: step.type === "CREATE_TASK" ? "The first section" : "Choose a section" }, ...props.sections.map((section) => ({ value: section.id, label: section.name }))]} />

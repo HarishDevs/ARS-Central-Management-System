@@ -163,7 +163,7 @@ export function FillForm({ token, name, description, coverUrl, fields, submitter
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <Fixed label="Name" value={submitter.name} />
-              <Fixed label="Email" value={submitter.email} />
+              <Fixed label="Email address" value={submitter.email} />
             </div>
             {fields.map((field) =>
               !shown.has(field.key) ? null : field.type === "SECTION" ? (

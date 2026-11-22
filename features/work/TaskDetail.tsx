@@ -261,7 +261,7 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
             <Link href={`/users/tasks/${task.id}`} aria-label="Open full page" title="Full screen (the task's own page)" className="grid h-8 w-8 place-items-center rounded-md text-ink-muted hover:bg-surface-muted hover:text-ink" data-testid="pane-full">
               <Maximize2 aria-hidden="true" className="h-4 w-4" />
             </Link>
-            <PaneMoreMenu taskId={task.id} title={task.title} canDelete={rights.edit && !task.deletedAt} closeHref={popup.closeHref} automations={manualRules} />
+            <PaneMoreMenu taskId={task.id} title={task.title} canDelete={rights.edit && !task.deletedAt} closeHref={popup.closeHref} automations={manualRules} copy={{ projectId: (fromProject ?? links[0])?.projectId ?? null, description: task.description ?? "", priority: task.priority }} />
             <Link href={popup.closeHref} scroll={false} aria-label="Close task" aria-keyshortcuts="Escape" title="Close" className="grid h-8 w-8 place-items-center rounded-md text-ink-muted hover:bg-surface-muted hover:text-ink" data-testid="close-pane">
               <X aria-hidden="true" className="h-5 w-5" />
             </Link>

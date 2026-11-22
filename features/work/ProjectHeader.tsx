@@ -7,7 +7,8 @@ import { SaveTemplateForm } from "@/features/work/MoreParts";
 import { Menu, type MenuItem } from "@/features/ui/Menu";
 import { initials } from "@/features/ui/Display";
 import { useToast } from "@/features/ui/Toast";
-import { COLOR_HEX } from "@/features/work/client";
+import { COLOR_HEX, useWorkCall } from "@/features/work/client";
+import { renameProjectAction } from "@/app/users/work/actions";
 import { StarButton } from "@/features/work/ProjectForms";
 import { ProjectShareButton } from "@/features/work/ShareDialogs";
 import { CustomizeButton, type CustomizeCounts } from "@/features/work/CustomizePanel";
@@ -29,6 +30,57 @@ const STATUS_DOT: Record<ProjectStatusKind, string> = {
   COMPLETE: "bg-primary-solid",
   DROPPED: "bg-ink-faint",
 };
+
+// v1.73.0 (D-396, spec PM §3.6 "inline title rename for admins"): owners
+// rename the project in its header. The name is a button inside the heading
+// ("Rename project"); it becomes a text box: Enter or leaving the box saves,
+// Escape puts the old name back. Others see a plain heading.
+function ProjectTitle({ projectId, name }: { projectId: number; name: string }) {
+  const { call, pending } = useWorkCall();
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(name);
+  const button = useRef<HTMLButtonElement>(null);
+  useEffect(() => setValue(name), [name]);
+  const finish = (save: boolean) => {
+    setEditing(false);
+    const next = value.replace(/\s+/g, " ").trim();
+    if (save && next && next !== name) void call(() => renameProjectAction(projectId, next)).then((result) => !result?.ok && setValue(name));
+    else setValue(name);
+    requestAnimationFrame(() => button.current?.focus());
+  };
+  return (
+    <h1 className="min-w-0 text-title font-semibold tracking-tight">
+      {editing ? (
+        <input
+          autoFocus
+          aria-label="Project name"
+          value={value}
+          maxLength={150}
+          disabled={pending}
+          onChange={(event) => setValue(event.target.value)}
+          onFocus={(event) => event.currentTarget.select()}
+          onBlur={() => finish(true)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              finish(true);
+            } else if (event.key === "Escape") {
+              event.preventDefault();
+              event.stopPropagation();
+              finish(false);
+            }
+          }}
+          className="field-input h-9 w-[min(28rem,70vw)] text-title font-semibold"
+          data-testid="project-title-input"
+        />
+      ) : (
+        <button ref={button} type="button" onClick={() => setEditing(true)} title="Rename project" className="block max-w-full truncate rounded-md px-1 text-left hover:bg-surface-muted" data-testid="project-title">
+          {value}
+        </button>
+      )}
+    </h1>
+  );
+}
 
 export function ProjectHeader({
   projectId,
@@ -128,7 +180,7 @@ export function ProjectHeader({
       )}
       <div className="min-w-0">
         <div className="flex items-center gap-1">
-          <h1 className="truncate text-title font-semibold tracking-tight">{name}</h1>
+          {canManage ? <ProjectTitle projectId={projectId} name={name} /> : <h1 className="truncate text-title font-semibold tracking-tight">{name}</h1>}
           <Menu label={`Actions for ${name}`} trigger={<ChevronDown aria-hidden="true" className="h-4 w-4" />} items={actions} align="left" menuClass="w-64" testId="project-actions" />
           <StarButton projectId={projectId} starred={starred} name={name} />
           {canEdit ? (

@@ -52,14 +52,22 @@ test("build a rule with a path by keyboard and publish it (with axe)", async ({ 
   await expect(page.getByTestId("trigger-card")).toContainText("Requires setup");
 
   await page.getByLabel("Automation name").fill(ruleName);
-  await page.getByLabel("Trigger", { exact: true }).focus();
-  await page.getByLabel("Trigger", { exact: true }).selectOption({ label: "Task is moved to a section" });
+  // v1.73.0 (D-396): the trigger and each step's action are dropdown menus (spec PC §2.3-§2.5), by keyboard.
+  const triggerButton = page.getByTestId("trigger-type").locator("button[aria-haspopup]");
+  await triggerButton.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByTestId("trigger-type").getByRole("menu").first()).toBeVisible();
+  await page.keyboard.press("ArrowRight");
+  await page.getByRole("menuitemradio", { name: "Task is moved to a section" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(triggerButton).toBeFocused();
+  await expect(triggerButton).toContainText("Task is moved to a section");
   await page.getByLabel("Section", { exact: true }).selectOption({ label: "In progress" });
   await expect(page.getByTestId("trigger-card")).not.toContainText("Requires setup");
 
   // A step: add a comment.
-  await page.getByTestId("add-step").press("Enter");
-  await page.getByLabel("Do this").selectOption({ label: "Add a comment" });
+  await page.getByTestId("add-step").locator("button[aria-haspopup]").press("Enter");
+  await page.getByRole("menuitem", { name: "Add a comment" }).click();
   await page.getByLabel(/^Comment \(posted by ARS-CMS Automation/).fill("Picked up by the rule.");
 
   // Paths: Critical ones get a note to the owners; Otherwise the priority becomes High.
@@ -68,12 +76,15 @@ test("build a rule with a path by keyboard and publish it (with axe)", async ({ 
   await path.getByLabel("Path 1 name").fill("Critical ones");
   await path.getByLabel("Value").selectOption({ label: "Critical" });
   await path.getByRole("button", { name: "Add path 1 step" }).press("Enter");
-  await path.getByLabel("Do this").selectOption({ label: "Notify people" });
+  await path.getByRole("menuitem", { name: "Notify people" }).click();
   await path.getByLabel("Message", { exact: true }).fill("A critical task has started.");
   await path.getByLabel("The project's owners").check();
   const otherwise = page.getByTestId("otherwise");
   await otherwise.getByRole("button", { name: "Add otherwise step" }).press("Enter");
-  await otherwise.getByLabel("Do this").selectOption({ label: "Change priority" });
+  await otherwise.getByRole("menuitem", { name: "Add a comment" }).click();
+  // A step's action changes from its own dropdown.
+  await otherwise.getByTestId("step-type").locator("button[aria-haspopup]").click();
+  await otherwise.getByRole("menuitemradio", { name: "Change priority" }).click();
   await otherwise.getByLabel("Priority", { exact: true }).selectOption({ label: "High" });
   // Cards move with buttons too (no drag needed).
   await expect(page.getByRole("button", { name: "Move Step 1 up" })).toBeDisabled();
@@ -126,9 +137,10 @@ test("a \"Run by hand\" rule from the task pane's ⋯ menu", async ({ page, cont
   await page.getByTestId("add-automation").click();
   await expect(page).toHaveURL(/\/automations\/\d+$/);
   await page.getByLabel("Automation name").fill(`By hand ${stamp}`);
-  await page.getByLabel("Trigger", { exact: true }).selectOption({ label: "Run by hand (from a task's menu)" });
-  await page.getByTestId("add-step").click();
-  await page.getByLabel("Do this").selectOption({ label: "Create subtasks" });
+  await page.getByTestId("trigger-type").locator("button[aria-haspopup]").click();
+  await page.getByRole("menuitemradio", { name: "Run by hand (from a task's menu)" }).click();
+  await page.getByTestId("add-step").locator("button[aria-haspopup]").click();
+  await page.getByRole("menuitem", { name: "Create subtasks" }).click();
   await page.getByLabel(/^Subtask names/).fill("Check the drawings\nSign off");
   await page.getByTestId("rule-publish").click();
   await expect(page.getByTestId("rule-status")).toContainText("Published (version 1)");

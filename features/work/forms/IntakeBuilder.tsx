@@ -3,8 +3,10 @@
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, GitBranch, ImagePlus, Link2, Mail, User, X } from "lucide-react";
-import { formCoverAction, publishFormAction, saveFormAction, unpublishFormAction } from "@/app/users/work/form-actions";
+import { Building2, CopyPlus, EyeOff, Eye, GitBranch, ImagePlus, Link2, Mail, MoreHorizontal, Share2, Trash2, User, X } from "lucide-react";
+import { deleteFormAction, duplicateFormAction, formCoverAction, publishFormAction, saveFormAction, unpublishFormAction } from "@/app/users/work/form-actions";
+import { Menu } from "@/features/ui/Menu";
+import { ConfirmDialog } from "@/features/ui/Dialog";
 import { FormFieldsEditor } from "@/features/admin/FormFieldsEditor";
 import { useToast } from "@/features/ui/Toast";
 import { COPY_BLOCKED, copyText } from "@/features/ui/clipboard";
@@ -78,6 +80,7 @@ export function IntakeBuilder(props: BuilderProps) {
   const [coverStamp, setCoverStamp] = useState(0);
   const [hasCover, setHasCover] = useState(Boolean(props.coverUrl));
   const coverInput = useRef<HTMLInputElement>(null);
+  const [deleting, setDeleting] = useState(false);
   const touch = () => {
     setDirty(true);
     setServerProblems(null);
@@ -216,8 +219,83 @@ export function IntakeBuilder(props: BuilderProps) {
   const titleKey = Object.entries(mappings).find(([, target]) => target.kind === "TASK" && target.field === "title")?.[0] ?? "";
   const statusText = status === "PUBLISHED" ? `Published · version ${versionNo}${unpublished || dirty ? " · unpublished changes" : ""}` : status === "UNPUBLISHED" ? "Not accepting submissions" : "Draft · never published";
 
+  const openTab = (next: Tab) => {
+    setTab(next);
+    requestAnimationFrame(() => document.getElementById(`form-tab-${next}`)?.focus());
+  };
+  const duplicate = async () => {
+    setBusy(true);
+    try {
+      const result = await duplicateFormAction(props.formId);
+      toast({ tone: result.ok ? "success" : "error", title: result.message || "Done." });
+      if (result.ok && result.value) router.push(`/users/work/projects/${props.projectId}/forms/${result.value.id}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const remove = async () => {
+    setBusy(true);
+    try {
+      const result = await deleteFormAction(props.formId);
+      toast({ tone: result.ok ? "success" : "error", title: result.message || "Done." });
+      if (result.ok) router.push(`/users/work/projects/${props.projectId}/settings#forms`);
+    } finally {
+      setBusy(false);
+      setDeleting(false);
+    }
+  };
+
   return (
     <div className="space-y-4" data-testid="form-builder">
+      {/* v1.73.0 (D-396, spec FORMS §3.4.1): the header bar: who may submit + Change, then View form, Share form, Copy link and More actions (Duplicate form, Unpublish, Delete form). */}
+      <div className="card flex flex-wrap items-center gap-2 px-4 py-2" role="toolbar" aria-label="Form actions" data-testid="form-header-bar">
+        <span className="inline-flex min-w-0 flex-wrap items-center gap-1.5 text-caption text-ink-muted" data-testid="form-access">
+          <Building2 aria-hidden="true" className="h-4 w-4 shrink-0" />
+          Who may submit: <span className="font-medium text-ink">{AUDIENCE_LABEL[settings.audience]}</span>.
+          <button type="button" className="link" onClick={() => openTab("settings")}>
+            Change
+          </button>
+        </span>
+        <span className="ml-auto flex flex-wrap items-center gap-1">
+          {status === "PUBLISHED" && (
+            <Link href={props.link} className="btn-ghost btn-compact inline-flex items-center gap-1" target="_blank" rel="noopener" data-testid="form-view">
+              <Eye aria-hidden="true" className="h-4 w-4" /> View form
+            </Link>
+          )}
+          <button type="button" className="btn-ghost btn-compact inline-flex items-center gap-1" onClick={() => openTab("share")} data-testid="form-share">
+            <Share2 aria-hidden="true" className="h-4 w-4" /> Share form
+          </button>
+          {status === "PUBLISHED" && (
+            <button type="button" className="btn-ghost btn-compact inline-flex items-center gap-1" onClick={copyLink}>
+              <Link2 aria-hidden="true" className="h-4 w-4" /> Copy link
+            </button>
+          )}
+          <Menu
+            label="More actions for this form"
+            title="More actions"
+            trigger={<MoreHorizontal aria-hidden="true" className="h-4 w-4" />}
+            buttonClass="btn-ghost btn-compact"
+            menuClass="w-56"
+            testId="form-more"
+            items={[
+              { label: "Duplicate form", icon: <CopyPlus className="h-4 w-4" />, disabled: busy, onSelect: () => void duplicate(), testId: "form-duplicate" },
+              ...(status === "PUBLISHED" ? [{ label: "Unpublish", hint: "Stop taking submissions", icon: <EyeOff className="h-4 w-4" />, disabled: busy, onSelect: () => void unpublish(), testId: "form-unpublish" }] : []),
+              { kind: "separator" as const, label: "" },
+              { label: "Delete form", icon: <Trash2 className="h-4 w-4" />, tone: "danger" as const, onSelect: () => setDeleting(true), testId: "form-delete" },
+            ]}
+          />
+        </span>
+      </div>
+      <ConfirmDialog
+        open={deleting}
+        onCancel={() => setDeleting(false)}
+        onConfirm={() => void remove()}
+        title="Delete this form?"
+        body={`"${name}" is deleted and its link stops working. Tasks made from it stay in the project.`}
+        confirmLabel="Delete form"
+        tone="danger"
+        busy={busy}
+      />
       <section className="card overflow-hidden" aria-label="Form header">
         <div className="relative flex min-h-[7.5rem] items-center justify-center bg-surface-muted">
           {hasCover ? (
@@ -251,7 +329,7 @@ export function IntakeBuilder(props: BuilderProps) {
           </div>
           <div className="grid gap-2 sm:grid-cols-2" aria-label="Asked of everyone">
             <ReadOnly icon={<User aria-hidden="true" className="h-4 w-4" />} label="Name" value={props.me.name} />
-            <ReadOnly icon={<Mail aria-hidden="true" className="h-4 w-4" />} label="Email" value={props.me.email} />
+            <ReadOnly icon={<Mail aria-hidden="true" className="h-4 w-4" />} label="Email address" value={props.me.email} />
           </div>
           <p className="text-caption text-ink-muted">Name and email come from the signed-in person who fills in the form; they can&apos;t be changed there.</p>
         </div>
@@ -394,16 +472,6 @@ export function IntakeBuilder(props: BuilderProps) {
           </details>
         )}
         <span className="ml-auto flex flex-wrap gap-2">
-          {status === "PUBLISHED" && (
-            <Link href={props.link} className="btn-secondary btn-compact inline-flex items-center gap-1" target="_blank" rel="noopener">
-              <Eye aria-hidden="true" className="h-4 w-4" /> View form
-            </Link>
-          )}
-          {status === "PUBLISHED" && (
-            <button type="button" className="btn-secondary btn-compact" disabled={busy} onClick={() => void unpublish()}>
-              Unpublish
-            </button>
-          )}
           <button type="button" className="btn-secondary btn-compact" disabled={busy || !dirty} onClick={() => void save().then((ok) => ok && toast({ tone: "success", title: "Draft saved." }))} data-testid="form-save">
             Save draft
           </button>

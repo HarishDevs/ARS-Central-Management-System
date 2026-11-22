@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { Briefcase } from "lucide-react";
+import { Briefcase, LayoutGrid, List, Plus } from "lucide-react";
 import Link from "next/link";
 import { PageHeader } from "@/features/shell/PageHeader";
 import { Badge, EmptyState, NoResults } from "@/features/ui/Display";
 import { ProjectDot } from "@/features/work/client";
-import { PortfolioCommandButton, PortfolioStar } from "@/features/work/portfolios/PortfolioParts";
+import { PortfolioCardMenu, PortfolioCommandButton, PortfolioStar } from "@/features/work/portfolios/PortfolioParts";
 import { listDeletedPortfolios, listVisiblePortfolios } from "@/lib/db/repositories/portfolios.repository";
 import { PRIVACY_LABEL, STATUS_KIND_LABEL, STATUS_KIND_TONE } from "@/server/work/access";
 import { portfolioPage } from "@/server/work/page-context";
@@ -16,18 +16,31 @@ export const dynamic = "force-dynamic";
 
 // v1.69.0 (D-382, spec PORTFOLIOS §3.1): the portfolios the person is in,
 // every one they can see, archived and deleted ones; Create portfolio.
-export default async function PortfoliosPage({ searchParams }: { searchParams: Promise<{ q?: string; show?: string }> }) {
+// v1.73.0 (D-396, spec PORTFOLIOS §3.1 / S-19): the portfolios show as cards
+// (a "New portfolio" tile first; each card: identity tile, name, star, ⋯
+// options, the number of items and the status), or as a list with "View as list"
+// (kept in the address, ?layout=list).
+export default async function PortfoliosPage({ searchParams }: { searchParams: Promise<{ q?: string; show?: string; layout?: string }> }) {
   const { viewer } = await portfolioPage();
   const params = await searchParams;
   const show = params.show === "all" || params.show === "archived" || params.show === "deleted" ? params.show : "mine";
   const q = (params.q ?? "").trim().slice(0, 100);
+  const asList = params.layout === "list";
+  const layoutHref = (list: boolean) => {
+    const query = new URLSearchParams();
+    if (show !== "mine") query.set("show", show);
+    if (q) query.set("q", q);
+    if (list) query.set("layout", "list");
+    const text = query.toString();
+    return `/users/work/portfolios${text ? `?${text}` : ""}`;
+  };
   const [items, deleted] = await Promise.all([
     show === "deleted" ? Promise.resolve([]) : listVisiblePortfolios(viewer, { onlyMine: show === "mine", archived: show === "archived", q }),
     show === "deleted" ? listDeletedPortfolios(viewer) : Promise.resolve([]),
   ]);
   const purging = show === "deleted" ? await purgeActive() : false;
   const tab = (key: string, label: string) => (
-    <Link key={key} href={key === "mine" ? "/users/work/portfolios" : `/users/work/portfolios?show=${key}`} aria-current={show === key ? "page" : undefined} className={`rounded-full px-3 py-1 text-label ${show === key ? "bg-primary-50 text-primary-700" : "text-ink-muted hover:text-ink"}`}>
+    <Link key={key} href={key === "mine" ? `/users/work/portfolios${asList ? "?layout=list" : ""}` : `/users/work/portfolios?show=${key}${asList ? "&layout=list" : ""}`} aria-current={show === key ? "page" : undefined} className={`rounded-full px-3 py-1 text-label ${show === key ? "bg-primary-50 text-primary-700" : "text-ink-muted hover:text-ink"}`}>
       {label}
     </Link>
   );
@@ -47,11 +60,17 @@ export default async function PortfoliosPage({ searchParams }: { searchParams: P
           {show !== "deleted" && (
             <form className="ml-auto" action="/users/work/portfolios">
               {show !== "mine" && <input type="hidden" name="show" value={show} />}
+              {asList && <input type="hidden" name="layout" value="list" />}
               <label htmlFor="portfolio-q" className="sr-only">
                 Find a portfolio
               </label>
               <input id="portfolio-q" name="q" defaultValue={q} placeholder="Find a portfolio…" className="field-input h-8 w-56 max-w-full text-label" />
             </form>
+          )}
+          {show !== "deleted" && (
+            <Link href={layoutHref(!asList)} className="btn-secondary btn-compact inline-flex items-center gap-1" data-testid="portfolio-layout">
+              {asList ? <LayoutGrid aria-hidden="true" className="h-4 w-4" /> : <List aria-hidden="true" className="h-4 w-4" />} {asList ? "View as cards" : "View as list"}
+            </Link>
           )}
         </div>
         {show === "deleted" ? (
@@ -84,8 +103,36 @@ export default async function PortfoliosPage({ searchParams }: { searchParams: P
               }
             />
           )
+        ) : !asList ? (
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" data-testid="portfolio-list" data-layout="cards" aria-label="Portfolios">
+            <li>
+              <Link href="/users/work/portfolios/new" className="card-link flex h-full min-h-[8.5rem] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-line-strong px-4 py-5 text-label text-ink-muted hover:text-ink" data-testid="new-portfolio-tile">
+                <Plus aria-hidden="true" className="h-6 w-6" /> New portfolio
+              </Link>
+            </li>
+            {items.map((item) => (
+              <li key={item.id} className="card flex min-h-[8.5rem] flex-col gap-2 px-4 py-3" data-testid="portfolio-card">
+                <div className="flex items-center gap-1">
+                  <span aria-hidden="true" className="relative flex h-8 w-8 shrink-0 items-center justify-center text-on-solid">
+                    <ProjectDot color={item.color} className="absolute inset-0 h-8 w-8 rounded-md" />
+                    <Briefcase className="relative h-4 w-4" />
+                  </span>
+                  <span className="ml-auto" />
+                  <PortfolioStar portfolioId={item.id} starred={item.starred} name={item.name} />
+                  <PortfolioCardMenu portfolioId={item.id} name={item.name} starred={item.starred} canJoin={!item.isMember && !viewer.isAdmin} />
+                </div>
+                <Link href={`/users/work/portfolios/${item.id}`} className="line-clamp-2 font-medium text-ink hover:underline">
+                  {item.name}
+                </Link>
+                <p className="mt-auto flex flex-wrap items-center gap-2 text-caption text-ink-muted">
+                  {item.items} {item.items === 1 ? "item" : "items"} · {PRIVACY_LABEL[item.privacy]}
+                  {item.currentStatus && <Badge tone={STATUS_KIND_TONE[item.currentStatus]}>{STATUS_KIND_LABEL[item.currentStatus]}</Badge>}
+                </p>
+              </li>
+            ))}
+          </ul>
         ) : (
-          <ul className="card divide-y divide-line" data-testid="portfolio-list">
+          <ul className="card divide-y divide-line" data-testid="portfolio-list" data-layout="list">
             {items.map((item) => (
               <li key={item.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
                 <PortfolioStar portfolioId={item.id} starred={item.starred} name={item.name} />
@@ -100,6 +147,7 @@ export default async function PortfoliosPage({ searchParams }: { searchParams: P
                 </div>
                 {item.currentStatus && <Badge tone={STATUS_KIND_TONE[item.currentStatus]}>{STATUS_KIND_LABEL[item.currentStatus]}</Badge>}
                 {!item.isMember && !viewer.isAdmin && <PortfolioCommandButton portfolioId={item.id} command="JOIN" label="Join" />}
+                <PortfolioCardMenu portfolioId={item.id} name={item.name} starred={item.starred} canJoin={!item.isMember && !viewer.isAdmin} />
               </li>
             ))}
           </ul>

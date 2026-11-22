@@ -107,3 +107,116 @@ Legend: **Change** = what v1.72.0 does. **Kept** = already matches. **Deferred**
 ## 11. Left for part 2
 
 My Tasks (its own toolbar shares the List toolbar, so it picks up §3 already, but its header and sections), Home, portfolios, the forms builder, dashboards, the automations builder, the global Create menu and the sidebar; inline title rename (H7).
+
+# Part 2: the other PM screens (v1.73.0, D-396)
+
+Same rules as part 1 (structure, option sets and order from the spec; ARS looks; no third-party names, icons or copy). Spec sources: `12-modules/HOME_MODULE.md` (§3.1, §3.15, §4), `NAVIGATION_AND_SETTINGS.md` (§3.3-§3.6), `PORTFOLIOS_MODULE.md` (§3.1, §3.4, §3.5, §3.9-§3.13), `FORMS_MODULE.md` (§3.4-§3.5, §3.9), `PROJECTS_CUSTOMIZATION.md` (§2.2-§2.5), `PROJECTS_VIEWS.md` (§4, §6, §7, §8, §13.3), `02-ui/SCREEN_DESIGN_CATALOG.md` (S-02, S-04, S-10, S-14, S-18, S-19, O-01, O-10) and `11-design/COMPONENT_SPECS.md`. Every dropdown below is the part-1 menu (`features/ui/MenuCore.tsx`), with two additions: a radio or checkbox item can close the menu once chosen (`close: true`, for pickers), and a menu inside a transformed window (the centred Create task window) is placed from that window (a transformed ancestor is the containing block of `position: fixed`). Layers follow the v1.72.2 scale (`--z-popover`).
+
+## 12. My Tasks (S-04; PV §2)
+
+| # | Spec says | We had | Change |
+|---|---|---|---|
+| M1 | Header: avatar + `My tasks ▾` (actions) | Avatar, title, a "Morning summary email" checkbox and a "Table with filters" link in the toolbar row | Title with a **▾ actions menu**: Add task · Morning summary email (checkbox) · ─ · Table with filters · Calendar feed (when offered) · Print. The checkbox and link left the toolbar |
+| M2 | Board cards and rows: name, check, project chips, field chip, due date, comment count | No comment count | Comment count (icon + number) on cards and rows |
+| M3 | Rows have a details/actions affordance | None (only the name link) | **⋯ menu** per task: Open task details · Copy task link · Go to <project> |
+| M4 | Tabs (user tabs, List, Board, Calendar, +) and the List toolbar | Same since v1.63.0 / v1.72.0 | Kept |
+| M5 | The person's own sections | Fixed date sections (owner, v1.54.4: Task Summary) | Kept (owner's decision) |
+
+## 13. Home (S-02; HOME §3.1, §3.15)
+
+| # | Spec says | We had | Change |
+|---|---|---|---|
+| HM1 | Header row: `+ Add widgets` | Add widget only inside Customise, as a panel | **Add widgets** is always in the header: a dropdown of the widgets not on Home (name + one line), added at the end |
+| HM2 | Widget chrome: "Actions" (⋯) top right: move, resize, remove | Move/resize/remove only in Customise | Each widget has an **Actions ⋯** menu: Move up · Move down · ─ · Half width · Full width (radio) · ─ · Remove widget |
+| HM3 | Date line and greeting | Same (v1.63.0) | Kept |
+| HM4 | Timeframe `My week ▾` | Period dropdown (Today, This week, This month, Last 30 days, Custom) | Kept (ARS's period set; already a dropdown) |
+| HM5 | Customize mode: drag, keyboard move | Same (v1.63.0) | Kept |
+
+## 14. Portfolios page and a portfolio (S-18, S-19; PORTFOLIOS §3.1, §3.4, §3.5, §3.9-§3.13)
+
+| # | Spec says | We had | Change |
+|---|---|---|---|
+| PI1 | Cards (a "New portfolio" tile first), `View as list` | A list only | **Cards** by default (New portfolio tile, identity tile, name, star, items, status); **View as list / View as cards** (kept in the address, `?layout=list`) |
+| PI2 | Card "Show options" menu | None | **⋯ options**: Open portfolio · Copy portfolio link · Add to / Remove from starred · Join portfolio (when they can join) |
+| PI3 | Recent and starred / Browse all | My portfolios · All I can see · Archived · Deleted | Kept (ours covers both, plus archived and deleted) |
+| PP1 | Actions: View portfolio details · Copy portfolio link · Duplicate · Set color · Add to portfolio · Export or sync ›; editor note; admin: Archive, Delete | Edit details or Set colour · Copy link · Archive · Leave · Delete | Spec order with our items: Edit portfolio details · Copy portfolio link · Set colour (current colour shown) · Export or sync › Print · ─ · Archive / Restore · Leave · Delete portfolio; editors see "Some actions are for the portfolio's owners only." |
+| PP2 | Status menu with each status's mark | Plain items | Coloured dot per status; the current one says so |
+| PP3 | Avatars = "Manage portfolio members" | Avatars only | The avatars are a button that opens Share |
+| PP4 | Share, Customize | Plus an extra copy-link button | Extra button removed (Copy portfolio link stays in the actions) |
+| PP5 | `[+ Add work ▾]`: More actions = Create new project / Create new portfolio | Add work only | ▾ beside Add work: Create new project · Create new portfolio |
+| PP6 | Toolbar Filter · Sort · Group · Search as menus; quick filters; sort order Status, Owner, Start date, Due date, Alphabetical …; group Owner, Status … | Three labelled native selects, a direction button and a search box | **Filter** menu (Quick filters as radio items + Clear; "Filters: 1" when on) · **Sort** menu (None (order added) · Status · Owner · Due date · Alphabetical · Task progress · Priority, then Ascending/Descending and Clear sort) · **Group** menu (Owner · Status · Priority · Projects and portfolios + Clear) · **Search this view** icon |
+| PP7 | Each column: "Show options for <column> column" | None | Column ▾: Sort ascending · Sort descending · Group by this column (Status, Owner, Priority); `aria-sort` on the sorted column |
+| PP8 | Rows: name, status, progress, due, priority, owner | A trash button per row | **⋯ per row**: Open · Copy link · ─ · Remove from this portfolio (owners and editors) |
+| — | Inline portfolio rename; Options panel (show/hide columns); `#` column | — | **Deferred** (rename: the details dialog does it; columns: portfolio's own fields only) |
+
+## 15. Intake form builder and fill view (FORMS §3.4, §3.9)
+
+| # | Spec says | We had | Change |
+|---|---|---|---|
+| F1 | Header bar: access notice + Change · star · View form · Share form · Copy link · More actions (Duplicate form) | Tabs only; View form and Unpublish in the footer | **Header bar**: "Who may submit: <audience>. Change" (opens Settings) · View form (published) · Share form (opens Share) · Copy link (published) · **More actions ⋯**: Duplicate form · Unpublish (published) · ─ · Delete form (asks first) |
+| F2 | Footer: Discard or Delete form · Publish / Save | Status, problems, Save draft, Publish, View form, Unpublish | View form and Unpublish moved to the header bar |
+| F3 | Fill view: "Email address" | "Email" | "Email address" (builder and fill view) |
+| F4 | Tabs Questions / Settings; question cards; fill view layout | Same (v1.66.0) | Kept (the star is not offered: no starred forms in ARS) |
+
+## 16. Project Dashboard and Workload (PV §7, §8; S-10, S-14)
+
+| # | Spec says | We had | Change |
+|---|---|---|---|
+| D1 | Widget: View chart · Edit chart · More actions (duplicate, resize half/full, remove; reorder) | Move earlier/later · Make half/full width · Remove | **More actions**: View chart · Edit chart · Show as table (charts) · ─ · Duplicate · Size › (Half or Quarter width · Full width, radio) · Move earlier / later · ─ · Remove widget |
+| D2 | Duplicate a widget | Not offered | **Duplicate** makes "<title> (copy)" at the end (counts towards the 20) |
+| D3 | Add widget menu: Chart · Text; chart builder: title, Data source, Chart setup (style order Bar … Lollipop), Filters, annotations, Cancel · Save chart | Same (v1.67.0) | Kept |
+| W1 | Toolbar: Add task · ‹ Today › · unit · Filter · Group · metric · Options | Earlier · Today · Later · two labelled selects · Set capacity | **Add task ▾** · ‹ Today › (Previous/Next period) · **unit dropdown** (Days (14) · Weeks (8)) · **measure dropdown** (Task count · estimates · number fields) · Set capacity |
+| — | Workload Filter, Sort, Group, Options | — | **Deferred** (rows are the project's people by design) |
+
+## 17. Automation builder (PC §2.3-§2.5)
+
+| # | Spec says | We had | Change |
+|---|---|---|---|
+| A1 | "Choose trigger": a source menu (in the app · manual · scheduled · webhook) and the grouped catalogue | A native select with option groups | **Trigger dropdown**: "Something happens to a task ›" (Task moved · Task field is changed · Due date is… · Added to task · Forms, as headings with their triggers) · ─ · Run by hand · On a schedule · Web request received; picking closes it |
+| A2 | "What happens next?": the action catalogue | "Add step" added a Move-to-section step, then a select changed it | **Add step ▾** lists the actions (Move task · Change status · Change task field · Create new · Add to task); the new step has the chosen action |
+| A3 | A step's action | A native select | **Do this ▾** dropdown (the same groups, radio items) |
+| A4 | Header: name · Draft · Cancel · Publish · Settings; Paths | Same shape (v1.68.0) | Kept |
+
+## 18. Global Create menu and the sidebar (NAV §3.3-§3.6; O-01, O-10)
+
+| # | Spec says | We had | Change |
+|---|---|---|---|
+| G1 | Create: Task · Project · … · Portfolio · … · Invite | Own menu code (↑/↓ only) | The shared dropdown (Home/End, letter jump, Escape back to + Create, Tab closes, placed against the window); order Approval request · Task · Project · Portfolio · ─ · Information |
+| G2 | Section options ⋯: "Sort projects and portfolios" Alphabetical · Recent · Top (radio) | A details panel with three buttons (Manual, A–Z, Recently opened) | **⋯ options** menu: "Sort projects" A–Z · Recently opened · Manual (radio, stays open) |
+| G3 | Team section "+": New project · New portfolio | None | **+** on the department section: New project · New portfolio (when portfolios are on) |
+| G4 | Starred; manual order | Same (v1.62.0) | Kept |
+
+## 19. Create task window (S-17 quick add; PV §13.3)
+
+| # | Spec says | We had | Change |
+|---|---|---|---|
+| TC1 | Toolbar "+" menu | A list with menu roles but no keyboard moves | The shared dropdown (Add to a project · Set a due date · Repeat (periodic) · Attach a file · Add collaborators) |
+| TC2 | Create split | One Create task button | **Create task ▾**: Create task (Ctrl+Enter) · **Create and add another** (the window stays, emptied, for the next one) |
+| TC3 | Priority options | "High" listed twice | Listed once |
+
+## 20. Part-1 deferrals
+
+| # | Item | Change |
+|---|---|---|
+| H7 | Inline project title rename | **Done**: owners click the title (a button inside the heading); a text box; Enter or leaving saves, Escape puts it back. Server: `renameProjectAction` → `renameProject` (owners only, 2-150 characters, spaces tidied, history + audit, unchanged name = no write) |
+| S1 | Timeline Sort / Group / Options | **Done**: Sort (Start date · Due date · Alphabetical), Group (Sections · None), Options (Expand all sections · Collapse all sections · Go to today); Gantt too |
+| S2 | Calendar Filter / Options / Search | **Filter and Search done** (Incomplete · Completed · All tasks, Just my tasks; Search this view). Options **deferred** (the spec doesn't show its contents) |
+| P2 | Task follow-up, merge, convert, duplicate | **Create follow-up task** and **Duplicate task** done (after Attach files): they open the Create task window filled from the task ("Follow-up: <name>" with a link back; or "<name> (copy)" with its description, priority and project); the person checks it and creates it. Merge and convert **deferred** (not ARS features) |
+| L2 | Duplicate section | **Deferred**: a copy needs its tasks copied (with subtasks, fields and dependencies); not built here |
+| V4 | Group order and subgroups | **Deferred**: the grid has one grouping level and no group order |
+
+## 21. Counts (part 2)
+
+| Screen | Changes | Kept | Deferred |
+|---|---|---|---|
+| My Tasks | 3 | 2 | 0 |
+| Home | 2 | 3 | 0 |
+| Portfolios page and portfolio | 10 | 1 | 3 (inline rename, Options panel, # column) |
+| Form builder and fill view | 3 | 1 | 0 |
+| Dashboard | 2 | 1 | 0 |
+| Workload | 1 (toolbar: 4 controls) | 0 | 1 (Filter/Sort/Group/Options) |
+| Automation builder | 3 | 1 | 0 |
+| Create menu and sidebar | 3 | 1 | 0 |
+| Create task window | 3 | 0 | 0 |
+| Part-1 deferrals | 5 (rename, Timeline ×1 set, Calendar ×1 set, follow-up, duplicate) | 0 | 4 (Calendar Options, merge/convert, duplicate section, group order/subgroups) |
+| **Total** | **35** | **10** | **9** |

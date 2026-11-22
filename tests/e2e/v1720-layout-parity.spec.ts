@@ -258,7 +258,8 @@ test("task pane: the ⋯ menu in the spec's order; the activity order is a dropd
   const more = pane.getByTestId("pane-more");
   await trigger(more).click();
   const items = await names(more);
-  expect(items.slice(0, 7)).toEqual(["Add to another project", "Add subtask", "Add tags", "Attach files", "Copy task link", "Open full page", "Print"]);
+  // v1.73.0 (D-396): Create follow-up task and Duplicate task follow Attach files (spec PV §13.3).
+  expect(items.slice(0, 9)).toEqual(["Add to another project", "Add subtask", "Add tags", "Attach files", "Create follow-up task", "Duplicate task", "Copy task link", "Open full page", "Print"]);
   expect(items.at(-1)).toBe("Delete task");
   await expect(more.getByRole("menu")).toBeInViewport({ ratio: 1 });
   await page.keyboard.press("Escape");

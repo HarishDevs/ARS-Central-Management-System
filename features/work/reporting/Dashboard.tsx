@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, GripVertical, Maximize2, MoreHorizontal, Pencil, Plus, Table2, Type } from "lucide-react";
+import { ArrowLeft, ArrowRight, BarChart3, Columns2, CopyPlus, GripVertical, Maximize2, MoreHorizontal, Pencil, Plus, Table2, Trash2, Type } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/features/ui/Button";
 import { ConfirmDialog, Dialog } from "@/features/ui/Dialog";
@@ -182,10 +182,16 @@ export function Dashboard({ projectId, widgets, fields, sections, people, canEdi
             onFull={() => setFull(widget.id)}
             onRemove={() => setRemoving(widget)}
             onMove={(delta) => void save(shift(order, widget.id, delta), widget.id)}
-            onResize={() =>
+            onResize={(size) =>
+              size !== widget.size &&
               void call(() =>
-                dashboardAction(projectId, { op: "save", id: widget.id, kind: widget.kind, title: widget.title, config: widget.config ?? undefined, body: widget.body, size: widget.size === "FULL" ? "HALF" : "FULL", rowVersion: widget.rowVersion }),
+                dashboardAction(projectId, { op: "save", id: widget.id, kind: widget.kind, title: widget.title, config: widget.config ?? undefined, body: widget.body, size, rowVersion: widget.rowVersion }),
               )
+            }
+            onDuplicate={
+              list.length < max
+                ? () => void call(() => dashboardAction(projectId, { op: "save", id: null, kind: widget.kind, title: `${widget.title} (copy)`.slice(0, 200), config: widget.config ?? undefined, body: widget.body, size: widget.size, rowVersion: null }), { success: "Widget duplicated." })
+                : null
             }
             index={order.indexOf(widget.id)}
             count={order.length}
@@ -247,6 +253,7 @@ function WidgetCard({
   onRemove,
   onMove,
   onResize,
+  onDuplicate,
   index,
   count,
 }: {
@@ -263,7 +270,8 @@ function WidgetCard({
   onFull: () => void;
   onRemove: () => void;
   onMove: (delta: number) => void;
-  onResize: () => void;
+  onResize: (size: "HALF" | "FULL") => void;
+  onDuplicate: (() => void) | null;
   index: number;
   count: number;
 }) {
@@ -323,11 +331,30 @@ function WidgetCard({
               <Menu
                 label={`More actions for ${widget.title}`}
                 trigger={<span className="inline-flex h-6 w-6 items-center justify-center"><MoreHorizontal aria-hidden="true" className="h-4 w-4" /></span>}
+                menuClass="w-56"
+                testId="widget-more"
+                // v1.73.0 (D-396, spec PV §7.1 "More actions": duplicate, resize half/full, remove; reorder):
+                // View chart and Edit chart first (also the buttons beside), then Duplicate, Size ›, the moves, Remove.
                 items={[
-                  ...(index > 0 ? [{ label: "Move earlier", onSelect: () => onMove(-1) }] : []),
-                  ...(index < count - 1 ? [{ label: "Move later", onSelect: () => onMove(1) }] : []),
-                  { label: widget.size === "FULL" ? "Make half width" : "Make full width", onSelect: onResize },
-                  { label: "Remove widget", tone: "danger" as const, onSelect: onRemove },
+                  { label: isChart ? "View chart" : "View full size", icon: <Maximize2 className="h-4 w-4" />, onSelect: onFull },
+                  { label: isChart ? "Edit chart" : "Edit text", icon: <Pencil className="h-4 w-4" />, onSelect: onEdit },
+                  ...(isChart && widget.data && !number ? [{ kind: "checkbox" as const, label: "Show as table", checked: table, onSelect: () => setTable((value) => !value) }] : []),
+                  { kind: "separator" as const, label: "" },
+                  { label: "Duplicate", icon: <CopyPlus className="h-4 w-4" />, disabled: !onDuplicate, hint: onDuplicate ? undefined : "The dashboard is full", onSelect: () => onDuplicate?.(), testId: "widget-duplicate" },
+                  {
+                    kind: "submenu" as const,
+                    label: "Size",
+                    icon: <Columns2 className="h-4 w-4" />,
+                    testId: "widget-size",
+                    items: [
+                      { kind: "radio" as const, label: number ? "Quarter width" : "Half width", checked: widget.size === "HALF", onSelect: () => onResize("HALF") },
+                      { kind: "radio" as const, label: "Full width", checked: widget.size === "FULL", onSelect: () => onResize("FULL") },
+                    ],
+                  },
+                  ...(index > 0 ? [{ label: "Move earlier", icon: <ArrowLeft className="h-4 w-4" />, onSelect: () => onMove(-1) }] : []),
+                  ...(index < count - 1 ? [{ label: "Move later", icon: <ArrowRight className="h-4 w-4" />, onSelect: () => onMove(1) }] : []),
+                  { kind: "separator" as const, label: "" },
+                  { label: "Remove widget", icon: <Trash2 className="h-4 w-4" />, tone: "danger" as const, onSelect: onRemove },
                 ]}
               />
               </div>

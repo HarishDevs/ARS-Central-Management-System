@@ -295,7 +295,10 @@ export function CopyLinkButton({ path, label = "Copy task link" }: { path: strin
 export const CREATE_TASK_EVENT = "ars:create-task";
 // v1.59.5 (owner): "Add subtask" opens the same Create task dialog, made under a parent.
 // v1.72.0 (D-387): "Milestone" from a view's Add task menu makes the new task a milestone.
-export type CreateTaskDetail = { projectId?: number | null; parentId?: number | null; parentLabel?: string; milestone?: boolean };
+// v1.73.0 (D-396): `prefill` fills the window from another task (Create
+// follow-up task, Duplicate task in the task's ⋯ menu); the person checks it
+// and creates the task as usual (every rule of a new task applies).
+export type CreateTaskDetail = { projectId?: number | null; parentId?: number | null; parentLabel?: string; milestone?: boolean; prefill?: { heading: string; title: string; description?: string; priority?: string } };
 export function openCreateTask(detail: CreateTaskDetail = {}) {
   window.dispatchEvent(new CustomEvent<CreateTaskDetail>(CREATE_TASK_EVENT, { detail }));
 }

@@ -1,5 +1,20 @@
 # Release notes
 
+## v1.73.0 (22 Nov 2026): Tasks and projects, part 2: the same layout and dropdown menus on the other screens
+The rest of the Tasks and projects screens follow the same layout and option lists as the project screens did in v1.72.0, with dropdown menus where a choice is made. No new data, no migration, nothing to switch on.
+- **Rename a project from its header:** project owners click the project's name, type the new one and press Enter (Escape keeps the old name).
+- **A task's ⋯ menu:** **Create follow-up task** and **Duplicate task** open the Create task window filled from the task; check it and create it as usual.
+- **Create task ▾:** **Create and add another** keeps the window open for the next task. The window's **+** menu works with the arrow keys.
+- **Task Summary (My Tasks):** the title's **▾** menu has Add task, the morning summary email, Table with filters, the calendar feed and Print; each task on the Board and the list has a **⋯** menu (open, copy link, go to its project) and shows its comment count.
+- **Home:** **Add widgets** is always at the top; each widget has an **Actions ⋯** menu (move up or down, half or full width, remove).
+- **Portfolios:** the Portfolios page shows cards (with a **New portfolio** tile and a **⋯** on each card) or a list (**View as list**). In a portfolio: the actions menu follows the usual order, the status menu shows each status's colour, the people pictures open Share, **Add work ▾** offers new projects and portfolios, **Filter**, **Sort** and **Group** are dropdown menus, each column has a sort menu and each row a **⋯** menu (remove is there now).
+- **Forms:** the form builder has a bar at the top: who may submit (with **Change**), View form, **Share form**, Copy link and **⋯** (Duplicate form, Unpublish, Delete form).
+- **Dashboard:** a widget's **⋯** has View chart, Edit chart, **Duplicate**, **Size ›**, the moves and Remove. **Workload:** the period and the measure are dropdown menus, and Add task is there.
+- **Automations:** the trigger, **Add step** and each step's action are dropdown menus grouped like the catalogue.
+- **Timeline and Gantt:** new **Sort** (start date, due date, name), **Group** (sections or none) and **Options** (expand or collapse all sections, go to today). **Calendar:** a **Filter** (incomplete, completed, all tasks, just mine) and **Search this view**.
+- **Sidebar and Create:** a sidebar section's **⋯** sorts its projects (A–Z, recently opened, manual); the department section's **+** starts a new project or portfolio; **+ Create** works fully with the keyboard.
+- **Owner steps:** publish v1.73.0 (no migration).
+
 ## v1.72.2 (22 Nov 2026): Look and feel fixes from the visual review
 No new data, no migration, nothing to switch on.
 - **Messages you can see over dialogs:** a "saved", "copied" or error message raised while a dialog is open now shows on top of the dialog (it used to hide behind it), and you can close it there.

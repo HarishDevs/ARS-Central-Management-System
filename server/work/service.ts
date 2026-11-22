@@ -167,6 +167,24 @@ export async function updateProjectDetails(projectId: number, input: ProjectInpu
   return { ok: true, value: undefined, message: "Saved." };
 }
 
+// v1.73.0 (D-396, spec PM §3.6 / PORTFOLIOS §3.4 #2): rename a project from
+// its header (inline title). Owners only, as for the details form; the name
+// is checked the same way (2 to 150 characters, spaces tidied).
+export async function renameProject(projectId: number, rawName: string, actor: TaskActor): Promise<WorkResult> {
+  const found = await projectWithRole(projectId, actor);
+  if (!found) return fail(NOT_FOUND);
+  if (!found.can.manage) return fail("Only the project's owners can rename it.");
+  const name = clean(rawName, 150);
+  if (name.length < 2) return fail("Give the project a name of 2 to 150 characters.", { name: "Give the project a name of 2 to 150 characters." });
+  if (name === found.project.name) return { ok: true, value: undefined, message: "Saved." };
+  await withTransaction(async (connection) => {
+    await repo.updateProject(projectId, { name }, connection);
+    await repo.appendProjectEvent(projectId, actor.id, "DETAILS", `Renamed: ${found.project.name} → ${name}`, connection);
+    await recordAudit({ actorUserId: actor.id, action: "PROJECT_UPDATED", entityType: "PROJECT", entityId: projectId, sessionId: actor.sessionId, ipAddress: actor.ipAddress ?? null, metadata: { renamed: true } }, connection);
+  });
+  return { ok: true, value: undefined, message: "Project renamed." };
+}
+
 export async function setMember(projectId: number, member: { type: "USER" | "DEPARTMENT"; id: number }, role: string | null, actor: TaskActor): Promise<WorkResult> {
   const found = await projectWithRole(projectId, actor);
   if (!found) return fail(NOT_FOUND);

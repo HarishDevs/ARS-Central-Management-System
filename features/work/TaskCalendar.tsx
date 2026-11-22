@@ -4,9 +4,9 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { quickAddAction, taskFieldsAction } from "@/app/users/work/actions";
 import { TaskCheck, usePaneLink, useWorkCall } from "@/features/work/client";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Filter } from "lucide-react";
 import { Menu } from "@/features/ui/Menu";
-import { AddTaskSplit } from "@/features/work/ViewToolbar";
+import { AddTaskSplit, ViewSearch } from "@/features/work/ViewToolbar";
 import { indiaDayOf } from "@/features/work/format";
 import { addDays, dayDiff } from "@/server/work/schedule";
 
@@ -42,7 +42,7 @@ export interface CalendarPlanning {
 }
 
 export function TaskCalendar({
-  tasks,
+  tasks: allTasks,
   month,
   todayDay,
   canEdit,
@@ -63,6 +63,17 @@ export function TaskCalendar({
   planning?: CalendarPlanning;
 }) {
   const hrefFor = (value: string) => `${monthHref}${value}`;
+  // v1.73.0 (D-396, spec PV §6 / S-12 "Filter · Search"): the view's Filter
+  // dropdown (Incomplete, Completed or All tasks; Just my tasks) and Search
+  // this view, on the tasks already on the page.
+  const [show, setShow] = useState<"all" | "incomplete" | "completed">("all");
+  const [mineOnly, setMineOnly] = useState(false);
+  const [query, setQuery] = useState("");
+  const tasks = useMemo(() => {
+    const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    return allTasks.filter((task) => (show === "all" || (show === "completed") === (task.status === "COMPLETED")) && (!mineOnly || task.assigneeId === meId) && words.every((word) => task.title.toLowerCase().includes(word)));
+  }, [allTasks, show, mineOnly, meId, query]);
+  const filters = Number(show !== "all") + Number(mineOnly);
   const { call, pending: busy } = useWorkCall();
   const paneLink = usePaneLink();
   const [dragging, setDragging] = useState<number | null>(null);
@@ -286,6 +297,29 @@ export function TaskCalendar({
             </button>
           )}
           {unitLinks}
+          <span className={`${planning ? "" : "ml-auto"} ${filters ? "tb-pill" : "inline-flex items-center"}`}>
+            <Menu
+              label={filters ? `Filters: ${filters}` : "Filter"}
+              trigger={
+                <>
+                  <Filter aria-hidden="true" className="h-4 w-4" /> {filters ? `Filters: ${filters}` : "Filter"}
+                </>
+              }
+              buttonClass="tb-btn"
+              menuClass="w-56"
+              testId="calendar-filter"
+              items={[
+                { kind: "heading", label: "Show" },
+                { kind: "radio", label: "Incomplete tasks", checked: show === "incomplete", onSelect: () => setShow("incomplete") },
+                { kind: "radio", label: "Completed tasks", checked: show === "completed", onSelect: () => setShow("completed") },
+                { kind: "radio", label: "All tasks", checked: show === "all", onSelect: () => setShow("all") },
+                { kind: "separator", label: "" },
+                { kind: "checkbox", label: "Just my tasks", checked: mineOnly, onSelect: () => setMineOnly((value) => !value) },
+              ]}
+            />
+          </span>
+          <ViewSearch value={query} onChange={setQuery} />
+          {(filters > 0 || query) && tasks.length === 0 && <p className="w-full text-label text-ink-muted" role="status">No tasks match. Change the filter or the search.</p>}
         </div>
         {planning && (
           <p className="sr-only" role="status" aria-live="polite" data-testid="calendar-live">
@@ -310,17 +344,25 @@ export function TaskCalendar({
           </div>
         ) : (
           <div role="grid" aria-label={`${MONTH_NAMES[monthIndex - 1]} ${year}`} className="grid grid-cols-7 overflow-hidden rounded-lg border border-line">
-            {WEEKDAYS.map((day) => (
-              <div key={day} role="columnheader" className="border-b border-line bg-surface-muted px-2 py-1 text-caption font-semibold text-ink-faint">
-                {day}
+            {/* v1.73.0 (D-396): the grid's rows (axe aria-required-children / -parent); display: contents keeps the 7-column layout. */}
+            <div role="row" className="contents">
+              {WEEKDAYS.map((day) => (
+                <div key={day} role="columnheader" className="border-b border-line bg-surface-muted px-2 py-1 text-caption font-semibold text-ink-faint">
+                  {day}
+                </div>
+              ))}
+            </div>
+            {Array.from({ length: cells / 7 }, (_, week) => (
+              <div key={week} role="row" className="contents">
+                {Array.from({ length: 7 }, (_, column) => {
+                  const index = week * 7 + column;
+                  const date = index - lead + 1;
+                  if (date < 1 || date > days) return <div key={index} role="gridcell" className="min-h-24 border-b border-r border-line bg-surface-muted/50" />;
+                  const day = `${month}-${String(date).padStart(2, "0")}`;
+                  return dayCell(day, badge(day, String(date)), "min-h-24");
+                })}
               </div>
             ))}
-            {Array.from({ length: cells }, (_, index) => {
-              const date = index - lead + 1;
-              if (date < 1 || date > days) return <div key={index} role="gridcell" className="min-h-24 border-b border-r border-line bg-surface-muted/50" />;
-              const day = `${month}-${String(date).padStart(2, "0")}`;
-              return dayCell(day, badge(day, String(date)), "min-h-24");
-            })}
           </div>
         )}
       </div>

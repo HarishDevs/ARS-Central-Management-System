@@ -1,12 +1,12 @@
 "use client";
 
-import { FolderPlus, Heart, ListPlus, Maximize2, MoreHorizontal, Paperclip, Printer, Tag, Trash2, Link2, Zap } from "lucide-react";
+import { CopyPlus, CornerDownRight, FolderPlus, Heart, ListPlus, Maximize2, MoreHorizontal, Paperclip, Printer, Tag, Trash2, Link2, Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { likeAction, paneWidthAction } from "@/app/users/work/actions";
 import { useToast } from "@/features/ui/Toast";
 import { COPY_BLOCKED, copyText } from "@/features/ui/clipboard";
-import { useDeleteWithUndo, useWorkCall } from "@/features/work/client";
+import { openCreateTask, useDeleteWithUndo, useWorkCall } from "@/features/work/client";
 import { Menu, type MenuItem } from "@/features/ui/Menu";
 import { runAutomationOnTaskAction } from "@/app/users/work/automation-actions";
 import { clampPaneWidth, PANE_DEFAULT, PANE_MAX, PANE_MIN } from "@/server/work/pm-rules";
@@ -112,7 +112,12 @@ export function TaskLikeButton({ taskId, liked, count, names }: { taskId: number
 // files, then Copy task link, Open full page, Print, the project's "by hand"
 // automations, then Delete task (asks first, in a small dialog). The menu is
 // placed against the window, so the pane's scrolling body never clips it.
-export function PaneMoreMenu({ taskId, title, canDelete, closeHref, automations = [] }: { taskId: number; title: string; canDelete: boolean; closeHref: string; automations?: { id: number; name: string; projectName: string }[] }) {
+// v1.73.0 (D-396, spec PV §13.3): Create follow-up task and Duplicate task
+// (after Attach files, as in the spec) open the Create task window filled from
+// this task: a follow-up gets "Follow-up: <name>" and a link back in its
+// description; a duplicate copies the name, description, priority and project.
+// The person checks it and creates it; every rule of a new task applies.
+export function PaneMoreMenu({ taskId, title, canDelete, closeHref, automations = [], copy }: { taskId: number; title: string; canDelete: boolean; closeHref: string; automations?: { id: number; name: string; projectName: string }[]; copy?: { projectId: number | null; description: string; priority: string } }) {
   const toast = useToast();
   const router = useRouter();
   const { call } = useWorkCall();
@@ -143,6 +148,22 @@ export function PaneMoreMenu({ taskId, title, canDelete, closeHref, automations 
     { label: "Add subtask", icon: <ListPlus className="h-4 w-4" />, onSelect: () => goTo('[data-testid="add-subtask"]', "Subtasks can't be added to this task.", (element) => element.click()), testId: "pane-add-subtask" },
     { label: "Add tags", icon: <Tag className="h-4 w-4" />, onSelect: () => goTo("#new-tag", "Tags can't be changed on this task."), testId: "pane-add-tags" },
     { label: "Attach files", icon: <Paperclip className="h-4 w-4" />, onSelect: () => goTo('input[type="file"]:not([aria-hidden="true"])', "Files are added with a comment.", (element) => element.click()), testId: "pane-attach" },
+    ...(copy
+      ? [
+          {
+            label: "Create follow-up task",
+            icon: <CornerDownRight className="h-4 w-4" />,
+            onSelect: () => openCreateTask({ projectId: copy.projectId, prefill: { heading: "Create follow-up task", title: `Follow-up: ${title}`.slice(0, 200), description: `Follow-up of “${title}”: ${window.location.origin}${path}` } }),
+            testId: "pane-follow-up",
+          },
+          {
+            label: "Duplicate task",
+            icon: <CopyPlus className="h-4 w-4" />,
+            onSelect: () => openCreateTask({ projectId: copy.projectId, prefill: { heading: "Duplicate task", title: `${title} (copy)`.slice(0, 200), description: copy.description, priority: copy.priority } }),
+            testId: "pane-duplicate",
+          },
+        ]
+      : []),
     { kind: "separator", label: "" },
     {
       label: "Copy task link",

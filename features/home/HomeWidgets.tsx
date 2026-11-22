@@ -1,10 +1,10 @@
 "use client";
 
-import { ArrowDown, ArrowUp, Check, GripVertical, LayoutGrid, Plus, RotateCcw, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, GripVertical, LayoutGrid, MoreHorizontal, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { homeLayoutAction } from "@/app/users/home-actions";
-import { Drop } from "@/features/ui/Drop";
+import { Menu, type MenuItem } from "@/features/ui/Menu";
 import { useToast } from "@/features/ui/Toast";
 import { addWidget, moveWidget, placeWidget, removeWidget, resizeWidget, widgetEntry, type WidgetItem, type WidgetKind, type WidgetSize } from "@/server/home/widgets";
 
@@ -99,44 +99,27 @@ export function HomeWidgets({ widgets, version, addable, extra }: { widgets: Boa
 
   return (
     <div data-testid="home-widgets" data-editing={editing ? "on" : undefined}>
+      {/* v1.73.0 (D-396, spec HOME §3.1.1, §3.15): "+ Add widgets" is always in the header (a dropdown of the widgets not on Home); Customise shows the move handles and Reset. */}
       <div className="mb-3 flex flex-wrap items-center justify-end gap-2" role="toolbar" aria-label="Home widgets">
+        {addable.length > 0 && (
+          <Menu
+            label="Add widgets"
+            trigger={
+              <>
+                <Plus aria-hidden="true" className="h-4 w-4" /> Add widgets
+              </>
+            }
+            buttonClass="btn-secondary btn-compact inline-flex items-center gap-1.5"
+            menuClass="w-72"
+            testId="add-widget"
+            items={[
+              { kind: "heading", label: "Add to the end of Home" },
+              ...addable.map((entry): MenuItem => ({ label: entry.title, hint: entry.description, disabled: pending, onSelect: () => save(addWidget(layout, entry.kind), `${entry.title} added at the end.`, { refresh: true }), testId: `add-widget-${entry.kind}` })),
+            ]}
+          />
+        )}
         {editing && (
           <>
-            {addable.length > 0 && (
-              <Drop
-                label="Add widget"
-                icon={
-                  <span className="inline-flex items-center gap-1.5">
-                    <Plus aria-hidden="true" className="h-4 w-4" /> Add widget
-                  </span>
-                }
-                buttonClass="btn-secondary btn-compact inline-flex items-center"
-                panelClass="right-0 w-72"
-                testId="add-widget"
-              >
-                <p className="mb-2 font-semibold">Add a widget</p>
-                <ul className="space-y-0.5" aria-label="Widgets">
-                  {addable.map((entry) => (
-                    <li key={entry.kind}>
-                      <button
-                        type="button"
-                        disabled={pending}
-                        className="block w-full rounded px-2 py-1.5 text-left hover:bg-surface-muted disabled:opacity-60"
-                        onClick={(event) => {
-                          const details = (event.currentTarget as HTMLElement).closest("details");
-                          if (details) details.open = false;
-                          save(addWidget(layout, entry.kind), `${entry.title} added at the end.`, { refresh: true });
-                        }}
-                        data-testid={`add-widget-${entry.kind}`}
-                      >
-                        <span className="block text-label font-medium">{entry.title}</span>
-                        <span className="block text-caption text-ink-muted">{entry.description}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </Drop>
-            )}
             <button
               type="button"
               className="btn-secondary btn-compact inline-flex items-center gap-1.5"
@@ -175,7 +158,7 @@ export function HomeWidgets({ widgets, version, addable, extra }: { widgets: Boa
       </span>
       {layout.length === 0 && !extra && (
         <p className="rounded-lg border border-dashed border-line px-4 py-8 text-center text-label text-ink-muted" data-testid="home-empty">
-          No widgets on your Home. Choose <strong>Customise</strong>, then <strong>Add widget</strong>.
+          No widgets on your Home. Choose <strong>Add widgets</strong> to add some.
         </p>
       )}
       <ul className="grid grid-cols-1 gap-6 lg:grid-cols-2" aria-label="Your widgets">
@@ -261,11 +244,45 @@ export function HomeWidgets({ widgets, version, addable, extra }: { widgets: Boa
                   </button>
                 </div>
               )}
-              {node ?? (
-                <section className="card px-5 py-6 text-center text-label text-ink-muted" aria-label={entry.title}>
-                  Loading {entry.title}…
-                </section>
-              )}
+              {/* v1.73.0 (D-396, spec HOME §3.1.2): each widget's "Actions" (⋯) at the top right: move, width, remove. */}
+              <div className="relative [&>section>:first-child]:pr-9">
+                {node ?? (
+                  <section className="card px-5 py-6 text-center text-label text-ink-muted" aria-label={entry.title}>
+                    Loading {entry.title}…
+                  </section>
+                )}
+                <div className="absolute right-2 top-2.5">
+                  <Menu
+                    label={`Actions for ${entry.title}`}
+                    title="Actions"
+                    trigger={<MoreHorizontal aria-hidden="true" className="h-4 w-4" />}
+                    buttonClass="grid h-8 w-8 place-items-center rounded-md text-ink-muted hover:bg-surface-muted hover:text-ink"
+                    menuClass="w-52"
+                    testId="widget-actions"
+                    items={[
+                      { label: "Move up", icon: <ArrowUp className="h-4 w-4" />, disabled: index === 0 || pending, onSelect: () => move(item.kind, -1) },
+                      { label: "Move down", icon: <ArrowDown className="h-4 w-4" />, disabled: index === layout.length - 1 || pending, onSelect: () => move(item.kind, 1) },
+                      ...(entry.sizes.length > 1
+                        ? [
+                            { kind: "separator" as const, label: "" },
+                            ...(["half", "full"] as const)
+                              .filter((size) => entry.sizes.includes(size))
+                              .map((size): MenuItem => ({ kind: "radio", label: size === "full" ? "Full width" : "Half width", checked: item.size === size, disabled: pending, onSelect: () => item.size !== size && save(resizeWidget(layout, item.kind, size), `${entry.title} is ${size === "full" ? "full" : "half"} width now.`), testId: `widget-menu-${size}` })),
+                          ]
+                        : []),
+                      { kind: "separator", label: "" },
+                      {
+                        label: "Remove widget",
+                        icon: <Trash2 className="h-4 w-4" />,
+                        tone: "danger",
+                        disabled: pending,
+                        onSelect: () => save(removeWidget(layout, item.kind), `${entry.title} removed. Add it again with Add widgets.`),
+                        testId: "widget-menu-remove",
+                      },
+                    ]}
+                  />
+                </div>
+              </div>
             </li>
           );
         })}

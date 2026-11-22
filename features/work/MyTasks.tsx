@@ -2,11 +2,15 @@
 
 import type { CellMap, FieldView } from "@/server/work/custom-fields";
 import { ApprovalBadge, approvalRowClass } from "@/features/work/ApprovalLink";
-import { Pencil, Trash2 } from "lucide-react";
+import { ChevronDown, ExternalLink, FolderKanban, Link2, MessageSquare, MoreHorizontal, Pencil, Plus, Printer, Rss, Table2, Trash2 } from "lucide-react";
+import { Menu, type MenuItem } from "@/features/ui/Menu";
+import { useToast } from "@/features/ui/Toast";
+import { COPY_BLOCKED, copyText } from "@/features/ui/clipboard";
+import { digestChoiceAction } from "@/app/users/work/actions";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { myPlaceAction, mySectionAction } from "@/app/users/work/actions";
-import { ProjectDot, TaskCheck, usePaneLink, useWorkCall } from "@/features/work/client";
+import { openCreateTask, ProjectDot, TaskCheck, usePaneLink, useWorkCall } from "@/features/work/client";
 import { Repeat } from "lucide-react";
 import { dueLabel, TONE_TEXT } from "@/features/work/format";
 import { columnAccent } from "@/features/work/kanban";
@@ -133,6 +137,13 @@ export function MyTasks({ sections, tasks, layout, nowIso, fixed = false }: { se
           )}
           {due && <span className={TONE_TEXT[due.tone]}>{due.text}</span>}
           {task.priority && <TaskPriorityPill priority={task.priority} />}
+          {task.comments > 0 && (
+            <span className="inline-flex items-center gap-0.5" aria-label={`${task.comments} comment${task.comments === 1 ? "" : "s"}`}>
+              <MessageSquare aria-hidden="true" className="h-3.5 w-3.5" />
+              {task.comments}
+            </span>
+          )}
+          <TaskRowMenu task={task} href={paneLink(task.id)} />
         </div>
       </li>
     );
@@ -207,6 +218,52 @@ export function MyTasks({ sections, tasks, layout, nowIso, fixed = false }: { se
       <BulkBar ids={selected.filter((one) => tasks.some((task) => task.id === one))} clear={() => setSelected([])} />
       {recent && !fixed && <p className="mt-2 text-caption text-ink-muted">New tasks given to you land in {recent.name}. Tasks in Upcoming and Later move to Today on their due date.</p>}
     </div>
+  );
+}
+
+// v1.73.0 (D-396, spec S-04 board cards / list rows): each task's ⋯ menu:
+// Open task details, Copy task link, Go to its project.
+function TaskRowMenu({ task, href }: { task: MyTaskRow; href: string }) {
+  const toast = useToast();
+  const link = `/users/tasks/${task.id}`;
+  const items: MenuItem[] = [
+    { label: "Open task details", icon: <ExternalLink className="h-4 w-4" />, href },
+    { label: "Copy task link", icon: <Link2 className="h-4 w-4" />, onSelect: () => void copyText(`${window.location.origin}${link}`).then((done) => toast(done ? { tone: "success", title: "Link copied." } : { tone: "error", title: `${COPY_BLOCKED} ${window.location.origin}${link}` })) },
+    ...task.projects.slice(0, 3).map((project) => ({ label: `Go to ${project.name}`, icon: <FolderKanban className="h-4 w-4" />, href: `/users/work/projects/${project.id}` })),
+  ];
+  return <Menu label={`Actions for ${task.title}`} trigger={<MoreHorizontal aria-hidden="true" className="h-4 w-4" />} buttonClass="grid h-7 w-7 place-items-center rounded text-ink-muted hover:bg-surface hover:text-ink" menuClass="w-56" testId="my-task-menu" items={items} />;
+}
+
+// v1.73.0 (D-396, spec S-04 header "My tasks ▾"): the title's actions menu:
+// Add task, the morning summary email (on or off), Table with filters, the
+// calendar feed (when offered) and Print.
+export function MyTasksTitle({ title, digestOn, feed }: { title: string; digestOn: boolean; feed: boolean }) {
+  const { call } = useWorkCall();
+  const [digest, setDigest] = useState(digestOn);
+  const items: MenuItem[] = [
+    { label: "Add task", icon: <Plus className="h-4 w-4" />, onSelect: () => openCreateTask({ projectId: null }) },
+    {
+      kind: "checkbox",
+      label: "Morning summary email",
+      hint: "Your day's tasks by email each morning",
+      checked: digest,
+      onSelect: () => {
+        const next = !digest;
+        setDigest(next);
+        void call(() => digestChoiceAction(next)).then((result) => !result?.ok && setDigest(!next));
+      },
+      testId: "my-digest",
+    },
+    { kind: "separator", label: "" },
+    { label: "Table with filters", hint: "Every task, on Assigned to me", icon: <Table2 className="h-4 w-4" />, href: "/users/tasks" },
+    ...(feed ? [{ label: "Calendar feed", hint: "Subscribe in your calendar app", icon: <Rss className="h-4 w-4" />, href: "#my-tasks-feed" }] : []),
+    { label: "Print", icon: <Printer className="h-4 w-4" />, onSelect: () => window.print() },
+  ];
+  return (
+    <span className="inline-flex items-center gap-1">
+      <h1 className="text-title font-semibold tracking-tight">{title}</h1>
+      <Menu label={`Actions for ${title}`} trigger={<ChevronDown aria-hidden="true" className="h-4 w-4" />} align="left" menuClass="w-64" testId="my-tasks-actions" items={items} />
+    </span>
   );
 }
 

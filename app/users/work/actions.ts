@@ -112,6 +112,13 @@ export async function updateProjectAction(_previous: ActionResult | null, formDa
   return runProject("updateProject", await actorForProjects(), (me) => work.updateProjectDetails(projectId, { ...projectInput(formData), rowVersion: /^\d+$/.test(version) ? Number(version) : undefined }, me));
 }
 
+// v1.73.0 (D-396): the header's inline title (owners).
+export async function renameProjectAction(projectId: number, name: string): Promise<ActionResult> {
+  const project = id(projectId);
+  if (!project) return NOT_FOUND;
+  return runProject("renameProject", await actorForProjects(), (me) => work.renameProject(project, typeof name === "string" ? name : "", me));
+}
+
 export async function memberAction(_previous: ActionResult | null, formData: FormData): Promise<ActionResult> {
   const projectId = id(text(formData, "projectId"));
   const [type, raw] = text(formData, "member").split(":");

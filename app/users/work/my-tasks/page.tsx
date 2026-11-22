@@ -4,7 +4,7 @@ import { AlarmClock, CalendarClock, CalendarRange, CheckCircle2, ListTodo } from
 import { paneLinks, paneTaskId, TaskPane, WithPane } from "@/features/work/TaskPane";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { MyTasks, MyTasksGrid } from "@/features/work/MyTasks";
+import { MyTasks, MyTasksGrid, MyTasksTitle } from "@/features/work/MyTasks";
 import { toGridTask } from "@/server/work/grid-rows";
 import { fieldDefsOfProjects } from "@/lib/db/repositories/fields.repository";
 import { cellsFor, fieldViews } from "@/server/work/fields-service";
@@ -13,7 +13,6 @@ import { DEFAULT_GRID, parseGridConfig } from "@/server/work/grid";
 import { peopleOptions } from "@/server/work/page-context";
 import { Avatar } from "@/features/ui/Display";
 import { CreateTaskButton } from "@/features/work/client";
-import { DigestToggle } from "@/features/work/MoreParts";
 import { getDbPool } from "@/lib/db/client";
 import type { RowDataPacket } from "mysql2/promise";
 import { TaskCalendar } from "@/features/work/TaskCalendar";
@@ -186,7 +185,8 @@ export default async function MyTasksPage({
           <ListTodo className="h-6 w-6" />
         </span>
         <Avatar name={user.name} />
-        <h1 className="text-title font-semibold tracking-tight">Task Summary</h1>
+        {/* v1.73.0 (D-396, spec S-04): the title's ▾ menu holds the page's actions (the morning email, Table with filters, the calendar feed, Print). */}
+        <MyTasksTitle title="Task Summary" digestOn={!digestOff} feed={feed !== undefined} />
         <span className="text-caption text-ink-muted">
           Your tasks overdue, due today and due in the next 7 days, and what you completed today. Everything else is on{" "}
           <Link href="/users/tasks" className="link">
@@ -240,17 +240,12 @@ export default async function MyTasksPage({
             ))}
           </nav>
           )}
-          <span className="ml-auto">
-            <DigestToggle on={!digestOff} />
-          </span>
+          <span className="ml-auto" />
           {view !== "list" && (
             <Link href={link({ done: params.done === "1" ? null : "1" })} className="text-label link">
               {params.done === "1" ? "Hide completed" : "Show completed (last 7 days)"}
             </Link>
           )}
-          <Link href="/users/tasks" className="text-label link">
-            Table with filters
-          </Link>
         </div>
         {view === "calendar" ? (
           <TaskCalendar
@@ -299,7 +294,7 @@ export default async function MyTasksPage({
         )}
       </WithPane>
       {feed !== undefined && (
-        <details className="card mt-6 px-5 py-3" data-testid="my-tasks-feed">
+        <details id="my-tasks-feed" className="card mt-6 px-5 py-3" data-testid="my-tasks-feed">
           <summary className="cursor-pointer font-semibold">Calendar feed</summary>
           <div className="mt-3">
             <CalendarFeedPanel scope="MY_TASKS" current={feed ? { hint: feed.hint, createdAt: feed.createdAt.toISOString(), lastUsedAt: feed.lastUsedAt?.toISOString() ?? null } : null} />

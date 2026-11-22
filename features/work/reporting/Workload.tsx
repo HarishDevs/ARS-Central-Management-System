@@ -1,8 +1,10 @@
 "use client";
 
-import { AlertTriangle, ChevronLeft, ChevronRight, Gauge } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronLeft, ChevronRight, Gauge } from "lucide-react";
+import { Menu } from "@/features/ui/Menu";
+import { AddTaskSplit } from "@/features/work/ViewToolbar";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useId, useState } from "react";
 import { Button } from "@/features/ui/Button";
 import { Dialog } from "@/features/ui/Dialog";
@@ -41,7 +43,6 @@ const WEEKDAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const dayName = (day: string) => WEEKDAY[new Date(`${day}T00:00:00Z`).getUTCDay()]!;
 
 export function Workload({ projectId, data }: { projectId: number; data: WorkloadData }) {
-  const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
   const paneLink = usePaneLink();
@@ -63,33 +64,48 @@ export function Workload({ projectId, data }: { projectId: number; data: Workloa
 
   return (
     <div data-testid="workload">
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <Link href={href({ wfrom: addDays(data.from, -step) })} className="btn-secondary btn-compact inline-flex items-center gap-1" aria-label="Earlier">
-          <ChevronLeft aria-hidden="true" className="h-4 w-4" /> Earlier
-        </Link>
-        <Link href={href({ wfrom: data.today })} className="btn-secondary btn-compact">
-          Today
-        </Link>
-        <Link href={href({ wfrom: addDays(data.from, step) })} className="btn-secondary btn-compact inline-flex items-center gap-1" aria-label="Later">
-          Later <ChevronRight aria-hidden="true" className="h-4 w-4" />
-        </Link>
-        <label className="ml-auto inline-flex items-center gap-1 text-label">
-          <span className="text-ink-muted">Show</span>
-          <select className="field-input field-compact w-auto" value={data.unit} onChange={(event) => router.push(href({ wunit: event.target.value }))} data-testid="workload-unit">
-            <option value="day">Days ({WORKLOAD_SPAN.day})</option>
-            <option value="week">Weeks ({WORKLOAD_SPAN.week})</option>
-          </select>
-        </label>
-        <label className="inline-flex items-center gap-1 text-label">
-          <span className="text-ink-muted">Measure</span>
-          <select className="field-input field-compact w-auto" value={data.metric} onChange={(event) => router.push(href({ wmetric: event.target.value }))} data-testid="workload-metric">
-            {data.metrics.map((metric) => (
-              <option key={metric.key} value={metric.key}>
-                {metric.label}
-              </option>
-            ))}
-          </select>
-        </label>
+      {/* v1.73.0 (D-396, spec PV §8 / S-14): Add task · ‹ Today › · the unit dropdown · the metric dropdown · Set capacity. */}
+      <div className="mb-3 flex flex-wrap items-center gap-2" role="toolbar" aria-label="Workload tools">
+        {data.canEdit && <AddTaskSplit projectId={projectId} />}
+        <span className="inline-flex items-center gap-1">
+          <Link href={href({ wfrom: addDays(data.from, -step) })} className="btn-secondary btn-compact" aria-label="Previous period" title="Previous period">
+            <ChevronLeft aria-hidden="true" className="h-4 w-4" />
+          </Link>
+          <Link href={href({ wfrom: data.today })} className="btn-secondary btn-compact">
+            Today
+          </Link>
+          <Link href={href({ wfrom: addDays(data.from, step) })} className="btn-secondary btn-compact" aria-label="Next period" title="Next period">
+            <ChevronRight aria-hidden="true" className="h-4 w-4" />
+          </Link>
+        </span>
+        <span className="ml-auto" />
+        <Menu
+          label={`See capacity over time: ${data.unit === "day" ? "Days" : "Weeks"}`}
+          trigger={
+            <span className="inline-flex items-center gap-1">
+              {data.unit === "day" ? `Days (${WORKLOAD_SPAN.day})` : `Weeks (${WORKLOAD_SPAN.week})`} <ChevronDown aria-hidden="true" className="h-4 w-4" />
+            </span>
+          }
+          buttonClass="btn-secondary btn-compact"
+          menuClass="w-44"
+          testId="workload-unit"
+          items={[
+            { kind: "radio", label: `Days (${WORKLOAD_SPAN.day})`, checked: data.unit === "day", href: href({ wunit: "day" }) },
+            { kind: "radio", label: `Weeks (${WORKLOAD_SPAN.week})`, checked: data.unit === "week", href: href({ wunit: "week" }) },
+          ]}
+        />
+        <Menu
+          label={`Measure: ${data.metricLabel}`}
+          trigger={
+            <span className="inline-flex items-center gap-1">
+              {data.metrics.find((metric) => metric.key === data.metric)?.label ?? data.metricLabel} <ChevronDown aria-hidden="true" className="h-4 w-4" />
+            </span>
+          }
+          buttonClass="btn-secondary btn-compact"
+          menuClass="w-56"
+          testId="workload-metric"
+          items={data.metrics.map((metric) => ({ kind: "radio" as const, label: metric.label, checked: metric.key === data.metric, href: href({ wmetric: metric.key }) }))}
+        />
         {data.canEdit && (
           <Button size="sm" variant="secondary" onClick={() => setCapacityOpen(true)} icon={<Gauge aria-hidden="true" className="h-4 w-4" />} data-testid="workload-capacity">
             Set capacity
