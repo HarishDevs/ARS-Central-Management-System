@@ -63,5 +63,13 @@ test("on a wide window the table fills the card (no empty area on the right)", a
   const row = page.getByTestId("task-row").first();
   const rowWidth = (await row.boundingBox())!.width;
   expect(rowWidth).toBeGreaterThanOrEqual(cardWidth - 1);
+  // v1.66.2 (owner): the section name box fits its words; the count sits right beside it.
+  const name = page.getByTestId("section-name").first();
+  const nameBox = (await name.boundingBox())!;
+  expect(nameBox.width).toBeLessThan(200);
+  const heading = page.getByTestId("group-heading").first();
+  const count = heading.getByText("1", { exact: true });
+  const countBox = (await count.boundingBox())!;
+  expect(countBox.x - (nameBox.x + nameBox.width)).toBeLessThan(40);
   await page.screenshot({ path: "test-results/v1641-list-wide.png" });
 });

@@ -922,15 +922,19 @@ function SectionHeader({ section, sections, count, canEdit, plain }: { section: 
   const [moveTo, setMoveTo] = useState<number>(sections.find((item) => item.id !== section.id)?.id ?? 0);
   useEffect(() => setName(section.name), [section.name]);
   return (
-    <div className={`flex min-w-0 flex-1 flex-wrap items-center gap-2 ${plain ? "pb-1" : "px-3 py-2"}`}>
+    // v1.66.2 (owner: "reduce the box length based on the available words"): in the
+    // List the name box fits its text, and the count and buttons sit beside it.
+    <div className={`flex min-w-0 flex-wrap items-center gap-2 ${plain ? "pb-1" : "flex-1 px-3 py-2"}`}>
       {canEdit ? (
         <input
           aria-label={`Section name: ${section.name}`}
           value={name}
+          size={Math.max(4, Math.min(60, name.length + 1))}
+          data-testid="section-name"
           onChange={(event) => setName(event.target.value)}
           onKeyDown={(event) => event.key === "Enter" && (event.target as HTMLInputElement).blur()}
           onBlur={() => name.trim() && name.trim() !== section.name && void call(() => sectionAction(section.id, { name }), { success: false })}
-          className="min-w-0 flex-1 rounded border border-transparent bg-transparent px-1 font-semibold text-ink hover:border-line focus:border-primary-600 focus:outline-none"
+          className={`min-w-0 max-w-full rounded border border-transparent bg-transparent px-1 font-semibold text-ink [field-sizing:content] hover:border-line focus:border-primary-600 focus:outline-none ${plain ? "" : "flex-1"}`}
         />
       ) : (
         <h3 className="font-semibold">{section.name}</h3>

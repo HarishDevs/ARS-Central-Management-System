@@ -17,6 +17,8 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 **Multi-level approvals in any custom manner.** The engine must support any number of levels in any combination: sequential, parallel, any-one, any-N-of-M, conditional and hybrid. Approvers can come from any source, and levels can be added or skipped by rules. Build the engine for this from the first engine phase (P2). The drag-and-drop designer (P3) is only the screen for building it. Check every task against this.
 
 ## Now / Next
+- **Now (22 Nov 2026):** **v1.66.2** section name box fits its words (D-377). **Owner:** publish (no migration).
+- [x] UI-93 (22 Nov 2026) List section name box sized to its text
 - **Now (22 Nov 2026):** **v1.66.1** feature switch names (D-376). **Owner:** publish (no migration).
 - [x] UI-92 (22 Nov 2026) Distinct names for the Projects A/B/C feature switches
 - **Now (22 Nov 2026):** **v1.66.0** PM phase C: project intake forms for signed-in people: the shared Form Designer's intake kind, Connect to field, branches, versioned publish, link + QR, fill view, submission → task by the system user ARS-CMS Automation, Forms in Customize and the Home widget (D-374). **Owner:** back up, publish (migration 202611221500_pm_c_intake_forms.sql runs on start), switch "phase C" on for IT only, try a form, then On (DEPLOYMENT G0l). The public no-account link (C-1) waits for your decision.

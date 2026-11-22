@@ -1,5 +1,9 @@
 # Release notes
 
+## v1.66.2 (22 Nov 2026): Section names fit their words (owner)
+- In a project's List, a section's name box is now as long as its name (it grows as you type), with the task count, delete and ⋯ menu right beside it, instead of a box across the whole row.
+- **Owner steps:** none (no migration); publish v1.66.2.
+
 ## v1.66.1 (22 Nov 2026): Clearer names for the Projects feature switches (owner)
 - Super Admin → Settings → **Feature switches** showed three switches all named "Projects" (the rest of each name was in the ⓘ). They are now:
   - **Projects A, views and lists**: tabs for every view, faster list, row density, task pane, Home widgets (phase A, v1.61.0–v1.63.0);
