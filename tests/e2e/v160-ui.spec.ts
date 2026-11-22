@@ -48,7 +48,7 @@ test("UI-02 the theme is chosen in Profile, saved, and painted before the page s
   await page.goto("/users");
   await page.screenshot({ path: "test-results/v160-dark-my-work.png", fullPage: true });
   const background = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
-  expect(background).toBe("rgb(14, 19, 27)");
+  expect(background).toBe("rgb(12, 18, 27)"); // v1.80.0 (D-407): the steel-blue dark page colour
 });
 
 test("RA-03 axe finds no serious problems on the main pages, light and dark", async ({ page, context }) => {

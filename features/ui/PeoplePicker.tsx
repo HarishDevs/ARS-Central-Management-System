@@ -210,7 +210,7 @@ export function PeoplePicker({
                     onMouseEnter={() => setActive(index)}
                     className={`flex cursor-pointer items-center gap-2 px-3 py-2 text-label ${index === active ? "bg-primary-50 text-primary-700" : ""}`}
                   >
-                    <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary-50 text-[11px] font-semibold text-primary-700" aria-hidden="true">
+                    <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary-50 text-caption font-semibold text-primary-700" aria-hidden="true">
                       {initialsOf(option.label)}
                     </span>
                     <span className="min-w-0">

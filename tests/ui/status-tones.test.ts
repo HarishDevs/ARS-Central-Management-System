@@ -9,7 +9,7 @@ import { STATE_TONE } from "@/features/journey/format";
 // v1.48 (owner: "make the status colours match across all lists"): one tone
 // per status, light and dark, every pair AA; the CSS carries the same values.
 const css = readFileSync(join(process.cwd(), "styles/globals.css"), "utf8").replace(/\r\n/g, "\n");
-const SURFACES = { light: ["#ffffff", "#f1f5f9"], dark: ["#151c27", "#1e2734", "#0b1526", "#0f1c31"] } as const;
+const SURFACES = { light: ["#ffffff", "#eef3f8"], dark: ["#131c29", "#1b2636", "#0b1526", "#0f1c31"] } as const; // v1.80.0 (D-407): steel-blue surfaces
 
 function block(selectorStart: string): string {
   const at = css.indexOf(selectorStart);

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ChevronRight, Inbox, SearchX } from "lucide-react";
 import { SafeText } from "@/features/ui/SafeText";
+import { LinkPending } from "@/features/ui/PendingLink";
 
 // Display components (UI-03). Server-friendly: no client state.
 export type Tone = "neutral" | "primary" | "success" | "warning" | "danger" | "info";
@@ -175,8 +176,9 @@ export function Pagination({ page, pages, hrefFor }: { page: number; pages: numb
   return (
     <nav aria-label="Pages" className="mt-4 flex items-center justify-between gap-3 text-label">
       {page > 1 ? (
-        <Link href={hrefFor(page - 1)} className="link" rel="prev">
+        <Link href={hrefFor(page - 1)} className="link inline-flex items-center gap-1.5" rel="prev">
           ← Newer
+          <LinkPending />
         </Link>
       ) : (
         <span />
@@ -185,8 +187,9 @@ export function Pagination({ page, pages, hrefFor }: { page: number; pages: numb
         Page {page} of {pages}
       </span>
       {page < pages ? (
-        <Link href={hrefFor(page + 1)} className="link" rel="next">
+        <Link href={hrefFor(page + 1)} className="link inline-flex items-center gap-1.5" rel="next">
           Older →
+          <LinkPending />
         </Link>
       ) : (
         <span />

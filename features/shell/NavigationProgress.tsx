@@ -4,7 +4,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { navigationHeld } from "@/features/ui/UnsavedGuard";
 import { MobileSkeleton, type MobileScreen } from "@/features/mobile/MobileSkeletons";
-import { ProjectSettingsSkeleton, ProjectSkeleton } from "@/features/ui/Skeleton";
+import { HeaderSkeleton, ProjectSettingsSkeleton, ProjectSkeleton, TableSkeleton } from "@/features/ui/Skeleton";
 
 // D-233 (UI states: loading; Doherty threshold). Every page change says it
 // heard the click: a thin bar slides along the top until the new page is
@@ -30,11 +30,27 @@ const SCREENS: [RegExp, MobileScreen][] = [
 // v1.72.0 (D-387, COMPONENT_SPECS §8): on a wide screen, opening a project or
 // its settings lays that page's skeleton (header, tabs, toolbar, rows; or the
 // section list and cards) over the content until the page arrives.
-export function desktopSkeletonFor(pathname: string): "project" | "settings" | null {
+// v1.80.0 (D-407, motion review point 8): the request, task, ticket and
+// meeting lists (and the Super Admin's logs) get a table-shaped skeleton on a
+// wide screen too, like the phone. Same mechanism: no route loading.tsx
+// (D-214's notFound() safety rule).
+const TABLE_PAGES = [
+  /^\/users\/(queue|queue\/sent-back|requests|approved|approved-by-me|collaborating|search|inbox|tasks|tickets|meetings|meetings\/follow-ups)$/,
+  /^\/users\/work\/search$/,
+  /^\/admin\/(requests|users|attention|notifications|workload|budgets)$/,
+  /^\/superadmin\/(audit|logins|requests|deliveries|automation)$/,
+];
+export function desktopSkeletonFor(pathname: string): "project" | "settings" | "table" | null {
   if (/^\/users\/work\/projects\/\d+$/.test(pathname)) return "project";
   if (/^\/users\/work\/projects\/\d+\/settings$/.test(pathname)) return "settings";
+  if (TABLE_PAGES.some((pattern) => pattern.test(pathname))) return "table";
   return null;
 }
+
+// v1.80.0 (D-407, point 6): while only the query changes (a sort, a page, a
+// tab or a quick filter on the same screen), <html data-nav-pending> dims the
+// table being replaced to 60 % (globals.css) until the new one arrives.
+export const NAV_PENDING_ATTR = "data-nav-pending";
 
 export function skeletonFor(pathname: string): MobileScreen | null {
   if (!/^\/users(\/|$)/.test(pathname) || ROUTE_LOADERS.some((pattern) => pattern.test(pathname))) return null;
@@ -53,6 +69,14 @@ export function NavigationProgress({ mobile = false }: { mobile?: boolean }) {
     setStarted(null);
     setVisible(false);
   }, [routeKey]);
+
+  // Same page, new query: dim the table (only while it is loading).
+  const samePage = started !== null && target === null;
+  useEffect(() => {
+    if (!samePage) return;
+    document.documentElement.setAttribute(NAV_PENDING_ATTR, "");
+    return () => document.documentElement.removeAttribute(NAV_PENDING_ATTR);
+  }, [samePage]);
 
   useEffect(() => {
     if (started === null) return;
@@ -111,7 +135,7 @@ export function NavigationProgress({ mobile = false }: { mobile?: boolean }) {
 }
 
 // Laid exactly over the page's <main> (below the top bar, beside the sidebar).
-function DesktopSkeleton({ kind }: { kind: "project" | "settings" }) {
+function DesktopSkeleton({ kind }: { kind: "project" | "settings" | "table" }) {
   const [box, setBox] = useState<React.CSSProperties | null>(null);
   useEffect(() => {
     const main = document.querySelector("main");
@@ -123,7 +147,16 @@ function DesktopSkeleton({ kind }: { kind: "project" | "settings" }) {
   if (!box) return null;
   return (
     <div className="fixed z-[calc(var(--z-header)-1)] overflow-hidden bg-page px-4 pt-6 sm:px-6 lg:px-8" style={box} data-testid="nav-skeleton">
-      {kind === "project" ? <ProjectSkeleton /> : <ProjectSettingsSkeleton />}
+      {kind === "project" ? (
+        <ProjectSkeleton />
+      ) : kind === "settings" ? (
+        <ProjectSettingsSkeleton />
+      ) : (
+        <div role="status" aria-label="Loading the list…">
+          <HeaderSkeleton actions />
+          <TableSkeleton rows={8} columns={5} />
+        </div>
+      )}
     </div>
   );
 }

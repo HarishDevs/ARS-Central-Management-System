@@ -56,7 +56,7 @@ export function EmailDiagnosticsPanel({ email }: { email: string }) {
         <SubmitButton pending={pending} variant="secondary" className="btn-compact">
           Run diagnostics
         </SubmitButton>
-        <ResultMessage result={result} />
+        <ResultMessage result={result} inline />
         {data?.findings && (
           <div className="space-y-2" data-testid="email-diagnostics-findings">
             <ul className="space-y-1.5 text-label">

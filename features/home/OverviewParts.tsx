@@ -28,7 +28,7 @@ export function periodKeep(period: Period, fallback: string): Record<string, str
 }
 
 export function OverviewHeader({
-  icon: Icon,
+  // v1.80.0 (D-407): `icon` no longer drawn (the header icon tile is gone in every overview).
   title,
   role,
   description,
@@ -55,9 +55,6 @@ export function OverviewHeader({
       {greeting && <div className="mb-4">{greeting}</div>}
       <header className="mb-5 flex flex-wrap items-start justify-between gap-4" data-tour={tour ? "page-header" : undefined} data-testid={testId}>
         <div className="flex min-w-0 items-start gap-3">
-          <span className="page-icon grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary-50 text-primary-700" aria-hidden="true">
-            <Icon className="h-6 w-6" />
-          </span>
           <div className="min-w-0">
             <h1 className="text-title font-semibold tracking-tight">{title}</h1>
             {role && (

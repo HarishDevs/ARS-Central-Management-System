@@ -350,7 +350,7 @@ function ShareForm({ portfolioId, members, people, can, meId, onCopy }: { portfo
       )}
       <p className="text-caption text-ink-muted">{PORTFOLIO_ROLE_HELP[role]} Being in a portfolio never opens its projects.</p>
       <div>
-        <h3 className="mb-1 text-caption font-semibold uppercase tracking-wide text-ink-faint">Who has access</h3>
+        <h3 className="mb-1 text-caption font-semibold text-ink-faint">Who has access</h3>
         <ul className="divide-y divide-line rounded-md border border-line" data-testid="share-members">
           {members.map((member) => {
             const editable = can.share && member.id !== meId && (member.role !== "OWNER" || can.manage);

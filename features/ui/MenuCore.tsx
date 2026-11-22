@@ -105,6 +105,7 @@ export function Menu({
   menuLabel,
   header,
   className = "relative inline-flex",
+  side = "below",
 }: {
   label: string;
   trigger: React.ReactNode;
@@ -118,6 +119,7 @@ export function Menu({
   menuLabel?: string; // the list's name when it differs from the button's
   header?: React.ReactNode; // v1.72.2 (D-394): plain words above the items (who you are), not focusable
   className?: string; // v1.73.0 (D-396): the wrapper's classes (e.g. "relative flex" for a full-width button)
+  side?: "below" | "right"; // v1.80.0 (D-407): "right" opens beside the button (the folded sidebar's +)
 }) {
   const [open, setOpenState] = useState(false);
   const box = useRef<HTMLDivElement>(null);
@@ -125,7 +127,7 @@ export function Menu({
   const list = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   const menuId = useId();
-  const place = usePlace(open, button, header ? panel : list, align, "below");
+  const place = usePlace(open, button, header ? panel : list, align, side);
   const setOpen = useCallback(
     (value: boolean) => {
       setOpenState(value);
@@ -192,7 +194,7 @@ export function Menu({
 
 // One look for every menu and popover panel (QA visual G6): raised surface,
 // overlay shadow, the popover layer.
-export const MENU_PANEL = "rounded-lg border border-line bg-raised p-1 text-ink shadow-overlay";
+export const MENU_PANEL = "menu-pop rounded-lg border border-line bg-raised p-1 text-ink shadow-overlay";
 
 function MenuList({ id, label, items, style, className, onClose, onBack, ref, bare = false }: { id?: string; label: string; items: MenuItem[]; style: Place; className: string; onClose: (refocus: boolean) => void; ref: React.RefObject<HTMLDivElement | null>; onBack?: () => void; bare?: boolean }) {
   const [sub, setSub] = useState<number | null>(null);

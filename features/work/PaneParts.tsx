@@ -185,7 +185,7 @@ export function PaneMoreMenu({ taskId, title, canDelete, closeHref, automations 
     <>
       <Menu label="More actions for this task" title="More actions" trigger={<MoreHorizontal aria-hidden="true" className="h-5 w-5" />} buttonClass="grid h-8 w-8 place-items-center rounded-md text-ink-muted hover:bg-surface-muted hover:text-ink" menuClass="w-60" items={items} testId="pane-more" />
       {confirming && (
-        <dialog ref={dialog} onClose={() => setConfirming(false)} aria-labelledby="pane-delete-title" className="w-[calc(100%-2rem)] max-w-sm rounded-xl border border-line bg-raised p-0 text-ink shadow-overlay backdrop:bg-overlay" data-testid="pane-delete-dialog">
+        <dialog ref={dialog} onClose={() => setConfirming(false)} aria-labelledby="pane-delete-title" className="ars-dialog w-[calc(100%-2rem)] max-w-sm rounded-xl border border-line bg-raised p-0 text-ink shadow-overlay" data-testid="pane-delete-dialog">
           <div className="space-y-3 p-5">
             <h2 id="pane-delete-title" className="font-semibold">
               Delete this task?

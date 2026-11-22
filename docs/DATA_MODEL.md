@@ -1189,6 +1189,9 @@ Setting: `features.pm_extras` (ON / OFF / IT_ONLY, default OFF). Imports and exp
 
 `work_favourites.object_type` adds PORTFOLIO. Setting: `features.pm_portfolios` (ON / OFF / IT_ONLY, default OFF). Figures (task progress, counts, charts) are not stored: worked out per viewer from `task_projects`/`tasks` over the projects they can see, each task once.
 
+## Page transitions switch (v1.80.0, D-407; no migration)
+Setting: `features.page_transitions` (ON / OFF / IT_ONLY, default OFF) in `system_settings` (group FEATURES). Nothing else is stored on the server. In the browser tab's own session storage only: `ars.place:<path>` (a list's scroll height and the link opened from it, read back for 30 minutes on Back) and `ars.flow.queue` (the request last opened from Waiting for me, for "Next waiting for you").
+
 ## Project automations (v1.68.0, D-380; migration 202611221700_pm_d_automations.sql)
 
 | Table | Key columns | Notes |

@@ -18,6 +18,8 @@ The number of levels and how they combine is unlimited. There are no fixed "Leve
 | ID | Flow | Status |
 |---|---|---|
 | A-01…A-12 | Asana reference flows | Reference |
+| F-NEXT-WAITING | Next waiting for you after a decision from Waiting for me | Built 23 Nov 2026 (v1.80.0) |
+| F-MOTION | Page changes: pending feedback, skeletons, place memory, toasts vs inline errors, page transitions (switch) | Built 23 Nov 2026 (v1.80.0) |
 | F-212 | Meeting Management: schedule, points and MOM approval, action tasks, follow-ups | Built 10 Nov 2026 (v1.51.0) |
 | F-PM-TABS | Project tabs for every view, Save view / Reset | Built 22 Nov 2026 (v1.61.0, behind pm_foundations) |
 | F-PM-LIST | The List as a keyboard treegrid, windowed; 15 s refresh | Built 22 Nov 2026 (v1.61.0) |
@@ -120,6 +122,48 @@ Full detail: `reference/asana-approval-audit.html` and `reference/asana-rules-no
 ---
 
 # Part B — New platform flows
+
+## F-NEXT-WAITING: Next waiting for you after a decision (v1.80.0, D-407)
+```mermaid
+flowchart TD
+  Q[Waiting for me] -->|click a row, Enter, or A / C| R[rememberQueueOpen: ars.flow.queue = request id, this tab only]
+  R --> P[Request page]
+  P --> D[Decide: Approve / Reject / Ask for changes / Hold / Mark as done]
+  D --> S{server: decideAction ok?}
+  S -- no --> E[Error next to the form, nothing moves]
+  S -- yes --> F{opened from Waiting for me? flow=next}
+  F -- no --> K[Same request ?decided=1: Your decision is recorded + Next waiting for you →]
+  F -- yes --> N{another request waiting for me?}
+  N -- no --> K
+  N -- yes --> M[redirect /users/requests/next?nextwaiting=1&after=decided]
+  M --> H[Banner: Your decision is recorded. Next waiting for you, N still waiting, Back to the one you decided; 1.6 s highlight]
+  H --> R
+```
+
+## F-MOTION: Page changes, place and feedback (v1.80.0, D-407)
+```mermaid
+flowchart TD
+  C[Click an internal link] --> U{UnsavedGuard holds it?}
+  U -- yes --> L[Leave without saving?]
+  U -- no --> T{same page, new query?}
+  T -- yes --> DIM[Link spinner (useLinkStatus) + html data-nav-pending: table at 60 %]
+  T -- no --> SK{list page on a wide screen?}
+  SK -- yes --> TS[after 150 ms: table skeleton over main]
+  SK -- no --> BAR[after 150 ms: top bar; phone: screen skeleton]
+  C --> PM[PlaceMemory: remember scroll + link for this page, 30 min, this tab]
+  C --> VT{page_transitions switch on, browser has view transitions, no reduce motion?}
+  VT -- no --> PLAIN[Page changes as before]
+  VT -- yes --> X[startViewTransition: main cross-fades 120 ms; row title → page heading]
+  X --> SLOW{new page committed within 300 ms?}
+  SLOW -- no --> SKIP[skipTransition: page simply appears]
+  SLOW -- yes --> FOCUS[focus the new h1]
+  BACK[Back / Forward] --> RESTORE[PlaceMemory: same height, the link focused, its row lit 1.6 s]
+  SAVE[Form saved] --> TOAST[Toast repeating the verb; nothing inline]
+  FAIL[Form refused] --> INLINE[Inline error; field errors under fields]
+```
+- Dialogs: open = showModal + CSS @starting-style fade/scale (drawer: slide); close = Chrome/Edge CSS exit (overlay + allow-discrete), Firefox/Safari data-closing → wait for the animation → close(); focus back to the opener. guardDraft: Escape, × or backdrop after typing → Discard draft? (Keep editing / Discard).
+- Bottom sheets and phone drawers: drag down ≥ 80 px or a quick flick closes; otherwise they spring back.
+
 
 ## F-01 Google sign-in (no OTP, D-006)
 ```mermaid

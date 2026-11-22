@@ -91,7 +91,7 @@ export function SideNav({ items, collapsible = false, chats = [] }: { items: Nav
           const heading = item.section && item.section !== items[index - 1]?.section ? item.section : null;
           return (
             <div key={item.href}>
-              {heading && <p className="px-3 pb-1 pt-4 text-caption font-semibold uppercase tracking-wider text-ink-faint first:pt-1">{heading}</p>}
+              {heading && <p className="px-3 pb-1 pt-4 text-caption font-semibold text-ink-faint first:pt-1">{heading}</p>}
               <EntryLink item={item} active={isActive(item)} />
             </div>
           );
@@ -130,7 +130,7 @@ function NavGroup({ section, items, chats, open, current, onToggle, isActive }: 
               if (!open) onToggle();
               router.push(items[0]?.href ?? "/users/ai/assistant");
             }}
-            className="flex min-w-0 flex-1 items-center gap-2 px-2 py-1 text-left text-caption font-semibold uppercase tracking-wide"
+            className="flex min-w-0 flex-1 items-center gap-2 px-2 py-1 text-left text-caption font-semibold"
           >
             <SectionIcon section={section} />
             <span className="flex-1 truncate">{section}</span>
@@ -152,7 +152,7 @@ function NavGroup({ section, items, chats, open, current, onToggle, isActive }: 
         aria-expanded={open}
         aria-controls={id}
         onClick={onToggle}
-        className={`mt-2 flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-left text-caption font-semibold uppercase tracking-wide transition-colors ${current && !open ? "bg-primary-50 text-primary-700" : "text-ink-faint hover:text-ink"}`}
+        className={`mt-2 flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-left text-caption font-semibold transition-colors ${current && !open ? "bg-primary-50 text-primary-700" : "text-ink-faint hover:text-ink"}`}
       >
         <ChevronDown aria-hidden="true" className={`h-3 w-3 shrink-0 transition-transform motion-reduce:transition-none ${open ? "" : "-rotate-90"}`} />
         <span className="flex-1 truncate">{section}</span>

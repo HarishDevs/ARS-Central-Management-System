@@ -207,7 +207,7 @@ export function DataTable({
                     {column.sortable ? (
                       <button
                         type="button"
-                        className={`inline-flex items-center gap-1 uppercase tracking-wider hover:text-ink ${column.numeric ? "flex-row-reverse" : ""}`}
+                        className={`inline-flex items-center gap-1 hover:text-ink ${column.numeric ? "flex-row-reverse" : ""}`}
                         onClick={() => setSort((current) => (current?.key === column.key ? { key: column.key, direction: current.direction === "asc" ? "desc" : "asc" } : { key: column.key, direction: column.numeric ? "desc" : "asc" }))}
                       >
                         {column.header}

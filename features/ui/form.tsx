@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import type { ActionResult } from "@/lib/http/action-result";
 import { Spinner } from "@/features/ui/Spinner";
 import { ConfirmDialog } from "@/features/ui/Dialog";
+import { useToast } from "@/features/ui/Toast";
 
 // Server Action forms. React 19 resets a <form action={…}> after every
 // submit, which wipes what the user typed when the server returns a
@@ -278,8 +279,25 @@ export function SubmitButton({ children, pending, variant = "primary", className
   );
 }
 
-export function ResultMessage({ result }: { result: ActionResult | null }) {
-  if (!result?.message) return null;
+// v1.80.0 (D-407, motion review point 10): one kind of feedback per event.
+// A success is a toast (it repeats the button's verb: "Save view" → "View
+// saved") and nothing stays on the page; an error stays here, next to the
+// form (with the field's own message under the field, FieldError). `inline`
+// keeps a success on the page too (a result the person must read or copy).
+export function successToastMs(message: string): number {
+  return Math.min(12_000, 5_000 + Math.max(0, message.length - 40) * 40);
+}
+
+export function ResultMessage({ result, inline = false }: { result: ActionResult | null; inline?: boolean }) {
+  const toast = useToast();
+  const shown = useRef<ActionResult | null>(null);
+  const asToast = Boolean(result?.ok && result.message && !inline);
+  useEffect(() => {
+    if (!asToast || !result?.message || shown.current === result) return;
+    shown.current = result;
+    toast({ tone: "success", title: result.message, durationMs: successToastMs(result.message) });
+  }, [asToast, result, toast]);
+  if (!result?.message || asToast) return null;
   return (
     // v1.42.0 brand: the animated tick or cross beside the message.
     <p role={result.ok ? "status" : "alert"} className={`flex items-start gap-2 rounded-md border px-3 py-2 text-label ${result.ok ? "border-transparent bg-success-50 text-success-600" : "border-danger-200 bg-danger-50 text-danger-600"}`}>

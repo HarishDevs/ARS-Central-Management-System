@@ -13,7 +13,7 @@ export function FieldValues({ form, data, names, lookupNames }: { form: readonly
     <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2" data-testid="field-values">
       {shown.map((field) => (
         <div key={field.key} className="min-w-0">
-          <dt className="text-caption font-semibold uppercase tracking-wide text-ink-faint">{field.label}</dt>
+          <dt className="text-caption font-semibold text-ink-faint">{field.label}</dt>
           <dd className="break-words">
             {field.type === "URL" && typeof data[field.key] === "string" ? (
               <a href={String(data[field.key])} target="_blank" rel="noopener noreferrer nofollow" className="link">

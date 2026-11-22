@@ -23,7 +23,8 @@ test("IT can sign a person out everywhere and deactivate them, after confirming"
     await signOut.getByRole("button", { name: "Sign out everywhere" }).click();
     await expect(signOut.getByRole("alertdialog")).toContainText("Sign Lee Leaver out on every device?");
     await signOut.getByRole("button", { name: "Yes, sign out" }).click();
-    await expect(signOut.getByText("Ended 1 session.")).toBeVisible();
+    // v1.80.0 (D-407): a done thing is a toast, not a message in the form.
+    await expect(page.getByTestId("toast-region").getByText("Ended 1 session.")).toBeVisible();
     await expect
       .poll(async () => {
         const [rows] = await connection.query<(RowDataPacket & { open: number })[]>("SELECT COUNT(*) AS open FROM user_sessions WHERE user_id = ? AND revoked_at IS NULL", [userId]);

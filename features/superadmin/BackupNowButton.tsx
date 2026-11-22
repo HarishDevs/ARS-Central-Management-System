@@ -10,7 +10,7 @@ export function BackupNowButton() {
       <SubmitButton pending={pending} variant="secondary" className="btn-compact">
         Back up now
       </SubmitButton>
-      <ResultMessage result={result} />
+      <ResultMessage result={result} inline />
     </form>
   );
 }

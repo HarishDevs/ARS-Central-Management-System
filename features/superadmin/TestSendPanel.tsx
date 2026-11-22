@@ -17,7 +17,7 @@ function TestButton({ channel, label, target }: { channel: "EMAIL" | "WHATSAPP";
         </SubmitButton>
         <span className="text-label text-ink-muted">to <SafeText text={target} /></span>
       </div>
-      <ResultMessage result={result} />
+      <ResultMessage result={result} inline />
     </form>
   );
 }

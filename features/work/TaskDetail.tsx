@@ -348,7 +348,7 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
               {task.completedAt && <Fact label="Completed" value={`${task.completedByName ?? ""}, ${indiaDateTimeText(task.completedAt)}`} />}
               {task.relatedRequestNo && (
                 <div>
-                  <dt className="text-caption font-semibold uppercase tracking-wide text-ink-faint">Related request</dt>
+                  <dt className="text-caption font-semibold text-ink-faint">Related request</dt>
                   <dd>
                     {relatedVisible ? (
                       <Link href={`/users/requests/${task.relatedRequestId}`} className="link font-mono">
@@ -363,7 +363,7 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
               )}
               {fromMeeting && (
                 <div>
-                  <dt className="text-caption font-semibold uppercase tracking-wide text-ink-faint">Meeting</dt>
+                  <dt className="text-caption font-semibold text-ink-faint">Meeting</dt>
                   <dd>
                     <Link href={`/users/meetings/${fromMeeting.id}`} className="link">
                       <span className="font-mono">{fromMeeting.meetingNo}</span> {fromMeeting.title}
@@ -490,7 +490,7 @@ function VisibilityBanner({ text }: { text: string }) {
 function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-caption font-semibold uppercase tracking-wide text-ink-faint">{label}</dt>
+      <dt className="text-caption font-semibold text-ink-faint">{label}</dt>
       <dd>{value}</dd>
     </div>
   );

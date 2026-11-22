@@ -288,7 +288,7 @@ export async function AnalyticsScreen({ searchParams, base }: { searchParams: Re
         )}
       </div>
 
-      <h2 className="mb-2 text-label font-semibold uppercase tracking-wide text-ink-muted">Right now</h2>
+      <h2 className="mb-2 text-label font-semibold text-ink-muted">Right now</h2>
       <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {approvals ? (
           <>
@@ -311,7 +311,7 @@ export async function AnalyticsScreen({ searchParams, base }: { searchParams: Re
         {stuck === "failed" ? <ErrorState variant="card" title="Stuck requests" body="This number couldn't be worked out just now. Reload to try again." /> : stuck && <KpiCard metric="stuck" value={stuck.length} href="/admin/attention" />}
       </div>
 
-      <h2 className="mb-2 text-label font-semibold uppercase tracking-wide text-ink-muted">{period.label}</h2>
+      <h2 className="mb-2 text-label font-semibold text-ink-muted">{period.label}</h2>
       <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {approvals ? (
           <>

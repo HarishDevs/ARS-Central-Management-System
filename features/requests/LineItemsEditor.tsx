@@ -28,7 +28,7 @@ export function LineItemsEditor({ name, label, defaultValue, invalid, describedB
   return (
     <div className={`rounded-md border ${invalid ? "border-danger-600" : "border-line"}`} aria-describedby={describedBy}>
       <input type="hidden" name={name} value={json} />
-      <div className="hidden gap-2 border-b border-line px-3 py-2 text-caption font-semibold uppercase tracking-wider text-ink-faint sm:grid sm:grid-cols-[1fr_5rem_7rem_4.5rem_7rem_2rem]">
+      <div className="hidden gap-2 border-b border-line px-3 py-2 text-caption font-semibold text-ink-faint sm:grid sm:grid-cols-[1fr_5rem_7rem_4.5rem_7rem_2rem]">
         <span>Description</span>
         <span>Qty</span>
         <span>Rate (₹)</span>

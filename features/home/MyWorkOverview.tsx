@@ -754,7 +754,7 @@ function Ring({ percent }: { percent: number }) {
         <circle cx="20" cy="20" r={r} fill="none" stroke="var(--color-border)" strokeWidth="4" />
         <circle cx="20" cy="20" r={r} fill="none" stroke="var(--road-done)" strokeWidth="4" strokeLinecap="round" strokeDasharray={`${(percent / 100) * c} ${c}`} />
       </svg>
-      <span className="text-[11px] font-semibold tabular-nums">{percent}%</span>
+      <span className="text-caption font-semibold tabular-nums">{percent}%</span>
     </span>
   );
 }

@@ -21,11 +21,12 @@ export const metadata: Metadata = {
 // encrypted off-site backups. D-250 to D-252 (v1.41.0): the installed app,
 // phone and desktop notifications (push) and the daily session. v1.43.0: the
 // v1.72.1 (D-395): the tab.s session storage of the last page (Back links).
+// v1.80.0 (D-407): the same storage keeps a list's place (30 minutes) and the "Next waiting" flow.
 // layout cookie of the phone layout (v1.45.0: and the Compact mode cookie). v1.44.0 (D-273): people given a task by a
 // request's background work step may read that request.
 // v1.46.0 (D-277, D-278): the encrypted backup copy may go to an ARS Google
 // Drive folder; security records are deleted after 90 days.
-const PRIVACY_EFFECTIVE = "22 November 2026";
+const PRIVACY_EFFECTIVE = "23 November 2026";
 
 export default function PrivacyPage() {
   return (
@@ -141,7 +142,9 @@ export default function PrivacyPage() {
         </p>
         <p>
           So that a Back link can return you to the page you came from, each browser tab also remembers the address of the last page of ARS CMS you opened in it (the tab&apos;s own session
-          storage). It never leaves the device and goes when you close the tab.
+          storage). It never leaves the device and goes when you close the tab. The same storage keeps, for 30 minutes, how far down a list you were and which of its links you
+          opened, so Back returns you to the same place on the list, and which request you opened from Waiting for me, so that after your decision the next request waiting for you
+          opens. A draft task you are typing is kept there too until you create it or close it.
         </p>
 
         <h2>How information is shared</h2>

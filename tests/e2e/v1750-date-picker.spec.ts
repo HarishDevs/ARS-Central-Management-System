@@ -26,6 +26,7 @@ async function as(context: BrowserContext, loginId: string, theme?: "dark" | "li
 }
 async function axe(page: Page, include?: string) {
   await page.waitForLoadState("networkidle");
+  await page.waitForFunction(() => document.getAnimations().every((animation) => animation.playState !== "running" || animation.effect?.getComputedTiming().iterations === Infinity)); // v1.80.0 (D-407): menus and dialogs finish fading in first
   let builder = new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]);
   if (include) builder = builder.include(include);
   const result = await builder.analyze();
@@ -260,6 +261,9 @@ test("D-400: a repeating task for someone else; completing it makes the next one
   await expect.poll(async () => (await taskRow(title))[0]?.recurrence_json ?? null).not.toBeNull();
   const made = (await taskRow(title))[0]!;
   expect(made.assignee_id).toBe(await userIdByLogin("E2E_MGR"));
+  // Let the page finish what Create task started (its refresh) before signing in as someone else.
+  await expect(page.getByTestId("create-dialog")).toHaveCount(0);
+  await page.waitForLoadState("networkidle");
   // As Manoj: the task shows the repeat; completing it makes the next one, his too.
   await as(context, "E2E_MGR");
   await page.goto(`/users/tasks/${made.id}`);

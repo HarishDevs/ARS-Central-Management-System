@@ -66,7 +66,7 @@ export function MobileNav({ items, spaceLabel, home, collapsible = false, chats 
                 ✕
               </button>
             </div>
-            <p className="shrink-0 px-6 pt-3 text-caption font-semibold uppercase tracking-wider text-ink-faint">{spaceLabel}</p>
+            <p className="shrink-0 px-6 pt-3 text-caption font-semibold text-ink-faint">{spaceLabel}</p>
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
               <SideNav items={items} collapsible={collapsible} chats={chats} />
             </div>

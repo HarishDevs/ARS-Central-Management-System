@@ -150,7 +150,7 @@ export function NotificationList({ items, showMarkAll, manage = false, variant }
                 {item.day && item.day !== items[index - 1]?.day && <h2 className="border-y border-line bg-surface-muted px-4 py-2 text-[15px] text-ink-muted">{item.day}</h2>}
                 <div className={`border-b border-line px-4 py-4 ${read ? "" : "bg-primary-50/40"}`}>
                   <div className="flex items-center gap-2">
-                    {item.type && <span className="rounded-md bg-surface-muted px-2 py-1 text-[13px] font-medium text-ink">{item.type}</span>}
+                    {item.type && <span className="rounded-md bg-surface-muted px-2 py-1 text-label font-medium text-ink">{item.type}</span>}
                     {!read && (
                       <span className="h-2.5 w-2.5 rounded-full bg-primary-600">
                         <span className="sr-only">Unread</span>

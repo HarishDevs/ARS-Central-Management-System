@@ -9,6 +9,7 @@ import { taskAction } from "@/app/users/tasks/actions";
 import { draftTaskTextAction } from "@/app/users/ai/actions";
 import { CREATE_TASK_EVENT, ProjectDot, useWorkCall, type CreateTaskDetail } from "@/features/work/client";
 import { Menu } from "@/features/ui/Menu";
+import { DiscardDraftDialog } from "@/features/ui/Dialog";
 import { RichEditor } from "@/features/ui/RichEditor";
 import { useProjectsOn } from "@/features/work/projects-access";
 import { mentionIds } from "@/features/work/rich-text";
@@ -148,6 +149,19 @@ function CreateTaskDialog({
   const closeAndForget = () => {
     clearDraft(sessionStore());
     onClose();
+  };
+  // v1.80.0 (D-407, motion review point 12): closed by accident (Escape or
+  // the ×) with something typed, it asks "Discard draft?" first (Keep
+  // editing / Discard). Cancel is a deliberate close and doesn't ask.
+  const [askDiscard, setAskDiscard] = useState(false);
+  // Only what the person typed counts (a prefilled Duplicate or follow-up, or a
+  // draft brought back after a reload and left as it was, closes at once).
+  const startedWith = useRef({ title, description });
+  const closeAsking = () => {
+    const words = (html: string) => html.replace(/<[^>]*>/g, "").trim();
+    const typed = title.trim() !== startedWith.current.title.trim() || words(description) !== words(startedWith.current.description);
+    if (typed && (title.trim() || words(description))) setAskDiscard(true);
+    else closeAndForget();
   };
   useEffect(() => {
     if (!keepDraft) return;
@@ -297,7 +311,10 @@ function CreateTaskDialog({
             setPop("");
             return;
           }
-          closeAndForget();
+          if (askDiscard) return;
+          // The same Escape must not also close the question it opens.
+          event.preventDefault();
+          closeAsking();
         }
         if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) void submit();
       }}
@@ -315,7 +332,7 @@ function CreateTaskDialog({
         <button type="button" aria-label={small ? "Expand" : "Minimise"} onClick={() => setSmall((value) => !value)} className="rounded p-1 text-ink-muted hover:bg-surface-muted">
           <ChevronDown aria-hidden="true" className={`h-4 w-4 ${small ? "rotate-180" : ""}`} />
         </button>
-        <button type="button" aria-label={restored ? "Discard draft" : "Close"} onClick={closeAndForget} className="rounded p-1 text-ink-muted hover:bg-surface-muted">
+        <button type="button" aria-label={restored ? "Discard draft" : "Close"} onClick={closeAsking} className="rounded p-1 text-ink-muted hover:bg-surface-muted">
           <X aria-hidden="true" className="h-4 w-4" />
         </button>
       </header>
@@ -329,7 +346,7 @@ function CreateTaskDialog({
         >
           <div className="draft-body flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-5 py-4 lg:grid lg:grid-cols-[minmax(0,1fr)_16.5rem] lg:items-start lg:gap-6">
             <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
-              <p className="hidden text-caption font-semibold uppercase tracking-wide text-ink-faint lg:block">Task details</p>
+              <p className="hidden text-caption font-semibold text-ink-faint lg:block">Task details</p>
               <label htmlFor="create-title" className="sr-only">
                 Task name
               </label>
@@ -492,7 +509,7 @@ function CreateTaskDialog({
               )}
             </div>
             <aside className="draft-settings flex flex-col gap-3 lg:rounded-lg lg:border lg:border-line lg:bg-surface-muted lg:p-3" aria-label="Task settings">
-              <p className="hidden text-caption font-semibold uppercase tracking-wide text-ink-muted lg:block">Task settings</p>
+              <p className="hidden text-caption font-semibold text-ink-muted lg:block">Task settings</p>
               {/* v1.75.0 (D-399): one date range picker: optional start, the due date (required) and its time; repeat for your own tasks. */}
               <div className="flex items-center gap-2 text-label lg:flex-col lg:items-stretch lg:gap-1">
                 <span className="text-ink-muted">
@@ -740,6 +757,14 @@ function CreateTaskDialog({
           </footer>
         </form>
       )}
+      <DiscardDraftDialog
+        open={askDiscard}
+        onKeep={() => setAskDiscard(false)}
+        onDiscard={() => {
+          setAskDiscard(false);
+          closeAndForget();
+        }}
+      />
     </section>
   );
 }

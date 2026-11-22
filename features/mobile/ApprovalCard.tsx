@@ -72,7 +72,7 @@ export function ApprovalCard({ card, compact = false }: { card: ApprovalCardData
           .filter(([, value]) => value)
           .map(([label, value]) => (
             <div key={label} className={label === "Requested by" ? "col-span-2" : undefined}>
-              <dt className="text-[length:calc(11px*var(--text-scale,1))] font-semibold uppercase tracking-wide text-ink-muted">{label}</dt>
+              <dt className="text-[length:calc(11px*var(--text-scale,1))] font-semibold text-ink-muted">{label}</dt>
               <dd className="truncate font-medium">{value}</dd>
             </div>
           ))}

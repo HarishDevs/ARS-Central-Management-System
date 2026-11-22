@@ -38,6 +38,7 @@ export function CreateMenu({ approval, task, project = task, portfolio = false, 
         label="Create"
         title={compact ? "Create" : undefined}
         align="left"
+        side={compact ? "right" : "below"}
         className={compact ? "relative inline-flex" : "relative flex w-full"}
         buttonClass={compact ? "inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary-solid text-on-solid shadow-button hover:bg-primary-solid-hover" : "btn-primary inline-flex w-full items-center justify-center gap-1.5"}
         menuClass="w-64"

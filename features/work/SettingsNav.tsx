@@ -51,7 +51,7 @@ export function SettingsNav({ groups }: { groups: SettingsNavGroup[] }) {
       <nav aria-label="Settings sections" className="sticky top-[5rem] hidden max-h-[calc(100vh-6rem)] overflow-y-auto lg:block" data-testid="settings-nav">
         {groups.map((group) => (
           <div key={group.name} className="mb-3">
-            <p className="mb-1 px-2 text-caption font-semibold uppercase tracking-wide text-ink-faint">{group.name}</p>
+            <p className="mb-1 px-2 text-caption font-semibold text-ink-faint">{group.name}</p>
             <ul className="space-y-0.5">
               {group.items.map((item) => (
                 <li key={item.id}>

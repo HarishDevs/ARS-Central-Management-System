@@ -11,7 +11,7 @@ export function PhoneFold({ mobile, summary, children }: { mobile: boolean; summ
         </span>
         <span className="min-w-0 flex-1">
           Dashboard and filters
-          <span className="block truncate text-[13px] font-normal text-ink-muted">{summary}</span>
+          <span className="block truncate text-label font-normal text-ink-muted">{summary}</span>
         </span>
       </summary>
       <div className="border-t border-line p-2 [&_.card]:mb-2 [&_.card]:border-0 [&_.card]:shadow-none">{children}</div>

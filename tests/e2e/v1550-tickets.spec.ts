@@ -50,7 +50,7 @@ test("IT sets up a ticket form: the shared Form Builder, its category and its co
   await setup.getByRole("combobox", { name: "Coordinators" }).fill("Manoj");
   await setup.getByRole("option", { name: /Manoj Manager/ }).first().click();
   await setup.getByRole("button", { name: "Save" }).click();
-  await expect(setup.getByText(/Saved: IT Hardware, 1 coordinator/)).toBeVisible();
+  await expect(page.getByTestId("toast-region").getByText(/Saved: IT Hardware, 1 coordinator/)).toBeVisible(); // v1.80.0 (D-407): a toast
   // The same builder as approvals: add a field, then publish.
   await page.getByRole("button", { name: /Short text/ }).first().click();
   await page.getByLabel("Field label").last().fill("Asset tag");
@@ -95,7 +95,7 @@ test("the coordinator assigns it: a linked task in the assignee's Tasks", async 
   await assign.getByLabel("Remarks for the assignee").fill("Check the disk first");
   await assign.getByRole("button", { name: "Assign", exact: true }).click();
   // v1.59.3 (D-362, owner): no task is made; the assignee updates the ticket.
-  await expect(assign.getByText(/Assigned to Sita Staff\. They update the ticket's status here\./)).toBeVisible();
+  await expect(page.getByTestId("toast-region").getByText(/Assigned to Sita Staff\. They update the ticket's status here\./)).toBeVisible();
   await page.reload();
   await expect(page.locator("main")).toContainText("Assigned");
   await expect(page.getByRole("link", { name: /^TSK-/ })).toHaveCount(0);
@@ -117,7 +117,7 @@ test("the assignee starts it from Assigned to me and resolves it on the ticket; 
   await page.goto("/users/tickets?view=assigned");
   const row = page.getByTestId("ticket-table").locator("tr", { hasText: subject });
   await row.getByTestId("ticket-work-row").getByRole("button", { name: "Start work" }).click();
-  await expect(row.getByText("Work started. The requester has been told.")).toBeVisible();
+  await expect(page.getByTestId("toast-region").getByText("Work started. The requester has been told.")).toBeVisible(); // v1.80.0 (D-407): a toast
   await page.reload();
   await expect(page.getByTestId("ticket-table").locator("tr", { hasText: subject })).toContainText("In progress");
   // Then on the ticket page: Mark resolved with what was done.
@@ -126,7 +126,7 @@ test("the assignee starts it from Assigned to me and resolves it on the ticket; 
   await expect(work.getByRole("button", { name: "Start work" })).toHaveCount(0);
   await work.getByLabel(/What was done/).fill("Replaced the SSD and reinstalled Windows");
   await work.getByRole("button", { name: "Mark resolved" }).click();
-  await expect(work.getByText("Marked resolved. The requester has been asked to confirm.")).toBeVisible();
+  await expect(page.getByTestId("toast-region").getByText("Marked resolved. The requester has been asked to confirm.")).toBeVisible(); // v1.80.0 (D-407): a toast
   await page.reload();
   await expect(page.locator("main")).toContainText(/Waiting for Ravi Requester to confirm/);
   await expect(page.getByTestId("ticket-work")).toHaveCount(0);
@@ -139,7 +139,7 @@ test("the requester confirms with a rating; the ticket closes", async ({ page, c
   await expect(page.getByRole("region", { name: /please confirm/ })).toContainText("Replaced the SSD and reinstalled Windows");
   await confirm.getByRole("radio", { name: "5 out of 5" }).click();
   await confirm.getByRole("button", { name: "Confirm and close" }).click();
-  await expect(confirm.getByText("Thank you. The ticket is closed.")).toBeVisible();
+  await expect(page.getByTestId("toast-region").getByText("Thank you. The ticket is closed.")).toBeVisible(); // v1.80.0 (D-407): a toast
   await page.reload();
   await expect(page.getByTestId("ticket-closed")).toContainText("Rated 5/5");
   await page.screenshot({ path: "test-results/v1550-ticket-closed.png", fullPage: true });

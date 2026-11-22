@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { myTasksTabAction, quickAddAction, taskFieldsAction } from "@/app/users/work/actions";
 import type { SummaryCalendar } from "@/server/work/summary-views";
 import { TaskCheck, usePaneLink, useWorkCall } from "@/features/work/client";
@@ -108,6 +108,11 @@ export function TaskCalendar({
   const [adding, setAdding] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [lifted, setLifted] = useState<{ id: number; day: string } | null>(null);
+  // v1.80.0 (D-407): the moving task keeps the keyboard focus as soon as it is
+  // redrawn on its new day (before the next key), not a frame later.
+  useLayoutEffect(() => {
+    if (lifted) document.querySelector<HTMLElement>(`[data-cal-task="${lifted.id}"][data-cal-due="1"]`)?.focus();
+  }, [lifted]);
   const [said, setSaid] = useState("");
   const [showNoStart, setShowNoStart] = useState(false);
   const [year, monthIndex] = month.split("-").map(Number) as [number, number];

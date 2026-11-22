@@ -8,15 +8,12 @@ import type { LucideIcon } from "lucide-react";
 // version) stays visible under it.
 // D-257 (owner's redesign): an optional icon tile beside the title (Compact
 // view only; the Classic view keeps its plain title bar).
-export function PageHeader({ title, description, meta, icon: Icon, children, badge }: { title: string; description?: string; meta?: string; icon?: LucideIcon; children?: React.ReactNode; badge?: React.ReactNode }) {
+// v1.80.0 (D-407, first-review point 4): the 48 px icon tile is gone (the
+// title alone leads the page); `icon` is still accepted and ignored.
+export function PageHeader({ title, description, meta, children, badge }: { title: string; description?: string; meta?: string; icon?: LucideIcon; children?: React.ReactNode; badge?: React.ReactNode }) {
   return (
     <div className="mb-6 flex flex-wrap items-center justify-between gap-4" data-tour="page-header">
       <div className="flex min-w-0 items-center gap-3">
-        {Icon && (
-          <span className="page-icon grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-line bg-primary-50 text-primary-700 shadow-card" aria-hidden="true">
-            <Icon className="h-6 w-6" />
-          </span>
-        )}
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
             <h1 className="text-title font-semibold tracking-tight">{typeof title === "string" ? <SafeText text={title} /> : title}</h1>

@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { COMPACT_COOKIE } from "@/lib/ui/layout";
+import { useSwipeDown } from "@/features/ui/swipe";
 import { Check, ChevronsUpDown, Minimize2, MoreHorizontal, SlidersHorizontal } from "lucide-react";
 
 // v1.45.0 (owner: "This is asana app, use this also as reference"): the
@@ -16,6 +17,8 @@ import { Check, ChevronsUpDown, Minimize2, MoreHorizontal, SlidersHorizontal } f
 export function BottomSheet({ open, onClose, title, subtitle, action, children }: { open: boolean; onClose: () => void; title?: string; subtitle?: string; action?: React.ReactNode; children: React.ReactNode }) {
   const panel = useRef<HTMLDivElement>(null);
   const titleId = useId();
+  // v1.80.0 (D-407, point 14): a swipe down on the handle or title closes it.
+  const swipe = useSwipeDown(true, onClose);
   useEffect(() => {
     if (!open) return;
     const back = document.activeElement as HTMLElement | null;
@@ -40,22 +43,25 @@ export function BottomSheet({ open, onClose, title, subtitle, action, children }
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}
         aria-label={title ? undefined : "Options"}
+        data-sheet=""
         className="mob-sheet absolute inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-t-2xl border-t border-line bg-surface pb-[calc(1rem+env(safe-area-inset-bottom))]"
         // A tap on a link inside closes the sheet (the page then changes).
         onClick={(event) => (event.target as HTMLElement).closest("a[href]") && onClose()}
       >
-        <button type="button" aria-label="Close" onClick={onClose} className="mx-auto mt-2 flex h-6 w-16 items-center justify-center">
-          <span aria-hidden="true" className="h-1 w-10 rounded-full bg-line-strong" />
-        </button>
-        {title && (
-          <div className="relative px-12 pb-2 pt-1 text-center">
-            <h2 id={titleId} className="text-[length:calc(17px*var(--text-scale,1))] font-semibold">
-              {title}
-            </h2>
-            {subtitle && <p className="text-[length:calc(13px*var(--text-scale,1))] text-ink-muted">{subtitle}</p>}
-            {action && <div className="absolute right-4 top-1">{action}</div>}
-          </div>
-        )}
+        <div {...swipe} className="touch-none" data-testid="m-sheet-grip">
+          <button type="button" aria-label="Close" onClick={onClose} data-swipe-handle="" className="mx-auto mt-2 flex h-6 w-16 items-center justify-center">
+            <span aria-hidden="true" className="h-1 w-10 rounded-full bg-line-strong" />
+          </button>
+          {title && (
+            <div className="relative px-12 pb-2 pt-1 text-center">
+              <h2 id={titleId} className="text-[length:calc(17px*var(--text-scale,1))] font-semibold">
+                {title}
+              </h2>
+              {subtitle && <p className="text-[length:calc(13px*var(--text-scale,1))] text-ink-muted">{subtitle}</p>}
+              {action && <div className="absolute right-4 top-1">{action}</div>}
+            </div>
+          )}
+        </div>
         <div className="px-4">{children}</div>
       </div>
     </div>

@@ -457,6 +457,7 @@ async function checkPage(page: Page): Promise<{ kind: string; detail: string }[]
 }
 
 async function axe(page: Page): Promise<string[]> {
+  await page.waitForFunction(() => document.getAnimations().every((animation) => animation.playState !== "running" || animation.effect?.getComputedTiming().iterations === Infinity)); // v1.80.0 (D-407): menus and dialogs finish fading in first
   const result = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
   return result.violations
     .filter((violation) => violation.impact === "serious" || violation.impact === "critical")

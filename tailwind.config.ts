@@ -59,9 +59,11 @@ const config: Config = {
         mono: ["var(--font-mono)"],
       },
       fontSize: {
-        micro: ["calc(11px * var(--text-scale, 1))", "calc(14px * var(--text-scale, 1))"],
+        // v1.80.0 (D-407, first-review point 2): one wider type scale, 12 / 14 / 16 / 20 / 28
+        // (micro and label join caption and body; 18, 22, 32 and 44 stay for widgets, cards and KPIs).
+        micro: ["calc(12px * var(--text-scale, 1))", "calc(16px * var(--text-scale, 1))"],
         caption: ["calc(12px * var(--text-scale, 1))", "calc(16px * var(--text-scale, 1))"],
-        label: ["calc(13px * var(--text-scale, 1))", "calc(18px * var(--text-scale, 1))"],
+        label: ["calc(14px * var(--text-scale, 1))", "calc(20px * var(--text-scale, 1))"],
         body: ["calc(14px * var(--text-scale, 1))", "calc(20px * var(--text-scale, 1))"],
         subhead: ["calc(16px * var(--text-scale, 1))", "calc(22px * var(--text-scale, 1))"],
         "widget-title": ["calc(18px * var(--text-scale, 1))", "calc(24px * var(--text-scale, 1))"],

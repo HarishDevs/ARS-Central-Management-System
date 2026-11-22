@@ -245,9 +245,6 @@ export default async function MyTasksPage({
   return (
     <>
       <header className="mb-4 flex flex-wrap items-center gap-3" data-testid="my-tasks-header">
-        <span className="page-icon grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-line bg-primary-50 text-primary-700 shadow-card" aria-hidden="true">
-          <ListTodo className="h-6 w-6" />
-        </span>
         {/* v1.77.0 (D-404, spec §3.6): the picture opens the person's profile. */}
         <Link href={`/users/people/${ownerId}`} className="rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-600" aria-label={readOnly ? `${ownerName}'s profile` : "Your profile"} data-testid="my-tasks-avatar">
           <Avatar name={ownerName} />

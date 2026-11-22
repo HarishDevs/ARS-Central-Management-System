@@ -75,7 +75,7 @@ function ProjectShareDialog({ projectId, name, privacy, departmentId, department
     return call(() => memberAction(null, data));
   };
   return (
-    <dialog ref={ref} {...props} aria-labelledby="share-project-title" className="w-[calc(100%-2rem)] max-w-xl rounded-xl border border-line bg-raised p-0 text-ink shadow-overlay backdrop:bg-overlay" data-testid="share-dialog">
+    <dialog ref={ref} {...props} aria-labelledby="share-project-title" className="ars-dialog w-[calc(100%-2rem)] max-w-xl rounded-xl border border-line bg-raised p-0 text-ink shadow-overlay" data-testid="share-dialog">
       <header className="flex items-center gap-2 border-b border-line px-6 py-4">
         <h2 id="share-project-title" className="flex-1 text-card-title font-semibold">
           Share {name}
@@ -258,7 +258,7 @@ function TaskShareDialog({ taskId, title, followers, people, visibility, canAdd,
   const { call, pending } = useWorkCall();
   const [who, setWho] = useState("");
   return (
-    <dialog ref={ref} {...props} aria-labelledby="share-task-title" className="w-[calc(100%-2rem)] max-w-lg rounded-xl border border-line bg-raised p-0 text-ink shadow-overlay backdrop:bg-overlay" data-testid="share-dialog">
+    <dialog ref={ref} {...props} aria-labelledby="share-task-title" className="ars-dialog w-[calc(100%-2rem)] max-w-lg rounded-xl border border-line bg-raised p-0 text-ink shadow-overlay" data-testid="share-dialog">
       <header className="flex items-center gap-2 border-b border-line px-6 py-4">
         <h2 id="share-task-title" className="min-w-0 flex-1 truncate text-card-title font-semibold">
           Share {title}

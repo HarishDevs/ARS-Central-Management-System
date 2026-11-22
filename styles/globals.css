@@ -18,18 +18,18 @@
   --color-primary-solid-hover: #003f75;
   --color-primary-solid-disabled: #53769e;
   --color-accent-red: #ed1c25;
-  --color-text-primary: #0f172a;
-  --color-text-secondary: #475569;
-  --color-text-placeholder: #5b6b80; /* v1.72.2 (D-394): 4.97:1 on surface-muted, 4.6:1 on row-active */
-  --color-border-input: #7d8ba0; /* v1.72.2 (D-394): a field's edge at rest, 3.2:1 or more on white, page and muted (WCAG 1.4.11) */
+  --color-text-primary: #0e1b2c; /* v1.80.0 (D-407): steel-blue neutrals from ARS Blue (hue 208) */
+  --color-text-secondary: #44556b;
+  --color-text-placeholder: #56677d; /* v1.72.2 (D-394): 4.97:1 on surface-muted, 4.6:1 on row-active */
+  --color-border-input: #7889a0; /* v1.72.2 (D-394): a field's edge at rest, 3.2:1 or more on white, page and muted (WCAG 1.4.11) */
   --color-text-on-solid: #ffffff;
-  --color-border-default: #e2e8f0;
-  --color-border-strong: #cbd5e1;
+  --color-border-default: #dbe4ee;
+  --color-border-strong: #c2cfde;
   --color-surface-white: #ffffff;
-  --color-surface-muted: #f1f5f9;
-  --color-surface-page: #f8fafc;
+  --color-surface-muted: #f1f5fa;
+  --color-surface-page: #f5f8fb;
   --color-surface-raised: #ffffff;
-  --color-overlay: rgba(15, 23, 42, 0.45);
+  --color-overlay: rgba(14, 27, 44, 0.45);
   --color-success-50: #dcfce7;
   --color-success-600: #15803d;
   --color-success-solid: #15803d;
@@ -54,6 +54,16 @@
   --motion-base: 200ms;
   --motion-slow: 320ms;
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  /* v1.80.0 (D-407): one motion system (only opacity and transform move).
+     Hover/press 120 ms; menus, folding groups and toasts 190 ms; dialogs and
+     drawers in 220 ms ease-out, out 160 ms; page cross-fade 120 ms linear.
+     Reduce motion: fades of 100 ms or less, nothing moves (end of file). */
+  --motion-hover: 120ms;
+  --motion-menu: 190ms;
+  --motion-dialog-in: 220ms;
+  --motion-dialog-out: 160ms;
+  --motion-page: 120ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --z-header: 30;
   --z-sticky: 35;
   --z-drawer: 40;
@@ -139,17 +149,17 @@
   --color-primary-solid-hover: #3580cc;
   --color-primary-solid-disabled: #2b4560;
   --color-accent-red: #ff5a60;
-  --color-text-primary: #e5e9f0;
-  --color-text-secondary: #b3bdcc;
-  --color-text-placeholder: #909cae;
-  --color-border-input: #68768b;
+  --color-text-primary: #e4eaf2;
+  --color-text-secondary: #b1bfd0;
+  --color-text-placeholder: #8f9eb2;
+  --color-border-input: #687b93;
   --color-text-on-solid: #ffffff;
-  --color-border-default: #2a3546;
-  --color-border-strong: #3a4659;
-  --color-surface-white: #151c27;
-  --color-surface-muted: #1e2734;
-  --color-surface-page: #0e131b;
-  --color-surface-raised: #1a2230;
+  --color-border-default: #27354a;
+  --color-border-strong: #36465e;
+  --color-surface-white: #131c29;
+  --color-surface-muted: #1b2636;
+  --color-surface-page: #0c121b;
+  --color-surface-raised: #172233;
   --color-overlay: rgba(0, 0, 0, 0.6);
   --color-success-50: #0f2c1c;
   --color-success-600: #6ee7a0;
@@ -212,17 +222,17 @@
   --color-primary-solid-hover: #3580cc;
   --color-primary-solid-disabled: #2b4560;
   --color-accent-red: #ff5a60;
-  --color-text-primary: #e5e9f0;
-  --color-text-secondary: #b3bdcc;
-  --color-text-placeholder: #909cae;
-  --color-border-input: #68768b;
+  --color-text-primary: #e4eaf2;
+  --color-text-secondary: #b1bfd0;
+  --color-text-placeholder: #8f9eb2;
+  --color-border-input: #687b93;
   --color-text-on-solid: #ffffff;
-  --color-border-default: #2a3546;
-  --color-border-strong: #3a4659;
-  --color-surface-white: #151c27;
-  --color-surface-muted: #1e2734;
-  --color-surface-page: #0e131b;
-  --color-surface-raised: #1a2230;
+  --color-border-default: #27354a;
+  --color-border-strong: #36465e;
+  --color-surface-white: #131c29;
+  --color-surface-muted: #1b2636;
+  --color-surface-page: #0c121b;
+  --color-surface-raised: #172233;
   --color-overlay: rgba(0, 0, 0, 0.6);
   --color-success-50: #0f2c1c;
   --color-success-600: #6ee7a0;
@@ -346,8 +356,9 @@ body {
   .data-table {
     @apply w-full text-left text-label;
   }
+  /* v1.80.0 (D-407): column titles in sentence case (no all-caps). */
   .data-table th {
-    @apply border-b border-line px-4 py-2.5 text-caption font-semibold uppercase tracking-wider text-ink-faint;
+    @apply border-b border-line px-4 py-2.5 text-caption font-semibold text-ink-muted;
   }
   .data-table td {
     @apply border-b border-line px-4 py-3 align-top;
@@ -1595,4 +1606,223 @@ body:has([data-testid="m-comment-dock"][data-open="1"]) .picbot-launcher {
 .pm-lifted {
   outline: 2px dashed var(--color-primary-600, currentColor);
   outline-offset: 2px;
+}
+
+/* ---- v1.80.0 (D-407): interaction, motion and loading ----------------------
+   One motion system (tokens at the top): only opacity and transform move.
+   Patterns from the modern-web-guidance guides "animate-to-from-top-layer",
+   "accordion" and "same-document-transitions". */
+
+/* 1. Dialogs and drawers (features/ui/Dialog.tsx and the plain <dialog>s with
+   .ars-dialog). In: 220 ms ease-out, a fade and a small scale (dialogs) or a
+   slide (drawers: up from the bottom on a phone, in from the right on wider
+   screens). Out: 160 ms. The backdrop fades with it. Chrome and Edge animate
+   the close in CSS (overlay + discrete display); Firefox and Safari get
+   data-closing first (top-layer.ts), so the exit plays before close(). */
+dialog.ars-dialog {
+  opacity: 0;
+  transition-property: opacity, transform, display, overlay;
+  transition-duration: var(--motion-dialog-out);
+  transition-timing-function: ease-in;
+  transition-behavior: allow-discrete;
+}
+dialog.ars-dialog:is([open]):where(:not([data-closing])) {
+  opacity: 1;
+  transition-duration: var(--motion-dialog-in);
+  transition-timing-function: var(--ease-out);
+}
+@starting-style {
+  dialog.ars-dialog:is([open]):where(:not([data-closing])) {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  dialog.ars-dialog[data-variant="dialog"],
+  dialog.ars-dialog:not([data-variant]) {
+    transform: scale(0.96);
+  }
+  dialog.ars-dialog[data-variant="drawer"] {
+    transform: translateY(32px);
+  }
+  dialog.ars-dialog:is([open]):where(:not([data-closing])) {
+    transform: none;
+  }
+  @starting-style {
+    dialog.ars-dialog[data-variant="dialog"]:is([open]):where(:not([data-closing])),
+    dialog.ars-dialog:not([data-variant]):is([open]):where(:not([data-closing])) {
+      transform: scale(0.96);
+    }
+    dialog.ars-dialog[data-variant="drawer"]:is([open]):where(:not([data-closing])) {
+      transform: translateY(32px);
+    }
+  }
+}
+@media (prefers-reduced-motion: no-preference) and (min-width: 640px) {
+  dialog.ars-dialog[data-variant="drawer"] {
+    transform: translateX(32px);
+  }
+  dialog.ars-dialog[data-variant="drawer"]:is([open]):where(:not([data-closing])) {
+    transform: none;
+  }
+  @starting-style {
+    dialog.ars-dialog[data-variant="drawer"]:is([open]):where(:not([data-closing])) {
+      transform: translateX(32px);
+    }
+  }
+}
+dialog.ars-dialog::backdrop {
+  background-color: transparent;
+  transition-property: background-color, display, overlay;
+  transition-duration: var(--motion-dialog-out);
+  transition-timing-function: ease-in;
+  transition-behavior: allow-discrete;
+}
+dialog.ars-dialog:is([open]):where(:not([data-closing]))::backdrop {
+  background-color: var(--color-overlay);
+  transition-duration: var(--motion-dialog-in);
+}
+@starting-style {
+  dialog.ars-dialog:is([open]):where(:not([data-closing]))::backdrop {
+    background-color: transparent;
+  }
+}
+
+/* 2. Menus and filter panels unfold: a <details> panel (Filter, Sort, Group,
+   Options, Columns) and the shared menu (MenuCore) fade in and drop 4 px
+   (the individual `translate` property, so a panel's own transform, such as
+   a centring one, is left alone). The chevron in a summary turns. Opening is
+   animated in every current browser; closing is instant (it is a
+   progressive enhancement and needs no fallback). */
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    translate: 0 -4px;
+  }
+}
+@keyframes fade-in-only {
+  from {
+    opacity: 0;
+  }
+}
+/* An animation (not a transition) so it plays on every open: the closed
+   content of a <details> may keep its computed style, so @starting-style
+   would not fire again. */
+@media (prefers-reduced-motion: no-preference) {
+  details[open] > :not(summary),
+  .menu-pop {
+    animation: menu-in var(--motion-menu) var(--ease-standard);
+  }
+  details > summary :is(svg.lucide-chevron-down, svg.lucide-chevron-right):not([class*="rotate"]) {
+    transition: rotate var(--motion-menu) var(--ease-standard);
+  }
+}
+details[open] > summary svg.lucide-chevron-down:not([class*="rotate"]) {
+  rotate: 180deg;
+}
+details[open] > summary svg.lucide-chevron-right:not([class*="rotate"]) {
+  rotate: 90deg;
+}
+@media (prefers-reduced-motion: reduce) {
+  details[open] > :not(summary),
+  .menu-pop {
+    animation: fade-in-only 100ms linear !important;
+  }
+}
+
+/* 3. A folded group glides open (GroupFold): its rows fade in and drop 4 px
+   (never a table height). Expand all / Collapse all use the same. */
+@keyframes fold-reveal {
+  from {
+    opacity: 0;
+    translate: 0 -4px;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  [data-revealed] > tr:not(:first-child),
+  [data-revealed] > ul > li {
+    animation: fold-reveal var(--motion-menu) var(--ease-standard) both;
+  }
+}
+
+/* 6. A click was heard: while a sort, page, tab or quick filter loads (same
+   page, new query), the table being replaced dims to 60 %; a link that is
+   loading shows it (PendingLink, SortLink). */
+html[data-nav-pending] main :is(table, [data-dim-on-nav]) {
+  opacity: 0.6;
+  transition: opacity var(--motion-hover) linear;
+}
+[data-link-pending] {
+  opacity: 0.7;
+}
+
+/* 11. Long lists stay light: wide tables keep room for their scrollbar, and
+   long lists marked data-cv skip drawing what is far below the screen. */
+:where(.overflow-x-auto, .overflow-auto):has(> table) {
+  scrollbar-gutter: stable;
+}
+[data-cv] {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 640px;
+}
+
+/* 13. Keyboard flow: the row j / k moved to, and the "Next waiting for you"
+   landing, show a short highlight (a colour change, 120 ms). */
+:is(tr, li, a)[data-row-current] {
+  background-color: var(--color-row-active);
+  transition: background-color var(--motion-hover) linear;
+}
+[data-next-flash] {
+  outline: 2px solid var(--color-primary-600);
+  outline-offset: 2px;
+  transition: outline-color var(--motion-slow) linear;
+}
+
+/* 15. No content jumps: room kept for what arrives late (the Home overviews'
+   + Add widgets / Customise, drawn after the page loads). */
+.reserve-widget-tools {
+  min-height: 2.25rem;
+  min-width: calc(17rem * var(--text-scale, 1));
+}
+
+/* 4. Page transitions (the "page_transitions" switch, default OFF;
+   features/shell/PageTransitions.tsx). Only the main area cross-fades
+   (120 ms, linear); the sidebar and top bar stay still. Opening a request or
+   ticket from a list, its title moves into the page heading. Reduce motion:
+   no view-transition animation at all. */
+html[data-vt] main#main {
+  view-transition-name: page-main;
+}
+html[data-vt="title"] main#main [data-tour="page-header"] h1 {
+  view-transition-name: page-title;
+  width: fit-content;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+::view-transition-old(page-main),
+::view-transition-new(page-main) {
+  animation-duration: var(--motion-page);
+  animation-timing-function: linear;
+}
+::view-transition-group(page-title) {
+  animation-duration: var(--motion-dialog-in);
+  animation-timing-function: var(--ease-out);
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
+/* Reduce motion (the whole file): fades of 100 ms or less and nothing moves.
+   The global rule near the top already shortens every transition; this
+   keeps the dialog's fade and drops its movement. */
+@media (prefers-reduced-motion: reduce) {
+  dialog.ars-dialog,
+  dialog.ars-dialog::backdrop {
+    transition-duration: 100ms !important;
+  }
 }

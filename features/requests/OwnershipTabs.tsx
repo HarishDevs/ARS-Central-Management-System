@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { UserRound, UsersRound } from "lucide-react";
+import { LinkPending } from "@/features/ui/PendingLink";
 
 // D-256 (owner's My Requests design): Raised by me / Shared with me, each
 // with how many requests it holds in all.
@@ -23,6 +24,7 @@ export function OwnershipTabs({ current, mine, shared }: { current: "mine" | "sh
                 <tab.icon className="h-4 w-4" aria-hidden="true" />
                 {tab.label}
                 <span className={`rounded-full px-2 py-0.5 text-caption tabular-nums ${active ? "bg-primary-50 text-primary-700" : "bg-surface-muted text-ink-muted"}`}>{tab.count.toLocaleString("en-IN")}</span>
+                <LinkPending />
               </Link>
             </li>
           );

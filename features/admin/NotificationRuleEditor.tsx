@@ -167,7 +167,7 @@ export function NotificationRuleEditor({
           {rule.stages.map((stage, index) => (
             <li key={index} className="space-y-3 rounded-md border border-line p-3" data-testid="rule-stage">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-label font-semibold uppercase tracking-wide text-ink-muted">{rule.kind === "ESCALATION" ? `Level ${index + 1}` : `Stage ${index + 1}`}</p>
+                <p className="text-label font-semibold text-ink-muted">{rule.kind === "ESCALATION" ? `Level ${index + 1}` : `Stage ${index + 1}`}</p>
                 {rule.stages.length > 1 && (
                   <button type="button" className="btn-secondary btn-compact" onClick={() => set("stages", rule.stages.filter((_, i) => i !== index))}>
                     Remove
@@ -268,7 +268,7 @@ export function NotificationRuleEditor({
       <ResultMessage result={save.result} />
       {test.result && (
         <div data-testid="rule-test">
-          <ResultMessage result={test.result} />
+          <ResultMessage result={test.result} inline />
         </div>
       )}
     </div>

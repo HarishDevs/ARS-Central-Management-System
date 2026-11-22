@@ -211,6 +211,11 @@ Stops anyone reaching the GoDaddy server directly, around Cloudflare (and faking
 1. https://approval.arssteels.net → **Continue with Google** → **itsupport@arsenergy.co.in** (D-082). The seed created this Super Admin, User ID `itadmin`. `itadmin@arssteels.co.in` can't be used: it's only an alias, and Google reports the main address.
 2. You land on **My approvals**. Your name at the top right opens a menu whose **Switch space** section shows Admin and Super Admin.
 
+### G0y. Motion, loading and keyboard flow (v1.80.0)
+1. Publish v1.80.0. **No migration.**
+2. A new feature switch, **Page transitions** (`features.page_transitions`), starts **Off**: pages change as before. To try it: Super Admin → Settings → Feature switches → Page transitions → **IT team only** (then **On** for everyone). Off again at any time, with nothing to undo.
+3. No new job or cron entry. Check: Waiting for me → J / K move between rows; a dialog fades in and out; back from a request keeps the list's place.
+
 ### G0x. The three Home overviews identically featured (v1.79.0)
 1. Publish v1.79.0. The migration `202611241000_home_overview_scope.sql` runs on start (no triggers, nothing optional): it adds `scope` to `home_layouts` and makes the key (user_id, scope); existing layouts become My Work's (`tasks`).
 2. Nothing to switch on: Customise and Add widgets follow the existing **Projects phase A** switch (`pm_foundations`); without it each overview shows its default layout. No new job or cron entry.

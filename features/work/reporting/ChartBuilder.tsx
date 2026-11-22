@@ -199,7 +199,7 @@ export function ChartBuilder({ open, context, draft, onClose }: { open: boolean;
         </label>
         <input id={titleId} className={inputClass} value={title} maxLength={WIDGET_TITLE_MAX} onChange={(event) => setTitle(event.target.value)} data-autofocus data-testid="chart-title" />
         <section aria-label="Preview" className="rounded-md border border-line p-3">
-          <p className="mb-2 text-caption font-semibold uppercase tracking-wide text-ink-faint">Preview</p>
+          <p className="mb-2 text-caption font-semibold text-ink-faint">Preview</p>
           {preview.error ? (
             <p role="alert" className="text-label text-danger-600" data-testid="chart-preview-error">
               {preview.error}

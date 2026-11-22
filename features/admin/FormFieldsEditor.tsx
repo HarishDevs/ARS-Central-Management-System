@@ -265,7 +265,7 @@ export function FormFieldsEditor({
     <nav aria-label="Add a field" className={wide ? "space-y-4" : "flex flex-wrap gap-1.5"} data-testid="field-library">
       {(["BASIC", "ADVANCED", "LAYOUT"] as FieldGroup[]).map((group) => (
         <div key={group} className={wide ? "space-y-1" : "contents"}>
-          {wide && <p className="px-1 text-caption font-semibold uppercase tracking-wide text-ink-faint">{GROUP_LABEL[group]}</p>}
+          {wide && <p className="px-1 text-caption font-semibold text-ink-faint">{GROUP_LABEL[group]}</p>}
           {choices.filter((choice) => choice.group === group).map((choice) => {
             const Icon = TYPE_ICON[choice.value] ?? Type;
             return (
@@ -406,7 +406,7 @@ export function FormFieldsEditor({
                       >
                         <Icon aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-ink-muted" />
                         <span className="min-w-0 flex-1">
-                          <span className={`block truncate ${field.type === "SECTION" ? "font-semibold uppercase tracking-wide" : "font-medium"}`}>
+                          <span className={`block truncate ${field.type === "SECTION" ? "font-semibold" : "font-medium"}`}>
                             {field.label || <span className="text-ink-faint">Untitled field</span>}
                             {field.required && (
                               <span className="text-danger-600" aria-label="required">

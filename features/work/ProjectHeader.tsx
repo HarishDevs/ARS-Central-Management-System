@@ -257,7 +257,7 @@ export function ProjectHeader({
         {canEdit && customize && <CustomizeButton base={base} counts={customize.counts} fieldDialog={customize.fieldDialog} />}
       </div>
       {saving && (
-        <dialog ref={dialog} onClose={() => setSaving(false)} aria-labelledby="save-template-title" className="w-[calc(100%-2rem)] max-w-md rounded-xl border border-line bg-raised p-0 text-ink shadow-overlay backdrop:bg-overlay" data-testid="save-template-dialog">
+        <dialog ref={dialog} onClose={() => setSaving(false)} aria-labelledby="save-template-title" className="ars-dialog w-[calc(100%-2rem)] max-w-md rounded-xl border border-line bg-raised p-0 text-ink shadow-overlay" data-testid="save-template-dialog">
           <div className="space-y-3 p-5">
             <h2 id="save-template-title" className="font-semibold">
               Save {name} as a template

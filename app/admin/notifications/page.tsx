@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { EmptyState } from "@/features/ui/Display";
 import { TaskPriorityPill } from "@/features/ui/ChoicePill";
 import type { Metadata } from "next";
@@ -93,13 +94,13 @@ export default async function AdminNotificationsPage({ searchParams }: { searchP
         <ul className="flex min-w-max gap-1">
           {TABS.map((item) => (
             <li key={item.key}>
-              <a
+              <Link
                 href={`/admin/notifications?tab=${item.key}`}
                 aria-current={tab === item.key ? "page" : undefined}
                 className={`-mb-px block border-b-2 px-3 py-2.5 text-label ${tab === item.key ? "border-primary-600 font-semibold text-primary-700" : "border-transparent text-ink-muted hover:text-ink"}`}
               >
                 {item.label}
-              </a>
+              </Link>
             </li>
           ))}
         </ul>

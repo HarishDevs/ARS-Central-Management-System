@@ -26,7 +26,9 @@ export function QuickActions({ items, testId, widgets = false }: { items: QuickA
           {item.label}
         </Link>
       ))}
-      {widgets && <div id={WIDGETS_TOOLBAR_SLOT} className="ml-auto flex flex-wrap items-center gap-2" />}
+      {/* v1.80.0 (D-407, point 15): the slot keeps the room of + Add widgets and Customise
+          (drawn after the page loads), so the row doesn't wrap late and push the page down. */}
+      {widgets && <div id={WIDGETS_TOOLBAR_SLOT} className="reserve-widget-tools ml-auto flex flex-wrap items-center justify-end gap-2" />}
     </nav>
   );
 }

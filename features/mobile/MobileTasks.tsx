@@ -85,11 +85,11 @@ export async function MobileTasks({ userId, tab: asked, sort: askedSort, group: 
   const manage = (
     <div>
       <CompactToggle on={compact} />
-      <p className="flex items-center gap-2 pt-4 text-[length:calc(13px*var(--text-scale,1))] font-semibold uppercase tracking-wide text-ink-muted">
+      <p className="flex items-center gap-2 pt-4 text-[length:calc(13px*var(--text-scale,1))] font-semibold text-ink-muted">
         <ArrowDownUp aria-hidden="true" className="h-4 w-4" /> Sort
       </p>
       <SheetChoices label="Sort" items={(Object.keys(SORTS) as Sort[]).map((key) => ({ href: href({ sort: key }), label: SORTS[key].label, current: key === sort }))} />
-      <p className="flex items-center gap-2 pt-4 text-[length:calc(13px*var(--text-scale,1))] font-semibold uppercase tracking-wide text-ink-muted">
+      <p className="flex items-center gap-2 pt-4 text-[length:calc(13px*var(--text-scale,1))] font-semibold text-ink-muted">
         <LayoutList aria-hidden="true" className="h-4 w-4" /> Group by
       </p>
       <SheetChoices label="Group by" items={(Object.keys(GROUPS) as Group[]).map((key) => ({ href: href({ group: key }), label: GROUPS[key], current: key === group }))} />

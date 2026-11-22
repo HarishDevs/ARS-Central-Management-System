@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ClientSortTable } from "@/features/ui/ClientSortTable";
 import { analyticsTickets, openTicketsInScope, ticketMonths, type AnalyticsTicket, type TicketAnalyticsScope } from "@/lib/db/repositories/ticket-analytics.repository";
 import { peopleOfDepartments } from "@/lib/db/repositories/meeting-analytics.repository";
@@ -172,9 +173,9 @@ export async function TicketBoard({ scope, viewer, period, previous }: { scope: 
           caption="Overdue tickets"
           head={["Ticket", "Category", "Priority", "Assignee", "Target date"]}
           rows={overdueNow.slice(0, 20).map((row) => [
-            <a key={row.id} href={`/users/tickets/${row.id}`} className="link">
+            <Link key={row.id} href={`/users/tickets/${row.id}`} className="link">
               {row.ticketNo} {row.title}
-            </a>,
+            </Link>,
             row.categoryName,
             TICKET_PRIORITY_LABEL[row.priority],
             row.assigneeName ?? "—",

@@ -19,7 +19,7 @@ export function DriveBackupTestPanel({ configured }: { configured: boolean }) {
         <SubmitButton pending={pending} variant="secondary" className="btn-compact">
           Test
         </SubmitButton>
-        <ResultMessage result={result} />
+        <ResultMessage result={result} inline />
       </form>
     </section>
   );

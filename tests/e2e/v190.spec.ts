@@ -178,8 +178,11 @@ test("the sidebar stays put and scrolls only when its entries don't fit", async 
   const top = await page.getByTestId("sidebar").evaluate((element) => element.getBoundingClientRect().top);
   expect(top).toBe(0);
   // Every entry can still be reached.
+  // v1.80.0 (D-407): with the 14 px labels the last entries sit lower, so scroll the sidebar to the entry itself.
   await scroller.evaluate((element) => element.scrollTo(0, element.scrollHeight));
-  await expect(page.locator("aside nav").getByRole("link", { name: "New information" })).toBeInViewport();
+  const entry = page.locator("aside nav").getByRole("link", { name: "New information" });
+  await entry.evaluate((element) => element.scrollIntoView({ block: "nearest" }));
+  await expect(entry).toBeInViewport();
 });
 
 test("the user sidebar: Home, Inbox, collapsible My Approvals, Tasks & projects, Information, Meetings, then Calendar, Analytics", async ({ page, context }) => {

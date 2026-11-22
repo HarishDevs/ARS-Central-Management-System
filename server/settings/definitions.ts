@@ -73,6 +73,8 @@ export const SETTING_DEFINITIONS: readonly SettingDefinition[] = [
   { key: "features.pm_portfolios", group: "FEATURES", label: "Projects D, portfolios: group projects (and other portfolios) to follow their status, task progress, dates and figures in one place (phase D)", valueType: "STRING", encrypted: false, schema: z.enum(["ON", "OFF", "IT_ONLY"]), defaultValue: "OFF" },
   // v1.70.0 (D-383): phase E part 1.
   { key: "features.pm_extras", group: "FEATURES", label: "Projects E, templates and extras: complete templates with a gallery, duplicate with choices, import and export (CSV, Excel, JSON), calendar feeds (phase E)", valueType: "STRING", encrypted: false, schema: z.enum(["ON", "OFF", "IT_ONLY"]), defaultValue: "OFF" },
+  // v1.80.0 (D-407, motion review point 4): page transitions. Off until IT releases it; with it off pages change exactly as before.
+  { key: "features.page_transitions", group: "FEATURES", label: "Page transitions: the main area cross-fades when the page changes, a request or ticket's title moves into the heading when opened from a list, and focus goes to the new heading (browsers with view transitions; never with Reduce motion)", valueType: "STRING", encrypted: false, schema: z.enum(["ON", "OFF", "IT_ONLY"]), defaultValue: "OFF" },
   // Retention (FN10, D-126): 0 = not set, keep for ever. Setting a value only
   // changes the dry run; nothing is archived or deleted automatically.
   { key: "retention.requests_years", group: "RETENTION", label: "Keep finished requests for (years; 0 = keep for ever)", valueType: "NUMBER", encrypted: false, schema: z.coerce.number().int().min(0).max(50), defaultValue: "0" },

@@ -4,7 +4,7 @@ import { ApprovalBadge, approvalRowClass } from "@/features/work/ApprovalLink";
 import { ArrowDown, ArrowUp, ArrowUpDown, CalendarClock, ChevronDown, ChevronRight, Filter, GitBranch, GripVertical, Heart, Layers, ListPlus, Lock, MessageSquare, MoreHorizontal, Pencil, Plus, Repeat, Settings2, Trash2, Diamond, X, Zap } from "lucide-react";
 import { DueCell } from "@/features/work/DueCell";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { dropTarget, focusNeighbour, lift, moveLifted, positionText, previewColumn, type Lifted } from "@/features/work/board-keys";
 import { addSectionAction, fieldValueAction, projectTabAction, moveTaskAction, quickAddAction, quickAddManyAction, sectionAction, taskFieldsAction } from "@/app/users/work/actions";
@@ -155,6 +155,11 @@ export function ProjectWorkspace({
   const [dragging, setDragging] = useState<number | null>(null);
   // v1.62.0 (D-368): the Board card lifted from the keyboard (Space).
   const [lifted, setLifted] = useState<Lifted | null>(null);
+  // v1.80.0 (D-407): the lifted card keeps the keyboard focus as soon as it is
+  // redrawn in its new place (before the next key), not a frame later.
+  useLayoutEffect(() => {
+    if (lifted) document.querySelector<HTMLElement>(`[data-card-id="${lifted.taskId}"]`)?.focus();
+  }, [lifted]);
   const router = useRouter();
   const [live, setLive] = useState("");
   const [selected, setSelected] = useState<number[]>([]);
@@ -692,7 +697,7 @@ export function ProjectWorkspace({
       {groups.length > 0 && <FoldAllButtons onAll={foldAll} testId="project-fold-all" />}
       <div className="card overflow-x-auto" data-testid="project-list">
         <div role="table" aria-label="Tasks" className="min-w-max">
-          <div role="row" style={columns} className="relative grid border-b border-line bg-surface-muted px-3 py-2 text-caption font-semibold uppercase tracking-wide text-ink-faint">
+          <div role="row" style={columns} className="relative grid border-b border-line bg-surface-muted px-3 py-2 text-caption font-semibold text-ink-faint">
             {canEdit && (
               <span role="columnheader">
                 <input

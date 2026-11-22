@@ -1,12 +1,20 @@
 "use client";
 
 import { X } from "lucide-react";
-import { useEffect, useId, useRef } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Button, type ButtonVariant } from "@/features/ui/Button";
+import { closeTopLayer, supportsTopLayerExit } from "@/features/ui/top-layer";
+import { useSwipeDown } from "@/features/ui/swipe";
 
 // Dialogs and drawers (UI-03) on the native <dialog> element: showModal()
 // makes the rest of the page inert (focus stays inside), Escape closes it,
 // and focus goes back to whatever opened it.
+// v1.80.0 (D-407, motion review points 1, 12, 14): they open and close
+// smoothly (globals.css "ars-dialog": a fade with a small scale for dialogs,
+// a slide for drawers, the backdrop fading; Firefox and Safari get a short
+// closing step, top-layer.ts). `guardDraft`: once something is typed, closing
+// by accident (Escape, the ×, a click outside) asks "Discard draft?" first.
+// On a phone a drawer is a bottom sheet that a swipe down closes.
 export function Dialog({
   open,
   onClose,
@@ -18,6 +26,7 @@ export function Dialog({
   size = "md",
   role,
   testId,
+  guardDraft = false,
 }: {
   open: boolean;
   onClose: () => void;
@@ -29,9 +38,15 @@ export function Dialog({
   size?: "sm" | "md" | "lg";
   role?: "alertdialog";
   testId?: string;
+  guardDraft?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const opener = useRef<Element | null>(null);
+  const dirty = useRef(false);
+  const [asking, setAsking] = useState(false);
+  // The content stays while the closing animation plays.
+  const [shown, setShown] = useState(open);
+  if (open && !shown) setShown(true);
   const titleId = useId();
   const descriptionId = useId();
 
@@ -40,12 +55,15 @@ export function Dialog({
     if (!dialog) return;
     if (open && !dialog.open) {
       opener.current = document.activeElement;
+      dirty.current = false;
+      dialog.removeAttribute("data-closing");
+      dialog.style.removeProperty("translate");
       dialog.showModal();
       // showModal focuses the first control (the close button); a field
       // marked data-autofocus (e.g. the comment box) is where typing starts.
       requestAnimationFrame(() => dialog.querySelector<HTMLElement>("[data-autofocus]")?.focus());
     } else if (!open && dialog.open) {
-      dialog.close();
+      void closeTopLayer(dialog);
     }
   }, [open]);
 
@@ -53,12 +71,53 @@ export function Dialog({
     const dialog = ref.current;
     if (!dialog) return;
     const onNativeClose = () => {
-      if (opener.current instanceof HTMLElement) opener.current.focus();
+      setShown(false);
+      if (opener.current instanceof HTMLElement && opener.current.isConnected) opener.current.focus();
       onClose();
     };
     dialog.addEventListener("close", onNativeClose);
     return () => dialog.removeEventListener("close", onNativeClose);
   }, [onClose]);
+
+  // A close the person may not have meant (Escape, ×, outside click).
+  const requestClose = useCallback(() => {
+    const dialog = ref.current;
+    if (!dialog) return;
+    if (guardDraft && dirty.current) {
+      setAsking(true);
+      return;
+    }
+    void closeTopLayer(dialog);
+  }, [guardDraft]);
+
+  useEffect(() => {
+    const dialog = ref.current;
+    if (!dialog) return;
+    // Escape: route through requestClose so it animates (Firefox, Safari)
+    // and asks about a draft. Chrome animates its own close already.
+    const onCancel = (event: Event) => {
+      if (guardDraft && dirty.current) {
+        event.preventDefault();
+        setAsking(true);
+        return;
+      }
+      if (!supportsTopLayerExit()) {
+        event.preventDefault();
+        void closeTopLayer(dialog);
+      }
+    };
+    const onInput = () => {
+      dirty.current = true;
+    };
+    dialog.addEventListener("cancel", onCancel);
+    dialog.addEventListener("input", onInput);
+    return () => {
+      dialog.removeEventListener("cancel", onCancel);
+      dialog.removeEventListener("input", onInput);
+    };
+  }, [guardDraft]);
+
+  const sheet = useSwipeDown(variant === "drawer", requestClose);
 
   const width = size === "sm" ? "sm:max-w-sm" : size === "lg" ? "sm:max-w-2xl" : "sm:max-w-lg";
   const placement =
@@ -70,17 +129,23 @@ export function Dialog({
       ref={ref}
       role={role}
       data-testid={testId}
+      data-variant={variant}
       aria-labelledby={titleId}
       aria-describedby={description ? descriptionId : undefined}
       onClick={(event) => {
         // A click on the backdrop (the dialog element itself) closes it.
-        if (event.target === ref.current) ref.current?.close();
+        if (event.target === ref.current) requestClose();
       }}
-      className={`z-dialog max-h-[90dvh] border border-line bg-raised p-0 text-ink shadow-overlay backdrop:bg-overlay ${placement}`}
+      className={`ars-dialog z-dialog max-h-[90dvh] border border-line bg-raised p-0 text-ink shadow-overlay ${placement}`}
     >
-      {open && (
+      {(open || shown) && (
         <div className="flex max-h-[inherit] flex-col pb-[env(safe-area-inset-bottom)]">
-          <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
+          {variant === "drawer" && (
+            <div {...sheet} className="flex touch-none justify-center pt-2 sm:hidden" data-testid="sheet-handle" aria-hidden="true">
+              <span className="h-1 w-10 rounded-full bg-line-strong" />
+            </div>
+          )}
+          <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4" {...(variant === "drawer" ? sheet : {})}>
             <div>
               <h2 id={titleId} className="font-semibold">
                 {title}
@@ -91,7 +156,7 @@ export function Dialog({
                 </div>
               )}
             </div>
-            <button type="button" onClick={() => ref.current?.close()} aria-label="Close" className="-mr-2 -mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-ink-muted hover:bg-surface-muted hover:text-ink">
+            <button type="button" onClick={requestClose} aria-label="Close" className="-mr-2 -mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-ink-muted hover:bg-surface-muted hover:text-ink">
               <X aria-hidden="true" className="h-4 w-4" />
             </button>
           </div>
@@ -99,7 +164,43 @@ export function Dialog({
           {footer && <div className="flex flex-wrap justify-end gap-2 border-t border-line px-5 py-3">{footer}</div>}
         </div>
       )}
+      {guardDraft && (
+        <DiscardDraftDialog
+          open={asking}
+          onKeep={() => setAsking(false)}
+          onDiscard={() => {
+            setAsking(false);
+            dirty.current = false;
+            if (ref.current) void closeTopLayer(ref.current);
+          }}
+        />
+      )}
     </dialog>
+  );
+}
+
+// v1.80.0 (D-407, point 12): one question for a draft closed by accident.
+export function DiscardDraftDialog({ open, onKeep, onDiscard }: { open: boolean; onKeep: () => void; onDiscard: () => void }) {
+  return (
+    <Dialog
+      open={open}
+      onClose={onKeep}
+      title="Discard draft?"
+      description="What you typed here hasn't been saved."
+      size="sm"
+      role="alertdialog"
+      testId="discard-draft"
+      footer={
+        <>
+          <Button variant="secondary" size="sm" onClick={onKeep} data-autofocus>
+            Keep editing
+          </Button>
+          <Button variant="danger" size="sm" onClick={onDiscard}>
+            Discard
+          </Button>
+        </>
+      }
+    />
   );
 }
 

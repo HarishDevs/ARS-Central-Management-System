@@ -25,7 +25,7 @@ export function ProviderTestButton({ provider, label }: { provider: string; labe
       <button type="button" onClick={() => void run()} disabled={pending} className="btn-secondary btn-compact">
         {pending ? "Testing…" : `Test ${label}`}
       </button>
-      <ResultMessage result={result} />
+      <ResultMessage result={result} inline />
     </span>
   );
 }
@@ -50,7 +50,7 @@ export function SalesforceTestButton() {
       <SubmitButton pending={pending} variant="secondary" className="btn-compact">
         Test connection
       </SubmitButton>
-      <ResultMessage result={result} />
+      <ResultMessage result={result} inline />
     </form>
   );
 }

@@ -48,7 +48,7 @@ function ChangeDetailsDrawer({ requestId, taskKey, onClose }: { requestId: numbe
     };
   }, [requestId, taskKey]);
   return (
-    <Dialog open onClose={onClose} title={data ? `Change details: ${data.requestNo}` : "Change details"} description={data ? `${data.title} · your step: ${data.stepLabel}` : undefined} variant="drawer" size="lg">
+    <Dialog open onClose={onClose} title={data ? `Change details: ${data.requestNo}` : "Change details"} description={data ? `${data.title} · your step: ${data.stepLabel}` : undefined} variant="drawer" size="lg" guardDraft>
       {failed ? <p role="alert" className="text-label text-danger-600">{failed}</p> : data ? <ChangeDetailsForm data={data} onDone={onClose} /> : <InlineLoading />}
     </Dialog>
   );

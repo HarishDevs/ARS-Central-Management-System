@@ -160,7 +160,7 @@ export default async function ApprovalsHub({ searchParams }: { searchParams: Pro
                   <p className="mt-0.5 text-[16px] font-bold">
                     <SafeText text={draft.title || "Untitled draft"} />
                   </p>
-                  <p className="mt-2 text-[13px] text-ink-muted">Saved {formatIndiaTime(draft.updatedAt)}</p>
+                  <p className="mt-2 text-label text-ink-muted">Saved {formatIndiaTime(draft.updatedAt)}</p>
                 </Link>
               </li>
             ))}
@@ -183,7 +183,7 @@ export default async function ApprovalsHub({ searchParams }: { searchParams: Pro
       )}
       {/* v1.72.1 (D-395): a capped list says so and links to the full, paged list. */}
       {((tab === "waiting" && waiting.length >= 100) || (tab !== "waiting" && tab !== "drafts" && mine.length >= 200)) && (
-        <p className="text-center text-[13px] text-ink-muted" data-testid="m-approvals-cap">
+        <p className="text-center text-label text-ink-muted" data-testid="m-approvals-cap">
           Showing the latest {tab === "waiting" ? 100 : 200}.{" "}
           <Link href={tab === "waiting" ? "/users/queue" : tab === "approved" ? "/users/approved" : "/users/requests"} className="link">
             See the full list

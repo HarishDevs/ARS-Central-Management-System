@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
 import type { SortDir } from "@/server/lists/sorting";
+import { PendingLabel } from "@/features/ui/PendingLink";
 
 // v1.58.0 (D-351): a sortable column title. Click: A→Z (ascending); again: Z→A.
 // `href` is the address for the next direction (see sortHref / nextDir).
@@ -37,8 +38,11 @@ export function SortLink({ label, active, dir, href, srOnly = false }: { label: 
   const next = active && dir === "asc" ? "descending" : "ascending";
   return (
     <Link href={href} scroll={false} className={`inline-flex items-center gap-1 hover:text-ink ${active ? "text-ink" : ""}`} title={`Sort by ${label}, ${next}`} data-testid="sort-link">
-      {srOnly ? <span className="sr-only">{label}</span> : label}
-      <Icon aria-hidden="true" className={`h-3.5 w-3.5 shrink-0 ${active ? "" : "opacity-40"}`} />
+      {/* v1.80.0 (D-407, point 6): the title dims with a small spinner while the sorted list loads. */}
+      <PendingLabel>
+        {srOnly ? <span className="sr-only">{label}</span> : label}
+        <Icon aria-hidden="true" className={`h-3.5 w-3.5 shrink-0 ${active ? "" : "opacity-40"}`} />
+      </PendingLabel>
     </Link>
   );
 }

@@ -34,9 +34,11 @@ test("the Super Admin runs one automation now and sees it in the history", async
   await expect(page.getByRole("heading", { name: "Automation", exact: true })).toBeVisible();
   const inventory = page.getByRole("region", { name: "Inventory" });
   const row = inventory.getByRole("row", { name: /Stuck-request scan/ });
+  // 26 automations fill more than one page of 25 (the order follows the last runs): turn the page if needed.
+  if (!(await row.isVisible())) await inventory.getByRole("button", { name: "Next page" }).click();
   await expect(row).toBeVisible();
   await row.getByRole("button", { name: "Run now" }).click();
-  await expect(row.getByText("Done.")).toBeVisible();
+  await expect(page.getByTestId("toast-region").getByText("Done.")).toBeVisible(); // v1.80.0 (D-407): a toast
   await expect(row.getByText("Running", { exact: true })).toBeVisible();
   await row.getByRole("link", { name: "History" }).click();
   const runs = page.getByRole("region", { name: /Recent runs: Stuck-request scan/ });

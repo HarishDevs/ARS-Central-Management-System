@@ -658,7 +658,7 @@ export function ARSApprovalJourney({ journey: initial, serverNow, fresh = false,
               <div className="order-5 grid gap-3 md:grid-cols-2" data-testid="journey-activities">
                 {shown.tasks.length > 0 && (
                   <section aria-label="Work tasks">
-                    <h3 className="mb-1.5 text-[12px] font-bold uppercase tracking-wide text-[color:var(--jr-text-2)]">Work tasks</h3>
+                    <h3 className="mb-1.5 text-[12px] font-bold text-[color:var(--jr-text-2)]">Work tasks</h3>
                     <ul className="space-y-2">
                       {shown.tasks.map((task) => (
                         <WorkTaskActivity key={task.id} task={task} fresh={newItems.has(`t${task.id}:${task.status}`)} />
@@ -668,7 +668,7 @@ export function ARSApprovalJourney({ journey: initial, serverNow, fresh = false,
                 )}
                 {shown.fyi.length > 0 && (
                   <section aria-label="Information shared">
-                    <h3 className="mb-1.5 text-[12px] font-bold uppercase tracking-wide text-[color:var(--jr-text-2)]">Information (FYI)</h3>
+                    <h3 className="mb-1.5 text-[12px] font-bold text-[color:var(--jr-text-2)]">Information (FYI)</h3>
                     <ul className="space-y-2">
                       {shown.fyi.map((item) => (
                         <FyiActivity key={item.key} item={item} fresh={newItems.has(`f${item.key}`)} />

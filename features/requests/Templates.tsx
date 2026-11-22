@@ -114,7 +114,7 @@ export function TemplateCard({ template }: { template: TemplateCardData }) {
       <ol className="mt-3 flex-1 space-y-1.5 text-label">
         {template.levels.slice(0, 6).map((level, index) => (
           <li key={index} className="flex items-start gap-2">
-            <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-primary-50 text-[11px] font-semibold text-primary-700">{index + 1}</span>
+            <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-primary-50 text-caption font-semibold text-primary-700">{index + 1}</span>
             <span className="min-w-0">
               <span className="font-medium">{level.label}</span>
               {level.who && <span className="block truncate text-caption text-ink-muted">{level.who}</span>}

@@ -1,5 +1,21 @@
 # Release notes
 
+## v1.80.0 (23 Nov 2026): Smoother to use: motion, loading and keyboard flow
+No migration. One new Super Admin switch, **Page transitions** (`features.page_transitions`, default **Off**). The owner-approved interaction, motion and loading review (D-407):
+- **Dialogs and drawers** open and close with a short fade (dialogs grow slightly, drawers slide in); the background fades with them. Escape, × and a click outside close them as before; focus goes back to the button that opened them.
+- **Menus and filter panels** (Filter, Sort, Group, Options, the ⋯ menus) unfold with a short fade; their arrow turns. **Folded groups** glide open (one group, or Expand all).
+- **A click is heard at once:** a sort title, page number, tab or quick filter shows a small spinner and the table dims until the new one arrives. Page links inside the app (Earlier / Later, page numbers, the notification tabs, the ticket board) no longer reload the whole page. The request, task, ticket and meeting lists show a table-shaped outline while they load.
+- **A comment appears straight away** as "Posting…" and goes again (your words stay) if it can't be sent.
+- **One kind of message per event:** a done thing (Saved, Posted, View saved) is a short message in the corner that repeats what you pressed; a problem stays next to the form.
+- **Back keeps your place:** back from a request, the list returns at the same height with the row you opened selected.
+- **Discard draft?** Closing Create task or an approver's Change details by Escape, × or a click outside after typing asks first (Keep editing / Discard).
+- **Keyboard:** J / K move between the rows of any list, Enter opens one (never while typing). **Next waiting for you:** decide a request you opened from Waiting for me and the next one waiting opens, briefly highlighted, with a link back.
+- **Phone:** swipe a sheet or a drawer down to close it.
+- **Look:** calmer steel-blue greys from ARS Blue (every text and edge still meets the contrast rules in light and dark), one type scale (12 / 14 / 16 / 20 / 28; small labels are 14 px), no more ALL-CAPS labels, and page titles without the big icon tile.
+- **Page transitions (switch, Off by default):** when IT turns it on, the main area cross-fades between pages, a request or ticket's title moves into the heading when opened from a list, and focus goes to the new heading. Off, pages change exactly as before. Never with Reduce motion.
+- **Reduce motion** (your device setting): only quick fades, nothing moves.
+- **Owner steps:** publish v1.80.0. Nothing else; Page transitions stays off until you switch it on in Super Admin → Settings → Feature switches.
+
 ## v1.79.0 (22 Nov 2026): The three Home overviews work the same way
 Migration `202611241000_home_overview_scope.sql` (runs on start; no triggers). Approvals, My Work and Meetings on Home now have the same parts:
 - **Header:** the greeting with today's date, the title (*Approvals – Overview*, *My Work – Overview*, *Meetings – Overview*), your designation and department, a one-line description, the area switch and the **period** picker (Today, This week, This month, Last 30 days, Last 90 days, Custom period) on all three.

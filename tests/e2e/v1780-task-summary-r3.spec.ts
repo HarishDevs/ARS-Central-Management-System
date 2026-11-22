@@ -23,6 +23,7 @@ async function as(context: BrowserContext, loginId: string) {
 }
 async function axe(page: Page) {
   await page.waitForLoadState("networkidle");
+  await page.waitForFunction(() => document.getAnimations().every((animation) => animation.playState !== "running" || animation.effect?.getComputedTiming().iterations === Infinity)); // v1.80.0 (D-407): menus and dialogs finish fading in first
   const result = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
   return result.violations.filter((violation) => violation.impact === "serious" || violation.impact === "critical").map((violation) => `${violation.id}: ${violation.nodes.slice(0, 3).map((node) => node.target.join(" ")).join(" | ")}`);
 }
@@ -43,6 +44,8 @@ async function cleanUp() {
     await conn.query("DELETE FROM task_summary_shares WHERE owner_id IN (?) OR viewer_id IN (?)", [ids, ids]);
     await conn.query("DELETE FROM task_summary_access_requests WHERE owner_id IN (?) OR requester_id IN (?)", [ids, ids]);
     await conn.query("DELETE FROM task_summary_notes WHERE user_id IN (?)", [ids]);
+    // v1.80.0: the two stand-in files have no bytes on disk; leave none behind for the site audit's download check.
+    await conn.query("DELETE FROM record_files WHERE stored_path LIKE 'e2e/%' AND sha256 = REPEAT('0', 64)");
     for (const id of ids) {
       await conn.query("DELETE FROM work_views WHERE scope = 'MY_TASKS' AND scope_id = ?", [id]);
       await conn.query("DELETE FROM user_settings WHERE user_id = ? AND setting_key = 'work.my_tabs_set'", [id]);

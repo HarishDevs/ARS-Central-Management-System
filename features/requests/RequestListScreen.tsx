@@ -11,7 +11,7 @@ import { ReorderHeader, type HeaderColumn, type HeaderSort } from "@/features/re
 import { COLUMN_LABEL, type ListColumn } from "@/server/requests/list-columns";
 import type { MiniRoad } from "@/server/approvals/road";
 import { RequestStatusPill } from "@/features/requests/StatusPill";
-import { PendingLink } from "@/features/ui/PendingLink";
+import { LinkPending, PendingLink } from "@/features/ui/PendingLink";
 import { SafeText } from "@/features/ui/SafeText";
 import { PriorityPill } from "@/features/ui/ChoicePill";
 import type { ShownPriority } from "@/server/approvals/priority";
@@ -416,6 +416,7 @@ export function RequestListScreen({
                   <span className="flex items-center gap-2 text-label" aria-hidden="true">
                     <Icon className={`h-4 w-4 shrink-0 ${active ? "" : (CARD_TONE[tab.key] ?? "text-ink-muted")}`} aria-hidden="true" />
                     <span className="leading-tight">{tab.label}</span>
+                    <LinkPending className="h-3 w-3" />
                   </span>
                   <span className="text-title font-semibold tabular-nums" aria-hidden="true">
                     {(counts[tab.key] ?? 0).toLocaleString("en-IN")}
@@ -638,7 +639,8 @@ export function RequestListScreen({
               );
             })}
           </ul>
-          <div className="card hidden overflow-x-auto sm:block">
+          {/* v1.80.0 (D-407, point 11): a long page of rows skips drawing while off screen. */}
+          <div className="card hidden overflow-x-auto sm:block" data-cv={result.items.length > 50 ? "" : undefined}>
             <table className="data-table" data-testid="request-table">
               <caption className="sr-only">Requests</caption>
               <thead>

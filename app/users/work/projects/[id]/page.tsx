@@ -648,7 +648,7 @@ async function ProjectView({ found, user, viewer, searchParams }: { found: NonNu
 function Fact({ label, value, testId }: { label: string; value: string; testId?: string }) {
   return (
     <div data-testid={testId}>
-      <dt className="text-caption font-semibold uppercase tracking-wide text-ink-faint">{label}</dt>
+      <dt className="text-caption font-semibold text-ink-faint">{label}</dt>
       <dd>{value}</dd>
     </div>
   );

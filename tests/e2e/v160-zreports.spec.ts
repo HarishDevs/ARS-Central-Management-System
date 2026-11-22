@@ -52,7 +52,7 @@ test("IT opens a report, downloads Excel, CSV and PDF, saves the view, schedules
   await alerts.getByLabel("For").selectOption("ORGANISATION");
   await alerts.getByLabel("reaches").fill("3");
   await alerts.getByRole("button", { name: "Save alert" }).click();
-  await expect(alerts.getByText(/Alert saved\. Right now the value is \d+/)).toBeVisible();
+  await expect(page.getByTestId("toast-region").getByText(/Alert saved\. Right now the value is \d+/)).toBeVisible(); // v1.80.0 (D-407): a toast
   await page.reload();
   await expect(page.getByRole("region", { name: "My alerts" }).getByRole("button", { name: /Switch off alert #\d+/ })).toBeVisible();
 });

@@ -58,7 +58,7 @@ export function ItemChecklist({ entityType, entityId, lists, canTick }: { entity
                 onClick={() => setSorts((value) => ({ ...value, [list.fieldKey]: { sortBy: column, dir: nextDir(sort, column) } }))}
                 title={`Sort by ${label}, ${next}`}
                
-                className={`inline-flex items-center gap-1 uppercase tracking-wide hover:text-ink ${active ? "text-ink" : ""}`}
+                className={`inline-flex items-center gap-1 hover:text-ink ${active ? "text-ink" : ""}`}
                 data-testid="sort-link"
               >
                 {label}
@@ -78,7 +78,7 @@ export function ItemChecklist({ entityType, entityId, lists, canTick }: { entity
             <div className="overflow-x-auto">
               <table className="w-full min-w-[480px] text-label">
                 <caption className="sr-only">{list.label}: items and whether each was provided</caption>
-                <thead className="text-left text-caption uppercase tracking-wide text-ink-faint">
+                <thead className="text-left text-caption text-ink-faint">
                   <tr>
                     {head("line", "#", "w-10 px-3 py-2")}
                     {head("item", "Item", "px-3 py-2")}

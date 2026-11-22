@@ -46,7 +46,7 @@ export function ComingSoonChip({ label, className = "" }: { label: string; class
       <Lock aria-hidden="true" className="h-3.5 w-3.5" />
       <span className="blur-[0.6px]">{label}</span>
       <span className="sr-only">: coming soon</span>
-      <span aria-hidden="true" className="rounded bg-surface-muted px-1 text-[10px] font-semibold uppercase tracking-wide text-ink-muted">
+      <span aria-hidden="true" className="rounded bg-surface-muted px-1 text-[10px] font-semibold text-ink-muted">
         Soon
       </span>
     </span>

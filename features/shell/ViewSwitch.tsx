@@ -49,7 +49,7 @@ export function useViewChoice(initial: WorkspaceView, initialText: TextSize = "M
 
 export function ViewSwitch({ initial, initialText = "M", compact = false }: { initial: WorkspaceView; initialText?: TextSize; compact?: boolean }) {
   const { view, text, pending, message, choose, chooseText } = useViewChoice(initial, initialText);
-  const label = compact ? "pb-1 text-caption font-semibold uppercase tracking-wider text-ink-faint" : "field-label";
+  const label = compact ? "pb-1 text-caption font-semibold text-ink-faint" : "field-label";
   const button = (on: boolean) => `rounded px-3 py-1 text-label ${on ? "bg-primary-solid font-semibold text-on-solid" : "text-ink hover:bg-surface-muted"}`;
   return (
     <div className={compact ? "space-y-2 px-3 py-1.5" : "space-y-3"}>

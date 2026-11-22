@@ -78,6 +78,16 @@ ARS CMS can be installed like an app: it opens in its own window from your home 
 ### Search
 The search bar in the middle of the top bar finds requests, tasks, projects, people, information, **tickets and meetings** (those you can see on their lists; v1.72.1) and pages. It keeps your recent and saved searches; **Filters** opens the full search. A request number works without dashes or zeros (e.g. "pur 2026 123"). **Ctrl+K** jumps to any page.
 
+### Moving through lists, feedback and motion (v1.80.0)
+- **Keyboard:** on any list, **J** / **K** move to the next / previous row (it lights up) and **Enter** opens it. Nothing happens while you type in a field or comment box, or while a dialog or menu is open. **?** lists every shortcut.
+- **Next waiting for you:** open a request from **Waiting for me**, decide it, and the next request waiting for you opens with a short highlight ("Your decision is recorded. Next waiting for you", how many still wait, **Back to the one you decided**). Opened from anywhere else, the request stays on screen with a **Next waiting for you →** button.
+- **Back keeps your place:** coming back from a request, the list is at the same height with that row selected.
+- **Loading:** the link you clicked shows a small spinner, the table being replaced dims, and lists show a table-shaped outline while they load. Page links inside the app don't reload the whole page.
+- **Messages:** a done thing (Saved, Posted, View saved) is a short message in the corner repeating what you pressed; a problem stays next to the form (a field's own problem under the field). A comment shows at once as "Posting…".
+- **Discard draft?:** closing **Create task** or **Change details** by Escape, × or a click outside after typing asks first: **Keep editing** or **Discard**.
+- **Phone:** swipe a sheet or a drawer down to close it.
+- **Motion:** dialogs, drawers, menus and folded groups open with a short fade or slide. With **Reduce motion** on in your device, only quick fades.
+
 ### Finding your way (v1.72.1)
 - **Default views and Clear:** a list you saved a default view for opens with it. Pressing **Clear** or **Reset filters** on that list shows everything; the default view comes back the next time you open the list from elsewhere.
 - **Switched off:** if IT has switched a part of the app off (Tasks, Information, Analytics, AI Assistant, Portfolios or Project templates), its pages say "… is switched off" with **Go to Home**, instead of "page not found". Your data in it is kept.
@@ -506,6 +516,7 @@ Some approval and ticket forms have an **Item list** (for example stationery): a
 - **Reminders and auto-close** run with the job runner. Message deliveries shows the ticket messages.
 
 ## 4. Super Admin
+- **Page transitions** (v1.80.0, Settings → Feature switches, `features.page_transitions`, default Off): On (or IT team only) makes the main area cross-fade between pages and moves a request's or ticket's title into the heading when opened from a list; focus goes to the new heading. Off, pages change exactly as before. People with Reduce motion never see it; browsers without view transitions simply change the page.
 - **Phone & desktop notifications:** Settings → **Generate keys** once (no outside account is needed); choose what a lock screen shows (title, full message or only "New in ARS CMS"). **Daily session** (Sign-in security): phones and the app until midnight (default), everyone, or off.
 - **Providers & security:** the settings console: categories down the side, a search across every setting, a mark on anything not saved yet. Email (Resend), WhatsApp (CEOITBox, including the webhook secret), sign-in security, idle sign-out, escalation levels, the maintenance notice (General). Secret values are stored encrypted. **General → Weekly HOD report** switches the Monday email to heads of department on or off. **Backup:** off-site copies to an S3-compatible bucket (endpoint, region, bucket, keys); copies are always encrypted first.
 - **Integrations → Google Calendar:** set up the Google OAuth client, policies and modules; **Test configuration**, then **Enable**; watch health, failed syncs (**Retry**), connected people (**Revoke**, **Full resync**) and conflicts. Maintenance mode pauses syncing. Step by step: deployment guide, Part Q.

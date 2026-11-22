@@ -91,7 +91,7 @@ export function CustomizeButton({ base, counts, fieldDialog }: { base: string; c
               if (!list.length) return null;
               return (
                 <section key={group} aria-label={groupName[group]}>
-                  <h3 className="mb-1 text-caption font-semibold uppercase tracking-wide text-ink-faint">{groupName[group]}</h3>
+                  <h3 className="mb-1 text-caption font-semibold text-ink-faint">{groupName[group]}</h3>
                   <ul className="space-y-0.5">
                     {list.map((row) => (
                       <li key={row.label}>

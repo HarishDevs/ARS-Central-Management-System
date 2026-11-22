@@ -80,7 +80,7 @@ test("a follow-up task added from the request page is linked and listed", async 
   await form.getByLabel("Task", { exact: true }).fill(name);
   await form.getByLabel("Priority").selectOption("IMPORTANT");
   await form.getByRole("button", { name: "Add task" }).click();
-  await expect(form.getByText("Follow-up task added.")).toBeVisible();
+  await expect(page.getByTestId("toast-region").getByText("Follow-up task added.")).toBeVisible(); // v1.80.0 (D-407): a toast
   await page.reload();
   await expect(page.getByTestId("request-tasks")).toContainText(name);
   const connection = await db();

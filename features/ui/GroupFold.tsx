@@ -41,13 +41,27 @@ export function FoldAllButtons({ onAll, testId = "fold-all" }: { onAll: (open: b
 
 // A group's own open state: starts as the scope says (folded by default) and
 // follows Expand all / Collapse all; the heading toggles just this group.
-function useGroupOpen(): [boolean, () => void] {
+// v1.80.0 (D-407, motion review point 3): `revealed` is true once the group
+// was opened by the person (not on the first draw), so its rows glide in
+// (globals.css [data-revealed]: a 190 ms fade and a 4 px drop).
+function useGroupOpen(): [boolean, () => void, boolean] {
   const signal = useContext(FoldContext);
   const [open, setOpen] = useState(signal?.open ?? false);
+  const [revealed, setRevealed] = useState(false);
   useEffect(() => {
-    if (signal) setOpen(signal.open);
+    if (signal && signal.n > 0) {
+      setOpen(signal.open);
+      setRevealed(signal.open);
+    }
   }, [signal]);
-  return [open, () => setOpen((value) => !value)];
+  return [
+    open,
+    () => {
+      setRevealed(!open);
+      setOpen(!open);
+    },
+    revealed && open,
+  ];
 }
 
 function Toggle({ open, onToggle, label, count, hint }: { open: boolean; onToggle: () => void; label: React.ReactNode; count: number; hint?: React.ReactNode }) {
@@ -61,10 +75,10 @@ function Toggle({ open, onToggle, label, count, hint }: { open: boolean; onToggl
 }
 
 export function FoldTbody({ label, count, colSpan, hint, headClass = "", children, testId }: { label: React.ReactNode; count: number; colSpan: number; hint?: React.ReactNode; headClass?: string; children: React.ReactNode; testId?: string }) {
-  const [open, toggle] = useGroupOpen();
+  const [open, toggle, revealed] = useGroupOpen();
   // One tbody: the heading row stays, the rows after it hide when folded.
   return (
-    <tbody data-testid={testId} data-folded={open ? undefined : "1"} aria-label={typeof label === "string" ? `${label}: ${count}` : undefined} className={open ? "" : "[&>tr:not(:first-child)]:hidden"}>
+    <tbody data-testid={testId} data-folded={open ? undefined : "1"} data-revealed={revealed || undefined} aria-label={typeof label === "string" ? `${label}: ${count}` : undefined} className={open ? "" : "[&>tr:not(:first-child)]:hidden"}>
       <tr className="bg-surface-muted">
         <th scope="rowgroup" colSpan={colSpan} className={`text-left text-label ${headClass}`}>
           <Toggle open={open} onToggle={toggle} label={label} count={count} hint={hint} />
@@ -76,13 +90,13 @@ export function FoldTbody({ label, count, colSpan, hint, headClass = "", childre
 }
 
 export function FoldListGroup({ label, count, children }: { label: React.ReactNode; count: number; children: React.ReactNode }) {
-  const [open, toggle] = useGroupOpen();
+  const [open, toggle, revealed] = useGroupOpen();
   return (
     <>
       <li className="bg-surface-muted px-4 py-1.5 text-label">
         <Toggle open={open} onToggle={toggle} label={label} count={count} />
       </li>
-      <li hidden={!open} className="p-0">
+      <li hidden={!open} className="p-0" data-revealed={revealed || undefined}>
         <ul className="divide-y divide-line">{children}</ul>
       </li>
     </>

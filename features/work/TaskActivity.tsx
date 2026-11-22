@@ -77,7 +77,7 @@ function Badge({ entry }: { entry: ActivityEntry }) {
       </span>
     );
   return (
-    <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary-50 text-[11px] font-semibold text-primary-700" aria-hidden="true">
+    <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary-50 text-caption font-semibold text-primary-700" aria-hidden="true">
       {initialsOf(entry.who)}
     </span>
   );

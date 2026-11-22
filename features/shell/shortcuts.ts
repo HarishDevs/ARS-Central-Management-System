@@ -19,6 +19,8 @@ export const SHORTCUTS: { keys: string; what: string }[] = [
   { keys: "?", what: "Show these shortcuts" },
   { keys: "J / K", what: "Waiting for me: next / previous request" },
   { keys: "Enter", what: "Open the selected request" },
+  // v1.80.0 (D-407): every list.
+  { keys: "J / K", what: "Any list: next / previous row (Enter opens it)" },
   { keys: "A", what: "Approve (opens the request and asks first)" },
   { keys: "C", what: "Ask for changes (opens the request and asks first)" },
   { keys: "Esc", what: "Close a dialog or menu" },

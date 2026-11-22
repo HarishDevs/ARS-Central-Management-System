@@ -65,7 +65,7 @@ export function MobileInfoList({
           <input name="q" type="search" defaultValue={search.value} maxLength={100} placeholder="Number, subject or message" enterKeyHint="search" className="min-w-0 flex-1 bg-transparent text-[length:max(16px,calc(16px*var(--text-scale,1)))] outline-none placeholder:text-ink-faint" />
         </label>
       </form>
-      <p className="pt-4 text-[length:calc(13px*var(--text-scale,1))] font-semibold uppercase tracking-wide text-ink-muted">Sort</p>
+      <p className="pt-4 text-[length:calc(13px*var(--text-scale,1))] font-semibold text-ink-muted">Sort</p>
       <SheetChoices label="Sort" items={sorts} />
     </div>
   );

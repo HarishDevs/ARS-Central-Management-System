@@ -137,11 +137,11 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
     ];
     const manage = (
       <div>
-        <p className="pt-2 text-[13px] font-semibold uppercase tracking-wide text-ink-muted">Filters</p>
+        <p className="pt-2 text-label font-semibold text-ink-muted">Filters</p>
         <SheetChoices label="Show" items={filters} />
         {!mentions && (
           <>
-            <p className="pt-4 text-[13px] font-semibold uppercase tracking-wide text-ink-muted">Read status</p>
+            <p className="pt-4 text-label font-semibold text-ink-muted">Read status</p>
             <SheetChoices
               label="Read status"
               items={[
@@ -151,11 +151,11 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
             />
           </>
         )}
-        <p className="pt-4 text-[13px] font-semibold uppercase tracking-wide text-ink-muted">Sort</p>
+        <p className="pt-4 text-label font-semibold text-ink-muted">Sort</p>
         <p className="flex min-h-[56px] items-center gap-3 text-[16px]">
           <span className="min-w-0 flex-1">
             Newest
-            <span className="block text-[13px] text-ink-muted">See recent notifications first</span>
+            <span className="block text-label text-ink-muted">See recent notifications first</span>
           </span>
           <Check aria-hidden="true" className="h-5 w-5 text-[color:var(--brand-accent-text)]" />
         </p>

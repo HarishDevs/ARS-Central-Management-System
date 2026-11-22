@@ -213,7 +213,7 @@ function StageList({
                   className={`block w-full rounded-lg border px-2.5 py-2 text-left transition-colors ${active === index ? "border-primary-600 bg-primary-50" : "border-line hover:bg-surface-muted"}`}
                   data-testid="level-card"
                 >
-                  <span className="flex items-center gap-1.5 text-caption font-semibold uppercase tracking-wide text-ink-muted">
+                  <span className="flex items-center gap-1.5 text-caption font-semibold text-ink-muted">
                     <span className={`grid h-5 w-5 place-items-center rounded-full text-[10px] ${active === index ? "bg-primary-solid text-on-solid" : "bg-surface-muted text-ink"}`}>{index + 1}</span>
                     Level {index + 1}
                     {problems.length > 0 && <TriangleAlert aria-label="Needs attention" className="ml-auto h-3.5 w-3.5 text-warning-600" />}
@@ -290,7 +290,7 @@ function StageList({
                       <ChevronDown aria-hidden="true" className={`h-4 w-4 transition-transform ${folded ? "-rotate-90" : ""}`} />
                     </button>
                   )}
-                  <p className="text-caption font-semibold uppercase tracking-wider text-ink-faint">
+                  <p className="text-caption font-semibold text-ink-faint">
                     Level {index + 1} · {kindLabel(stage)}
                   </p>
                   {folded && (

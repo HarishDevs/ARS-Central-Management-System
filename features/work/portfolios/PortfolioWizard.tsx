@@ -189,7 +189,7 @@ export function PortfolioWizard({
             <input id={`${id}-q`} type="search" value={query} onChange={(event) => setQuery(event.target.value)} className="field-input" placeholder="Type a name…" data-testid="wizard-search" />
           </div>
           <fieldset>
-            <legend className="mb-1 text-caption font-semibold uppercase tracking-wide text-ink-faint">Projects</legend>
+            <legend className="mb-1 text-caption font-semibold text-ink-faint">Projects</legend>
             {shownProjects.length === 0 ? (
               <p className="text-label text-ink-muted">No projects match.</p>
             ) : (
@@ -208,7 +208,7 @@ export function PortfolioWizard({
           </fieldset>
           {shownPortfolios.length > 0 && (
             <fieldset>
-              <legend className="mb-1 text-caption font-semibold uppercase tracking-wide text-ink-faint">Portfolios</legend>
+              <legend className="mb-1 text-caption font-semibold text-ink-faint">Portfolios</legend>
               <ul className="max-h-48 space-y-1 overflow-y-auto">
                 {shownPortfolios.map((item) => (
                   <li key={item.id}>

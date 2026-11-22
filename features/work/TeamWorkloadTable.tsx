@@ -41,7 +41,7 @@ export function TeamWorkloadTable({ rows }: { rows: TeamRow[] }) {
           onClick={() => setSort({ sortBy: column, dir: nextDir(sort, column) })}
           title={`Sort by ${label}, ${next}`}
          
-          className={`inline-flex items-center gap-1 uppercase tracking-wide hover:text-ink ${active ? "text-ink" : ""}`}
+          className={`inline-flex items-center gap-1 hover:text-ink ${active ? "text-ink" : ""}`}
           data-testid="sort-link"
         >
           {label}
@@ -52,7 +52,7 @@ export function TeamWorkloadTable({ rows }: { rows: TeamRow[] }) {
   };
   return (
     <table className="w-full text-label" data-testid="team-workload">
-      <thead className="text-left text-caption uppercase tracking-wide text-ink-faint">
+      <thead className="text-left text-caption text-ink-faint">
         <tr>
           {head("name", "Person", "py-1 pr-3")}
           {head("manager", "Reports to", "py-1 pr-3")}

@@ -106,6 +106,9 @@ test("#5 on a phone the HOD finds it as a card and approves it", async ({ page, 
   const drawer = page.getByRole("dialog", { name: "Approve" });
   await expect(drawer.getByLabel(/Comment/)).toBeFocused();
   await drawer.getByRole("button", { name: "Approve", exact: true }).click();
+  // v1.80.0 (D-407): opened from Waiting for me, a decision moves on to the next request waiting (when there is one).
+  await expect(page.getByTestId("next-waiting-arrived").or(page.getByTestId("next-waiting")).first()).toBeVisible();
+  if (page.url().includes("nextwaiting=1")) await page.goto(bulkPaths[1]!);
   // v1.48.0: on a phone the journey's detailed-levels card is hidden; the level list shows the decision.
   await expect(page.getByRole("listitem").filter({ hasText: /Harini HOD/ }).filter({ hasText: /Approved/ }).filter({ visible: true }).first()).toBeVisible();
   const width = await page.evaluate(() => document.documentElement.scrollWidth);

@@ -33,6 +33,9 @@ import { BottomNav } from "@/features/shell/BottomNav";
 import { MobileTabBar } from "@/features/mobile/MobileTabBar";
 import { projectTemplatesHref } from "@/features/shell/nav-routes";
 import { NavMemory } from "@/features/shell/NavMemory";
+import { PageTransitions } from "@/features/shell/PageTransitions";
+import { PlaceMemory } from "@/features/shell/PlaceMemory";
+import { RowKeys } from "@/features/shell/RowKeys";
 import { LayoutSync } from "@/features/mobile/LayoutSync";
 import { layoutMode } from "@/server/ui/layout-mode";
 import { CommandPalette, type PaletteLink, type PaletteSaved } from "@/features/shell/CommandPalette";
@@ -221,6 +224,9 @@ export async function AppShell({ area, user, nav, children }: { area: AppArea; u
   const workSidebar = area === "users" && visible("/users/work/projects") && hasModule(user, "PROJECT") && (await featureOn("pm_foundations", user).catch(() => false)) ? await loadSidebar(user, portfoliosOn).catch(() => null) : null;
   // D-233: IT's maintenance notice, if any (a failed read shows none).
   const maintenance = await getSettingValue("general.maintenance_notice").catch(() => null);
+  // v1.80.0 (D-407, motion review point 4): page transitions, a Super Admin
+  // switch (default OFF). Off, nothing is mounted and pages change as before.
+  const pageTransitions = await featureOn("page_transitions", user).catch(() => false);
   // D-230: the person's photo in the account menu.
   const [photo, approverPicture] = await Promise.all([photoVersion(user.id).catch(() => null), isApproverDesignation(user.id).catch(() => false)]);
 
@@ -254,7 +260,7 @@ export async function AppShell({ area, user, nav, children }: { area: AppArea; u
           create={area === "users" ? { approval: items.some((item) => item.href === "/users/custom"), task: tasksOn, project: projectsOn, portfolio: portfoliosOn, information: items.some((item) => item.href === "/users/information/new"), meeting: items.some((item) => item.href === "/users/meetings/new"), ticket: items.some((item) => item.href === "/users/tickets/new") } : null}
         >
           {area === "users" && <CreateMenu approval={items.some((item) => item.href === "/users/custom")} task={tasksOn} project={projectsOn} portfolio={portfoliosOn} information={items.some((item) => item.href === "/users/information/new")} meeting={items.some((item) => item.href === "/users/meetings/new")} ticket={items.some((item) => item.href === "/users/tickets/new")} />}
-          <p className="shrink-0 px-6 pt-4 text-caption font-semibold uppercase tracking-wider text-ink-faint">{SPACE_LABEL[area]}</p>
+          <p className="shrink-0 px-6 pt-4 text-caption font-semibold text-ink-faint">{SPACE_LABEL[area]}</p>
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain" data-testid="sidebar-scroll">
             <SideNav items={sideItems} collapsible={area !== "admin"} chats={chats} />
             {workSidebar && <WorkSidebar starred={workSidebar.starred} departments={workSidebar.departments} departmentName={workSidebar.departments.departmentName} portfolios={workSidebar.portfolios} />}
@@ -343,6 +349,12 @@ export async function AppShell({ area, user, nav, children }: { area: AppArea; u
           </Suspense>
         )}
         <NavMemory />
+        {/* v1.80.0 (D-407): keep people's place, J / K on lists, page transitions (switch). */}
+        <Suspense fallback={null}>
+          <PlaceMemory />
+          {pageTransitions && <PageTransitions />}
+        </Suspense>
+        <RowKeys />
         <UpdateNotice />
         <SessionWatch build={buildId()} />
         {/* Not by itself while IT tries the app as a demo person. */}

@@ -40,9 +40,9 @@ function ProjectSection({ title, heading, icon, data, empty, newMenu }: { title:
     void call(() => sidebarMoveAction(data.list, projectId, direction), { success: false }).then((result) => result && setLive(result.message ?? ""));
   return (
     <section aria-labelledby={`${id}-h`} className="pt-2" data-testid={`sidebar-${data.list.toLowerCase()}`}>
-      {heading && <p className="px-2 pb-0.5 text-caption font-semibold uppercase tracking-wide text-ink-faint">{heading}</p>}
+      {heading && <p className="px-2 pb-0.5 text-caption font-semibold text-ink-faint">{heading}</p>}
       <div className="flex items-center gap-1 px-2">
-        <h2 id={`${id}-h`} className="flex min-w-0 flex-1 items-center gap-1.5 text-caption font-semibold uppercase tracking-wide text-ink-faint">
+        <h2 id={`${id}-h`} className="flex min-w-0 flex-1 items-center gap-1.5 text-caption font-semibold text-ink-faint">
           {icon}
           <span className="truncate">{title}</span>
         </h2>

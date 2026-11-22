@@ -29,7 +29,7 @@ export function ItemListEditor({ name, label, defaultValue, invalid, describedBy
   return (
     <div className={`rounded-md border ${invalid ? "border-danger-600" : "border-line"}`} aria-describedby={describedBy} data-testid={`item-list-${name}`}>
       <input type="hidden" name={name} value={json} />
-      <div className="hidden gap-2 border-b border-line px-3 py-2 text-caption font-semibold uppercase tracking-wider text-ink-faint sm:grid sm:grid-cols-[2.5rem_1fr_7rem_2rem]">
+      <div className="hidden gap-2 border-b border-line px-3 py-2 text-caption font-semibold text-ink-faint sm:grid sm:grid-cols-[2.5rem_1fr_7rem_2rem]">
         <span>#</span>
         <span>Item</span>
         <span>Qty needed</span>

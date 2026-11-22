@@ -6,7 +6,9 @@ import { NavOwner } from "@/features/shell/nav-owner";
 import { RequestTaskForm } from "@/features/requests/RequestTaskForm";
 import { pendingWithFor } from "@/lib/db/repositories/approvals.repository";
 import { hasModule } from "@/server/modules/modules";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { NextFlash } from "@/features/requests/NextFlash";
+import { nextWaitingHref } from "@/features/requests/next-waiting";
 import { MessagesSquare, Paperclip, Repeat2, ShieldCheck, Copy, ListChecks, CornerDownRight } from "lucide-react";
 import { TASK_STATUS_LABEL } from "@/server/modules/task-rules";
 import { requireArea } from "@/server/authorization/guards";
@@ -76,7 +78,7 @@ export default async function RequestPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ submitted?: string; files?: string; act?: string; decided?: string }>;
+  searchParams: Promise<{ submitted?: string; files?: string; act?: string; decided?: string; nextwaiting?: string; after?: string; flow?: string }>;
 }) {
   const { user } = await requireArea("users");
   const { id } = await params;
@@ -99,6 +101,14 @@ export default async function RequestPage({
           .then(([items, left]) => ({ next: items.find((item) => item.requestId !== view.id) ?? null, left }))
           .catch(() => null)
       : null;
+  // v1.80.0 (D-407, motion review point 13): "Next waiting for you" is the
+  // default flow when working through Waiting for me: after a decision there
+  // the person lands on the next request waiting for them, with a short
+  // highlight. Opened from anywhere else (an email, a search) the page stays.
+  if (afterDecision?.next && query.flow === "next") redirect(nextWaitingHref(afterDecision.next.requestId, view.id));
+  const arrivedNext = query.nextwaiting === "1" && view.myTasks.length > 0;
+  const decidedBefore = arrivedNext && /^\d{1,12}$/.test(query.after ?? "") ? Number(query.after) : null;
+  const leftWaiting = arrivedNext ? await countPendingTasksFor(user.id).catch(() => null) : null;
   const lookups = view.canResubmit && view.form.some((field) => field.type === "LOOKUP") ? await loadFieldLookups() : undefined;
   const people =
     view.canResubmit && view.form.some((field) => field.type === "PERSON") ? (await listActiveUserOptions()).map((person) => ({ id: person.id, label: personLabel(person), detail: person.departmentName ?? undefined })) : [];
@@ -205,6 +215,21 @@ export default async function RequestPage({
           </section>
         )}
       </div>
+      {arrivedNext && (
+        <NextFlash continueFlow={view.id}>
+          <p role="status" data-testid="next-waiting-arrived" className="mb-4 flex flex-wrap items-center gap-2 rounded-md bg-success-50 px-3 py-2 text-label text-success-600">
+            <BrandAnimation name="approved" className="h-6 w-6" />
+            <span className="font-semibold">Your decision is recorded. Next waiting for you:</span>
+            <span className="text-ink">{view.requestNo}</span>
+            {leftWaiting !== null && <span className="text-ink-muted">· {leftWaiting.toLocaleString("en-IN")} still waiting</span>}
+            {decidedBefore !== null && (
+              <Link href={`/users/requests/${decidedBefore}?decided=1`} className="link ml-auto">
+                Back to the one you decided
+              </Link>
+            )}
+          </p>
+        </NextFlash>
+      )}
       {afterDecision && (
         // D-234 (Peak-end, Parkinson): after a decision, the next thing waiting.
         <p role="status" data-testid="next-waiting" className="mb-4 flex flex-wrap items-center gap-2 rounded-md bg-success-50 px-3 py-2 text-label text-success-600">

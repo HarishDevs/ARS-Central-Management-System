@@ -163,8 +163,8 @@ test("Admin → Task settings: a department holiday, the summary and repeating t
   const extras = page.getByRole("form", { name: "Morning summary and repeating tasks" });
   await extras.getByLabel("Summary hour").selectOption("8");
   await extras.getByRole("button", { name: "Save" }).click();
-  await expect(extras.getByText("Saved.")).toBeVisible();
+  await expect(page.getByTestId("toast-region").getByText("Saved.").last()).toBeVisible(); // v1.80.0 (D-407): a toast
   await extras.getByLabel("Summary hour").selectOption("9");
   await extras.getByRole("button", { name: "Save" }).click();
-  await expect(extras.getByText("Saved.")).toBeVisible();
+  await expect(page.getByTestId("toast-region").getByText("Saved.").last()).toBeVisible(); // v1.80.0 (D-407): a toast
 });

@@ -59,7 +59,7 @@ function StageBody({ stage }: { stage: MapStage }) {
   if (stage.kind === "PARALLEL") {
     return (
       <div className="rounded-md border border-dashed border-line p-3">
-        <p className="mb-2 text-caption font-semibold uppercase tracking-wider text-ink-faint">
+        <p className="mb-2 text-caption font-semibold text-ink-faint">
           {stage.label} · in parallel · {stage.joinRule}
         </p>
         <div className="grid gap-3 md:grid-cols-2">
@@ -73,7 +73,7 @@ function StageBody({ stage }: { stage: MapStage }) {
   if (stage.kind === "CHOICE") {
     return (
       <div className="rounded-md border border-dashed border-line p-3">
-        <p className="mb-2 text-caption font-semibold uppercase tracking-wider text-ink-faint">{stage.label}</p>
+        <p className="mb-2 text-caption font-semibold text-ink-faint">{stage.label}</p>
         <div className="grid gap-3 md:grid-cols-2">
           {stage.paths?.map((path) => (
             <div key={path.label} className={`rounded-md p-2 ${path.taken === false ? "opacity-70" : ""}`}>

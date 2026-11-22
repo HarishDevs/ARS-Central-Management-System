@@ -57,7 +57,7 @@ export function Timeline({ entries, now = new Date() }: { entries: { id: number;
     <div className="space-y-4">
       {days.map((group) => (
         <section key={group.day} aria-label={group.label}>
-          <h3 className="mb-2 text-caption font-semibold uppercase tracking-wider text-ink-faint">{group.label}</h3>
+          <h3 className="mb-2 text-caption font-semibold text-ink-faint">{group.label}</h3>
           <ol className="space-y-3 border-l border-line pl-4">
             {group.items.map((entry) => {
               const { icon: Icon, tone } = TIMELINE_ICON[entry.kind];

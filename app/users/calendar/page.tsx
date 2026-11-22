@@ -199,7 +199,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                             ))}
                             {(byDay.get(date)?.length ?? 0) > 3 && (
                               <li>
-                                <Link href={href({ view: "day", date })} className="px-1.5 text-ink-muted hover:underline">
+                                <Link href={href({ view: "day", date })} className="inline-flex min-h-6 items-center px-1.5 text-ink-muted hover:underline">
                                   +{(byDay.get(date)?.length ?? 0) - 3} more
                                 </Link>
                               </li>

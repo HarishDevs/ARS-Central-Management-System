@@ -508,7 +508,7 @@ function AddWork({ portfolioId, choices, exclude }: { portfolioId: number; choic
           {options.map((option, index) => (
             <Fragment key={option.key}>
               {(index === 0 || options[index - 1]!.kind !== option.kind) && (
-                <li role="presentation" className="px-2 pb-0.5 pt-1.5 text-caption font-semibold uppercase tracking-wide text-ink-faint">
+                <li role="presentation" className="px-2 pb-0.5 pt-1.5 text-caption font-semibold text-ink-faint">
                   {option.kind === "project" ? "Projects" : "Portfolios"}
                 </li>
               )}

@@ -34,7 +34,7 @@ test("the approver changes the amount and adds a level from the Waiting for me t
   await page.getByRole("option", { name: /Elena Admin/ }).first().click();
   await form.getByLabel(/Reason for the change/).fill("Price confirmed with the vendor");
   await form.getByRole("button", { name: "Save changes" }).click();
-  await expect(form.getByText(/Details changed/)).toBeVisible();
+  await expect(page.getByTestId("toast-region").getByText(/Details changed/)).toBeVisible(); // v1.80.0 (D-407): a toast
 
   // The request's history says who changed what, and why; it waits for the Manager again.
   await page.goto(requestPath);

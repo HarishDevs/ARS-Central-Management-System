@@ -180,7 +180,7 @@ export default async function InformationPage({ params, searchParams }: { params
 function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-caption font-semibold uppercase tracking-wide text-ink-faint">{label}</dt>
+      <dt className="text-caption font-semibold text-ink-faint">{label}</dt>
       <dd>{value}</dd>
     </div>
   );

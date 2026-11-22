@@ -7,6 +7,7 @@ import { Check, MessageSquareWarning, PauseCircle, PencilLine, PlayCircle, Power
 import { ConfirmDialog, Dialog } from "@/features/ui/Dialog";
 import { answerInfoAction, decideAction, delegateTaskAction, recallAction, reopenAction, resolveBlockedAction, resumeAction, withdrawAction } from "@/app/users/actions";
 import { FieldError, ResultMessage, useActionForm } from "@/features/ui/form";
+import { openedFromQueue } from "@/features/requests/next-waiting";
 import { Hint } from "@/features/ui/Hint";
 import { PersonSelect } from "@/features/ui/PersonSelect";
 
@@ -18,7 +19,11 @@ export type DecisionKind = "APPROVE" | "REQUEST_CHANGES" | "HOLD" | "REJECT" | "
 export function DecisionForm({ requestId, taskKey, label, work = false, only, idPrefix = "comment" }: { requestId: number; taskKey: string; label: string; work?: boolean; only?: DecisionKind; idPrefix?: string }) {
   // D-234 (Peak-end): once the decision is saved, the page itself says what is
   // next (the decision panel goes away as the page refreshes).
-  const { result, pending, onSubmit } = useActionForm(decideAction, { successHref: `/users/requests/${requestId}?decided=1` });
+  // v1.80.0 (D-407, point 13): opened from Waiting for me, a decision moves on
+  // to the next request waiting ("Next waiting for you", flow=next).
+  const [flow, setFlow] = useState(false);
+  useEffect(() => setFlow(openedFromQueue(requestId)), [requestId]);
+  const { result, pending, onSubmit } = useActionForm(decideAction, { successHref: `/users/requests/${requestId}?decided=1${flow ? "&flow=next" : ""}` });
   const shows = (kind: DecisionKind) => !only || only === kind;
   // D-234 (Fitts, Von Restorff): Reject is apart from the rest, in the
   // danger style, and asks first (it can't be undone). An empty reason goes

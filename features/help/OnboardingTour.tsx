@@ -252,7 +252,7 @@ export function OnboardingTour({ steps, autoStart }: { steps: TourStep[]; autoSt
         style={position}
       >
         <div className="flex items-start justify-between gap-3">
-          <p className="text-caption font-semibold uppercase tracking-wider text-primary-700">
+          <p className="text-caption font-semibold text-primary-700">
             {step.section} · {index + 1} of {steps.length}
           </p>
           <button type="button" onClick={end} aria-label="Close the tour" className="-mr-2 -mt-2 rounded-md p-1.5 text-ink-muted hover:bg-surface-muted hover:text-ink">
