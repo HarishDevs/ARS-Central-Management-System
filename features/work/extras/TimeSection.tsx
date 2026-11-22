@@ -17,7 +17,11 @@ export interface TimeData {
   entries: { id: number; userId: number; userName: string; workDay: string; minutes: number | null; note: string | null; source: "MANUAL" | "TIMER"; startedAt: string | null; edited: boolean; canChange: boolean }[];
   total: number;
   people: { userId: number; name: string; minutes: number }[];
-  estimate: number | null;
+  estimate: number | null; // v1.74.0 (D-398): the effective estimate
+  estimateSource?: "MANUAL" | "DATES" | null;
+  manualEstimate?: number | null;
+  durationDays?: number | null;
+  hoursPerDay?: number | null;
   progress: { percent: number | null; over: boolean };
   running: { id: number; startedAt: string } | null;
   canLog: boolean;
@@ -40,7 +44,14 @@ export function TimeSection({ data }: { data: TimeData }) {
   const [day, setDay] = useState(data.today);
   const [duration, setDuration] = useState("");
   const [note, setNote] = useState("");
-  const [estimate, setEstimate] = useState(data.estimate ? formatMinutes(data.estimate) : "");
+  // v1.74.0 (D-398): the box holds the manual estimate only; empty = the estimate from the dates.
+  const manual = data.manualEstimate === undefined ? data.estimate : data.manualEstimate;
+  const [estimate, setEstimate] = useState(manual ? formatMinutes(manual) : "");
+  const fromDates = data.estimateSource === "DATES";
+  const durationNote =
+    data.durationDays && data.hoursPerDay
+      ? `${data.durationDays} working day${data.durationDays === 1 ? "" : "s"} from the start date to the due date${fromDates ? ` × ${data.hoursPerDay} h a day` : ""}`
+      : null;
   const [editing, setEditing] = useState<number | null>(null);
   const [draft, setDraft] = useState({ workDay: "", duration: "", note: "" });
   const log = async () => {
@@ -50,7 +61,7 @@ export function TimeSection({ data }: { data: TimeData }) {
       setNote("");
     }
   };
-  const summary = data.estimate ? `${formatMinutes(data.total)} of ${formatMinutes(data.estimate)} estimated${data.progress.percent !== null ? ` (${data.progress.percent}%)` : ""}` : `${formatMinutes(data.total)} logged`;
+  const summary = data.estimate ? `${formatMinutes(data.total)} of ${formatMinutes(data.estimate)} estimated${fromDates ? " from dates" : ""}${data.progress.percent !== null ? ` (${data.progress.percent}%)` : ""}` : `${formatMinutes(data.total)} logged`;
   return (
     <section className="card space-y-3 px-5 py-4" aria-labelledby={`time-${data.taskId}`} data-testid="task-time">
       <h2 id={`time-${data.taskId}`} className="flex items-center gap-2 font-semibold">
@@ -60,6 +71,11 @@ export function TimeSection({ data }: { data: TimeData }) {
         {summary}
         {data.progress.over ? " · over the estimate" : ""}
       </p>
+      {durationNote && (
+        <p className="text-caption text-ink-muted" data-testid="time-estimate-source">
+          {fromDates ? `Estimated from dates: ${durationNote}. Set an estimate to replace it.` : data.estimateSource === "MANUAL" ? `Set by hand. Duration: ${durationNote}.` : `Duration: ${durationNote}.`}
+        </p>
+      )}
       {data.estimate !== null && data.progress.percent !== null && (
         <div className="h-2 overflow-hidden rounded-full bg-surface-muted" role="progressbar" aria-label="Time logged against the estimate" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.min(100, data.progress.percent)}>
           <div className={`h-full ${data.progress.over ? "bg-danger-600" : "bg-primary-600"}`} style={{ width: `${Math.min(100, data.progress.percent)}%` }} />
@@ -90,7 +106,7 @@ export function TimeSection({ data }: { data: TimeData }) {
             Set estimate
           </button>
           <span id={`estimate-hint-${data.taskId}`} className="text-caption text-ink-faint">
-            Like 4h, 90m or 1:30. Empty clears it.
+            {data.hoursPerDay ? "Like 4h, 90m or 1:30. Empty goes back to the estimate from the dates." : "Like 4h, 90m or 1:30. Empty clears it."}
           </span>
         </form>
       )}

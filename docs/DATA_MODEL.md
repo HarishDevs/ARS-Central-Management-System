@@ -1092,6 +1092,10 @@ Times are stored in UTC (`DATETIME`, set by `CURRENT_TIMESTAMP` or the app). Ind
 - `meeting_open_points` (text, owner, review date, OPEN/CLOSED with note, `carried_from_id`) and `meeting_events` (history, reminders).
 - `tasks.meeting_id`: the meeting an action-item task came from (FK, indexed).
 
+## From/To durations, estimates from dates and the critical path (v1.74.0, D-398; no migration)
+
+No new table or column. `projects.start_on` / `due_on` are read as the project's From and To (validated: real days, From ≤ To). New setting `tasks.planning` in `system_settings` (JSON `{hoursPerDay: 8}`, 1-24 in half hours; Admin → Task settings; audit `TASK_SETTINGS`). Working days, a task's estimate from its dates (`tasks.time_estimate_minutes` when set, else working days × hours per day) and the critical path are worked out when read from `tasks.starts_on`, `tasks.due_at`, `tasks.is_milestone`, `task_dependencies` (type and `lag_days`), `holidays` and the Working calendar; nothing is stored, so they follow every change.
+
 ## Files, Messages, Page and time tracking (v1.71.0, D-384; migration 202611222000_pm_e_collab.sql)
 
 | Table / column | Key columns | Notes |

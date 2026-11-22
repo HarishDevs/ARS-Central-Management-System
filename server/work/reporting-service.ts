@@ -14,6 +14,7 @@ import { matchFieldFilter, type FieldFilter } from "@/server/work/custom-fields"
 import { cellsFor } from "@/server/work/fields-service";
 import { indiaDay } from "@/server/work/rules";
 import { workCalendar } from "@/server/work/schedule-service";
+import { planningBasis, taskEstimate } from "@/server/work/durations";
 import { calendarHolidays } from "@/server/work/holiday-store";
 import { workViewer } from "@/server/work/task-access";
 import {
@@ -422,6 +423,12 @@ export async function loadWorkload(projectId: number, actor: TaskActor, query: {
   const last = columns.at(-1)!.days.at(-1)!;
   const [tasks, members, capacity] = await Promise.all([reports.workloadTasks(projectId, found.viewer, first, last, byEstimate ? "estimate" : (effort?.id ?? null), effort?.type === "TIMER"), reports.projectPeople(projectId), reports.capacityRows(projectId)]);
   const kind = effort || byEstimate ? "effort" : "count";
+  // v1.74.0 (D-398): "Estimated time" uses each task's effective estimate: its
+  // manual estimate, else (with "pm_planning" on) its working days × hours per day.
+  if (byEstimate && (await featureOn("pm_planning", actor).catch(() => false))) {
+    const basis = await planningBasis();
+    for (const task of tasks) if (task.effort === null) task.effort = (taskEstimate({ manualMinutes: null, start: task.start, due: task.due, milestone: task.milestone }, basis).minutes ?? 0) / 60;
+  }
   const loads = tasks.map((task) => ({ id: task.id, assigneeId: task.assigneeId, load: spreadLoad({ start: task.start, due: task.due, effort: task.effort ?? 0 }, calendar, kind) }));
   // The project's assignees in the window and its members (so work can go to someone with none yet).
   const names = new Map<number, string>(members.map((member) => [member.id, member.name]));

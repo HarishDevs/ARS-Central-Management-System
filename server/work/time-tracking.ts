@@ -10,6 +10,9 @@ import { rightsOn, workViewer } from "@/server/work/task-access";
 import { checkWorkDay, cleanNote, elapsedMinutes, estimateProgress, formatMinutes, hoursOf, mayChangeEntry, parseDuration, parseEstimate, TIME_CSV_HEADER, timeTotals } from "@/server/work/collab-rules";
 import { extrasOn } from "@/server/work/templates";
 import { projectAccess } from "@/server/work/collab";
+import { featureOn } from "@/server/settings/features";
+import { planningBasis, taskEstimate, type PlanningBasis } from "@/server/work/durations";
+import type { EstimateSource } from "@/server/work/working-days";
 
 // v1.71.0 (D-384, PM phase E part 2): time tracking on a task, behind
 // "pm_extras". Building on the D-371 timer field, but its own entries: a
@@ -55,7 +58,11 @@ export interface TaskTimeView {
   entries: TimeEntryView[];
   total: number;
   people: { userId: number; name: string; minutes: number }[];
-  estimate: number | null;
+  estimate: number | null; // v1.74.0 (D-398): the effective estimate (manual, else from the dates)
+  estimateSource: EstimateSource | null;
+  manualEstimate: number | null;
+  durationDays: number | null; // working days from the start (From) to the due date (To)
+  hoursPerDay: number | null; // null: the planning features are off
   progress: { percent: number | null; over: boolean };
   running: { id: number; startedAt: string } | null; // the viewer's own running entry
   canLog: boolean;
@@ -65,8 +72,11 @@ export interface TaskTimeView {
 export async function loadTaskTime(taskId: number, actor: TaskActor, now = new Date()): Promise<TaskTimeView | null> {
   const found = await taskFor(taskId, actor);
   if (!found) return null;
-  const [entries, estimate] = await Promise.all([collab.listTaskEntries(taskId), collab.taskEstimate(taskId)]);
+  const [entries, manual, basis] = await Promise.all([collab.listTaskEntries(taskId), collab.taskEstimate(taskId), planningBasisFor(actor)]);
   const totals = timeTotals(entries);
+  // v1.74.0 (D-398): without a manual estimate, the task's working days × hours per day.
+  const effective = taskEstimate({ manualMinutes: manual, start: found.task.startsOn, due: found.task.dueAt ? indiaDay(found.task.dueAt) : null, milestone: found.task.isMilestone }, basis);
+  const estimate = effective.minutes;
   const mine = entries.find((entry) => entry.userId === actor.id && entry.minutes === null && entry.source === "TIMER");
   return {
     taskId,
@@ -85,6 +95,10 @@ export async function loadTaskTime(taskId: number, actor: TaskActor, now = new D
     total: totals.total,
     people: totals.people,
     estimate,
+    estimateSource: effective.source,
+    manualEstimate: manual,
+    durationDays: basis ? effective.days : null,
+    hoursPerDay: basis?.hoursPerDay ?? null,
     progress: estimateProgress(totals.total, estimate),
     running: mine?.startedAt ? { id: mine.id, startedAt: mine.startedAt.toISOString() } : null,
     canLog: found.canLog && !found.task.deletedAt,
@@ -196,11 +210,28 @@ export async function setEstimate(taskId: number, raw: unknown, actor: TaskActor
   return { ok: true, value: { minutes }, message: minutes === null ? "Estimate cleared." : `Estimate set to ${formatMinutes(minutes)}.` };
 }
 
+// v1.74.0 (D-398): date-based estimates come with the planning features ("pm_planning").
+async function planningBasisFor(actor: TaskActor): Promise<PlanningBasis | null> {
+  return (await featureOn("pm_planning", actor).catch(() => false)) ? planningBasis() : null;
+}
+
 // The project's totals (Overview), over the tasks the viewer may see.
-export async function projectTime(projectId: number, actor: TaskActor): Promise<{ logged: number; estimate: number; tasksWithEstimate: number } | null> {
+// v1.74.0 (D-398): the estimate adds up each task's effective estimate
+// (manual, else from its dates with "pm_planning" on); `fromDates` counts the
+// tasks whose estimate comes from their dates.
+export async function projectTime(projectId: number, actor: TaskActor): Promise<{ logged: number; estimate: number; tasksWithEstimate: number; fromDates: number } | null> {
   const found = await projectAccess(projectId, actor);
   if (!found) return null;
-  return collab.projectTimeTotals(projectId, found.viewer);
+  const [totals, rows, basis] = await Promise.all([collab.projectTimeTotals(projectId, found.viewer), collab.projectEstimateRows(projectId, found.viewer), planningBasisFor(actor)]);
+  let estimate = 0;
+  let fromDates = 0;
+  for (const row of rows) {
+    const effective = taskEstimate(row, basis);
+    if (effective.minutes === null) continue;
+    estimate += effective.minutes;
+    if (effective.source === "DATES") fromDates += 1;
+  }
+  return { logged: totals.logged, estimate, tasksWithEstimate: totals.tasksWithEstimate, fromDates };
 }
 
 // CSV of the project's time entries (anyone who sees the project; only visible tasks).

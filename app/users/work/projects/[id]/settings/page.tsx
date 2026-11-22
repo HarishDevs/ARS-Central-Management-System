@@ -15,6 +15,8 @@ import { goneFieldsFor, projectFieldsFor } from "@/server/work/fields-service";
 import { FieldsPanel } from "@/features/work/FieldsPanel";
 import { FieldDialogHost } from "@/features/work/FieldDialog";
 import { DependenciesPanel, SchedulingPanel } from "@/features/work/SchedulingPanel";
+import { durationOf, planningBasis } from "@/server/work/durations";
+import { durationText } from "@/server/work/working-days";
 import { projectSchedule } from "@/server/work/schedule-service";
 import { projectFormsFor } from "@/server/work/intake-forms";
 import { FormsPanel } from "@/features/work/forms/FormsPanel";
@@ -90,6 +92,9 @@ async function SettingsView({ found, user, viewer }: { found: NonNullable<Awaite
   const [planFields, gone] = planning ? await Promise.all([projectFieldsFor(project.id, actor), goneFieldsFor(project.id, actor)]) : [null, null];
   // v1.65.0 (D-373): the Dependencies and Scheduling settings ("pm_planning").
   const scheduling = planning ? await projectSchedule(project.id) : null;
+  // v1.74.0 (D-398): the project's From/To working days and estimated hours.
+  const basis = planning ? await planningBasis() : null;
+  const projectSpan = basis ? durationOf(project.startOn, project.dueOn, basis) : null;
   // v1.66.0 (D-374): Forms ("pm_forms"): builders see every form, others the published ones.
   const projectForms = await projectFormsFor(project.id, actor);
   // v1.68.0 (D-380): Automations ("pm_automations"): owners and editors.
@@ -138,6 +143,7 @@ async function SettingsView({ found, user, viewer }: { found: NonNullable<Awaite
                 }}
                 departments={activeDepartments}
                 myDepartmentId={viewer.departmentId}
+                fromTo={basis ? { duration: projectSpan ? durationText(projectSpan) : null, hoursPerDay: basis.hoursPerDay } : undefined}
               />
             </section>
           )}

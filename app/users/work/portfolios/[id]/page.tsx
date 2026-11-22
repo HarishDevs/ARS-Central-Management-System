@@ -16,6 +16,9 @@ import { peopleOptions, portfolioPage } from "@/server/work/page-context";
 import { loadDashboard, loadPortfolio, loadStatusUpdates, workChoices } from "@/server/work/portfolios";
 import { progressOf, statusCounts } from "@/server/work/portfolio-rules";
 import { listDepartments } from "@/lib/db/repositories/organisation.repository";
+import { featureOn } from "@/server/settings/features";
+import { durationOf, planningBasis } from "@/server/work/durations";
+import { durationText } from "@/server/work/working-days";
 
 export const metadata: Metadata = { title: "Portfolio" };
 export const dynamic = "force-dynamic";
@@ -52,6 +55,16 @@ export default async function PortfolioPage({ params, searchParams }: { params: 
   ]);
   const progress = progressOf(view.totals);
   const visibleRows = view.rows.filter((row) => !row.masked);
+  // v1.74.0 (D-398, "pm_planning"): each visible row's From/To working days and estimated hours (the Duration column).
+  const basis = tab === "list" && (await featureOn("pm_planning", user).catch(() => false)) ? await planningBasis() : null;
+  const durations = basis
+    ? Object.fromEntries(
+        visibleRows.flatMap((row) => {
+          const span = durationOf(row.startOn, row.dueOn, basis);
+          return [[row.itemId, span ? durationText(span) : null] as const];
+        }),
+      )
+    : null;
   const initialStatus = (STATUS_KINDS as readonly string[]).includes(query.status ?? "") ? query.status : undefined;
   return (
     <>
@@ -119,7 +132,7 @@ export default async function PortfolioPage({ params, searchParams }: { params: 
           </Link>
         ))}
       </nav>
-      {tab === "list" && <PortfolioList portfolioId={portfolio.id} rows={view.rows} fields={view.fields} canEdit={can.edit} meId={user.id} people={people.map((person) => ({ id: person.id, label: person.label }))} choices={choices} />}
+      {tab === "list" && <PortfolioList portfolioId={portfolio.id} rows={view.rows} fields={view.fields} canEdit={can.edit} meId={user.id} people={people.map((person) => ({ id: person.id, label: person.label }))} choices={choices} durations={durations} />}
       {tab === "timeline" && <PortfolioTimeline rows={view.rows} today={indiaDayOf(new Date())} />}
       {tab === "progress" && (
         <PortfolioProgress

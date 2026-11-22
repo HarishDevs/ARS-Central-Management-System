@@ -9,7 +9,7 @@ import { TaskCalendar } from "@/features/work/TaskCalendar";
 import { Timeline } from "@/features/work/Timeline";
 import { ScheduleView } from "@/features/work/ScheduleView";
 import { StatusComposer } from "@/features/work/StatusComposer";
-import { linksFor, projectSchedule } from "@/server/work/schedule-service";
+import { linksFor, projectCriticalPath, projectSchedule } from "@/server/work/schedule-service";
 import { getWorkingDays } from "@/lib/db/repositories/calendar.repository";
 import { WEEKDAYS } from "@/server/workflows/calendar";
 import { paneLinks, paneTaskId, TaskPane, WithPane } from "@/features/work/TaskPane";
@@ -53,6 +53,8 @@ import { projectTime } from "@/server/work/time-tracking";
 import { projectFormsFor } from "@/server/work/intake-forms";
 import { projectRulesFor } from "@/server/work/automations";
 import { formatMinutes } from "@/server/work/collab-rules";
+import { calendarJson, durationOf, planningBasis } from "@/server/work/durations";
+import { datesText, daysText, durationText } from "@/server/work/working-days";
 
 export const metadata: Metadata = { title: "Project" };
 export const dynamic = "force-dynamic";
@@ -195,6 +197,16 @@ async function ProjectView({ found, user, viewer, searchParams }: { found: NonNu
     ? await Promise.all([linksFor(tasks.map((task) => task.id)), getWorkingDays().then((days) => days.map((day) => WEEKDAYS.indexOf(day))), calendarHolidays(undefined, viewer.departmentId)])
     : [[], [], {}];
   const statusSetup = planning && view === "overview" && can.edit ? await projectSchedule(project.id) : null;
+  // v1.74.0 (D-398): the project's dates read as From and To, with its working
+  // days and estimated hours; on the Gantt, the critical path of the tasks
+  // shown (computed here, on the server, from the same tasks and links).
+  const basis = planning ? await planningBasis() : null;
+  const duration = basis ? durationOf(project.startOn, project.dueOn, basis) : null;
+  const thisYear = todayDay.slice(0, 4);
+  const datesLine = planning ? datesText(project.startOn, project.dueOn, thisYear) : "";
+  const scheduleTasks = tasks.filter((task) => task.dueAt && task.status !== "CANCELLED");
+  const criticalResult = basis && view === "gantt" ? await projectCriticalPath(project.id, { id: user.id, name: user.name, roles: user.roles, modules: user.modules }) : null;
+  const critical = criticalResult?.ok ? criticalResult.value : null;
   // v1.67.0 (D-375): the dashboard's widgets with their figures, or the workload grid.
   const reporting = await reportingOn(user);
   const actor = { id: user.id, name: user.name, roles: user.roles, modules: user.modules };
@@ -251,6 +263,7 @@ async function ProjectView({ found, user, viewer, searchParams }: { found: NonNu
         color={project.color}
         meta={`${PRIVACY_LABEL[project.privacy]}${project.departmentName ? ` · ${project.departmentName}` : ""} · You: ${PROJECT_ROLE_LABEL[role]} · ${counts.completed}/${counts.open + counts.completed} done${counts.overdue ? ` · ${counts.overdue} overdue` : ""}`}
         starred={starred}
+        dates={planning ? { text: datesLine, duration: duration ? durationText(duration) : null, href: can.manage ? `${base}/settings#details` : null } : undefined}
         status={project.currentStatus}
         members={members.filter((member) => member.type === "USER").map((member) => ({ id: member.id, name: member.name }))}
         canEdit={can.edit}
@@ -397,8 +410,17 @@ async function ProjectView({ found, user, viewer, searchParams }: { found: NonNu
             key={view}
             mode={view === "gantt" ? "GANTT" : "TIMELINE"}
             sections={sections.map((section) => ({ id: section.id, name: section.name }))}
-            tasks={tasks
-              .filter((task) => task.dueAt && task.status !== "CANCELLED")
+            planning={
+              basis
+                ? {
+                    projectBar: project.startOn || project.dueOn ? { from: project.startOn, to: project.dueOn, label: [datesLine, duration ? durationText(duration) : ""].filter(Boolean).join(" · ") } : null,
+                    critical,
+                    calendar: calendarJson(basis.calendar),
+                    toDate: project.dueOn,
+                  }
+                : undefined
+            }
+            tasks={scheduleTasks
               .map((task) => ({
                 id: task.id,
                 taskNo: task.taskNo,
@@ -472,10 +494,18 @@ async function ProjectView({ found, user, viewer, searchParams }: { found: NonNu
                 )}
                 <dl className="grid gap-3 sm:grid-cols-3">
                   <Fact label="Owner" value={project.ownerName} />
-                  <Fact label="Starts" value={project.startOn ?? "—"} />
-                  <Fact label="Due" value={project.dueOn ?? "—"} />
+                  {/* v1.74.0 (D-398): the dates as From and To, with the working days and estimated hours between them. */}
+                  <Fact label={planning ? "From" : "Starts"} value={project.startOn ?? "—"} testId="about-from" />
+                  <Fact label={planning ? "To" : "Due"} value={project.dueOn ?? "—"} testId="about-to" />
+                  {planning && <Fact label="Duration" value={duration ? daysText(duration.days) : "Set both dates"} testId="about-duration" />}
+                  {planning && duration && <Fact label="Estimated hours" value={`${duration.hours} h (${basis?.hoursPerDay} h a working day)`} testId="about-hours" />}
                   {timeTotals && <Fact label="Time logged" value={`${formatMinutes(timeTotals.logged)}${timeTotals.estimate ? ` of ${formatMinutes(timeTotals.estimate)} estimated` : ""}`} />}
                 </dl>
+                {timeTotals && timeTotals.fromDates > 0 && (
+                  <p className="text-caption text-ink-muted" data-testid="project-estimate-note">
+                    {timeTotals.fromDates} task{timeTotals.fromDates === 1 ? "" : "s"} without an estimate {timeTotals.fromDates === 1 ? "is" : "are"} estimated from {timeTotals.fromDates === 1 ? "its" : "their"} dates (working days × {basis?.hoursPerDay} h).
+                  </p>
+                )}
                 {timeTotals && (
                   <p className="text-caption text-ink-muted" data-testid="project-time">
                     Time on the tasks you can see{timeTotals.tasksWithEstimate ? ` (${timeTotals.tasksWithEstimate} with an estimate)` : ""}.{" "}
@@ -615,9 +645,9 @@ async function ProjectView({ found, user, viewer, searchParams }: { found: NonNu
   );
 }
 
-function Fact({ label, value }: { label: string; value: string }) {
+function Fact({ label, value, testId }: { label: string; value: string; testId?: string }) {
   return (
-    <div>
+    <div data-testid={testId}>
       <dt className="text-caption font-semibold uppercase tracking-wide text-ink-faint">{label}</dt>
       <dd>{value}</dd>
     </div>

@@ -18,6 +18,8 @@ import { OPEN_STATUSES } from "@/server/modules/task-rules";
 import { projectAbilities, STATUS_KIND_LABEL, STATUS_KINDS } from "@/server/work/access";
 import { dependencyLoop, indiaDay, MAX_DEPENDENCIES } from "@/server/work/rules";
 import { rightsOn, workViewer } from "@/server/work/task-access";
+import { criticalPath, type CpmResult } from "@/server/work/critical-path";
+import { planningBasis } from "@/server/work/durations";
 import {
   DEP_TYPE_LABEL,
   highlightDays,
@@ -151,6 +153,28 @@ export async function linksFor(taskIds: readonly number[], db: Queryable = getDb
     [taskIds],
   );
   return rows.map((row) => ({ predecessor: num(row.blocker_task_id), successor: num(row.blocked_task_id), type: row.dep_type as DepType, lag: num(row.lag_days), predNo: String(row.task_no), predTitle: String(row.title), predStatus: String(row.status) }));
+}
+
+// ---- the critical path (v1.74.0, D-398) ---------------------------------------------------------
+// The Gantt's critical path, on the server: anyone who sees the project (and
+// so every task in it: a project's tasks are visible through the project).
+// Only links between the project's own tasks count; links to tasks elsewhere
+// (which the viewer may not be able to see) are counted, not followed.
+export async function projectCriticalPath(projectId: number, actor: TaskActor): Promise<Result<CpmResult>> {
+  if (!(await planningOn(actor))) return fail(OFF);
+  const found = await repo.projectFor(projectId, await workViewer(actor));
+  if (!found) return fail(NOT_FOUND);
+  const tasks = (await repo.listProjectTasks(projectId)).filter((task) => task.dueAt && task.status !== "CANCELLED");
+  const [links, basis] = await Promise.all([linksFor(tasks.map((task) => task.id)), planningBasis()]);
+  return {
+    ok: true,
+    value: criticalPath(
+      tasks.map((task) => ({ id: task.id, start: task.isMilestone ? null : task.startsOn, due: istDay(task.dueAt!), milestone: task.isMilestone, done: task.status === "COMPLETED" })),
+      links.map((link) => ({ predecessor: link.predecessor, successor: link.successor, type: link.type, lag: link.lag })),
+      basis.calendar,
+      found.project.dueOn,
+    ),
+  };
 }
 
 // ---- project scheduling settings --------------------------------------------------------------

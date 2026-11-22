@@ -60,6 +60,8 @@ export function SchedulingPanel({ projectId, skipOffDays, canManage }: { project
         <span>Skip weekly offs and holidays when moving dependent tasks (the Working calendar set by IT)</span>
       </label>
       <p className="mt-1 text-caption text-ink-muted">Off: a move of 3 days is 3 calendar days. Weekly offs and holidays are also shaded in the Timeline and Gantt.</p>
+      {/* v1.74.0 (D-398) */}
+      <p className="mt-1 text-caption text-ink-muted">Durations (From to To), estimates from dates and the critical path always count working days.</p>
     </div>
   );
 }

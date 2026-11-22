@@ -13,6 +13,7 @@ import { moveHolidayTasks, tellHolidayTasks } from "@/server/work/service";
 import { parseCelebration, parsePmExtras, PM_EXTRAS_KEY, pmExtrasSchema } from "@/server/work/pm-rules";
 import { FIELD_LIMITS_KEY, fieldLimitsSchema, parseFieldLimits } from "@/server/work/custom-fields";
 import { AUTOMATION_LIMITS_KEY, automationLimitsSchema, parseAutomationLimits } from "@/server/work/automation-rules";
+import { parsePlanningSettings, PLANNING_SETTINGS_KEY, planningSettingsSchema } from "@/server/work/working-days";
 
 // D-217: Admin → Task holidays. IT (with access to the page) sets what tasks
 // do on holidays, and moves or tells about tasks due on a holiday.
@@ -143,6 +144,26 @@ export async function saveFieldLimitsAction(_previous: ActionResult | null, form
     await recordAudit({ actorUserId: actor.id, action: "TASK_SETTINGS", entityType: "SETTING", entityId: FIELD_LIMITS_KEY, sessionId: actor.sessionId, ipAddress: actor.ipAddress, metadata: { before, after: parsed.data } });
   } catch (error) {
     logError("saveFieldLimitsAction failed", error);
+    return { ok: false, message: "Couldn't save. Please try again." };
+  }
+  revalidatePath("/admin/task-holidays");
+  return { ok: true, message: "Saved." };
+}
+
+// v1.74.0 (D-398): hours per working day, for "estimated hours" from From/To
+// dates (projects and tasks). 1 to 24 in half hours; default 8.
+export async function savePlanningSettingsAction(_previous: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  const actor = await getAdminActor("admin.task_holidays");
+  if (!actor) return NOT_FOUND;
+  const raw = String(formData.get("hoursPerDay") ?? "").trim();
+  const parsed = planningSettingsSchema.safeParse({ hoursPerDay: raw === "" ? Number.NaN : Number(raw) });
+  if (!parsed.success) return { ok: false, message: "Hours per working day: a number from 1 to 24 (half hours allowed).", fieldErrors: { hoursPerDay: "A number from 1 to 24, e.g. 8 or 7.5." } };
+  try {
+    const before = parsePlanningSettings(await loadSetting(PLANNING_SETTINGS_KEY));
+    await saveJsonSetting(PLANNING_SETTINGS_KEY, parsed.data, actor.id);
+    await recordAudit({ actorUserId: actor.id, action: "TASK_SETTINGS", entityType: "SETTING", entityId: PLANNING_SETTINGS_KEY, sessionId: actor.sessionId, ipAddress: actor.ipAddress, metadata: { before, after: parsed.data } });
+  } catch (error) {
+    logError("savePlanningSettingsAction failed", error);
     return { ok: false, message: "Couldn't save. Please try again." };
   }
   revalidatePath("/admin/task-holidays");

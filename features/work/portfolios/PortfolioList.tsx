@@ -75,7 +75,10 @@ export function PortfolioList({
   meId,
   people,
   choices,
+  durations = null,
 }: {
+  // v1.74.0 (D-398, "pm_planning"): each row's "10 working days · 80 h" by item id (null: off).
+  durations?: Record<number, string | null> | null;
   portfolioId: number;
   rows: PortfolioRow[];
   fields: Field[];
@@ -91,7 +94,7 @@ export function PortfolioList({
   const [query, setQuery] = useState("");
   const shown = useMemo(() => groupRows(sortRows(filterRows(rows, filter, meId, query), sort, descending), group, (status) => STATUS_KIND_LABEL[status]), [rows, filter, meId, query, sort, descending, group]);
   const count = shown.reduce((sum, item) => sum + item.rows.length, 0);
-  const columns = 8 + fields.length;
+  const columns = 8 + fields.length + (durations ? 1 : 0);
   const inList = new Set(rows.filter((row): row is VisibleRow => !row.masked).map((row) => `${row.kind === "PROJECT" ? "project" : "portfolio"}:${row.id}`));
   return (
     <section aria-label="List" data-testid="portfolio-list-tab">
@@ -184,11 +187,19 @@ export function PortfolioList({
                     ["Name", "name", null],
                     ["Status", "status", "status"],
                     ["Task progress", "progress", null],
-                    ["Due date", "due", null],
+                    [durations ? "Dates" : "Due date", "due", null],
                     ["Owner", "owner", "owner"],
                     ["Priority", "priority", "priority"],
                   ] as const
-                ).map(([label, sortKey, groupKey]) => (
+                ).flatMap(([label, sortKey, groupKey]) => [
+                  ...(label === "Owner" && durations
+                    ? [
+                        <th key="duration" scope="col" className="px-3 py-2 font-medium" data-testid="duration-column">
+                          Duration
+                        </th>,
+                      ]
+                    : []),
+                  (
                   <ColumnHead
                     key={label}
                     label={label}
@@ -200,7 +211,8 @@ export function PortfolioList({
                     grouped={groupKey ? group === groupKey : null}
                     onGroup={groupKey ? () => setGroup(group === groupKey ? "none" : groupKey) : null}
                   />
-                ))}
+                  ),
+                ])}
                 {fields.map((field) => (
                   <th key={field.id} scope="col" className="px-3 py-2 font-medium">
                     {field.name}
@@ -224,7 +236,7 @@ export function PortfolioList({
                       </th>
                     </tr>
                   )}
-                  {section.rows.map((row) => (row.masked ? <MaskedLine key={row.itemId} row={row} columns={columns} canEdit={canEdit} portfolioId={portfolioId} /> : <Line key={row.itemId} row={row} fields={fields} canEdit={canEdit} portfolioId={portfolioId} people={people} />))}
+                  {section.rows.map((row) => (row.masked ? <MaskedLine key={row.itemId} row={row} columns={columns} canEdit={canEdit} portfolioId={portfolioId} /> : <Line key={row.itemId} row={row} fields={fields} canEdit={canEdit} portfolioId={portfolioId} people={people} duration={durations ? (durations[row.itemId] ?? null) : undefined} />))}
                 </Fragment>
               ))}
               {count === 0 && (
@@ -308,7 +320,8 @@ function MaskedLine({ row, columns, canEdit, portfolioId }: { row: Extract<Portf
   );
 }
 
-function Line({ row, fields, canEdit, portfolioId, people }: { row: VisibleRow; fields: Field[]; canEdit: boolean; portfolioId: number; people: { id: number; label: string }[] }) {
+// duration: undefined = the Duration column is off; null = no From/To on this row.
+function Line({ row, fields, canEdit, portfolioId, people, duration }: { row: VisibleRow; fields: Field[]; canEdit: boolean; portfolioId: number; people: { id: number; label: string }[]; duration?: string | null }) {
   const { call, pending } = useWorkCall();
   const progress = progressOf(row.counts);
   const href = row.kind === "PROJECT" ? `/users/work/projects/${row.id}` : `/users/work/portfolios/${row.id}`;
@@ -330,7 +343,18 @@ function Line({ row, fields, canEdit, portfolioId, people }: { row: VisibleRow; 
       <td className="px-3 py-2">
         <ProgressMeter percent={progress.percent} text={progress.text} />
       </td>
-      <td className="whitespace-nowrap px-3 py-2">{dayWords(row.dueOn)}</td>
+      {duration === undefined ? (
+        <td className="whitespace-nowrap px-3 py-2">{dayWords(row.dueOn)}</td>
+      ) : (
+        <>
+          <td className="whitespace-nowrap px-3 py-2" data-testid="row-dates">
+            {row.startOn || row.dueOn ? `${row.startOn ? `From ${dayWords(row.startOn)} ` : ""}${row.dueOn ? `To ${dayWords(row.dueOn)}` : ""}`.trim() : "—"}
+          </td>
+          <td className="whitespace-nowrap px-3 py-2 text-ink-muted" data-testid="row-duration">
+            {duration ?? "—"}
+          </td>
+        </>
+      )}
       <td className="whitespace-nowrap px-3 py-2">{row.ownerName}</td>
       <td className="px-3 py-2">
         {canEdit ? (

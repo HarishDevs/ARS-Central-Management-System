@@ -1,6 +1,7 @@
 "use client";
 
-import { departmentHolidayAction, holidayTasksAction, saveAutomationLimitsAction, saveFieldLimitsAction, savePmExtrasAction, saveTaskExtrasAction, saveTaskHolidaySettingsAction } from "@/app/admin/task-holidays/actions";
+import { departmentHolidayAction, holidayTasksAction, saveAutomationLimitsAction, saveFieldLimitsAction, savePlanningSettingsAction, savePmExtrasAction, saveTaskExtrasAction, saveTaskHolidaySettingsAction } from "@/app/admin/task-holidays/actions";
+import type { PlanningSettings } from "@/server/work/working-days";
 import type { FieldLimits } from "@/server/work/custom-fields";
 import type { AutomationLimits } from "@/server/work/automation-rules";
 import { CELEBRATION_LABEL, CELEBRATIONS, PURGE_DAYS, type PmExtras } from "@/server/work/pm-rules";
@@ -231,6 +232,28 @@ export function FieldLimitsForm({ limits }: { limits: FieldLimits }) {
         </div>
       </div>
       <p className="text-caption text-ink-muted">Checked every time someone adds a field, an option or a value. Lowering a limit doesn&apos;t remove anything already there; it only stops new additions.</p>
+      <ResultMessage result={result} />
+      <SubmitButton pending={pending}>Save</SubmitButton>
+    </form>
+  );
+}
+
+// v1.74.0 (D-398): hours per working day, for the estimated hours worked out
+// from a project's or a task's From and To dates.
+export function PlanningSettingsForm({ settings }: { settings: PlanningSettings }) {
+  const { result, pending, onSubmit } = useActionForm(savePlanningSettingsAction);
+  return (
+    <form onSubmit={onSubmit} className="space-y-4 px-5 py-4" aria-label="Project planning" data-testid="planning-settings">
+      <div className="max-w-xs">
+        <label htmlFor="hours-per-day" className="field-label">
+          Hours per working day
+        </label>
+        <input id="hours-per-day" name="hoursPerDay" type="number" min={1} max={24} step={0.5} required defaultValue={settings.hoursPerDay} className="field-input h-9" aria-describedby="hours-per-day-hint" />
+        <FieldError result={result} name="hoursPerDay" />
+      </div>
+      <p id="hours-per-day-hint" className="text-caption text-ink-muted">
+        A project&apos;s or a task&apos;s From and To dates give its working days (weekly offs and holidays skipped); estimated hours = working days × this number. A task&apos;s own estimate, when someone sets one, always wins. 1 to 24 hours, half hours allowed.
+      </p>
       <ResultMessage result={result} />
       <SubmitButton pending={pending}>Save</SubmitButton>
     </form>

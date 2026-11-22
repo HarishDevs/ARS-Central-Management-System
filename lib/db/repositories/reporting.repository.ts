@@ -389,6 +389,7 @@ export interface WorkloadTask {
   due: string;
   status: string;
   effort: number | null; // the effort field's value (a timer's hours)
+  milestone: boolean;
 }
 // The project's open, visible tasks with a due date that touch [from, to].
 // v1.71.0 (D-384): effortFieldId "estimate" = the task's time estimate (hours).
@@ -397,7 +398,7 @@ export async function workloadTasks(projectId: number, viewer: WorkViewer, from:
   const estimate = effortFieldId === "estimate";
   const fieldId = estimate ? null : effortFieldId;
   const [rows] = await connection.query<Row[]>(
-    `SELECT t.id, t.task_no, t.title, t.assignee_id, a.name AS assignee_name, t.status,
+    `SELECT t.id, t.task_no, t.title, t.assignee_id, a.name AS assignee_name, t.status, t.is_milestone,
        DATE_FORMAT(t.starts_on, '%Y-%m-%d') AS start_day, DATE_FORMAT(${istDay("t.due_at")}, '%Y-%m-%d') AS due_day,
        ${estimate ? "t.time_estimate_minutes / 60" : fieldId ? (effortIsTimer ? "ev.number_value / 3600" : "ev.number_value") : "NULL"} AS effort
      FROM task_projects tp JOIN tasks t ON t.id = tp.task_id JOIN users a ON a.id = t.assignee_id
@@ -418,6 +419,7 @@ export async function workloadTasks(projectId: number, viewer: WorkViewer, from:
     due: String(row.due_day),
     status: String(row.status),
     effort: row.effort === null || row.effort === undefined ? null : num(row.effort),
+    milestone: Boolean(row.is_milestone),
   }));
 }
 // People with a USER role on the project (members), active.

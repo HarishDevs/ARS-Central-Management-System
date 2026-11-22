@@ -298,6 +298,20 @@ export async function projectTimeTotals(projectId: number, viewer: WorkViewer, c
   );
   return { logged: num(rows[0]?.logged ?? 0), estimate: num(rows[0]?.estimate ?? 0), tasksWithEstimate: num(rows[0]?.with_estimate ?? 0) };
 }
+// v1.74.0 (D-398): each visible, not cancelled task (and subtask) of the
+// project with its manual estimate and its dates, so the effective estimate
+// (manual, else from the dates) can be added up in code.
+export async function projectEstimateRows(projectId: number, viewer: WorkViewer, connection: Queryable = db()): Promise<{ id: number; manualMinutes: number | null; start: string | null; due: string | null; milestone: boolean }[]> {
+  const visible = visibleTaskClause(viewer);
+  const [rows] = await connection.query<Row[]>(
+    `SELECT t.id, t.time_estimate_minutes, t.is_milestone, DATE_FORMAT(t.starts_on, '%Y-%m-%d') AS start_day, DATE_FORMAT(DATE(DATE_ADD(t.due_at, INTERVAL 330 MINUTE)), '%Y-%m-%d') AS due_day
+     FROM tasks t JOIN users a ON a.id = t.assignee_id
+     WHERE t.status <> 'CANCELLED' AND EXISTS (SELECT 1 FROM task_projects xtp WHERE xtp.project_id = ? AND xtp.task_id IN (t.id, COALESCE(t.root_task_id, t.id))) AND ${visible.sql}
+     LIMIT 20000`,
+    [projectId, ...visible.params],
+  );
+  return rows.map((row) => ({ id: num(row.id), manualMinutes: row.time_estimate_minutes === null || row.time_estimate_minutes === undefined ? null : num(row.time_estimate_minutes), start: row.start_day ? String(row.start_day) : null, due: row.due_day ? String(row.due_day) : null, milestone: Boolean(row.is_milestone) }));
+}
 export interface TimeExportRow {
   workDay: string;
   person: string;

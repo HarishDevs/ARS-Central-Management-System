@@ -47,6 +47,8 @@ const config: Config = {
         warning: { 50: token("--color-warning-50"), 600: token("--color-warning-600"), solid: token("--color-warning-solid") },
         danger: { 50: token("--color-error-50"), 200: token("--color-error-200"), 600: token("--color-error-600"), solid: token("--color-error-solid"), "solid-hover": token("--color-error-solid-hover") },
         info: { 50: token("--color-info-50"), 600: token("--color-info-600") },
+        // v1.74.0 (D-398): the Gantt's critical path.
+        critical: { solid: token("--color-critical-solid"), line: token("--color-critical-line") },
         focus: token("--color-focus"),
         // v1.61.0 (D-367): the open/selected row and project identity colours.
         "row-active": token("--color-row-active"),

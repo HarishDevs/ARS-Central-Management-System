@@ -46,6 +46,7 @@ import { departmentOf, holidayContext, openTasksDueOn } from "@/server/work/holi
 import { featureOn } from "@/server/settings/features";
 import { shiftDependents, type ShiftOutcome } from "@/server/work/schedule-service";
 import { notifyProjectOffTrack } from "@/server/work/portfolios";
+import { isDay } from "@/server/work/working-days";
 
 // D-215: Task & Project Management. Each operation checks the person's
 // rights on the server (access.ts through task-access.ts), runs in one
@@ -100,10 +101,13 @@ function checkProjectInput(input: ProjectInput): { errors: Record<string, string
   if (name.length < 2) errors.name = "Give the project a name of 2 to 150 characters.";
   const privacy = (PRIVACY as readonly string[]).includes(input.privacy) ? (input.privacy as repo.NewProject["privacy"]) : "PRIVATE";
   if (privacy === "DEPARTMENT" && !input.departmentId) errors.department = "Choose the department that shares this project.";
-  const day = (value: string) => (/^\d{4}-\d{2}-\d{2}$/.test(value) ? value : null);
+  // v1.74.0 (D-398): the dates are the project's From and To; a real day each, From ≤ To.
+  const day = (value: string) => (isDay(value) ? value : null);
   const startOn = day(input.startOn);
   const dueOn = day(input.dueOn);
-  if (startOn && dueOn && startOn > dueOn) errors.due_on = "The due date can't be before the start date.";
+  if (input.startOn && !startOn) errors.start_on = "Enter a real date.";
+  if (input.dueOn && !dueOn) errors.due_on = "Enter a real date.";
+  if (startOn && dueOn && startOn > dueOn) errors.due_on = "The To (due) date can't be before the From (start) date.";
   const description = input.description.trim().slice(0, 4000);
   return {
     errors,

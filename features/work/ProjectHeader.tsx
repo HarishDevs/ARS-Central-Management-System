@@ -1,6 +1,6 @@
 "use client";
 
-import { Archive, CalendarSync, ChevronDown, Copy, Download, FileJson, FileSpreadsheet, FileUp, FolderPlus, LayoutTemplate, Link2, Palette, Printer, Settings, ShieldCheck, Timer, Trash2 } from "lucide-react";
+import { Archive, CalendarRange, CalendarSync, ChevronDown, Copy, Download, FileJson, FileSpreadsheet, FileUp, FolderPlus, LayoutTemplate, Link2, Palette, Printer, Settings, ShieldCheck, Timer, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { SaveTemplateForm } from "@/features/work/MoreParts";
@@ -88,6 +88,7 @@ export function ProjectHeader({
   color,
   meta,
   starred,
+  dates,
   status,
   members,
   canEdit,
@@ -103,6 +104,8 @@ export function ProjectHeader({
   color: string;
   meta: string;
   starred: boolean;
+  // v1.74.0 (D-398, "pm_planning"): "From 1 Dec To 12 Dec" and "10 working days · 80 h"; href: owners set them.
+  dates?: { text: string; duration: string | null; href: string | null };
   status: ProjectStatusKind | null;
   members: { id: number; name: string }[];
   canEdit: boolean;
@@ -205,7 +208,26 @@ export function ProjectHeader({
             )
           )}
         </div>
-        <p className="text-caption text-ink-muted">{meta}</p>
+        <p className="text-caption text-ink-muted">
+          {meta}
+          {dates && (dates.text || dates.href) && (
+            <>
+              {" · "}
+              {dates.href ? (
+                <Link href={dates.href} className="inline-flex items-center gap-1 rounded hover:text-ink hover:underline" title={dates.text ? "Change the project's dates" : "Set the project's dates"} data-testid="project-dates">
+                  <CalendarRange aria-hidden="true" className="h-3.5 w-3.5" />
+                  {dates.text ? `Dates: ${dates.text}` : "Set dates"}
+                </Link>
+              ) : (
+                <span className="inline-flex items-center gap-1" data-testid="project-dates">
+                  <CalendarRange aria-hidden="true" className="h-3.5 w-3.5" />
+                  Dates: {dates.text}
+                </span>
+              )}
+              {dates.duration && <span data-testid="project-duration"> · {dates.duration}</span>}
+            </>
+          )}
+        </p>
       </div>
       <div className="ml-auto flex items-center gap-2">
         <Link href={`${base}/settings#members`} className="flex -space-x-1.5 rounded-full hover:opacity-90" aria-label={`Manage project members (${members.length} member${members.length === 1 ? "" : "s"})`} title="Manage project members" data-testid="member-stack">

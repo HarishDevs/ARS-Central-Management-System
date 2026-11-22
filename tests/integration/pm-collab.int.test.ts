@@ -262,7 +262,11 @@ describe("time tracking", () => {
     expect(await time.setEstimate(taskA, "4h", who(owner))).toMatchObject({ ok: true, value: { minutes: 240 } });
     expect((await time.setEstimate(taskA, "lots", who(owner))).ok).toBe(false);
     expect((await time.logTime(subtask, { workDay: today, duration: "30m" }, who(owner))).ok).toBe(true);
-    expect(await time.projectTime(projectId, who(viewer))).toEqual({ logged: 150, estimate: 240, tasksWithEstimate: 1 });
+    // v1.74.0 (D-398): with "pm_planning" on, tasks without an estimate count from their dates (one-day tasks: 8 h each).
+    const totals = await time.projectTime(projectId, who(viewer));
+    expect(totals).toMatchObject({ logged: 150, tasksWithEstimate: 1 });
+    expect(totals!.fromDates).toBeGreaterThan(0);
+    expect(totals!.estimate).toBe(240 + totals!.fromDates * 480);
     expect(await time.projectTime(projectId, who(outsider))).toBeNull();
     const csv = await time.timeCsv(projectId, who(viewer));
     expect(csv.ok).toBe(true);

@@ -2330,6 +2330,43 @@ flowchart TD
 ```
 - Kinds: My Tasks, Projects (Recent / Starred), Latest status updates, Private notepad, My weekly workload, Tasks I've assigned, People; Forms waits for phase C. Each once, at most 20; the server refuses kinds of modules the person lacks. Without Projects, the locked "coming soon" card stays after the widgets (D-307).
 
+## F-PM-DATES: Dates as From and To, working days and estimated hours (v1.74.0, D-398; "pm_planning")
+```mermaid
+flowchart LR
+  S[Owner: project settings, From and To] --> V{Server: real days? From ≤ To?}
+  V -->|no| E[Field error: Enter a real date / To can't be before From]
+  V -->|yes| SAVE[Saved]
+  SAVE --> WD[Working days From→To, both counted: weekly offs and holidays skipped]
+  ADM[Admin → Task settings: hours per working day, default 8] --> H
+  WD --> H[Estimated hours = working days × hours a day]
+  H --> OUT[Header Dates · N working days · H h; Overview About; Settings; portfolio Duration column; Timeline/Gantt project bar]
+  T[Task start and due date] --> TD[Task working days: only a due date = 1; milestone = 0]
+  TD --> Q{Manual estimate set?}
+  Q -->|yes| M[Estimate = the manual one]
+  Q -->|no| DT[Estimate from dates = days × hours a day]
+  M --> R[Roll-ups: project time totals, Workload Estimated time]
+  DT --> R
+  MOVE[Dates change: edit, drag, auto-shift, Undo] --> TD
+```
+- Worked out when read, never stored, so every date change (auto-shift included), holiday or hours setting shows at once. Clearing the manual estimate returns to the one from dates. With the switch off, only manual estimates count.
+
+## F-PM-CPM: The Gantt's critical path (v1.74.0, D-398; "pm_planning")
+```mermaid
+flowchart LR
+  G[Gantt tab opens] --> L[Server: projectCriticalPath: sees the project? switch on?]
+  L -->|no| NF[Not found / not switched on]
+  L -->|yes| D[The project's dated tasks and the links between them; links from other projects counted only]
+  D --> F[Forward pass: earliest start/finish in working days, never before the planned start; done tasks fixed]
+  F --> END[End = latest finish, or the To date if earlier]
+  END --> B[Backward pass: latest start/finish]
+  B --> SL[Slack = latest − earliest start; critical = slack ≤ 0]
+  SL --> UI{Options}
+  UI -->|Show critical path| CP[Critical bars: colour + stripes; driving links thicker; summary + tasks in order; announced]
+  UI -->|Show slack| SK[Slack column and trailing bars; bar labels read the slack]
+  DR[Drag or keys preview a move] --> RC[Browser recomputes with the same code] --> CP
+  SAVE[Move saved, dependents shifted] --> G
+```
+
 ## F-UI-FEEDBACK: Messages and layers while a dialog is open (v1.72.2, D-394)
 ```mermaid
 flowchart LR

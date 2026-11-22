@@ -36,6 +36,9 @@
   --color-warning-50: #ffedd5;
   --color-warning-600: #c2410c;
   --color-warning-solid: #c2410c;
+  /* v1.74.0 (D-398): the Gantt's critical path (bars with white text 5:1; lines on the surface 5:1). */
+  --color-critical-solid: #a16207;
+  --color-critical-line: #a16207;
   --color-error-50: #fdecec;
   --color-error-200: #f8c9cb;
   --color-error-600: #c81e1e;
@@ -154,6 +157,8 @@
   --color-warning-50: #33210f;
   --color-warning-600: #fdba74;
   --color-warning-solid: #b45309;
+  --color-critical-solid: #a16207;
+  --color-critical-line: #facc15;
   --color-error-50: #351517;
   --color-error-200: #6b2226;
   --color-error-600: #fca5a5;
@@ -225,6 +230,8 @@
   --color-warning-50: #33210f;
   --color-warning-600: #fdba74;
   --color-warning-solid: #b45309;
+  --color-critical-solid: #a16207;
+  --color-critical-line: #facc15;
   --color-error-50: #351517;
   --color-error-200: #6b2226;
   --color-error-600: #fca5a5;

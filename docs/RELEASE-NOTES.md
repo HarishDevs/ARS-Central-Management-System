@@ -1,5 +1,13 @@
 # Release notes
 
+## v1.74.0 (22 Nov 2026): Project dates as From and To, estimated time from dates, and the Gantt's critical path
+Comes with the planning features (Super Admin → Features → "Projects B, planning"). No migration.
+- **From and To:** a project's start and due dates now read as **From** and **To**. The project shows its **working days** between them (both days counted, weekly offs and holidays skipped) and its **estimated hours** (working days × hours per working day): in the header ("Dates: From 7 Dec To 18 Dec · 10 working days · 80 h"; owners click it to change the dates), on Overview, in Settings, as a new **Duration** column in a portfolio's list, and as a **Project dates** bar at the top of the Timeline and Gantt. A To date before the From date is refused.
+- **Hours per working day:** IT sets it in Admin → Task settings → **Project planning** (default 8 hours; half hours allowed).
+- **Estimated time from dates:** a task without an estimate is now estimated from its dates (its working days from start to due × hours per working day; a task with only a due date is one day). The task's **Time** section says "Estimated from dates". An estimate you type always wins; clearing it goes back to the one from dates. It follows the dates as they change (including tasks moved with their dependencies). The project's **Time logged x of y estimated** and Workload's **Estimated time** use it.
+- **Critical path on the Gantt:** **Options › Show critical path** highlights the chain of tasks that sets the project's end (striped bars and thicker arrows), with a summary ("Critical path: 6 tasks, 18 working days, ends 12 Dec") and the critical tasks in order. **Options › Show slack** adds a **Slack** column and a thin bar showing how many working days each task can slip. It updates while you drag a bar and after you save; a screen reader hears each bar's slack.
+- **Owner steps:** publish v1.74.0 (no migration). Optionally set the hours per working day.
+
 ## v1.73.0 (22 Nov 2026): Tasks and projects, part 2: the same layout and dropdown menus on the other screens
 The rest of the Tasks and projects screens follow the same layout and option lists as the project screens did in v1.72.0, with dropdown menus where a choice is made. No new data, no migration, nothing to switch on.
 - **Rename a project from its header:** project owners click the project's name, type the new one and press Enter (Escape keeps the old name).

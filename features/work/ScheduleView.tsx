@@ -13,6 +13,19 @@ import { typedDependencyAction } from "@/app/users/work/schedule-actions";
 import { TaskCheck, usePaneLink, useWorkCall } from "@/features/work/client";
 import { connectorPath, headerBands, isZoom, PX_PER_DAY, scaleRange, shortDay, STEP_DAYS, STEP_LABEL, visibleRows, ZOOM_LABEL, ZOOMS, zoomIn, zoomOut, type Zoom } from "@/features/work/gantt-scale";
 import { addDays, DEP_TYPE_HELP, DEP_TYPE_LABEL, DEP_TYPES, dayDiff, linkBlocks, linkConflict, weekdayOf, type DepType, type TaskDates } from "@/server/work/schedule";
+import { criticalPath, criticalSummary, slackText, type CpmResult, type CpmTaskResult } from "@/server/work/critical-path";
+import { dayText } from "@/server/work/working-days";
+
+// v1.74.0 (D-398, "pm_planning"): the project's From/To bar on top, and on the
+// Gantt the critical path (Options › Show critical path / Show slack). The
+// server works the path out for the page; while a bar is dragged or moved by
+// keys the browser works it out again from the previewed dates (same code).
+export interface SchedulePlanning {
+  projectBar: { from: string | null; to: string | null; label: string } | null;
+  critical: CpmResult | null;
+  calendar: { offDays: string[]; workingWeekdays: number[] };
+  toDate: string | null;
+}
 
 // v1.65.0 (D-373, spec PV §4 Timeline and §5 Gantt): one editable schedule,
 // drawn as the Timeline (bars by section) or the Gantt (a left grid with Name,
@@ -41,6 +54,7 @@ export interface ScheduleLink {
   predecessor: number;
   successor: number;
   type: DepType;
+  lag?: number; // working days (stored; 0 for now)
   predNo: string;
   predTitle: string;
   predStatus: string;
@@ -51,7 +65,7 @@ const HEAD = 44;
 const OPEN = ["OPEN", "IN_PROGRESS", "BLOCKED"];
 const indiaDay = (iso: string) => new Date(Date.parse(iso) + 330 * 60_000).toISOString().slice(0, 10);
 const indiaTime = (iso: string) => new Date(Date.parse(iso) + 330 * 60_000).toISOString().slice(11, 16);
-type Row = { kind: "section"; id: number; name: string; count: number } | { kind: "task"; task: ScheduleTask; index: number };
+type Row = { kind: "project" } | { kind: "section"; id: number; name: string; count: number } | { kind: "task"; task: ScheduleTask; index: number };
 type Drag = { id: number; kind: "move" | "start" | "end"; x: number; dates: TaskDates; moved: boolean };
 type LinkDrag = { from: number; x1: number; y1: number; x2: number; y2: number };
 type LinkDialog = { taskId: number; role: "BLOCKED_BY" | "BLOCKING"; otherId: number | null; type: DepType; back: HTMLElement | null };
@@ -67,8 +81,10 @@ export function ScheduleView({
   canEdit,
   meId,
   projectId,
+  planning,
 }: {
   projectId?: number;
+  planning?: SchedulePlanning;
   mode: "TIMELINE" | "GANTT";
   sections: { id: number; name: string }[];
   tasks: ScheduleTask[];
@@ -119,8 +135,30 @@ export function ScheduleView({
   const [linkDrag, setLinkDrag] = useState<LinkDrag | null>(null);
   const [dialog, setDialog] = useState<LinkDialog | null>(null);
   const [said, setSaid] = useState("");
+  // v1.74.0 (D-398): Options › Show critical path / Show slack (Gantt), remembered per device.
+  const [showCritical, setShowCritical] = useState(false);
+  const [showSlack, setShowSlack] = useState(false);
+  const cpmOn = gantt && Boolean(planning);
+  useEffect(() => {
+    if (!cpmOn) return;
+    try {
+      setShowCritical(window.localStorage.getItem("work.schedule.gantt.critical") === "1");
+      setShowSlack(window.localStorage.getItem("work.schedule.gantt.slack") === "1");
+    } catch {
+      /* private window: off */
+    }
+  }, [cpmOn]);
+  const remember = (key: string, on: boolean) => {
+    try {
+      window.localStorage.setItem(key, on ? "1" : "0");
+    } catch {
+      /* not kept */
+    }
+  };
+  const cpmCalendar = useMemo(() => (planning ? { offDays: new Set(planning.calendar.offDays), workingWeekdays: new Set(planning.calendar.workingWeekdays) } : null), [planning]);
   const px = PX_PER_DAY[zoom];
-  const gridW = gantt ? (narrow ? 170 : 470) : narrow ? 150 : 240;
+  const slackColumn = cpmOn && showSlack && !narrow;
+  const gridW = gantt ? (narrow ? 170 : 470 + (slackColumn ? 80 : 0)) : narrow ? 150 : 240;
 
   useEffect(() => {
     const query = window.matchMedia("(max-width: 767px)");
@@ -132,7 +170,27 @@ export function ScheduleView({
 
   const datesOf = useCallback((task: ScheduleTask): TaskDates => (preview && preview.id === task.id ? preview.dates : { start: task.isMilestone ? null : task.startsOn, due: indiaDay(task.dueAt) }), [preview]);
   const byId = useMemo(() => new Map(tasks.map((task) => [task.id, task])), [tasks]);
-  const range = useMemo(() => scaleRange(tasks.flatMap((task) => [task.startsOn ?? indiaDay(task.dueAt), indiaDay(task.dueAt)]), todayDay, zoom), [tasks, todayDay, zoom]);
+  const projectBar = planning?.projectBar ?? null;
+  const range = useMemo(
+    () => scaleRange([...tasks.flatMap((task) => [task.startsOn ?? indiaDay(task.dueAt), indiaDay(task.dueAt)]), ...[projectBar?.from, projectBar?.to].filter((day): day is string => Boolean(day))], todayDay, zoom),
+    [tasks, todayDay, zoom, projectBar],
+  );
+  // The critical path: the server's, or worked out again from a previewed move.
+  const cpm: CpmResult | null = useMemo(() => {
+    if (!cpmOn || !planning || !cpmCalendar) return null;
+    if (!preview && planning.critical) return planning.critical;
+    return criticalPath(
+      allTasks.map((task) => {
+        const dates = preview && preview.id === task.id ? preview.dates : { start: task.isMilestone ? null : task.startsOn, due: indiaDay(task.dueAt) };
+        return { id: task.id, start: dates.start, due: dates.due, milestone: task.isMilestone, done: task.status === "COMPLETED" };
+      }),
+      links.map((link) => ({ predecessor: link.predecessor, successor: link.successor, type: link.type, lag: link.lag ?? 0 })),
+      cpmCalendar,
+      planning.toDate,
+    );
+  }, [cpmOn, planning, cpmCalendar, preview, allTasks, links]);
+  const criticalLinks = useMemo(() => new Set(cpm?.criticalLinks ?? []), [cpm]);
+  const thisYear = todayDay.slice(0, 4);
   const bands = useMemo(() => headerBands(range.from, range.span, zoom), [range, zoom]);
   const canvasW = range.span * px;
   const at = (day: string) => dayDiff(range.from, day);
@@ -142,7 +200,7 @@ export function ScheduleView({
     const known = new Set(sections.map((section) => section.id));
     const order = (a: ScheduleTask, b: ScheduleTask) =>
       (sortBy === "name" ? a.title.localeCompare(b.title) : sortBy === "due" ? indiaDay(a.dueAt).localeCompare(indiaDay(b.dueAt)) : (a.startsOn ?? indiaDay(a.dueAt)).localeCompare(b.startsOn ?? indiaDay(b.dueAt))) || a.id - b.id;
-    const out: Row[] = [];
+    const out: Row[] = projectBar ? [{ kind: "project" }] : [];
     let index = 0;
     if (groupBy === "none") {
       for (const task of [...tasks].sort(order)) out.push({ kind: "task", task, index: index++ });
@@ -156,7 +214,7 @@ export function ScheduleView({
       for (const task of mine) out.push({ kind: "task", task, index: index++ });
     }
     return out;
-  }, [sections, tasks, collapsed, sortBy, groupBy]);
+  }, [sections, tasks, collapsed, sortBy, groupBy, projectBar]);
   const rowOf = useMemo(() => new Map(rows.flatMap((row, i) => (row.kind === "task" ? [[row.task.id, i] as const] : []))), [rows]);
   const taskRows = rows.filter((row): row is Extract<Row, { kind: "task" }> => row.kind === "task");
 
@@ -346,8 +404,9 @@ export function ScheduleView({
       const x1 = link.type === "SS" ? pa.left : pa.left + pa.width;
       const x2 = link.type === "FF" ? sb.left + sb.width : sb.left;
       const conflict = OPEN.includes(succ.status) && linkConflict(link.type, pa.dates, sb.dates);
-      const tone = conflict ? "text-danger-600" : OPEN.includes(pred.status) ? "text-ink-muted" : "text-success-600";
-      return [{ key: `${link.predecessor}-${link.successor}`, d: connectorPath(x1, a * ROW + ROW / 2, x2, b * ROW + ROW / 2, ROW), tone, conflict, label: `${pred.title} → ${succ.title} (${DEP_TYPE_LABEL[link.type]})${conflict ? ", dates clash" : ""}` }];
+      const onPath = showCritical && criticalLinks.has(`${link.predecessor}-${link.successor}`);
+      const tone = conflict ? "text-danger-600" : onPath ? "text-critical-line" : OPEN.includes(pred.status) ? "text-ink-muted" : "text-success-600";
+      return [{ key: `${link.predecessor}-${link.successor}`, d: connectorPath(x1, a * ROW + ROW / 2, x2, b * ROW + ROW / 2, ROW), tone, conflict, critical: onPath, label: `${pred.title} → ${succ.title} (${DEP_TYPE_LABEL[link.type]})${conflict ? ", dates clash" : ""}${onPath ? ", critical" : ""}` }];
     });
   const predsOf = useMemo(() => {
     const map = new Map<number, ScheduleLink[]>();
@@ -468,6 +527,35 @@ export function ScheduleView({
               { label: "Collapse all sections", disabled: groupBy === "none", onSelect: () => setCollapsed(new Set(sections.map((section) => section.id))) },
               { kind: "separator", label: "" },
               { label: "Go to today", onSelect: () => { if (scroller.current) scroller.current.scrollLeft = Math.max(0, todayX - 160); } },
+              ...(cpmOn
+                ? [
+                    { kind: "separator" as const, label: "" },
+                    {
+                      kind: "checkbox" as const,
+                      label: "Show critical path",
+                      checked: showCritical,
+                      testId: "show-critical",
+                      onSelect: () => {
+                        const next = !showCritical;
+                        setShowCritical(next);
+                        remember("work.schedule.gantt.critical", next);
+                        announce(next && cpm ? `${criticalSummary(cpm, (day) => dayText(day, thisYear))}.` : "Critical path hidden.");
+                      },
+                    },
+                    {
+                      kind: "checkbox" as const,
+                      label: "Show slack",
+                      checked: showSlack,
+                      testId: "show-slack",
+                      onSelect: () => {
+                        const next = !showSlack;
+                        setShowSlack(next);
+                        remember("work.schedule.gantt.slack", next);
+                        announce(next ? "Slack shown." : "Slack hidden.");
+                      },
+                    },
+                  ]
+                : []),
             ]}
           />
         </span>
@@ -479,6 +567,7 @@ export function ScheduleView({
           {said}
         </p>
       </div>
+      {cpm && showCritical && <CriticalSummary cpm={cpm} tasks={allTasks} thisYear={thisYear} paneLink={paneLink} />}
       <div
         ref={scroller}
         role="region"
@@ -499,6 +588,7 @@ export function ScheduleView({
               <span className="flex-1 px-3 py-1">Name</span>
               {gantt && !narrow && <span className="w-[90px] px-2 py-1">Due date</span>}
               {gantt && !narrow && <span className="w-[150px] px-2 py-1">Blocked by</span>}
+              {slackColumn && <span className="w-[80px] px-2 py-1">Slack</span>}
             </div>
             <div className="relative shrink-0 border-b border-line bg-surface-muted text-caption text-ink-muted" style={{ width: canvasW }} aria-hidden="true">
               {bands.top.map((band) => (
@@ -531,7 +621,7 @@ export function ScheduleView({
               </marker>
             </defs>
             {connectors.map((line) => (
-              <path key={line.key} d={line.d} className={line.tone} stroke="currentColor" strokeWidth={line.conflict ? 2 : 1.5} fill="none" markerEnd={`url(#${hintId}-arrow)`} data-testid="connector" data-conflict={line.conflict ? "1" : "0"}>
+              <path key={line.key} d={line.d} className={line.tone} stroke="currentColor" strokeWidth={line.conflict ? 2 : line.critical ? 2.5 : 1.5} fill="none" markerEnd={`url(#${hintId}-arrow)`} data-testid="connector" data-conflict={line.conflict ? "1" : "0"} data-critical={line.critical ? "1" : "0"}>
                 <title>{line.label}</title>
               </path>
             ))}
@@ -539,7 +629,9 @@ export function ScheduleView({
           </svg>
           <div style={{ height: first * ROW }} />
           {visible.map((row) =>
-            row.kind === "section" ? (
+            row.kind === "project" ? (
+              <ProjectLine key="project" bar={projectBar!} gridW={gridW} canvasW={canvasW} at={at} px={px} rangeFrom={range.from} span={range.span} />
+            ) : row.kind === "section" ? (
               <div key={`s${row.id}`} className="relative z-10 flex" style={{ height: ROW }}>
                 <div className="sticky left-0 z-[3] flex shrink-0 items-center border-b border-r border-line bg-surface-muted px-2 text-label font-semibold" style={{ width: gridW }}>
                   <button
@@ -577,6 +669,12 @@ export function ScheduleView({
                 hintId={hintId}
                 todayDay={todayDay}
                 preds={predsOf.get(row.task.id) ?? []}
+                cpm={cpm && (showCritical || showSlack) ? (cpm.tasks[row.task.id] ?? null) : null}
+                showCritical={showCritical}
+                slackColumn={slackColumn}
+                slackBar={showSlack && cpm ? (cpm.tasks[row.task.id] ?? null) : null}
+                at={at}
+                px={px}
                 paneHref={paneLink(row.task.id)}
                 dragging={drag?.id === row.task.id}
                 previewing={preview?.id === row.task.id}
@@ -628,6 +726,12 @@ function TaskLine({
   hintId,
   todayDay,
   preds,
+  cpm,
+  showCritical,
+  slackColumn,
+  slackBar,
+  at,
+  px,
   paneHref,
   dragging,
   previewing,
@@ -639,6 +743,12 @@ function TaskLine({
   onHandleUp,
   onAddLink,
 }: {
+  cpm: CpmTaskResult | null; // the task's place on the critical path (shown or read out)
+  showCritical: boolean;
+  slackColumn: boolean;
+  slackBar: CpmTaskResult | null;
+  at: (day: string) => number;
+  px: number;
   task: ScheduleTask;
   index: number;
   gantt: boolean;
@@ -664,8 +774,13 @@ function TaskLine({
 }) {
   const done = task.status === "COMPLETED";
   const blocked = preds.some((link) => linkBlocks(link.type, link.predStatus));
-  const label = `${task.title}${task.isMilestone ? ", milestone" : ""}, ${describe(box.dates)}${done ? ", completed" : ""}${blocked ? ", waiting for other tasks" : ""}`;
+  const critical = Boolean(showCritical && cpm?.critical);
+  const pathNote = cpm ? `${critical ? ", critical" : ""}, ${slackText(cpm.slack).toLowerCase()}` : "";
+  const label = `${task.title}${task.isMilestone ? ", milestone" : ""}, ${describe(box.dates)}${done ? ", completed" : ""}${blocked ? ", waiting for other tasks" : ""}${pathNote}`;
   const due = box.dates.due;
+  // Slack: a thin bar from the task's end to its latest finish.
+  const slackLeft = box.left + box.width;
+  const slackWidth = slackBar && slackBar.slack > 0 ? Math.max(0, (at(slackBar.lateFinish) + 1) * px - slackLeft) : 0;
   return (
     <div className="group relative z-10 flex" style={{ height: ROW }} data-testid="schedule-row">
       <div className="sticky left-0 z-[3] flex shrink-0 items-center border-b border-r border-line bg-surface text-label" style={{ width: gridW }}>
@@ -700,6 +815,11 @@ function TaskLine({
             )}
           </span>
         )}
+        {slackColumn && (
+          <span className={`w-[80px] shrink-0 truncate px-2 text-caption ${cpm && cpm.slack <= 0 ? "font-semibold text-ink" : "text-ink-muted"}`} data-testid="gantt-slack" title={cpm ? slackText(cpm.slack) : undefined}>
+            {cpm ? (cpm.slack === 0 ? "0 d" : `${cpm.slack} d`) : "—"}
+          </span>
+        )}
       </div>
       <div className="relative shrink-0 border-b border-line" style={{ width: canvasW }}>
         {task.isMilestone ? (
@@ -715,7 +835,8 @@ function TaskLine({
             onPointerDown={(event) => onDown(event, task, "move")}
             onPointerUp={() => onUp(task)}
             onKeyDown={(event) => onKey(event, task, index)}
-            className={`absolute top-[9px] h-4 w-4 rotate-45 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 ${done ? "bg-success-solid" : "bg-primary-solid"} ${editable ? "cursor-grab" : ""} ${previewing ? "ring-2 ring-warning-600" : ""}`}
+            data-critical={critical ? "1" : "0"}
+            className={`absolute top-[9px] h-4 w-4 rotate-45 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 ${critical ? "bg-critical-solid ring-2 ring-critical-line ring-offset-2 ring-offset-surface" : done ? "bg-success-solid" : "bg-primary-solid"} ${editable ? "cursor-grab" : ""} ${previewing ? "ring-2 ring-warning-600" : ""}`}
             style={{ left: box.left + box.width / 2 - 8 }}
           />
         ) : (
@@ -727,13 +848,16 @@ function TaskLine({
             data-testid="schedule-bar"
             aria-label={label}
             aria-describedby={hintId}
-            title={`${label} · ${task.assigneeName}`}
+            title={`${critical ? "Critical · " : ""}${label} · ${task.assigneeName}`}
             onPointerDown={(event) => onDown(event, task, "move")}
             onPointerUp={() => onUp(task)}
             onKeyDown={(event) => onKey(event, task, index)}
-            className={`absolute top-[6px] flex h-[22px] items-center overflow-visible rounded text-caption leading-[22px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 ${done ? "bg-success-solid text-on-solid" : "bg-primary-solid text-on-solid"} ${editable ? (dragging ? "cursor-grabbing" : "cursor-grab") : ""} ${previewing ? "ring-2 ring-warning-600" : ""}`}
+            data-critical={critical ? "1" : "0"}
+            className={`absolute top-[6px] flex h-[22px] items-center overflow-visible rounded text-caption leading-[22px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 ${critical ? "bg-critical-solid text-on-solid" : done ? "bg-success-solid text-on-solid" : "bg-primary-solid text-on-solid"} ${editable ? (dragging ? "cursor-grabbing" : "cursor-grab") : ""} ${previewing ? "ring-2 ring-warning-600" : ""}`}
             style={{ left: box.left, width: box.width }}
           >
+            {/* v1.74.0 (D-398): a critical bar is striped as well as coloured (not colour alone). */}
+            {critical && <span aria-hidden="true" className="pointer-events-none absolute inset-0 rounded bg-[repeating-linear-gradient(135deg,transparent_0_5px,rgb(255_255_255/0.3)_5px_8px)]" data-testid="critical-stripes" />}
             {editable && (
               <span
                 aria-hidden="true"
@@ -746,7 +870,7 @@ function TaskLine({
                 }}
               />
             )}
-            <span className="truncate px-2">{box.width > 60 ? task.title : ""}</span>
+            <span className="relative truncate px-2">{box.width > 60 ? task.title : ""}</span>
             {editable && (
               <span
                 aria-hidden="true"
@@ -774,6 +898,9 @@ function TaskLine({
             <Link2 className="h-2 w-2" />
           </span>
         )}
+        {slackWidth > 0 && (
+          <span aria-hidden="true" className="pointer-events-none absolute top-[14px] h-1.5 rounded-r border-y border-r border-line-strong bg-surface-muted" style={{ left: slackLeft, width: slackWidth }} title={slackBar ? slackText(slackBar.slack) : undefined} data-testid="slack-bar" />
+        )}
         {box.width <= 60 && !task.isMilestone && (
           <span className="pointer-events-none absolute top-[6px] truncate text-caption leading-[22px] text-ink-muted" style={{ left: box.left + box.width + 20, maxWidth: 220 }}>
             {task.title}
@@ -781,6 +908,90 @@ function TaskLine({
         )}
       </div>
     </div>
+  );
+}
+
+// v1.74.0 (D-398): the project's own bar, From to To, labelled with its working days and hours.
+function ProjectLine({ bar, gridW, canvasW, at, px, rangeFrom, span }: { bar: NonNullable<SchedulePlanning["projectBar"]>; gridW: number; canvasW: number; at: (day: string) => number; px: number; rangeFrom: string; span: number }) {
+  const from = bar.from ?? bar.to!;
+  const to = bar.to ?? bar.from!;
+  const start = Math.max(0, at(from));
+  const end = Math.min(span - 1, at(to));
+  const visible = end >= start && rangeFrom <= to;
+  return (
+    <div className="relative z-10 flex" style={{ height: ROW }} data-testid="project-bar-row">
+      <div className="sticky left-0 z-[3] flex shrink-0 items-center gap-1.5 border-b border-r border-line bg-surface-muted px-3 text-label font-semibold" style={{ width: gridW }}>
+        <span className="truncate">Project dates</span>
+      </div>
+      <div className="relative shrink-0 border-b border-line bg-surface-muted/40" style={{ width: canvasW }}>
+        {visible && (
+          <span
+            role="img"
+            aria-label={`Project: ${bar.label}`}
+            title={`Project: ${bar.label}`}
+            className="absolute top-[9px] flex h-4 items-center rounded-sm border-2 border-ink-muted bg-surface text-caption leading-4"
+            style={{ left: start * px, width: Math.max(6, (end - start + 1) * px) }}
+            data-testid="project-bar"
+          />
+        )}
+        {visible && (
+          <span className="pointer-events-none absolute top-[6px] truncate whitespace-nowrap text-caption leading-[22px] text-ink" style={{ left: (end + 1) * px + 8, maxWidth: 360 }} aria-hidden="true" data-testid="project-bar-label">
+            {bar.label}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// v1.74.0 (D-398): what the critical path is, in words and in order.
+function CriticalSummary({ cpm, tasks, thisYear, paneLink }: { cpm: CpmResult; tasks: ScheduleTask[]; thisYear: string; paneLink: (id: number) => string }) {
+  const byId = new Map(tasks.map((task) => [task.id, task]));
+  const words = (day: string) => dayText(day, thisYear);
+  const notes = [
+    cpm.buffer !== null && cpm.toDate ? (cpm.buffer >= 0 ? `${cpm.buffer} working day${cpm.buffer === 1 ? "" : "s"} to spare before the project's To date (${words(cpm.toDate)}).` : `${-cpm.buffer} working day${cpm.buffer === -1 ? "" : "s"} past the project's To date (${words(cpm.toDate)}).`) : null,
+    cpm.outsideLinks ? `${cpm.outsideLinks} link${cpm.outsideLinks === 1 ? "" : "s"} to tasks outside this project ${cpm.outsideLinks === 1 ? "isn't" : "aren't"} counted, so the path may run longer.` : null,
+    cpm.loopLinks ? `${cpm.loopLinks} link${cpm.loopLinks === 1 ? "" : "s"} forming a loop ${cpm.loopLinks === 1 ? "was" : "were"} left out.` : null,
+  ].filter(Boolean);
+  return (
+    <section className="card space-y-1 px-4 py-3" aria-labelledby="critical-path-title" data-testid="critical-summary">
+      <h3 id="critical-path-title" className="flex items-center gap-2 text-label font-semibold">
+        <span aria-hidden="true" className="inline-block h-3 w-5 rounded-sm bg-critical-solid bg-[repeating-linear-gradient(135deg,transparent_0_4px,rgb(255_255_255/0.3)_4px_6px)]" />
+        {criticalSummary(cpm, words)}
+      </h3>
+      {notes.map((note) => (
+        <p key={note} className="text-caption text-ink-muted">
+          {note}
+        </p>
+      ))}
+      <p className="text-caption text-ink-muted">Worked out over all the project&apos;s tasks in working days (weekly offs and holidays skipped), whatever the filter. A critical task can&apos;t slip without moving the end.</p>
+      {cpm.criticalIds.length > 0 && (
+        <details>
+          <summary className="cursor-pointer text-caption font-semibold">Critical tasks in order ({cpm.criticalIds.length})</summary>
+          <ol className="mt-1 list-decimal space-y-0.5 pl-6 text-caption" data-testid="critical-list">
+            {cpm.criticalIds.map((id) => {
+              const task = byId.get(id);
+              const place = cpm.tasks[id]!;
+              return (
+                <li key={id}>
+                  {task ? (
+                    <Link href={paneLink(id)} scroll={false} className="link">
+                      {task.title}
+                    </Link>
+                  ) : (
+                    `Task ${id}`
+                  )}{" "}
+                  <span className="text-ink-muted">
+                    {place.duration === 0 ? `milestone, ${words(place.earlyFinish)}` : `${words(place.earlyStart)} to ${words(place.earlyFinish)}, ${place.duration} working day${place.duration === 1 ? "" : "s"}`}
+                    {place.slack < 0 ? `, ${slackText(place.slack)}` : ""}
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
+        </details>
+      )}
+    </section>
   );
 }
 

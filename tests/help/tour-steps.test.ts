@@ -59,6 +59,12 @@ describe("onboarding tour steps", () => {
     expect(points).toContain("Blocked by");
   });
 
+  it("the Projects step mentions From and To dates and the critical path (v1.74.0, D-398)", () => {
+    const points = TOUR_STEPS.find((step) => step.id === "projects")?.points.join(" ") ?? "";
+    expect(points).toContain("From and To");
+    expect(points).toContain("Show critical path");
+  });
+
   it("the Projects step mentions project forms (v1.66.0, D-374)", () => {
     const points = TOUR_STEPS.find((step) => step.id === "projects")?.points.join(" ") ?? "";
     expect(points).toContain("Add a form");

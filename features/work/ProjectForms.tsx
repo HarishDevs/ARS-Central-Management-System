@@ -24,7 +24,9 @@ export interface ProjectFormValues {
   dueOn: string;
 }
 
-export function ProjectForm({ values, departments, myDepartmentId }: { values?: ProjectFormValues; departments: { id: number; name: string }[]; myDepartmentId: number | null }) {
+// v1.74.0 (D-398): with "pm_planning" on (`fromTo`), the dates read as From and
+// To, with the saved working days and estimated hours under them.
+export function ProjectForm({ values, departments, myDepartmentId, fromTo }: { values?: ProjectFormValues; departments: { id: number; name: string }[]; myDepartmentId: number | null; fromTo?: { duration: string | null; hoursPerDay: number } }) {
   const { result, pending, onSubmit } = useActionForm(values?.id ? updateProjectAction : createProjectAction);
   const [privacy, setPrivacy] = useState(values?.privacy ?? "PRIVATE");
   const [color, setColor] = useState(values?.color ?? "green");
@@ -88,17 +90,23 @@ export function ProjectForm({ values, departments, myDepartmentId }: { values?: 
         </div>
         <div>
           <label htmlFor="project-start" className="field-label">
-            Starts <span className="font-normal text-ink-faint">(optional)</span>
+            {fromTo ? "From (start date)" : "Starts"} <span className="font-normal text-ink-faint">(optional)</span>
           </label>
-          <input id="project-start" type="date" name="start_on" defaultValue={values?.startOn} className="field-input" />
+          <input id="project-start" type="date" name="start_on" defaultValue={values?.startOn} className="field-input" aria-describedby={fromTo ? "project-duration-hint" : undefined} />
+          <FieldError result={result} name="start_on" />
         </div>
         <div>
           <label htmlFor="project-due" className="field-label">
-            Due <span className="font-normal text-ink-faint">(optional)</span>
+            {fromTo ? "To (due date)" : "Due"} <span className="font-normal text-ink-faint">(optional)</span>
           </label>
-          <input id="project-due" type="date" name="due_on" defaultValue={values?.dueOn} className="field-input" />
+          <input id="project-due" type="date" name="due_on" defaultValue={values?.dueOn} className="field-input" aria-describedby={fromTo ? "project-duration-hint" : undefined} />
           <FieldError result={result} name="due_on" />
         </div>
+        {fromTo && (
+          <p id="project-duration-hint" className="text-caption text-ink-muted md:col-span-2" data-testid="settings-duration">
+            {fromTo.duration ? `Duration: ${fromTo.duration} (working days, From and To both counted, weekly offs and holidays skipped; ${fromTo.hoursPerDay} h a working day).` : `With both dates set, the project shows its working days and estimated hours (${fromTo.hoursPerDay} h a working day).`}
+          </p>
+        )}
         <div>
           <label htmlFor="project-view" className="field-label">
             Opens as

@@ -153,7 +153,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
       "Every ▾ and ⋯ is a dropdown menu (arrow keys, Enter, Escape); Customize opens a panel with the project's automations, fields and forms.",
       "Star a project to keep it in the sidebar under Starred; a task opens beside the view, and completing or deleting one offers Undo.",
       "Add custom fields (Add field: text, number, select, date, people, formula, ID, timer and more) and filter, sort or group any view by them.",
-      "Plan dates on the Timeline or a Gantt tab: drag bars (or use the arrow keys), link tasks as Blocked by / Blocking, and let dependent tasks move with them.",
+      "Plan dates on the Timeline or a Gantt tab: drag bars (or use the arrow keys), link tasks as Blocked by / Blocking, and let dependent tasks move with them. A project's From and To dates give its working days and estimated hours; on the Gantt, Options › Show critical path marks the tasks that decide the end.",
       "Add a form (settings → Forms): people fill it in through its link or QR code, and each submission becomes a task in the section you choose.",
       "Add a Dashboard tab for charts of the project's tasks (View as table shows the figures), and a Workload tab to see who has too much work against their capacity.",
       "Add automations (settings → Automations): when something happens to a task, a rule moves it, changes fields, comments or tells people for you; check its Run log.",

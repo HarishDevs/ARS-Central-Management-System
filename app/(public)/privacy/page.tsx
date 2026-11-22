@@ -135,8 +135,9 @@ export default function PrivacyPage() {
           Compact mode in a phone list, a second small cookie, <code>ars_m_compact</code>, keeps that choice (&ldquo;1&rdquo; or &ldquo;0&rdquo;) on that device for a year.
         </p>
         <p>
-          When you resize a column, the browser keeps the widths you chose (numbers only, per page and table) in its own storage on that device, so the table opens the same way next time. They
-          never leave the device, hold nothing about you or your records, and go when you clear the browser&apos;s site data.
+          When you resize a column, the browser keeps the widths you chose (numbers only, per page and table) in its own storage on that device, so the table opens the same way next time. The
+          Timeline and Gantt scale and the Gantt&apos;s &ldquo;Show critical path&rdquo; and &ldquo;Show slack&rdquo; choices are kept the same way. They never leave the device, hold nothing
+          about you or your records, and go when you clear the browser&apos;s site data.
         </p>
         <p>
           So that a Back link can return you to the page you came from, each browser tab also remembers the address of the last page of ARS CMS you opened in it (the tab&apos;s own session
