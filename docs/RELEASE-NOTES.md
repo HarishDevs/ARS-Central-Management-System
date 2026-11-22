@@ -1,5 +1,11 @@
 # Release notes
 
+## v1.64.1 (22 Nov 2026): Fix: project List layout (owner)
+- **Section headings and "Add a task" lines stay in view** when the List is wider than the screen and you scroll sideways. Before, they scrolled away and left empty bands with only the counts and menus.
+- **The List fills its card** on a wide screen (the Name column takes the spare room) instead of stopping after the last column.
+- Custom fields: the Fields section shows the full manager (11 types, library, ✎ edit) only when IT switches on **pm_planning** (Super Admin → Settings → Feature switches); with it off you see the earlier Text / Number / Choice / Date form.
+- **Owner steps:** none (no migration); publish v1.64.1.
+
 ## v1.64.0 (22 Nov 2026): Custom fields with 11 types, a field library, filter, sort and group by any field (Project Management phase B, part 1)
 Behind a new feature switch, **Projects: custom fields with 11 types, field library, filter, sort and group by a field (phase B)**, Off until IT turns it on. With it Off, project fields work as before (text, number, choice and date).
 - **Eleven types:** Text, Number (plain, percent, currency with ₹ or your own symbol, or your own unit; 0 to 6 decimals, with a live example), Single-select and Multi-select (coloured options you can reorder), Date (optionally with a time), People, Formula (+ − × ÷ and brackets over the task's number, date and timer fields; worked out by the app), ID (a prefix and a number for every task, like PO-12, never changed), Timer (start and stop your own timer; the field adds up everyone's time as h:mm), Reference (links to other tasks) and Lookup (a value from the linked task).

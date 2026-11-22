@@ -323,6 +323,20 @@ export function TaskGrid({
   const rowEstimate = rowDensity === "COMPACT" ? 30 : 36;
   const estimate = useCallback((index: number) => (lines[index]?.kind === "group" ? 56 : lines[index]?.kind === "add" ? 40 : rowEstimate), [lines, rowEstimate]);
   const windowed = useWindowedLines(lineKeys, estimate, virtual);
+  // v1.64.1 (owner's screenshot): on a table wider than the card, section headings
+  // and "Add task" lines span the whole table, so a sideways scroll hid them. They
+  // are pinned to the card's visible width (sticky left) instead.
+  const scroller = useRef<HTMLDivElement>(null);
+  const [viewWidth, setViewWidth] = useState(0);
+  useEffect(() => {
+    const element = scroller.current;
+    if (!element || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => setViewWidth(element.clientWidth));
+    observer.observe(element);
+    setViewWidth(element.clientWidth);
+    return () => observer.disconnect();
+  }, []);
+  const pinned: React.CSSProperties = viewWidth ? { position: "sticky", left: 0, width: viewWidth } : { position: "sticky", left: 0 };
   const drawn = lines.slice(windowed.range.start, windowed.range.end).map((line, offset) => ({ line, index: windowed.range.start + offset }));
   const drawnGroups: { group: GridGroupOut; from: number; lines: typeof drawn }[] = [];
   for (const item of drawn) {
@@ -618,7 +632,7 @@ export function TaskGrid({
       </div>
 
       {(config.group !== "none" || config.groupField) && groups.length > 0 && <FoldAllButtons onAll={foldAll} testId={`${testId}-fold-all`} />}
-      <div className="overflow-x-auto rounded-lg border border-line bg-surface" data-density={rowDensity === "COMPACT" ? "compact" : undefined}>
+      <div ref={scroller} className="overflow-x-auto rounded-lg border border-line bg-surface" data-density={rowDensity === "COMPACT" ? "compact" : undefined}>
         {/* v1.61.0 (D-367, spec PRJ-03): an ARIA treegrid. Group headings are level 1,
             tasks level 2 (1 without groups), subtasks one deeper; one line takes Tab
             (roving focus), the arrow keys move and fold, Enter opens the task. Long
@@ -629,7 +643,7 @@ export function TaskGrid({
           aria-label="Tasks"
           aria-rowcount={lines.length + 1}
           aria-multiselectable={bulk || undefined}
-          className="min-w-max"
+          className="w-max min-w-full"
           onKeyDown={onGridKey}
           data-virtual={virtual ? "on" : undefined}
           data-line-count={lines.length}
@@ -649,7 +663,7 @@ export function TaskGrid({
               </span>
             )}
           </div>
-          {allShown.length === 0 && !(config.group === "section" && sections?.length) && <p className="px-4 py-8 text-center text-label text-ink-muted">{emptyText}</p>}
+          {allShown.length === 0 && !(config.group === "section" && sections?.length) && <p style={pinned} className="px-4 py-8 text-center text-label text-ink-muted">{emptyText}</p>}
           {windowed.range.padTop > 0 && <div aria-hidden="true" style={{ height: windowed.range.padTop }} data-testid="grid-spacer-top" />}
           {drawnGroups.map((chunk) => {
             const group = chunk.group;
@@ -681,7 +695,7 @@ export function TaskGrid({
                   if (line.kind === "group")
                     return (
                       <div key={line.key} role="row" aria-expanded={line.expanded} {...lineProps} className="border-b border-line focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus">
-                        <div role="gridcell" className="flex items-center gap-2 px-2 pb-2 pt-5">
+                        <div role="gridcell" style={pinned} className="flex items-center gap-2 px-2 pb-2 pt-5" data-testid="group-heading">
                           <button
                             type="button"
                             tabIndex={-1}
@@ -707,7 +721,7 @@ export function TaskGrid({
                   if (line.kind === "add")
                     return (
                       <div key={line.key} role="row" {...lineProps} className="focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus">
-                        <div role="gridcell">{section && addTo?.projectId ? <AddTask projectId={addTo.projectId} sectionId={section.id} /> : group.sectionId !== null ? <AddTask mySectionId={group.sectionId} placeholder={`Add a task to ${group.name}…`} /> : null}</div>
+                        <div role="gridcell" style={pinned}>{section && addTo?.projectId ? <AddTask projectId={addTo.projectId} sectionId={section.id} /> : group.sectionId !== null ? <AddTask mySectionId={group.sectionId} placeholder={`Add a task to ${group.name}…`} /> : null}</div>
                       </div>
                     );
                   const task = line.task;

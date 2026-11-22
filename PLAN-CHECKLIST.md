@@ -17,6 +17,8 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 **Multi-level approvals in any custom manner.** The engine must support any number of levels in any combination: sequential, parallel, any-one, any-N-of-M, conditional and hybrid. Approvers can come from any source, and levels can be added or skipped by rules. Build the engine for this from the first engine phase (P2). The drag-and-drop designer (P3) is only the screen for building it. Check every task against this.
 
 ## Now / Next
+- **Now (22 Nov 2026):** **v1.64.1** List layout fix (D-372). **Owner:** publish (no migration); switch on pm_planning to see the new custom fields.
+- [x] UI-91 (22 Nov 2026) List: section headings and Add task lines stay in view when scrolled sideways; the table fills the card
 - **Now (22 Nov 2026):** **v1.64.0** PM phase B part 1: custom fields with 11 types, typed values, field library, edit/remove/delete/restore, notify, limits, filter/sort/group by a field in List and Board (D-371). **Owner:** back up, publish (migration 202611221300_pm_b_custom_fields.sql runs on start), switch "phase B" on for IT only, then On; later confirm the typed values so the old column can go (DEPLOYMENT G0j).
 - **Now (22 Nov 2026):** **v1.63.1** startup fix (D-370). **Owner:** publish, then run database/optional/v1600_comment_triggers.sql once in phpMyAdmin.
 - [x] OPS-31 (22 Nov 2026) Optional trigger blocks in 202611211000; guard test for every migration trigger
