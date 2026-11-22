@@ -209,6 +209,14 @@ Stops anyone reaching the GoDaddy server directly, around Cloudflare (and faking
 1. https://approval.arssteels.net → **Continue with Google** → **itsupport@arsenergy.co.in** (D-082). The seed created this Super Admin, User ID `itadmin`. `itadmin@arssteels.co.in` can't be used: it's only an alias, and Google reports the main address.
 2. You land on **My approvals**. Your name at the top right opens a menu whose **Switch space** section shows Admin and Super Admin.
 
+### G0u. One-time restore of the 22 Nov backup (v1.76.2, D-403)
+1. GoDaddy → the app → **Secrets**: add `RESTORE_CONFIRM` = the database name (`db_30yc8vknqm`) and `RESTORE_BACKUP_KEY` = the value in the key file kept on the owner's PC (`ARS-RESTORE-KEY.txt`, never in the repository).
+2. **Update Preview** (or Publish): on start the app restores the bundled backup (`database/restore/ars-db-20261122-152503.sql.gz.enc`, 22 Nov 2026 8:55 pm IST) once, then the migrations add anything newer. It takes about a minute; the log shows `[restore-on-start] restored … statements`.
+3. Sign in and check requests, tasks and users are back. Then **Publish to Live**.
+4. Remove both secrets (a second start skips anyway: the restore is recorded in table `ops_restores`).
+5. Run `database/optional/v1600_comment_triggers.sql` and `database/optional/v190_append_only_triggers.sql` once in the Database Manager.
+6. Re-enter anything done after 8:55 pm IST on 22 Nov 2026.
+
 ### G0t. Task Summary: range per tab, My sections and rules, CSV (v1.76.0)
 1. Publish v1.76.0. The migration `202611231000_task_summary_r1.sql` runs on start (no triggers, nothing optional): it lets a person's own tab names repeat (projects' stay unique), adds `my_task_placements.rule_key` and the new table `my_task_rules`.
 2. Nothing to switch on beyond the existing **Projects phase A** switch (`pm_foundations`). The nightly section rules run inside the existing job runner (step **myTaskRules**, each person once per India day from midnight); no new cron entry.

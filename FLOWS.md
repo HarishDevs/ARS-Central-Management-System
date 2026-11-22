@@ -2574,3 +2574,20 @@ flowchart LR
 ```
 - Rights: the author and IT admins (IT_ADMIN, SUPER_ADMIN), no time limit; others are refused; people who can't see the request/ticket/task (or an internal remark) get "Not found".
 - Request comment rows are never deleted (DB trigger); only their text and marks change. comment_versions is append-only. Editing doesn't notify anyone again.
+
+## F-OPS-RESTORE-ON-START: One-time restore of a bundled backup when the app starts (v1.76.2, D-403)
+```mermaid
+flowchart TD
+  A[npm start] --> B{RESTORE_CONFIRM = DB_NAME?}
+  B -- no --> M[migrate.js]
+  B -- yes --> C{this file already in ops_restores?}
+  C -- yes --> M
+  C -- no --> D{approval_requests has rows and no RESTORE_FORCE?}
+  D -- yes --> M
+  D -- no --> E[check .sha256, decrypt with RESTORE_BACKUP_KEY]
+  E -- fails --> M
+  E --> F[GET_LOCK, drop all tables, load dump]
+  F -- error --> G[drop all tables again] --> M
+  F --> H[record hash in ops_restores] --> M
+  M --> S[seed.js] --> N[next start]
+```
