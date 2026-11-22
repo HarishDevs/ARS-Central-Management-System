@@ -46,6 +46,11 @@ export default function TermsPage() {
             requests, ask only for what you need, and don&apos;t ask for passwords or other people&apos;s personal details. When you fill in a form, your name and email go with your answers, and the
             task made from it is seen by the project&apos;s people: answer as you would in any work message.
           </li>
+          <li>
+            Project dashboards and Workload: only a project&apos;s owners and editors change its widgets and its people&apos;s capacity, and everyone in the project sees them (text widgets too, so
+            write them as you would any work message). Charts and Workload count only the tasks the viewer may see. Capacity and Workload are planning aids for sharing work fairly, not a
+            measure of anyone&apos;s performance.
+          </li>
           <li>The private notepad on Home is for your work notes. Only you see it in the app, but it is stored with your other records: don&apos;t keep passwords or other people&apos;s personal details in it.</li>
           <li>You can edit or delete your own comments, and IT can edit or delete any comment. Every earlier version is kept and shown to the people who can see the comment, so edit to correct, not to rewrite what was agreed.</li>
           <li>

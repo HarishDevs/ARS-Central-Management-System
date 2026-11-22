@@ -153,6 +153,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
       "Add custom fields (Add field: text, number, select, date, people, formula, ID, timer and more) and filter, sort or group any view by them.",
       "Plan dates on the Timeline or a Gantt tab: drag bars (or use the arrow keys), link tasks as Blocked by / Blocking, and let dependent tasks move with them.",
       "Add a form (settings → Forms): people fill it in through its link or QR code, and each submission becomes a task in the section you choose.",
+      "Add a Dashboard tab for charts of the project's tasks (View as table shows the figures), and a Workload tab to see who has too much work against their capacity.",
     ],
     path: "/users/work/projects",
     target: HEADER,

@@ -142,7 +142,8 @@ function AxisChart({ data, title }: { data: ChartData; title: string }) {
   const nums = data.values.map((list) => list.map((value) => value ?? 0));
   const totals = data.categories.map((_, c) => nums.reduce((sum, list) => sum + Math.max(0, list[c] ?? 0), 0));
   const all = stacked ? totals : nums.flat();
-  const ticks = niceTicks(Math.min(0, ...all, data.benchmark ?? 0), Math.max(1, ...all, data.benchmark ?? 0));
+  const counts = data.formats.every((format) => format.kind === "count");
+  const ticks = niceTicks(Math.min(0, ...all, data.benchmark ?? 0), Math.max(1, ...all, data.benchmark ?? 0), 4, counts);
   const lo = ticks[0]!;
   const hi = ticks.at(-1)!;
   const y = (value: number) => PAD.top + (1 - (value - lo) / (hi - lo || 1)) * PLOT_H;
@@ -183,7 +184,7 @@ function AxisChart({ data, title }: { data: ChartData; title: string }) {
             ))}
             <line x1={PAD.left} x2={W - PAD.right} y1={base} y2={base} stroke="var(--color-border-strong)" strokeWidth="1" />
             {data.categories.map((category, index) =>
-              index % every === 0 || index === n - 1 ? (
+              index % every === 0 || (index === n - 1 && (n - 1) % every >= Math.max(1, every / 2)) ? (
                 <text key={category.key} x={cx(index)} y={H - PAD.bottom + 16} textAnchor="middle" fontSize="11" fill="var(--color-text-secondary)">
                   {shortLabel(category.label, n > 8 ? 9 : 14)}
                 </text>
@@ -256,7 +257,7 @@ function AxisChart({ data, title }: { data: ChartData; title: string }) {
                 return (
                   <g key={series.key}>
                     <polyline points={points} fill="none" stroke={seriesColor(series.slot)} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" strokeDasharray={series.dashed ? "6 4" : undefined} />
-                    {n <= 31 && !series.dashed && nums[s]!.map((value, index) => <circle key={index} cx={cx(index)} cy={y(value)} r="4" fill={seriesColor(series.slot)} stroke="var(--color-surface-raised)" strokeWidth="2" />)}
+                    {n <= 14 && !series.dashed && nums[s]!.map((value, index) => <circle key={index} cx={cx(index)} cy={y(value)} r="4" fill={seriesColor(series.slot)} stroke="var(--color-surface-raised)" strokeWidth="2" />)}
                     {active !== null && <circle cx={cx(active)} cy={y(nums[s]![active] ?? 0)} r="5" fill={seriesColor(series.slot)} stroke="var(--color-surface-raised)" strokeWidth="2" />}
                     {data.dataLabels && last >= 0 && !series.dashed && (
                       <text x={Math.min(cx(last), W - PAD.right - 2)} y={y(nums[s]![last] ?? 0) - 8} textAnchor="end" fontSize="11" fill="var(--color-text-primary)" className="tabular-nums">

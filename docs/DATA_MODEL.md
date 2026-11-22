@@ -945,6 +945,8 @@ Migration names are shortened to their date-time prefix; the full file is `datab
 | `project_forms` | Projects | v1.66.0: a project's intake forms (kind PROJECT_INTAKE of the shared Form Builder): `share_token` (128 random bits, base64url; `/users/forms/<token>`, signed in only), `status` (DRAFT / PUBLISHED / UNPUBLISHED), `name`, `description`, `cover_path` / `cover_type`, `draft_json` (`fields`: the builder's FormField list; `mappings`: question key → task field or project field), `settings_json` (section, default assignee, due offset in working days, copy to description, confirmation, Submit another, add followers, who may submit, notices), `current_version_id`, `draft_changed`, `row_version`, soft delete | 202611221500 |
 | `project_form_versions` | Projects | v1.66.0: each published snapshot of a form (`version_no` per form, `snapshot_json` never changed); people fill in the current one | 202611221500 |
 | `project_form_submissions` | Projects | v1.66.0: one row per accepted submission: the version answered, the submitter, the typed answers (`answers_json`), the task made; UNIQUE (`form_id`, `submitter_id`, `submission_key`) stops a double submit; the hourly limit (20 per person per form) counts these rows | 202611221500 |
+| `project_dashboard_widgets` | Projects | v1.67.0: a project's dashboard widgets in order (`position`): `kind` CHART (`config_json`: the chart setup checked by `server/work/reporting.ts`) or TEXT (`body`, ≤ 2000), `title` (≤ 80), `size` HALF / FULL, `row_version`; `created_by` NULL for the 8 default widgets; ≤ 20 a project | 202611221600 |
+| `project_capacity` | Projects | v1.67.0: Workload capacity per working day: `user_id` NULL = the project's default, else one person's; `metric` `count` or `f<field id>` (a number or timer field); UNIQUE (`project_id`, `metric`, `user_key`) | 202611221600 |
 | `task_comments` | Tasks | Task comments with one level of replies | 202610301000 |
 | `work_likes` | Tasks | Likes on tasks, comments and status updates | 202610301000 |
 | `task_dependencies` | Tasks | Blocked-by links between tasks; since v1.65.0 `dep_type` (FS default, SS, FF, SF) and `lag_days` (reserved, 0) | 202610301000, 202611221400 |
@@ -1036,6 +1038,11 @@ JSON is used for engine and form data that changes shape between versions, not f
 
 ### Times
 Times are stored in UTC (`DATETIME`, set by `CURRENT_TIMESTAMP` or the app). India dates are plain `DATE` columns: `holidays.holiday_on`, `department_holidays.holiday_on`, `delegations.starts_on` / `ends_on`, `work_digest_sends.day`. Event and audit tables use `DATETIME(3)` (milliseconds) so their order is stable.
+
+## v1.67.0: project dashboards and Workload (migration 202611221600_pm_d_dashboards, D-375)
+- `projects.dashboard_set` BOOLEAN: the 8 default widgets were written (the first time anyone opened the Dashboard tab), so a dashboard whose editors removed every widget stays empty.
+- `project_dashboard_widgets`, `project_capacity` (see the table list). `work_views.view_type` gets DASHBOARD and WORKLOAD.
+- Chart figures are never stored: each is one SQL query (GROUP BY) over `task_projects`, `tasks`, `task_field_values` (typed columns) and, for time entries, `task_field_timer_runs` (stopped runs of the project's timer fields), limited to the tasks the viewer may see; formula fields are worked out in code from the same rows.
 
 ## v1.66.0: project intake forms (migration 202611221500_pm_c_intake_forms, D-374)
 - `users.is_system` BOOLEAN (default FALSE) and one row `ars-cms-automation` / "ARS-CMS Automation" (active FALSE, no password, an `.invalid` email): the creator of tasks made from form submissions. The app reads it as inactive whatever its row says; sign-in rules and the session check refuse it; Admin → Users never lists it.

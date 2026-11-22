@@ -17,6 +17,8 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 **Multi-level approvals in any custom manner.** The engine must support any number of levels in any combination: sequential, parallel, any-one, any-N-of-M, conditional and hybrid. Approvers can come from any source, and levels can be added or skipped by rules. Build the engine for this from the first engine phase (P2). The drag-and-drop designer (P3) is only the screen for building it. Check every task against this.
 
 ## Now / Next
+- **Now (22 Nov 2026):** **v1.67.0** PM phase D part 1: project Dashboard tab (8 default widgets, chart builder with 9 styles, tasks or time entries, metrics on one axis, filters, data labels, benchmark, View as table, keyboard reorder) and Workload tab (person × day/week, task count or an effort field, capacity, over-capacity, reassign) (D-375). **Owner:** back up, publish (migration 202611221600_pm_d_dashboards.sql runs on start), switch "Projects D, dashboards and workload" on for IT only, try, then On (DEPLOYMENT G0m).
+- **Next (22 Nov 2026):** PM phase D part 2: automations and portfolios (D-366); then PM-B12 and phase E.
 - **Now (22 Nov 2026):** **v1.66.3** section ⋯ menu opens on top (D-378). **Owner:** publish (no migration).
 - [x] UI-94 (22 Nov 2026) List menus (section ⋯, field column ▾) float above the table
 - **Now (22 Nov 2026):** **v1.66.2** section name box fits its words (D-377). **Owner:** publish (no migration).
@@ -77,6 +79,15 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
   - [x] PM-C10 (22 Nov 2026) Forms in Customize (project settings) and the Home Forms widget (forms I may submit, my recent submissions)
   - [ ] PM-C11 Public no-account link `pm_public_forms` (only if the owner approves C-1: rate limits per IP, challenge, scan decision, privacy/terms)
 - [ ] PM-D Phase D reporting, workload, automations, portfolios
+  - [x] PM-D1 (22 Nov 2026) Feature switch pm_reporting ("Projects D, dashboards and workload"; default OFF; ON in e2e)
+  - [x] PM-D2 (22 Nov 2026) Dashboard tab type, 8 default widgets written once (projects.dashboard_set), ≤ 20 widgets, number/text widgets
+  - [x] PM-D3 (22 Nov 2026) Chart builder: bar, stacked, grouped, line, burnup, burndown, donut, number, lollipop; tasks or time entries; X-axis incl. date units and select/people/date fields; count/sum/average incl. formula and timer; Add metric on one axis; filters incl. field filters; data labels; benchmark; percentage; live preview
+  - [x] PM-D4 (22 Nov 2026) Figures by SQL limited to visible tasks (formulas in code); burnup/burndown series; Other folding; date buckets
+  - [x] PM-D5 (22 Nov 2026) Our own SVG charts with validated --color-chart-1..8 (light and dark), tooltips on hover and arrow keys, View as table, View full size
+  - [x] PM-D6 (22 Nov 2026) Widget edit, resize, remove, reorder by drag and by keyboard (pick up / move / drop / cancel, announced)
+  - [x] PM-D7 (22 Nov 2026) Workload tab: days/weeks, task count or a number/timer effort field, capacity (project and person), weekly offs and holidays, Over with icon and text, cell → tasks → Reassign
+  - [ ] PM-D8 Automations (rules, triggers, steps, run log, loop protection) — phase D part 2
+  - [ ] PM-D9 Portfolios (wizard, grid, roll-ups, dashboard roll-ups) — phase D part 2
 - [ ] PM-E Phase E backlog
 - **Now (21 Nov 2026):** **v1.60.0** edit and delete every comment, versions kept (D-365). **Owner:** back up, run migration 202611211000_comment_edits.sql (and 202611201000 first if v1.59.3 isn't live), publish.
 - [x] COL-12 (21 Nov 2026) Edit and delete on request comments, ticket remarks and task comments (author and IT), every earlier version kept and shown

@@ -30,8 +30,7 @@ async function actor(): Promise<TaskActor | null> {
 const NOT_FOUND: ActionResult = { ok: false, message: "Not found." };
 const id = (value: unknown) => (typeof value === "number" && Number.isInteger(value) && value > 0 && value < 1e10 ? value : null);
 
-async function run<T>(label: string, work: (me: TaskActor) => Promise<{ ok: true; value: T; message?: string } | { ok: false; message: string }>, quiet = false): Promise<ActionResult & { value?: T }> {
-  const me = await actor();
+async function run<T>(label: string, me: TaskActor | null, work: (me: TaskActor) => Promise<{ ok: true; value: T; message?: string } | { ok: false; message: string }>, quiet = false): Promise<ActionResult & { value?: T }> {
   if (!me) return NOT_FOUND;
   try {
     const result = await work(me);
@@ -64,15 +63,15 @@ export async function dashboardAction(projectId: number, input: unknown): Promis
   if (!project) return NOT_FOUND;
   if (!parsed.success) return { ok: false, message: "That change isn't valid." };
   const change = parsed.data;
-  if (change.op === "save") return run("save", (me) => reporting.saveWidget(project, change, me));
-  if (change.op === "remove") return run("remove", (me) => reporting.removeWidget(project, change.id, me));
-  return run("move", (me) => reporting.moveWidgets(project, change.ids, me));
+  if (change.op === "save") return run("save", await actor(), (me) => reporting.saveWidget(project, change, me));
+  if (change.op === "remove") return run("remove", await actor(), (me) => reporting.removeWidget(project, change.id, me));
+  return run("move", await actor(), (me) => reporting.moveWidgets(project, change.ids, me));
 }
 
 export async function chartPreviewAction(projectId: number, config: unknown): Promise<ActionResult & { value?: ChartData }> {
   const project = id(projectId);
   if (!project) return NOT_FOUND;
-  return run("preview", (me) => reporting.previewChart(project, config, me), true);
+  return run("preview", await actor(), (me) => reporting.previewChart(project, config, me), true);
 }
 
 const capacityInput = z.object({ userId: z.number().int().positive().nullable(), metric: z.string().max(24), perDay: z.number().finite().nullable() });
@@ -81,5 +80,5 @@ export async function capacityAction(projectId: number, input: unknown): Promise
   const parsed = capacityInput.safeParse(input);
   if (!project) return NOT_FOUND;
   if (!parsed.success) return { ok: false, message: "That capacity isn't valid." };
-  return run("capacity", (me) => reporting.saveCapacity(project, parsed.data, me));
+  return run("capacity", await actor(), (me) => reporting.saveCapacity(project, parsed.data, me));
 }

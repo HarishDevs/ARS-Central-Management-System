@@ -55,6 +55,13 @@ describe("onboarding tour steps", () => {
     expect(points).toContain("QR code");
   });
 
+  it("the Projects step mentions the Dashboard and Workload tabs (v1.67.0, D-375)", () => {
+    const points = TOUR_STEPS.find((step) => step.id === "projects")?.points.join(" ") ?? "";
+    expect(points).toContain("Dashboard");
+    expect(points).toContain("Workload");
+    expect(points).toContain("View as table");
+  });
+
   it("Home mentions Customise and the private notepad, and My Tasks its own tabs (v1.63.0, D-369)", () => {
     const home = TOUR_STEPS.find((step) => step.id === "overview")?.points.join(" ") ?? "";
     expect(home).toContain("Customise");

@@ -297,31 +297,32 @@ function WidgetCard({
               onKeyDown={onHandleKey}
               onBlur={onHandleBlur}
               onPointerDown={onPointerDown}
-              className="-ml-1 mt-0.5 cursor-grab touch-none select-none rounded p-0.5 text-ink-faint hover:bg-surface-muted hover:text-ink focus-visible:bg-surface-muted aria-pressed:bg-primary-50 aria-pressed:text-primary-700"
+              className="-ml-1 mt-0.5 shrink-0 cursor-grab touch-none select-none rounded p-0.5 text-ink-faint hover:bg-surface-muted hover:text-ink focus-visible:bg-surface-muted aria-pressed:bg-primary-50 aria-pressed:text-primary-700"
               data-testid="widget-handle"
             >
               <GripVertical aria-hidden="true" className="h-4 w-4" />
             </button>
           )}
-          <h3 id={headingId} className="min-w-0 flex-1 truncate font-semibold" title={widget.title}>
+          <h3 id={headingId} className="line-clamp-2 min-w-0 flex-1 break-words font-semibold" title={widget.title}>
             {widget.title}
           </h3>
           {isChart && widget.data && !number && (
-            <button type="button" aria-pressed={table} onClick={() => setTable((value) => !value)} className="rounded p-1 text-ink-muted hover:bg-surface-muted hover:text-ink aria-pressed:bg-primary-50 aria-pressed:text-primary-700" aria-label={`View ${widget.title} as table`} title="View as table" data-testid="widget-table-toggle">
+            <button type="button" aria-pressed={table} onClick={() => setTable((value) => !value)} className="shrink-0 rounded p-1 text-ink-muted hover:bg-surface-muted hover:text-ink aria-pressed:bg-primary-50 aria-pressed:text-primary-700" aria-label={`View ${widget.title} as table`} title="View as table" data-testid="widget-table-toggle">
               <Table2 aria-hidden="true" className="h-4 w-4" />
             </button>
           )}
-          <button type="button" onClick={onFull} className="rounded p-1 text-ink-muted hover:bg-surface-muted hover:text-ink" aria-label={`View ${widget.title} full size`} title="View full size" data-testid="widget-full-open">
+          <button type="button" onClick={onFull} className="shrink-0 rounded p-1 text-ink-muted hover:bg-surface-muted hover:text-ink" aria-label={`View ${widget.title} full size`} title="View full size" data-testid="widget-full-open">
             <Maximize2 aria-hidden="true" className="h-4 w-4" />
           </button>
           {canEdit && (
             <>
-              <button type="button" onClick={onEdit} className="rounded p-1 text-ink-muted hover:bg-surface-muted hover:text-ink" aria-label={`Edit ${widget.title}`} title={isChart ? "Edit chart" : "Edit text"} data-testid="widget-edit">
+              <button type="button" onClick={onEdit} className="shrink-0 rounded p-1 text-ink-muted hover:bg-surface-muted hover:text-ink" aria-label={`Edit ${widget.title}`} title={isChart ? "Edit chart" : "Edit text"} data-testid="widget-edit">
                 <Pencil aria-hidden="true" className="h-4 w-4" />
               </button>
+              <div className="shrink-0">
               <Menu
                 label={`More actions for ${widget.title}`}
-                trigger={<MoreHorizontal aria-hidden="true" className="h-4 w-4" />}
+                trigger={<span className="inline-flex h-6 w-6 items-center justify-center"><MoreHorizontal aria-hidden="true" className="h-4 w-4" /></span>}
                 items={[
                   ...(index > 0 ? [{ label: "Move earlier", onSelect: () => onMove(-1) }] : []),
                   ...(index < count - 1 ? [{ label: "Move later", onSelect: () => onMove(1) }] : []),
@@ -329,6 +330,7 @@ function WidgetCard({
                   { label: "Remove widget", tone: "danger" as const, onSelect: onRemove },
                 ]}
               />
+              </div>
             </>
           )}
         </header>

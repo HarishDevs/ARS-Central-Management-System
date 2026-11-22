@@ -1889,6 +1889,46 @@ The application audit (`application-audit/`) found these gaps between flows and 
 - **F-59 Bulk import:** the import doesn't apply the rule that only the Super Admin changes another IT Admin's contact details (AUD-01). Fix planned: V181-A2.
 - **F-121 Page access:** an action posted from an address that is no configured page isn't restricted (AUD-14). Fix planned: V181-A7.
 
+## F-PM-DASH: Project dashboard and chart builder (v1.67.0, D-375; "pm_reporting")
+```mermaid
+flowchart TD
+  A[Owner or editor: + Add tab → Dashboard] --> B{pm_reporting on and the project seen?}
+  B -- no --> X[Not offered / Not found]
+  B -- yes --> C[Open the tab]
+  C --> D{projects.dashboard_set?}
+  D -- no --> E[One transaction: write the 8 default widgets, set the flag]
+  D -- yes --> F[(project_dashboard_widgets in order)]
+  E --> F
+  F --> G[Each chart: check its setup against the project's fields]
+  G -- a field gone --> H[Widget shows a message]
+  G -- valid --> I[One SQL query: tasks of the project the viewer may see, not cancelled or deleted, filters, GROUP BY X and series; time entries = stopped timer runs]
+  I -- formula metric or formula/lookup/reference filter --> J[Same rows one by one, cells worked out in code, grouped like SQL]
+  I --> K[assembleChart: natural order, 50 categories, 8 series with Other, burnup/burndown series]
+  J --> K
+  K --> L[SVG chart: one axis, legend for 2+ series, tooltips on hover and arrow keys, View as table, View full size]
+  M[Owner/editor: Add widget → Chart] --> N[Chart builder: style, source, X-axis, series, metrics + Add metric, dates, filters, data labels, benchmark, size]
+  N --> O[Live preview: same checks and SQL, nothing stored]
+  N -- Add chart / Save chart --> P[Server: role, setup check, ≤ 20 widgets, row version] --> F
+  Q[Owner/editor: drag the handle, or Space · arrows · Space; Escape cancels] --> R[Server: the same widgets, each once → new positions] --> F
+```
+
+## F-PM-WORKLOAD: Workload against capacity (v1.67.0, D-375; "pm_reporting")
+```mermaid
+flowchart TD
+  A[+ Add tab → Workload] --> B[Days 14 or Weeks 8 from a Monday; metric: Task count or a number/timer field]
+  B --> C[Open, visible tasks with a due date touching the dates]
+  C --> D[Each task on its working days from start to due; weekly offs and holidays skipped; only off days → its due day]
+  D --> E[Cell = tasks touching it (count) or their shares of the effort]
+  F[(project_capacity: the project's default and each person's, per metric)] --> G[Capacity = per day × working days in the cell; default 5 tasks or 8 hours]
+  E --> H{load > capacity?}
+  G --> H
+  H -- yes --> I[Cell shows ⚠ Over and says so to screen readers]
+  H -- no --> J[Cell shows the figure]
+  I --> K[Click a cell → its tasks → Reassign (the task's own rights apply)]
+  J --> K
+  L[Owner/editor: Set capacity] --> F
+```
+
 ## F-PM-FORMS: Project intake forms (v1.66.0, D-374; "pm_forms")
 Signed-in people only (C-1: no public link in this release). One builder: the shared Form Designer in its "Project intake form" kind.
 ```mermaid

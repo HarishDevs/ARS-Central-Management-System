@@ -508,12 +508,14 @@ export function burnChart(config: ChartConfig, points: readonly BurnPoint[], buc
 
 // ---- axis -------------------------------------------------------------------------------
 // Clean ticks from 0 (or a negative minimum) to at least `max`: 1, 2, 2.5 or 5 × 10^n steps.
-export function niceTicks(min: number, max: number, count = 4): number[] {
+// Whole numbers only (counts) when `integer`: no "1.5 tasks".
+export function niceTicks(min: number, max: number, count = 4, integer = false): number[] {
   const low = Math.min(0, min);
   const high = Math.max(low + 1, max);
   const raw = (high - low) / count;
   const power = 10 ** Math.floor(Math.log10(raw));
-  const step = [1, 2, 2.5, 5, 10].map((m) => m * power).find((candidate) => candidate >= raw) ?? raw;
+  const nice = [1, 2, 2.5, 5, 10].map((m) => m * power).find((candidate) => candidate >= raw) ?? raw;
+  const step = integer ? Math.max(1, Math.ceil(nice)) : nice;
   const first = Math.floor(low / step) * step;
   const ticks: number[] = [];
   for (let value = first; value < high + step * 0.999 && ticks.length < 12; value += step) ticks.push(round(value, 6));

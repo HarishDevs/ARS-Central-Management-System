@@ -167,7 +167,10 @@ export async function computeChart(config: ChartConfig, found: Pick<Access, "pro
   // Tasks that pass the filters worked out in code, and formula values.
   const codeCells = async (taskIds: number[]) => {
     const needed = new Set([...codeFilters.map((filter) => filter.fieldId), ...codeMetrics.filter((id): id is number => id !== null)]);
-    return cellsFor([...new Set(taskIds)], defs.filter((field) => needed.has(field.id)), viewer, now);
+    // Formulas read number, date, timer and other formula fields: those come too.
+    const operand = new Set(["NUMBER", "DATE", "TIMER", "FORMULA"]);
+    const wantFormula = defs.some((field) => needed.has(field.id) && field.type === "FORMULA");
+    return cellsFor([...new Set(taskIds)], defs.filter((field) => needed.has(field.id) || (wantFormula && operand.has(field.type))), viewer, now);
   };
   const passes = (cells: Awaited<ReturnType<typeof codeCells>>, taskId: number) => codeFilters.every((filter: FieldFilter) => matchFieldFilter(fields.get(filter.fieldId)!.type, cells[taskId]?.[filter.fieldId], filter, actorId));
 
