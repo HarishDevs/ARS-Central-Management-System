@@ -8,7 +8,9 @@ import { personProfile } from "@/lib/db/repositories/profile.repository";
 import { photoUrl } from "@/server/profile/photo";
 import { RichText } from "@/features/work/RichText";
 import { BackLink } from "@/features/ui/BackLink";
-import { ListTodo } from "lucide-react";
+import { AlarmClock, ListTodo } from "lucide-react";
+import { loadProfileCard } from "@/server/work/summary-extras";
+import { dueLabel, TONE_TEXT } from "@/features/work/format";
 import { featureOn } from "@/server/settings/features";
 import { hasModule } from "@/server/modules/modules";
 import { workViewer } from "@/server/work/task-access";
@@ -28,8 +30,15 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
   const mine = profile.id === user.id;
   // v1.77.0 (D-404): "View Task Summary" when this person may open it (their
   // manager above them, or they shared it with this person), read-only.
-  const summaryOn = !mine && hasModule(user, "TASK") && (await featureOn("tasks", user).catch(() => false)) && (await featureOn("pm_foundations", user).catch(() => false));
-  const canSummary = summaryOn ? (await summaryAccess(await workViewer(user), profile.id)).access !== null : false;
+  const tasksOn = hasModule(user, "TASK") && (await featureOn("tasks", user).catch(() => false)) && (await featureOn("pm_foundations", user).catch(() => false));
+  const viewer = tasksOn ? await workViewer(user) : null;
+  const summaryOn = !mine && tasksOn;
+  const canSummary = summaryOn && viewer ? (await summaryAccess(viewer, profile.id)).access !== null : false;
+  // v1.78.0 (D-405, spec §3.17): the Tasks card, only when this person may open
+  // their Task Summary (themselves, a manager above them, or shared with them),
+  // listing only the open tasks they may see.
+  const card = tasksOn && viewer ? await loadProfileCard(viewer, profile.id) : null;
+  const now = new Date();
   return (
     <>
     {/* v1.72.1 (D-395, QA F-13): a way back (the card is reached from many pages). */}
@@ -100,6 +109,41 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
         </div>
       </div>
     </section>
+    {card && (
+      <section className="card mt-4 max-w-4xl px-6 py-5" aria-labelledby="person-tasks-head" data-testid="person-tasks-card">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <h2 id="person-tasks-head" className="flex-1 font-semibold">
+            {card.own ? "My tasks" : "Tasks"} <span className="text-label font-normal text-ink-muted">({card.total.toLocaleString("en-IN")} open)</span>
+          </h2>
+          <Link href={card.own ? "/users/work/my-tasks" : `/users/work/my-tasks?of=${profile.id}`} className="link text-label" data-testid="person-tasks-all">
+            View all tasks
+          </Link>
+        </div>
+        {!card.own && <p className="mb-2 text-caption text-ink-muted">Only the open tasks you may see are listed.</p>}
+        {card.tasks.length ? (
+          <ul className="divide-y divide-line">
+            {card.tasks.map((task) => {
+              const due = dueLabel(task.dueAt, now, true);
+              return (
+                <li key={task.id} className="flex items-center gap-3 py-2 text-label" data-testid="person-task-row">
+                  <Link href={`/users/tasks/${task.id}`} className="min-w-0 flex-1 truncate link">
+                    <span className="text-ink-muted">{task.taskNo}</span> <SafeText text={task.title} />
+                  </Link>
+                  {due && (
+                    <span className={`inline-flex shrink-0 items-center gap-1 text-caption ${TONE_TEXT[due.tone]}`}>
+                      {due.tone === "danger" && <AlarmClock aria-hidden="true" className="h-3.5 w-3.5" />}
+                      {due.tone === "danger" ? `Overdue: ${due.text}` : due.text}
+                    </span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="text-label text-ink-muted">{card.own ? "No open tasks. Well done." : "No open tasks you may see."}</p>
+        )}
+      </section>
+    )}
     </>
   );
 }

@@ -19,7 +19,8 @@ const SORT_LABEL: Record<FileSort, string> = { newest: "Newest first", oldest: "
 const when = (iso: string) => new Date(iso).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" });
 const KIND_ICON: Record<FileKind, typeof FileIcon> = { image: ImageIcon, pdf: FileText, document: FileText, sheet: FileSpreadsheet, other: FileIcon };
 
-export function FilesTab({ files, taskHref, messagesHref }: { files: FileItem[]; taskHref: string; messagesHref: string }) {
+// v1.78.0 (D-405): also a Task Summary tab (files on the person's tasks): its own caption and empty text.
+export function FilesTab({ files, taskHref, messagesHref, caption = "The project's files", emptyBody = "Files added to the project's tasks, its form submissions and its messages show here." }: { files: FileItem[]; taskHref: string; messagesHref: string; caption?: string; emptyBody?: string }) {
   const [layout, setLayout] = useState<"tiles" | "list">("tiles");
   const [filter, setFilter] = useState<FileFilter>(EMPTY_FILE_FILTER);
   const [sort, setSort] = useState<FileSort>("newest");
@@ -170,7 +171,7 @@ export function FilesTab({ files, taskHref, messagesHref }: { files: FileItem[];
       <p role="status" aria-live="polite" className="text-caption text-ink-muted" id={`${id}-count`}>
         {shown.length === files.length ? `${files.length} ${files.length === 1 ? "file" : "files"}` : `${shown.length} of ${files.length} files`}
       </p>
-      {files.length === 0 && <EmptyState title="No files yet" body="Files added to the project's tasks, its form submissions and its messages show here." />}
+      {files.length === 0 && <EmptyState title="No files yet" body={emptyBody} />}
       {files.length > 0 && shown.length === 0 && (
         <EmptyState
           title="No files match these filters"
@@ -210,7 +211,7 @@ export function FilesTab({ files, taskHref, messagesHref }: { files: FileItem[];
       {shown.length > 0 && layout === "list" && (
         <div className="card overflow-x-auto">
           <table className="w-full text-left text-label" data-testid="files-table">
-            <caption className="sr-only">The project&apos;s files</caption>
+            <caption className="sr-only">{caption}</caption>
             <thead className="border-b border-line text-caption text-ink-muted">
               <tr>
                 <th scope="col" className="px-3 py-2 font-semibold">

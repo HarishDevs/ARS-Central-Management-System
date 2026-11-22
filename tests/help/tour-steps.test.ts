@@ -17,6 +17,10 @@ describe("onboarding tour steps", () => {
     for (const words of ["All my open tasks", "My sections", "Customise", "CSV"]) expect(text).toContain(words);
   });
 
+  it("the Task Summary step names the Dashboard, Files and Notes tabs and Request access (v1.78.0, D-405)", () => {
+    const text = TOUR_STEPS.find((step) => step.id === "tasks")!.points.join(" ");
+    for (const words of ["Dashboard", "Files", "Notes", "private", "Request access", "Grant"]) expect(text).toContain(words);
+  });
   it("the Task Summary step names Share, read-only and Customise › Fields (v1.77.0, D-404)", () => {
     const text = TOUR_STEPS.find((step) => step.id === "tasks")!.points.join(" ");
     for (const words of ["Share", "read-only", "Customise › Fields", "Board and Calendar"]) expect(text).toContain(words);

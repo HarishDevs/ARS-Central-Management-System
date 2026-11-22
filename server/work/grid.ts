@@ -134,6 +134,9 @@ export interface GridTask {
   assigneeDepartment?: string | null; // v1.57.3 (D-341)
   createdBy: number;
   createdByName: string;
+  // v1.78.0 (D-405, spec §3.12 [SS]): employee codes, shown in person group headings ("Name · EMP123").
+  assigneeCode?: string | null;
+  createdByCode?: string | null;
   dueAt: string | null; // ISO
   startsOn: string | null;
   createdAt: string;
@@ -375,11 +378,11 @@ export function applyGrid(
   const bucket = (task: GridTask): [string, number, string | null][] => {
     switch (config.group) {
       case "assignee":
-        return [[task.assigneeName, 0, task.assigneeName]];
+        return [[personHeading(task.assigneeName, task.assigneeCode), 0, task.assigneeName]];
       case "department":
         return task.assigneeDepartment ? [[task.assigneeDepartment, 0, null]] : [["No department", 9, null]];
       case "createdBy":
-        return [[task.createdByName, 0, task.createdByName]];
+        return [[personHeading(task.createdByName, task.createdByCode), 0, task.createdByName]];
       case "project":
         return task.projects.length ? task.projects.map((project) => [project.name, 0, null] as [string, number, null]) : [["No project", 9, null]];
       case "priority":
@@ -406,6 +409,9 @@ export function applyGrid(
     }
   return [...map.entries()].sort((a, b) => a[1].order - b[1].order || a[0].localeCompare(b[0])).map(([name, entry]) => ({ key: `g${name}`, name, sectionId: null, person: entry.person, rows: entry.rows }));
 }
+
+// v1.78.0 (D-405): a person group's heading: "Name · EMP123" when the employee code is known.
+export const personHeading = (name: string, code?: string | null) => (code ? `${name} · ${code}` : name);
 
 function safeJson(text: string): unknown {
   try {

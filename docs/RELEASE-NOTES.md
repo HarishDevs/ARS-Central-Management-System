@@ -1,5 +1,17 @@
 # Release notes
 
+## v1.78.0 (24 Nov 2026): Task Summary, extra tabs and reach: Dashboard, Notes and Files tabs, Request access, the Tasks card on a profile
+Comes with the Projects phase A switch (Dashboard tabs also need Projects phase D, Files tabs phase E, as on projects). Migration `202611231200_task_summary_r3.sql` (runs on start; no triggers).
+- **Dashboard tab:** + beside your Task Summary tabs adds a Dashboard: open, overdue, due today and completed numbers, and charts of open tasks by due date, project and priority, open against completed, and what you completed each day (or week) in the last 14, 30 or 90 days. Each chart has **View as table**.
+- **Notes tab:** your own notes in rich text, saved a second after you stop typing. Only you can read them, even when you share your Task Summary; managers and shared viewers see that they are private.
+- **Files tab:** every file on the tasks given to you, as a gallery or a list, with the same filters as a project's Files.
+- **Shared or managed Task Summaries:** someone opening yours sees your Dashboard and Files counting only the tasks they may already see (nothing masked, the rest left out), never your notes.
+- **Request access:** if you can't open someone's Task Summary, **Request access** (with an optional note) tells them. They see the request in **Share** (a number on the button) with **Grant** (a read-only share, as Invite; you are told) or **Decline**.
+- **Tasks card on a profile:** when you may open someone's Task Summary, their profile shows their soonest open tasks you may see and **View all tasks**; your own profile shows **My tasks**.
+- **Create task keeps your draft:** what you type in the Create task window comes back, minimised, if the page reloads (this browser tab only) until you create the task or close it (**Discard draft**).
+- **Employee code in person groups:** grouped by Created by or Assignee, a heading reads *Name · code*. Task Summary's **Sort** no longer lists Assignee (it is always you).
+- **Deferred by the owner (22 Nov 2026):** Add tasks with AI, for a later release.
+- **Owner steps:** publish v1.78.0 (the migration runs by itself). Nothing else.
 ## v1.77.1 (22 Nov 2026): Quick actions on every overview; Create offers meetings and tickets
 - **Task Management overview:** **+ Add widgets** and **Customise** moved up to the right end of the quick-action row (Create task, View all tasks, Projects, Search tasks, Calendar).
 - **Approval overview:** a quick-action row: **New request** (moved here from the header), Waiting for me, My requests, Approved by me, Delegate, Reports, Search.

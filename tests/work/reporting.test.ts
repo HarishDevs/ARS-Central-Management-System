@@ -294,6 +294,9 @@ describe("tab catalogue", () => {
     expect(addableViews("MY_TASKS", true, true).map((entry) => entry.type)).not.toContain("WORKLOAD");
     expect(allowedView("PROJECT", "DASHBOARD", false, false)).toBe(false);
     expect(allowedView("PROJECT", "WORKLOAD", false, true)).toBe(true);
-    expect(allowedView("MY_TASKS", "DASHBOARD", true, true)).toBe(false);
+    // v1.78.0 (D-405): a Task Summary may have a Dashboard tab, never a Workload one.
+    expect(allowedView("MY_TASKS", "DASHBOARD", true, true)).toBe(true);
+    expect(allowedView("MY_TASKS", "DASHBOARD", true, false)).toBe(false);
+    expect(allowedView("MY_TASKS", "WORKLOAD", true, true)).toBe(false);
   });
 });

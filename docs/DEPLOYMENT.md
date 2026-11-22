@@ -211,6 +211,11 @@ Stops anyone reaching the GoDaddy server directly, around Cloudflare (and faking
 1. https://approval.arssteels.net → **Continue with Google** → **itsupport@arsenergy.co.in** (D-082). The seed created this Super Admin, User ID `itadmin`. `itadmin@arssteels.co.in` can't be used: it's only an alias, and Google reports the main address.
 2. You land on **My approvals**. Your name at the top right opens a menu whose **Switch space** section shows Admin and Super Admin.
 
+### G0w. Task Summary: Dashboard, Notes and Files tabs, Request access, profile Tasks card (v1.78.0)
+1. Publish v1.78.0. The migration `202611231200_task_summary_r3.sql` runs on start (no triggers, nothing optional): it adds `NOTES` to `work_views.view_type` and the tables `task_summary_notes` and `task_summary_access_requests`.
+2. Nothing to switch on beyond the existing switches: **Projects phase A** (`pm_foundations`) for Notes, Request access and the profile card; Dashboard tabs also need **phase D** (`pm_reporting`), Files tabs **phase E** (`pm_extras`). No new job or cron entry.
+3. Check: on Task Summary, + offers Dashboard, Files and Notes; a manager sees the Tasks card on a team member's profile.
+
 ### G0v. Task Summary: Share, team members' Task Summary, Customise › Fields, Board and Calendar settings (v1.77.0)
 1. Publish v1.77.0. The migration `202611231100_task_summary_r2.sql` runs on start (no triggers, nothing optional): it adds the table `task_summary_shares`.
 2. Nothing to switch on beyond the existing **Projects phase A** switch (`pm_foundations`). No new job or cron entry.

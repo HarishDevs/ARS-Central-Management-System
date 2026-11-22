@@ -29,7 +29,8 @@ describe("Task Summary sections", () => {
 describe("My Tasks tabs", () => {
   const row = (over: Partial<TabRow>): TabRow => ({ id: 1, type: "LIST", name: "Tab", config: {}, isDefault: false, position: 1024, ...over });
   it("offers List, Board and Calendar only", () => {
-    expect(addableViews("MY_TASKS").map((entry) => entry.type)).toEqual(["LIST", "BOARD", "CALENDAR"]);
+    // v1.78.0 (D-405): Notes too; Dashboard and Files with their switches (tests/work/task-summary-r3.test.ts).
+    expect(addableViews("MY_TASKS").map((entry) => entry.type)).toEqual(["LIST", "BOARD", "CALENDAR", "NOTES"]);
     expect(allowedView("MY_TASKS", "TIMELINE")).toBe(false);
     expect(allowedView("MY_TASKS", "BOARD")).toBe(true);
     expect(allowedView("PROJECT", "OVERVIEW")).toBe(true);

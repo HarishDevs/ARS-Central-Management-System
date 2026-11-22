@@ -66,7 +66,7 @@ export const EVENT_GROUPS: readonly EventGroup[] = [
     label: "Task updates",
     help: "Changes, comments, mentions, completion, due-soon and overdue reminders on tasks you're part of; projects and portfolios you're added to and their status updates.",
     mandatory: false,
-    events: ["WORK_TASK_UPDATED", "WORK_TASK_COMMENT", "WORK_TASK_COMPLETED", "WORK_TASK_REOPENED", "WORK_TASK_CANCELLED", "WORK_TASK_DUE_SOON", "WORK_TASK_OVERDUE", "WORK_TASK_MENTION", "WORK_PROJECT_MEMBER", "WORK_PROJECT_STATUS", "WORK_TASK_DIGEST", "WORK_FORM_SUBMITTED", "WORK_FORM_RECEIVED", "WORK_AUTOMATION", "WORK_AUTOMATION_NOTICE", "WORK_PORTFOLIO_MEMBER", "WORK_PORTFOLIO_STATUS", "WORK_PORTFOLIO_ALERT", "WORK_PROJECT_MESSAGE", "WORK_SUMMARY_SHARED"],
+    events: ["WORK_TASK_UPDATED", "WORK_TASK_COMMENT", "WORK_TASK_COMPLETED", "WORK_TASK_REOPENED", "WORK_TASK_CANCELLED", "WORK_TASK_DUE_SOON", "WORK_TASK_OVERDUE", "WORK_TASK_MENTION", "WORK_PROJECT_MEMBER", "WORK_PROJECT_STATUS", "WORK_TASK_DIGEST", "WORK_FORM_SUBMITTED", "WORK_FORM_RECEIVED", "WORK_AUTOMATION", "WORK_AUTOMATION_NOTICE", "WORK_PORTFOLIO_MEMBER", "WORK_PORTFOLIO_STATUS", "WORK_PORTFOLIO_ALERT", "WORK_PROJECT_MESSAGE", "WORK_SUMMARY_SHARED", "WORK_SUMMARY_ACCESS_REQUEST"],
   },
   // v1.51.0 (D-300): meetings. Invitations and approvals for the Meeting
   // Owner are not listed, so they are always sent.
@@ -178,6 +178,7 @@ export const EVENT_LABEL: Record<string, string> = {
   WORK_PROJECT_MESSAGE: "Project messages, and mentions on a project page",
   WORK_PORTFOLIO_ALERT: "A project in your portfolio goes off track",
   WORK_SUMMARY_SHARED: "Someone shares their Task Summary with you",
+  WORK_SUMMARY_ACCESS_REQUEST: "Someone asks to see your Task Summary",
   MEETING_INVITED: "You're added to a meeting",
   MEETING_UPDATED: "A meeting changes",
   MEETING_CANCELLED: "A meeting is cancelled",

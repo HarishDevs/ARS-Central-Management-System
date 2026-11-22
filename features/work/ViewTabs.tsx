@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, ChevronLeft, ChevronRight, Copy, FileText, GanttChart, Info, LayoutDashboard, LayoutList, Link2, MessagesSquare, MoreHorizontal, Paperclip, Pencil, Plus, SquareKanban, Star, Trash2, Users } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Copy, FileText, GanttChart, Info, LayoutDashboard, LayoutList, Link2, MessagesSquare, MoreHorizontal, Paperclip, Pencil, Plus, SquareKanban, Star, StickyNote, Trash2, Users } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -23,6 +23,7 @@ const VIEW_ICON: Record<string, React.ReactNode> = {
   FILES: <Paperclip className="h-4 w-4" />,
   MESSAGES: <MessagesSquare className="h-4 w-4" />,
   OVERVIEW: <Info className="h-4 w-4" />,
+  NOTES: <StickyNote className="h-4 w-4" />, // v1.78.0 (D-405)
 };
 
 // v1.61.0 (D-367, spec PRJ-15): the project's tab strip. Every tab is a view

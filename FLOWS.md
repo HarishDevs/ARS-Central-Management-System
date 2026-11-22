@@ -2493,6 +2493,32 @@ flowchart TD
 ```
 - 150 lines or more: only the lines near the screen are drawn (spacers keep the scroll height). Every open project view, My Tasks and the task pane refresh every 15 s while visible, on focus, and after a change (paused when hidden or while typing).
 
+## F-TS-R3: Task Summary Dashboard, Notes and Files tabs, Request access, profile Tasks card, Create task draft (v1.78.0, D-405)
+```mermaid
+flowchart TD
+  A[Owner: + Add tab] --> B{Type}
+  B -- Dashboard, pm_reporting --> C[Owner's open tasks + completed in 14/30/90 days AND visibleTaskClause of the viewer<br/>numbers and 5 charts, View as table]
+  B -- Files, pm_extras --> D[record_files on tasks assigned to the owner AND visible to the viewer]
+  B -- Notes --> E{Viewer is the owner?}
+  E -- yes --> F[RichEditor, auto-save 1 s; row_version check: stale save refused, reload asked]
+  E -- no: manager or shared --> G[These notes are private]
+  H[Someone opens ?of=owner] --> I{summaryAccess}
+  I -- refused, owner active --> J[Request access + optional note]
+  J --> K{Open request already?}
+  K -- yes --> K1[No-op, no second notice]
+  K -- no --> L[task_summary_access_requests row; audit TASK_SUMMARY_ACCESS_REQUESTED; notice WORK_SUMMARY_ACCESS_REQUEST to owner]
+  L --> M[Owner: notice link ?share=requests opens Share: Asking for access]
+  M -->|Grant| N[changeShare add: active share, request GRANTED, audit TASK_SUMMARY_SHARED fromRequest, notice WORK_SUMMARY_SHARED]
+  M -->|Decline| O[request DECLINED, audit TASK_SUMMARY_ACCESS_DECLINED; may ask again later]
+  P[Profile /users/people/id] --> Q{summaryAccess OWN / MANAGER / SHARED}
+  Q -- yes --> R[Tasks card: 5 soonest open tasks the viewer may see, total, View all tasks]
+  Q -- no --> S[No card]
+  T[Create task window: typing] --> U[sessionStorage draft, this tab only]
+  U -->|reload| V[Window back minimised: Expand / Discard draft]
+  U -->|Create or Close| W[Draft cleared]
+```
+- Owner's decision (22 Nov 2026): Add tasks with AI is deferred to a later release (not built).
+
 ## F-TS-R2: Share Task Summary, open someone else's read-only (v1.77.0, D-404)
 ```mermaid
 flowchart TD

@@ -289,6 +289,9 @@ export interface WorkTaskItem {
   assigneeDepartment?: string | null; // v1.57.3 (D-341): for Group by Department
   createdBy: number;
   createdByName: string;
+  // v1.78.0 (D-405): the employee codes (User IDs), for person group headings.
+  assigneeCode?: string | null;
+  createdByCode?: string | null;
   dueAt: Date | null;
   startsOn: string | null;
   completedAt: Date | null;
@@ -319,7 +322,7 @@ export interface WorkTaskItem {
 // v1.65.0 (D-373): a link holds its successor back by its type (schedule.ts linkBlocks):
 // FS and FF while the predecessor is open; SS until it has started; SF never.
 export const BLOCKING_LINK = "((dp.dep_type IN ('FS', 'FF') AND bt.status IN ('OPEN', 'IN_PROGRESS', 'BLOCKED')) OR (dp.dep_type = 'SS' AND bt.status IN ('OPEN', 'BLOCKED')))";
-const ITEM_SELECT = `SELECT t.id, t.task_no, t.title, t.status, t.priority, t.assignee_id, a.name AS assignee_name, (SELECT dd.name FROM departments dd WHERE dd.id = a.department_id) AS assignee_department, t.created_by, c.name AS created_by_name, t.due_at, t.starts_on,
+const ITEM_SELECT = `SELECT t.id, t.task_no, t.title, t.status, t.priority, t.assignee_id, a.name AS assignee_name, a.login_id AS assignee_code, (SELECT dd.name FROM departments dd WHERE dd.id = a.department_id) AS assignee_department, t.created_by, c.name AS created_by_name, c.login_id AS created_by_code, t.due_at, t.starts_on,
     t.completed_at, t.created_at, t.updated_at, t.is_milestone, t.parent_task_id, t.assigned_at, LEFT(t.description, 160) AS summary, t.related_request_id, (SELECT rq.request_no FROM approval_requests rq WHERE rq.id = t.related_request_id) AS related_request_no, JSON_CONTAINS_PATH(t.form_data_json, 'one', '$.__approvalWork') AS from_approval, JSON_CONTAINS_PATH(t.form_data_json, 'one', '$.__approvalLink') AS linked_work, (t.recurrence_json IS NOT NULL OR t.series_id IS NOT NULL) AS is_periodic,
     (SELECT COUNT(*) FROM tasks s WHERE s.parent_task_id = t.id AND s.deleted_at IS NULL) AS subtasks,
     (SELECT COUNT(*) FROM tasks s WHERE s.parent_task_id = t.id AND s.deleted_at IS NULL AND s.status IN ('OPEN', 'IN_PROGRESS', 'BLOCKED')) AS subtasks_open,
@@ -358,6 +361,8 @@ async function decorate(rows: Row[], db: Queryable): Promise<WorkTaskItem[]> {
     assigneeDepartment: row.assignee_department ? String(row.assignee_department) : null,
     createdBy: num(row.created_by),
     createdByName: String(row.created_by_name),
+    assigneeCode: row.assignee_code ? String(row.assignee_code) : null,
+    createdByCode: row.created_by_code ? String(row.created_by_code) : null,
     dueAt: (row.due_at as Date | null) ?? null,
     startsOn: dateOnly(row.starts_on),
     completedAt: (row.completed_at as Date | null) ?? null,

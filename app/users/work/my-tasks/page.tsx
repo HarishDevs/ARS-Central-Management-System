@@ -36,6 +36,12 @@ import { listShares, managersAbove, openableSummaries, summaryAccess, summaryFie
 import { parseSummaryBoard, parseSummaryCalendar, summaryListStart, type SummaryAccess } from "@/server/work/summary-views";
 import { ReadOnlyBanner, ShareSummaryButton, SummarySwitcher } from "@/features/work/SummaryShare";
 import { visibleTaskClause } from "@/lib/db/repositories/work.repository";
+import { personRow } from "@/server/work/summary-share";
+import { hasOpenRequest, listAccessRequests, loadSummaryDashboard, loadSummaryFiles, loadSummaryNotes } from "@/server/work/summary-extras";
+import { parseDashboardRange } from "@/server/work/summary-extras-rules";
+import { reportingOn } from "@/server/work/reporting-service";
+import { NotesPrivate, RequestAccess, SummaryDashboard, SummaryNotes } from "@/features/work/SummaryExtras";
+import { FilesTab } from "@/features/work/extras/FilesTab";
 
 export const metadata: Metadata = { title: "Task Summary" };
 export const dynamic = "force-dynamic";
@@ -62,6 +68,8 @@ export default async function MyTasksPage({
     of?: string;
     cal?: string;
     week?: string;
+    share?: string; // v1.78.0 (D-405): "requests" opens Share at the access requests
+    range?: string; // v1.78.0 (D-405): the Dashboard tab's range
   }>;
 }) {
   const { user, viewer } = await workPage();
@@ -77,7 +85,11 @@ export default async function MyTasksPage({
   if (asked !== user.id) {
     if (!pmOn) redirect("/users/work/my-tasks");
     const found = await summaryAccess(viewer, asked);
-    if (!found.access || !found.owner) return <NoAccess />;
+    if (!found.access || !found.owner) {
+      // v1.78.0 (D-405, spec §5.3): an active person's Task Summary may be asked for.
+      const person = await personRow(asked);
+      return <NoAccess ask={person?.active ? { ownerId: person.id, ownerName: person.name, pending: await hasOpenRequest(person.id, user.id) } : null} />;
+    }
     access = found.access;
     ownerName = found.owner.name;
   }
@@ -97,7 +109,10 @@ export default async function MyTasksPage({
   const strip = tabData ? buildStrip(tabData.rows, tabData.tabsSet, tabData.defaultView, MY_TASKS_VIEWS) : [];
   const activeTab = tabData ? pickTab(strip, { tab: params.tab, view: params.view }) : null;
   const activeRow = activeTab?.id ? (tabData?.rows.find((row) => row.id === activeTab.id) ?? null) : null;
-  const view = activeTab ? (activeTab.type.toLowerCase() as "list" | "board" | "calendar") : params.view === "board" || params.view === "calendar" ? params.view : "list";
+  // v1.78.0 (D-405): Dashboard, Files and Notes tabs too (added by the person; not built in).
+  const view = activeTab ? (activeTab.type.toLowerCase() as "list" | "board" | "calendar" | "dashboard" | "files" | "notes") : params.view === "board" || params.view === "calendar" ? params.view : "list";
+  const taskView = view === "list" || view === "board" || view === "calendar";
+  const [reporting, extras] = pmOn ? await Promise.all([reportingOn(user), extrasOn(user)]) : [false, false];
   // v1.76.0 (D-401, owner): each tab chooses its range (Summary window or All
   // my open tasks) and can be grouped by the person's own sections.
   const settings = tabSettings(activeRow?.config);
@@ -213,7 +228,14 @@ export default async function MyTasksPage({
   };
   // v1.77.0 (D-404): the switcher's people, and (own summary) who it is shared with.
   const others = pmOn ? await openableSummaries(viewer) : null;
-  const shareData = pmOn && !readOnly ? { shares: (await listShares(user.id)).map((share) => ({ id: share.id, name: share.name, label: share.label, grantedAt: share.grantedAt.toISOString() })), managers: await managersAbove(user.id) } : null;
+  const shareData = pmOn && !readOnly ? { shares: (await listShares(user.id)).map((share) => ({ id: share.id, name: share.name, label: share.label, grantedAt: share.grantedAt.toISOString() })), managers: await managersAbove(user.id), requests: await listAccessRequests(user.id) } : null;
+  // v1.78.0 (D-405): the Dashboard, Files and Notes tabs' contents (only what this person may see).
+  const dashRange = parseDashboardRange(params.range);
+  const [dashboard, summaryFiles, notes] = await Promise.all([
+    view === "dashboard" && reporting ? loadSummaryDashboard(ownerId, viewer, dashRange, now) : Promise.resolve(null),
+    view === "files" && extras ? loadSummaryFiles(ownerId, viewer) : Promise.resolve(null),
+    view === "notes" && pmOn ? loadSummaryNotes(viewer, ownerId) : Promise.resolve(null),
+  ]);
   // D-219: a task opens in the pane beside the list.
   const links = paneLinks("/users/work/my-tasks", params);
   const paneId = paneTaskId(params.task);
@@ -231,7 +253,7 @@ export default async function MyTasksPage({
           <Avatar name={ownerName} />
         </Link>
         {/* v1.73.0 (D-396, spec S-04): the title's ▾ menu holds the page's actions (the morning email, Table with filters, the calendar feed, Print). */}
-        <MyTasksTitle title={readOnly ? `${ownerName}'s Task Summary` : "Task Summary"} readOnly={readOnly} digestOn={!digestOff} feed={feed !== undefined} csvHref={activeTab ? `/api/work/my-tasks/export?tab=${encodeURIComponent(activeTab.key)}` : "/api/work/my-tasks/export"} />
+        <MyTasksTitle title={readOnly ? `${ownerName}'s Task Summary` : "Task Summary"} readOnly={readOnly} digestOn={!digestOff} feed={feed !== undefined} csvHref={!taskView ? undefined : activeTab ? `/api/work/my-tasks/export?tab=${encodeURIComponent(activeTab.key)}` : "/api/work/my-tasks/export"} />
         {readOnly ? (
           <span className="text-caption text-ink-muted">{settings.range === "all" ? "Their open tasks" : "Their tasks overdue, due today and due in the next 7 days"}, as far as you may see them.</span>
         ) : (
@@ -245,7 +267,16 @@ export default async function MyTasksPage({
         )}
         <span className="ml-auto flex flex-wrap items-center gap-2">
           {others && <SummarySwitcher current={readOnly ? { id: ownerId, name: ownerName } : null} shared={others.shared} team={others.team} />}
-          {shareData && <ShareSummaryButton shares={shareData.shares} managers={shareData.managers} people={gridPeople} meId={user.id} />}
+          {shareData && (
+            <ShareSummaryButton
+              shares={shareData.shares}
+              managers={shareData.managers}
+              people={gridPeople}
+              meId={user.id}
+              requests={shareData.requests.map((request) => ({ requesterId: request.requesterId, name: request.name, label: request.label, note: request.note, requestedAt: request.requestedAt }))}
+              openAtStart={params.share === "requests"}
+            />
+          )}
           {rules && <CustomiseButton rules={{ todayOn: rules.todayOn, upcomingOn: rules.upcomingOn, upcomingDays: rules.upcomingDays }} fields={fieldsChoice ? { hidden: fieldsChoice.hidden, hiddenFields: fieldsChoice.hiddenFields, customFields: (fieldColumns?.views ?? []).map((field) => ({ id: field.id, name: field.name })) } : undefined} />}
           {!readOnly && <CreateTaskButton label="Add task" />}
         </span>
@@ -266,7 +297,7 @@ export default async function MyTasksPage({
       {/* v1.61.0 (D-366): fresh every 15 s while visible, on focus and after changes. */}
       <LiveRefresh />
       <WithPane pane={pane}>
-        {activeTab && <ViewTabs scope="MY_TASKS" base={base} strip={strip} activeKey={activeTab.key} canEdit={!readOnly} label={readOnly ? `${ownerName}'s Task Summary views` : "Task Summary views"} />}
+        {activeTab && <ViewTabs scope="MY_TASKS" base={base} strip={strip} activeKey={activeTab.key} canEdit={!readOnly} label={readOnly ? `${ownerName}'s Task Summary views` : "Task Summary views"} reporting={reporting} extras={extras} />}
         <div className="mb-4 flex flex-wrap items-center gap-2">
           {!activeTab && (
           <nav aria-label="Task Summary views" className="flex flex-wrap gap-1 border-b border-line" data-testid="view-tabs">
@@ -294,15 +325,29 @@ export default async function MyTasksPage({
             ))}
           </nav>
           )}
-          {activeTab && !readOnly && <TabSettingsBar key={`${activeTab.key}:${settings.range}:${settings.sections}`} tabKey={activeTab.key} range={settings.range} sections={settings.sections} board={view === "board"} />}
+          {activeTab && !readOnly && taskView && <TabSettingsBar key={`${activeTab.key}:${settings.range}:${settings.sections}`} tabKey={activeTab.key} range={settings.range} sections={settings.sections} board={view === "board"} />}
           <span className="ml-auto" />
-          {view !== "list" && (
+          {(view === "board" || view === "calendar") && (
             <Link href={link({ done: params.done === "1" ? null : "1" })} className="text-label link">
               {params.done === "1" ? "Hide completed" : "Show completed (last 7 days)"}
             </Link>
           )}
         </div>
-        {view === "calendar" ? (
+        {view === "dashboard" ? (
+          dashboard ? (
+            <SummaryDashboard view={dashboard} readOnly={readOnly} rangeHref={`${activeTab ? tabHref(base, activeTab) : base}&range=`} />
+          ) : (
+            <p className="card px-5 py-8 text-center text-ink-muted">The Dashboard view isn&apos;t switched on yet.</p>
+          )
+        ) : view === "files" ? (
+          summaryFiles ? (
+            <FilesTab files={summaryFiles} taskHref={`${activeTab ? tabHref(base, activeTab) : base}&task=`} messagesHref="" caption={readOnly ? `Files on ${ownerName}'s tasks` : "Files on your tasks"} emptyBody={readOnly ? "Files on their tasks that you may see show here." : "Files added to the tasks given to you show here."} />
+          ) : (
+            <p className="card px-5 py-8 text-center text-ink-muted">The Files view isn&apos;t switched on yet.</p>
+          )
+        ) : view === "notes" ? (
+          notes ? <SummaryNotes initial={notes} /> : <NotesPrivate name={ownerName} />
+        ) : view === "calendar" ? (
           <TaskCalendar
             key={activeTab?.key ?? "calendar"}
             tasks={rows.map((row) => ({
@@ -370,11 +415,13 @@ export default async function MyTasksPage({
 }
 
 // v1.77.0 (D-404): someone else's Task Summary that isn't open to this person.
-function NoAccess() {
+// v1.78.0 (D-405, spec §5.3): with Request access (its owner is told and grants it from Share).
+function NoAccess({ ask }: { ask: { ownerId: number; ownerName: string; pending: boolean } | null }) {
   return (
     <section className="card mx-auto mt-8 max-w-lg px-6 py-8 text-center" data-testid="summary-no-access">
       <h1 className="text-title font-semibold">You can&apos;t open this Task Summary</h1>
-      <p className="mt-2 text-label text-ink-muted">Only its owner, the managers above them and the people they share it with can open it. Ask them to share it with you.</p>
+      <p className="mt-2 text-label text-ink-muted">Only its owner, the managers above them and the people they share it with can open it. {ask ? `Ask ${ask.ownerName} for access.` : "Ask them to share it with you."}</p>
+      {ask && <RequestAccess ownerId={ask.ownerId} ownerName={ask.ownerName} pending={ask.pending} />}
       <Link href="/users/work/my-tasks" className="btn-primary btn-compact mt-4 inline-flex w-auto">
         Go to my Task Summary
       </Link>

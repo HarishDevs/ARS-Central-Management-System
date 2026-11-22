@@ -9,9 +9,10 @@ import { fieldFilterSchema } from "@/server/work/custom-fields";
 // repository stores the rows, the actions check permissions, ViewTabs draws it.
 // v1.67.0 (D-375): DASHBOARD and WORKLOAD tabs ("pm_reporting").
 // v1.71.0 (D-384): FILES, MESSAGES and PAGE tabs ("pm_extras").
-export const TAB_VIEWS = ["OVERVIEW", "LIST", "BOARD", "TIMELINE", "CALENDAR", "GANTT", "DASHBOARD", "WORKLOAD", "FILES", "MESSAGES", "PAGE"] as const;
+// v1.78.0 (D-405): NOTES (a person's private notes; Task Summary tabs only).
+export const TAB_VIEWS = ["OVERVIEW", "LIST", "BOARD", "TIMELINE", "CALENDAR", "GANTT", "DASHBOARD", "WORKLOAD", "FILES", "MESSAGES", "PAGE", "NOTES"] as const;
 export type TabView = (typeof TAB_VIEWS)[number];
-export const TAB_VIEW_LABEL: Record<TabView, string> = { OVERVIEW: "Overview", LIST: "List", BOARD: "Board", TIMELINE: "Timeline", CALENDAR: "Calendar", GANTT: "Gantt", DASHBOARD: "Dashboard", WORKLOAD: "Workload", FILES: "Files", MESSAGES: "Messages", PAGE: "Page" };
+export const TAB_VIEW_LABEL: Record<TabView, string> = { OVERVIEW: "Overview", LIST: "List", BOARD: "Board", TIMELINE: "Timeline", CALENDAR: "Calendar", GANTT: "Gantt", DASHBOARD: "Dashboard", WORKLOAD: "Workload", FILES: "Files", MESSAGES: "Messages", PAGE: "Page", NOTES: "Notes" };
 
 // The "Add tab" catalogue. Views not built yet are listed but hidden
 // (`available: false`), so the catalogue grows without changing its shape.
@@ -23,6 +24,7 @@ export interface CatalogueEntry {
   planning?: boolean; // v1.65.0 (D-373): only with the "pm_planning" switch on
   reporting?: boolean; // v1.67.0 (D-375): only with the "pm_reporting" switch on
   extras?: boolean; // v1.71.0 (D-384): only with the "pm_extras" switch on
+  personal?: boolean; // v1.78.0 (D-405): Task Summary only (never a project tab)
 }
 export const VIEW_CATALOGUE: readonly CatalogueEntry[] = [
   { type: "LIST", label: "List", description: "Tasks in rows, with sections, filters, sort and groups.", available: true },
@@ -36,17 +38,35 @@ export const VIEW_CATALOGUE: readonly CatalogueEntry[] = [
   { type: "FILES", label: "Files", description: "Every file on the project's tasks, form submissions and messages.", available: true, extras: true },
   { type: "MESSAGES", label: "Messages", description: "Conversations with the project's members.", available: true, extras: true },
   { type: "PAGE", label: "Page", description: "The project's brief: one page everyone can read.", available: true, extras: true },
+  { type: "NOTES", label: "Notes", description: "Your own notes, in rich text. Only you can read them.", available: true, personal: true },
 ];
 // v1.63.0 (D-369, PM-A13): My Tasks has its own strip, per person, with the
 // three views My Tasks draws (List, Board, Calendar).
 export type TabScope = "PROJECT" | "MY_TASKS";
 export const MY_TASKS_VIEWS: readonly TabView[] = ["LIST", "BOARD", "CALENDAR"];
+// v1.78.0 (D-405, spec §3.15): a person may also add Dashboard ("pm_reporting"),
+// Files ("pm_extras") and Notes tabs to their Task Summary (not built in).
+export const MY_TASKS_ADDABLE: readonly TabView[] = [...MY_TASKS_VIEWS, "DASHBOARD", "FILES", "NOTES"];
+const MY_TASKS_DESCRIPTION: Partial<Record<TabView, string>> = {
+  DASHBOARD: "Charts and numbers about your own tasks.",
+  FILES: "Every file on the tasks given to you.",
+};
 export const addableViews = (scope: TabScope = "PROJECT", planning = false, reporting = false, extras = false): CatalogueEntry[] =>
-  VIEW_CATALOGUE.filter((entry) => entry.available && (planning || !entry.planning) && (reporting || !entry.reporting) && (extras || !entry.extras) && (scope === "PROJECT" || (MY_TASKS_VIEWS as readonly string[]).includes(entry.type)));
+  VIEW_CATALOGUE.filter(
+    (entry) =>
+      entry.available &&
+      (planning || !entry.planning) &&
+      (reporting || !entry.reporting) &&
+      (extras || !entry.extras) &&
+      (scope === "PROJECT" ? !entry.personal : (MY_TASKS_ADDABLE as readonly string[]).includes(entry.type)),
+  ).map((entry) => {
+    const own = scope === "MY_TASKS" ? MY_TASKS_DESCRIPTION[entry.type as TabView] : undefined;
+    return own ? { ...entry, description: own } : entry;
+  });
 export const REPORTING_VIEWS: readonly TabView[] = ["DASHBOARD", "WORKLOAD"];
 export const EXTRAS_VIEWS: readonly TabView[] = ["FILES", "MESSAGES", "PAGE"];
 export const allowedView = (scope: TabScope, type: unknown, planning = false, reporting = false, extras = false): type is TabView =>
-  isTabView(type) && (planning || type !== "GANTT") && (reporting || !REPORTING_VIEWS.includes(type)) && (extras || !EXTRAS_VIEWS.includes(type)) && (scope === "PROJECT" || MY_TASKS_VIEWS.includes(type));
+  isTabView(type) && (planning || type !== "GANTT") && (reporting || !REPORTING_VIEWS.includes(type)) && (extras || !EXTRAS_VIEWS.includes(type)) && (scope === "PROJECT" ? type !== "NOTES" : MY_TASKS_ADDABLE.includes(type));
 export const isTabView = (value: unknown): value is TabView => typeof value === "string" && (TAB_VIEWS as readonly string[]).includes(value);
 
 export const MAX_PROJECT_TABS = 50;
@@ -233,7 +253,7 @@ export function materialisePlan(strip: readonly StripTab[]): { key: string; id: 
 // the spec's order: Popular (List, Page, Gantt, Board, Calendar, Timeline),
 // then Other (Workload, Dashboard, Files, Messages, Overview).
 const POPULAR_ORDER = ["LIST", "PAGE", "GANTT", "BOARD", "CALENDAR", "TIMELINE"];
-const OTHER_ORDER = ["WORKLOAD", "DASHBOARD", "FILES", "MESSAGES", "OVERVIEW"];
+const OTHER_ORDER = ["WORKLOAD", "DASHBOARD", "FILES", "NOTES", "MESSAGES", "OVERVIEW"];
 export function catalogueGroups(entries: readonly CatalogueEntry[]): { name: "Popular" | "Other"; entries: CatalogueEntry[] }[] {
   const pick = (order: string[]) => order.map((type) => entries.find((entry) => entry.type === type)).filter((entry): entry is CatalogueEntry => Boolean(entry));
   const known = new Set([...POPULAR_ORDER, ...OTHER_ORDER]);

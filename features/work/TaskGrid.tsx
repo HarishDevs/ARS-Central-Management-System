@@ -52,6 +52,7 @@ import {
   type GridConfig,
   type GridGroup,
   type GridGroupOut,
+  type GridSort,
   type GridTask,
   type SortableColumn,
 } from "@/server/work/grid";
@@ -83,6 +84,7 @@ export function TaskGrid({
   initial,
   columns,
   groupsAllowed,
+  sortsHidden = [],
   sections,
   sectionHeader,
   onMove,
@@ -124,6 +126,8 @@ export function TaskGrid({
   initial: GridConfig;
   columns: GridColumn[];
   groupsAllowed: GridGroup[];
+  // v1.78.0 (D-405, BR-MYT-020): sorts left out of the menu (Task Summary: Assignee, always its owner).
+  sortsHidden?: readonly GridSort[];
   sections?: { id: number; name: string }[];
   // v1.72.0 (D-387): the view's group entries come third, for the section's own ⋯ menu.
   sectionHeader?: (section: { id: number; name: string }, count: number, viewItems: MenuItem[]) => React.ReactNode;
@@ -471,7 +475,7 @@ export function TaskGrid({
   const grouping = config.group !== "none" || Boolean(config.groupField);
   const groupName = config.groupField ? (fields.find((field) => field.id === config.groupField)?.name ?? "Field") : groupLabel(config.group);
   // v1.72.0 (D-387, spec PM §3.8.2): the Sort menu in the spec's order, custom fields after the built-in ones, Project last.
-  const sortOrder = sortMenu(SORTS);
+  const sortOrder = sortMenu(SORTS.filter((sort) => !sortsHidden.includes(sort)));
   const sortEntries = [
     ...sortOrder.before.map((sort) => ({ key: sort as string, label: SORT_LABEL[sort] })),
     ...(planning ? fields.map((field) => ({ key: `f${field.id}`, label: field.name })) : []),

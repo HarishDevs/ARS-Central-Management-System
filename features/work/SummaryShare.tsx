@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowLeft, ChevronDown, Eye, Lock, UserMinus, Users } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, Eye, Lock, UserMinus, Users, X } from "lucide-react";
 import { Dialog } from "@/features/ui/Dialog";
 import { Menu, type MenuItem } from "@/features/ui/Menu";
 import { PersonSelect } from "@/features/ui/PersonSelect";
-import { summaryShareAction } from "@/app/users/work/actions";
+import { summaryAccessAnswerAction, summaryShareAction } from "@/app/users/work/actions";
 import { useWorkCall } from "@/features/work/client";
 
 // v1.77.0 (D-404, owner's decision 3; spec §3.4 Manage privacy, §5.3, BR-MYT-014/015):
@@ -18,9 +18,19 @@ export interface SharePerson {
   label: string;
 }
 
-export function ShareSummaryButton({ shares, managers, people, meId }: { shares: (SharePerson & { grantedAt: string })[]; managers: SharePerson[]; people: { id: number; label: string; detail?: string }[]; meId: number }) {
+// v1.78.0 (D-405, spec §5.3): open access requests are listed first, each with
+// Grant (a read-only share, as Invite) and Decline; the request's notice opens
+// the dialog (?share=requests).
+export interface AccessRequestItem {
+  requesterId: number;
+  name: string;
+  label: string;
+  note: string | null;
+  requestedAt: string;
+}
+export function ShareSummaryButton({ shares, managers, people, meId, requests = [], openAtStart = false }: { shares: (SharePerson & { grantedAt: string })[]; managers: SharePerson[]; people: { id: number; label: string; detail?: string }[]; meId: number; requests?: AccessRequestItem[]; openAtStart?: boolean }) {
   const { call, pending } = useWorkCall();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(openAtStart);
   const [chosen, setChosen] = useState<number | null>(null);
   const taken = new Set([meId, ...shares.map((share) => share.id)]);
   const choices = people.filter((person) => !taken.has(person.id));
@@ -32,6 +42,12 @@ export function ShareSummaryButton({ shares, managers, people, meId }: { shares:
     <>
       <button type="button" className="btn-secondary btn-compact" onClick={() => setOpen(true)} data-testid="my-share" aria-haspopup="dialog">
         <Lock aria-hidden="true" className="h-4 w-4" /> Share
+        {requests.length > 0 && (
+          <span className="ml-1 rounded-full bg-primary-50 px-1.5 text-caption font-semibold text-primary-700" data-testid="share-request-count">
+            {requests.length}
+            <span className="sr-only"> {requests.length === 1 ? "access request" : "access requests"}</span>
+          </span>
+        )}
       </button>
       <Dialog
         open={open}
@@ -46,6 +62,30 @@ export function ShareSummaryButton({ shares, managers, people, meId }: { shares:
         }
       >
         <div className="space-y-5">
+          {requests.length > 0 && (
+            <section aria-labelledby="share-requests-head" className="space-y-2">
+              <h3 id="share-requests-head" className="text-label font-semibold">
+                Asking for access
+              </h3>
+              <ul className="divide-y divide-line rounded-lg border border-line" data-testid="share-requests">
+                {requests.map((request) => (
+                  <li key={request.requesterId} className="flex flex-wrap items-center gap-2 px-3 py-2 text-label" data-testid="share-request-row">
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate">{request.label}</span>
+                      {request.note && <span className="block text-caption text-ink-muted">&ldquo;{request.note}&rdquo;</span>}
+                    </span>
+                    <button type="button" className="btn-primary btn-compact" disabled={pending} onClick={() => void call(() => summaryAccessAnswerAction({ requesterId: request.requesterId, decision: "grant" }))} aria-label={`Grant ${request.name} access`} data-testid="share-request-grant">
+                      <Check aria-hidden="true" className="h-4 w-4" /> Grant
+                    </button>
+                    <button type="button" className="btn-secondary btn-compact" disabled={pending} onClick={() => void call(() => summaryAccessAnswerAction({ requesterId: request.requesterId, decision: "decline" }))} aria-label={`Decline ${request.name}'s request`} data-testid="share-request-decline">
+                      <X aria-hidden="true" className="h-4 w-4" /> Decline
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-caption text-ink-muted">Granting shares your Task Summary with them, read-only, as Invite does.</p>
+            </section>
+          )}
           <section aria-labelledby="share-add-head" className="space-y-2">
             <h3 id="share-add-head" className="text-label font-semibold">
               Add people

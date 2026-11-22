@@ -13,6 +13,7 @@ import { RichEditor } from "@/features/ui/RichEditor";
 import { useProjectsOn } from "@/features/work/projects-access";
 import { mentionIds } from "@/features/work/rich-text";
 import { RECURRENCE_KINDS, type Recurrence } from "@/server/work/more-rules";
+import { clearDraft, readDraft, sessionStore, writeDraft, type TaskDraft } from "@/features/work/task-draft-store";
 
 // D-221 (owner): "Create → Task" anywhere in the app opens Asana's Draft
 // task panel (bottom right). Mounted once in the users layout; anything can
@@ -21,7 +22,12 @@ type RailProject = { id: number; name: string; color: string };
 type Person = { id: number; label: string; detail?: string };
 
 export function TaskCreator({ projects, people, meId, ai = false }: { projects: RailProject[]; people: Person[]; meId: number; ai?: boolean }) {
-  const [open, setOpen] = useState<{ projectId: number | null; parentId?: number | null; parentLabel?: string; milestone?: boolean; prefill?: CreateTaskDetail["prefill"]; at?: number } | null>(null);
+  const [open, setOpen] = useState<{ projectId: number | null; parentId?: number | null; parentLabel?: string; milestone?: boolean; prefill?: CreateTaskDetail["prefill"]; at?: number; restored?: TaskDraft } | null>(null);
+  // v1.78.0 (D-405, spec §3.1): a draft kept in this browser tab comes back after a reload, minimised.
+  useEffect(() => {
+    const draft = readDraft(sessionStore());
+    if (draft) setOpen((current) => current ?? { projectId: draft.projectId, restored: draft, at: Date.now() });
+  }, []);
   useEffect(() => {
     const onCreate = (event: Event) => {
       const detail = (event as CustomEvent<CreateTaskDetail | null>).detail;
@@ -55,6 +61,7 @@ export function TaskCreator({ projects, people, meId, ai = false }: { projects: 
       parentLabel={open.parentLabel}
       milestone={Boolean(open.milestone)}
       prefill={open.prefill}
+      restored={open.restored}
       ai={ai}
     />
   ) : null;
@@ -95,6 +102,7 @@ function CreateTaskDialog({
   parentLabel,
   milestone = false,
   prefill,
+  restored,
   ai,
 }: {
   onClose: () => void;
@@ -106,33 +114,45 @@ function CreateTaskDialog({
   parentLabel?: string;
   milestone?: boolean;
   prefill?: CreateTaskDetail["prefill"];
+  restored?: TaskDraft; // v1.78.0 (D-405): a draft kept in this browser tab
   ai: boolean;
 }) {
   const router = useRouter();
   const { call, pending } = useWorkCall();
-  const [title, setTitle] = useState(prefill?.title ?? "");
+  const [title, setTitle] = useState(restored?.title ?? prefill?.title ?? "");
   // v1.73.0 (D-396): "Create and add another" keeps the window open for the next task.
   const [again, setAgain] = useState(false);
   // D-222: an ad hoc task may go to several people (one copy each); a periodic one to one.
   // D-224: for myself by default; "Others" picks people by searching.
-  const [forWhom, setForWhom] = useState<"self" | "others">("self");
-  const [others, setOthers] = useState<number[]>([]);
-  const [due, setDue] = useState("");
-  const [start, setStart] = useState(""); // v1.75.0 (D-399): optional, from the date range picker
+  const [forWhom, setForWhom] = useState<"self" | "others">(restored?.forWhom ?? "self");
+  const [others, setOthers] = useState<number[]>(restored?.others ?? []);
+  const [due, setDue] = useState(restored?.due ?? "");
+  const [start, setStart] = useState(restored?.start ?? ""); // v1.75.0 (D-399): optional, from the date range picker
   const dates = useRef<DateRangeHandle>(null);
-  const [dueTime, setDueTime] = useState("23:59"); // v1.54.7 (owner): 11:59 pm unless changed
+  const [dueTime, setDueTime] = useState(restored?.dueTime ?? "23:59"); // v1.54.7 (owner): 11:59 pm unless changed
   const [project, setProject] = useState<number | "">(defaultProject ?? "");
-  const [description, setDescription] = useState(prefill?.description ?? "");
+  const [description, setDescription] = useState(restored?.description ?? prefill?.description ?? "");
   const [editorKey, setEditorKey] = useState(0); // remounts the editor when Pico Bot (or Undo) replaces the text
   const [periodic, setPeriodic] = useState(false);
   // D-259: priority, set on the new task(s) right after they are made.
-  const [priority, setPriority] = useState<"LOW" | "NORMAL" | "ELEVATED" | "IMPORTANT" | "HIGH" | "URGENT">((["LOW", "NORMAL", "ELEVATED", "IMPORTANT", "HIGH", "URGENT"] as const).find((value) => value === prefill?.priority) ?? "NORMAL");
+  const [priority, setPriority] = useState<"LOW" | "NORMAL" | "ELEVATED" | "IMPORTANT" | "HIGH" | "URGENT">((["LOW", "NORMAL", "ELEVATED", "IMPORTANT", "HIGH", "URGENT"] as const).find((value) => value === (restored?.priority ?? prefill?.priority)) ?? "NORMAL");
   // v1.75.0 (D-400): periodic or ad hoc, for yourself or for others (each person gets their own copy, and each copy repeats).
   const assignees = forWhom === "self" ? [meId] : others;
   const [kind, setKind] = useState<Recurrence["kind"]>("WEEKLY");
   const [every, setEvery] = useState(1);
   const [weekdays, setWeekdays] = useState<number[]>([]);
-  const [small, setSmall] = useState(false);
+  const [small, setSmall] = useState(Boolean(restored)); // a restored draft comes back minimised (Expand / Close)
+  // v1.78.0 (D-405, spec §3.1): a plain task's draft is kept in this browser tab
+  // as it is typed, so a reload doesn't lose it. Cleared on Create and on Close.
+  const keepDraft = parentId === null && !milestone;
+  const closeAndForget = () => {
+    clearDraft(sessionStore());
+    onClose();
+  };
+  useEffect(() => {
+    if (!keepDraft) return;
+    writeDraft(sessionStore(), { title, description, projectId: project === "" ? null : project, due, start, dueTime, forWhom, others, priority });
+  }, [keepDraft, title, description, project, due, start, dueTime, forWhom, others, priority]);
   const [picking, setPicking] = useState<"" | "assignee" | "project" | "due" | "repeat">("");
   const projectsOn = useProjectsOn();
   // D-238: the toolbar's state.
@@ -240,6 +260,7 @@ function CreateTaskDialog({
     const follow = [...new Set([...collaborators, ...mentionIds(body)])].filter((person) => person !== meId && !assignees.includes(person));
     for (const person of follow) await call(() => followAction(id, person, true), { success: false });
     // v1.73.0 (D-396): Create and add another: the window stays, emptied of the task's own words and files.
+    if (keepDraft) clearDraft(sessionStore());
     if (another) {
       setTitle("");
       setDescription("");
@@ -276,7 +297,7 @@ function CreateTaskDialog({
             setPop("");
             return;
           }
-          onClose();
+          closeAndForget();
         }
         if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) void submit();
       }}
@@ -294,7 +315,7 @@ function CreateTaskDialog({
         <button type="button" aria-label={small ? "Expand" : "Minimise"} onClick={() => setSmall((value) => !value)} className="rounded p-1 text-ink-muted hover:bg-surface-muted">
           <ChevronDown aria-hidden="true" className={`h-4 w-4 ${small ? "rotate-180" : ""}`} />
         </button>
-        <button type="button" aria-label="Close" onClick={onClose} className="rounded p-1 text-ink-muted hover:bg-surface-muted">
+        <button type="button" aria-label={restored ? "Discard draft" : "Close"} onClick={closeAndForget} className="rounded p-1 text-ink-muted hover:bg-surface-muted">
           <X aria-hidden="true" className="h-4 w-4" />
         </button>
       </header>
@@ -684,7 +705,7 @@ function CreateTaskDialog({
                 </span>
                 {collaborators.length > 3 && <span>+{collaborators.length - 3}</span>}
               </button>
-              <button type="button" onClick={onClose} className="btn-ghost btn-compact hidden lg:inline-flex">
+              <button type="button" onClick={closeAndForget} className="btn-ghost btn-compact hidden lg:inline-flex">
                 Cancel
               </button>
               {/* v1.73.0 (D-396): a split button: Create task | ▾ Create and add another. */}

@@ -27,7 +27,7 @@ export interface SummaryPerson {
   label: string;
 }
 
-async function personRow(id: number, db: Queryable): Promise<{ id: number; name: string; active: boolean; label: string } | null> {
+export async function personRow(id: number, db: Queryable = getDbPool()): Promise<{ id: number; name: string; active: boolean; label: string } | null> {
   const [rows] = await db.query<Row[]>("SELECT id, name, login_id, active FROM users WHERE id = ?", [id]);
   const row = rows[0];
   return row ? { id: Number(row.id), name: String(row.name), active: Boolean(row.active), label: personLabel({ name: String(row.name), loginId: String(row.login_id) }) } : null;
@@ -105,10 +105,12 @@ export async function changeShare(input: unknown, actor: TaskActor): Promise<Sha
     const [[count]] = await db.query<Row[]>("SELECT COUNT(*) AS n FROM task_summary_shares WHERE owner_id = ? AND revoked_at IS NULL", [actor.id]);
     const problem = shareProblem({ ownerId: actor.id, targetId: userId, targetActive: target ? target.active : null, activeShares: Number(count?.n ?? 0), alreadyShared: active });
     if (problem) return { ok: false, message: problem };
+    // v1.78.0 (D-405): sharing with someone answers their open access request (granted).
+    const [answered] = await db.query<ResultSetHeader>("UPDATE task_summary_access_requests SET resolved_at = UTC_TIMESTAMP(), resolved_by = ?, outcome = 'GRANTED' WHERE owner_id = ? AND requester_id = ? AND resolved_at IS NULL", [actor.id, actor.id, userId]);
     if (active) return { ok: true, message: `${target!.name} can already open it.` };
     if (existing) await db.query<ResultSetHeader>("UPDATE task_summary_shares SET revoked_at = NULL, revoked_by = NULL, granted_by = ?, granted_at = UTC_TIMESTAMP() WHERE id = ?", [actor.id, Number(existing.id)]);
     else await db.query<ResultSetHeader>("INSERT INTO task_summary_shares (owner_id, viewer_id, granted_by) VALUES (?, ?, ?)", [actor.id, userId, actor.id]);
-    await recordAudit({ actorUserId: actor.id, action: "TASK_SUMMARY_SHARED", entityType: "USER", entityId: actor.id, sessionId: actor.sessionId, ipAddress: actor.ipAddress ?? null, metadata: { viewerId: userId } }, db);
+    await recordAudit({ actorUserId: actor.id, action: "TASK_SUMMARY_SHARED", entityType: "USER", entityId: actor.id, sessionId: actor.sessionId, ipAddress: actor.ipAddress ?? null, metadata: { viewerId: userId, ...(answered.affectedRows ? { fromRequest: true } : {}) } }, db);
     const outbox = await insertOutbox(null, [summaryMessages.shared({ id: actor.id, name: actor.name }, userId)], db);
     return { ok: true, message: `Shared with ${target!.name}. They can open it, read-only.`, outbox };
   });

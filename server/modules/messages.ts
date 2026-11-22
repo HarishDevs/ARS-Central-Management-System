@@ -105,6 +105,9 @@ export const automationMessages = {
 export const summaryMessages = {
   shared: (owner: { id: number; name: string }, to: number) =>
     message("WORK_SUMMARY_SHARED", to, `${owner.name} shared their Task Summary with you`, `${owner.name} shared their Task Summary with you, read-only. You see only the tasks in it that you may already see.`, `/users/work/my-tasks?of=${owner.id}`, null),
+  // v1.78.0 (D-405, spec §5.3): someone refused the Task Summary asks its owner for access; the link opens Share with the request.
+  accessRequested: (requester: { id: number; name: string }, to: number, note: string | null) =>
+    message("WORK_SUMMARY_ACCESS_REQUEST", to, `${requester.name} asked to see your Task Summary`, `${requester.name} asked to open your Task Summary, read-only.${note ? ` Their note: "${note}"` : ""} Open Share on your Task Summary to grant or decline it.`, `/users/work/my-tasks?share=requests`, null),
 };
 
 // v1.69.0 (D-382): portfolios. Added to a portfolio; a status update on it

@@ -26,6 +26,7 @@ import { z } from "zod";
 import { changeMyTabs, changeTabs } from "@/server/work/view-tabs-service";
 import { saveRules, startMySections } from "@/server/work/my-rules";
 import { changeShare, saveSummaryFields } from "@/server/work/summary-share";
+import { answerAccessRequest, requestSummaryAccess, saveSummaryNotes } from "@/server/work/summary-extras";
 import { setUserSetting } from "@/lib/db/repositories/user-settings.repository";
 import { CELEBRATION_LABEL, CELEBRATION_SETTING, clampPaneWidth, PANE_SETTING, parseCelebration, SIDEBAR_LISTS, SIDEBAR_SORT_LABEL, SIDEBAR_SORTS, type SidebarList, type SidebarSort } from "@/server/work/pm-rules";
 import { moveSidebarProject, setSidebarSort } from "@/server/work/sidebar";
@@ -829,6 +830,53 @@ export async function summaryFieldsAction(input: unknown): Promise<ActionResult>
     return { ok: false, message: "Couldn't save the columns. Please try again." };
   }
 }
+
+// v1.78.0 (D-405): the Notes tab (the signed-in person's own notes only),
+// Request access (to someone else's Task Summary) and the owner's answer.
+async function actorForSummary(): Promise<TaskActor | null | "OFF"> {
+  const me = await actor();
+  if (!me || (me.modules && !hasModule({ roles: me.roles, modules: me.modules }, "TASK"))) return null;
+  return (await featureOn("pm_foundations", me)) ? me : "OFF";
+}
+export async function summaryNotesAction(input: unknown): Promise<ActionResult & { rowVersion?: number; conflict?: boolean }> {
+  const me = await actorForSummary();
+  if (!me) return NOT_FOUND;
+  if (me === "OFF") return PM_OFF_SUMMARY;
+  try {
+    const result = await saveSummaryNotes(input, me);
+    return result.ok ? { ok: true, message: result.message, rowVersion: result.rowVersion } : { ok: false, message: result.message, conflict: result.conflict };
+  } catch (error) {
+    logError("summaryNotesAction failed", error);
+    return { ok: false, message: "Couldn't save your notes. Please try again." };
+  }
+}
+export async function summaryAccessRequestAction(input: unknown): Promise<ActionResult> {
+  const me = await actorForSummary();
+  if (!me) return NOT_FOUND;
+  if (me === "OFF") return PM_OFF_SUMMARY;
+  try {
+    const result = await requestSummaryAccess(input, me, await workViewer(me));
+    if (result.ok) revalidatePath("/users/work/my-tasks");
+    return result;
+  } catch (error) {
+    logError("summaryAccessRequestAction failed", error);
+    return { ok: false, message: "Couldn't send the request. Please try again." };
+  }
+}
+export async function summaryAccessAnswerAction(input: unknown): Promise<ActionResult> {
+  const me = await actorForSummary();
+  if (!me) return NOT_FOUND;
+  if (me === "OFF") return PM_OFF_SUMMARY;
+  try {
+    const result = await answerAccessRequest(input, me);
+    if (result.ok) revalidatePath("/users/work/my-tasks");
+    return result;
+  } catch (error) {
+    logError("summaryAccessAnswerAction failed", error);
+    return { ok: false, message: "Couldn't answer the request. Please try again." };
+  }
+}
+const PM_OFF_SUMMARY: ActionResult = { ok: false, message: "This isn't switched on yet." };
 
 // ---- v1.62.0 (D-368, PM phase A part 2) ---------------------------------------------------
 // Behind the "pm_foundations" switch: reactions, the task pane's width, the

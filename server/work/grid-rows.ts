@@ -16,6 +16,8 @@ export function toGridTask(item: WorkTaskItem, meId: number, canEdit: boolean, s
     assigneeDepartment: item.assigneeDepartment ?? null,
     createdBy: item.createdBy,
     createdByName: item.createdByName,
+    assigneeCode: item.assigneeCode ?? null,
+    createdByCode: item.createdByCode ?? null,
     dueAt: item.dueAt?.toISOString() ?? null,
     startsOn: item.startsOn,
     createdAt: item.createdAt.toISOString(),

@@ -418,6 +418,7 @@ export function MyTasksGrid({
       columns={["due", "priority", "collaborators", "createdBy", "projects", "visibility"]} // v1.52.1 (owner): Priority beside the due date
       groupsAllowed={mySections ? ["section", "mySection", "createdBy", "project", "due", "priority", "kind"] : ["section", "assignee", "createdBy", "project", "due", "priority", "kind"]}
       groupLabels={mySections ? { section: "Date sections" } : undefined}
+      sortsHidden={["assignee"]}
       sections={sections.map((section) => ({ id: section.id, name: section.name }))}
       mySections={mySections?.map((section) => ({ id: section.id, name: section.name }))}
       sectionHeader={(section, count) => {

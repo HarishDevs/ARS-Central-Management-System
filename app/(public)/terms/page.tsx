@@ -19,7 +19,7 @@ export default function TermsPage() {
     <PublicPage>
       <Prose>
         <h1>Terms of use</h1>
-        <p className="text-label text-ink-muted">Effective 23 November 2026 · approved by the head of IT, 2 November 2026</p>
+        <p className="text-label text-ink-muted">Effective 24 November 2026 · approved by the head of IT, 2 November 2026</p>
         <p>
           ARS CMS (approval.arssteels.net) is provided by {COMPANY} (&ldquo;ARS&rdquo;) for its employees to carry out company work. By signing in you agree to these terms and to ARS&apos;s
           policies that apply to company systems.
@@ -73,6 +73,10 @@ export default function TermsPage() {
           <li>
             Sharing your Task Summary: share it only with people who need to follow your work, and remove them when they no longer do. They see it read-only and only the tasks they may already
             see; your managers in the reporting line can always open it. Opening someone else&apos;s Task Summary is for following their work, not for copying or passing on what you see there.
+          </li>
+          <li>
+            Asking for someone&apos;s Task Summary: ask only when you have a work reason, and accept a refusal. Your Task Summary notes are private to you: don&apos;t keep passwords, card
+            numbers or other people&apos;s personal data in them.
           </li>
           <li>
             Project messages and pages are read by everyone on the project: write them as you would a work email, attach only files you may share with all of them, and @mention only people who should be told. Edits and deletions keep every earlier version, and a page keeps its last 50 versions.
