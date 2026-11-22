@@ -112,7 +112,8 @@ async function main() {
           if (isOptional(statements[index]) && PRIVILEGE_ERRORS.has(error.code)) {
             const what = statements[index].split("\n").find((line) => line.trim() && !line.trim().startsWith("--")) ?? "";
             console.log(`WARNING: skipped optional statement ${index + 1} of ${statements.length} in ${filename} (${what.trim().slice(0, 80)}): ${error.message}`);
-            console.log("  The app works without it. To add it, run database/optional/v190_append_only_triggers.sql once in phpMyAdmin.");
+            // v1.63.1: name the right file (each migration's header says which one).
+            console.log("  The app works without it. To add it, run the matching file in database/optional/ once in phpMyAdmin (the migration's header names it; see docs/DEPLOYMENT.md).");
             await connection.query(
               "INSERT INTO schema_migration_progress (filename, statements_done) VALUES (?, ?) ON DUPLICATE KEY UPDATE statements_done = VALUES(statements_done)",
               [filename, index + 1],

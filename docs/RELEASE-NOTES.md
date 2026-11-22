@@ -1,5 +1,10 @@
 # Release notes
 
+## v1.63.1 (22 Nov 2026): Fix: the app didn't start on GoDaddy after v1.60.0
+- **Cause:** `npm start` runs the database migrations first. The v1.60.0 migration `202611211000_comment_edits.sql` creates triggers without marking them optional; GoDaddy's MySQL refuses triggers for the app's user, the migration stopped, and the app exited ("Process exited before becoming ready").
+- **Fix:** those trigger blocks are now optional, like every other trigger since v1.9.0: the runner skips them with a warning and carries on from where it stopped. A new test fails the build if any migration adds a trigger that isn't optional.
+- **Owner steps:** publish v1.63.1 (Retry build / Update Preview). The pending migrations (v1.60.0 to v1.63.0) then run on start. **Then, once, in phpMyAdmin, run `database/optional/v1600_comment_triggers.sql`**: it removes the old "request comments can't change" trigger if your database has it (otherwise editing or deleting a request comment fails) and adds the comment-history guards.
+
 ## v1.63.0 (22 Nov 2026): Your Home widgets, a private notepad, Task Summary tabs (Project Management phase A, part 3)
 Behind the same feature switch as v1.61.0 and v1.62.0 (**Projects: tabs for every view… (phase A)**), Off until IT turns it on.
 - **A greeting:** Home opens with today's date and "Good morning / afternoon / evening" with your name, on Approvals and on Task Management.

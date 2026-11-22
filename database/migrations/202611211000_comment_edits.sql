@@ -24,6 +24,11 @@ CREATE TABLE comment_versions (
   INDEX idx_comment_versions_comment (target, comment_id, id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Hosted MySQL with binary logging refuses CREATE TRIGGER without SUPER: these
+-- blocks are optional (the runner skips them with a warning; the app works
+-- without them). IT can add them once in phpMyAdmin with
+-- database/optional/v1600_comment_triggers.sql.
+-- @optional
 -- @begin
 CREATE TRIGGER trg_comment_versions_no_update BEFORE UPDATE ON comment_versions
 FOR EACH ROW
@@ -32,6 +37,7 @@ BEGIN
 END;
 -- @end
 
+-- @optional
 -- @begin
 CREATE TRIGGER trg_comment_versions_no_delete BEFORE DELETE ON comment_versions
 FOR EACH ROW
@@ -56,8 +62,12 @@ ALTER TABLE task_comments
 
 -- request_comments: the text may change now (its versions are kept); who wrote
 -- it, on which request and when may not. Rows are still never deleted.
+-- @optional
+-- @begin
 DROP TRIGGER IF EXISTS trg_request_comments_no_update;
+-- @end
 
+-- @optional
 -- @begin
 CREATE TRIGGER trg_request_comments_keep_identity BEFORE UPDATE ON request_comments
 FOR EACH ROW

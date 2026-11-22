@@ -209,6 +209,11 @@ Stops anyone reaching the GoDaddy server directly, around Cloudflare (and faking
 1. https://approval.arssteels.net → **Continue with Google** → **itsupport@arsenergy.co.in** (D-082). The seed created this Super Admin, User ID `itadmin`. `itadmin@arssteels.co.in` can't be used: it's only an alias, and Google reports the main address.
 2. You land on **My approvals**. Your name at the top right opens a menu whose **Switch space** section shows Admin and Super Admin.
 
+### G0i. Startup fix for hosted MySQL (v1.63.1)
+1. Publish v1.63.1. On start, `scripts/database/migrate.js` applies the pending migrations; the trigger blocks of `202611211000_comment_edits.sql` are skipped with a warning when the database user can't create triggers (it resumes from the statement where the failed start stopped).
+2. Once, in cPanel → phpMyAdmin → the app database → SQL, run `database/optional/v1600_comment_triggers.sql`. It drops the old `trg_request_comments_no_update` (which would block comment edits) and adds the comment triggers. Safe to run twice.
+3. Check: open a request, edit one of your comments, and see "(edited)".
+
 ### G0h. Home widgets, private notepad and Task Summary tabs (v1.63.0)
 1. Back up the database, then run `database/migrations/202611221200_pm_a_home_widgets.sql` (after 202611221100). It adds `home_layouts` and `home_notes` (both empty until people customise Home or write a note). Task Summary tabs need no schema change. Rollback inside.
 2. Publish v1.63.0. Everything new is behind the same switch as v1.61.0 and v1.62.0 (**"Projects: tabs for every view, faster list and row density (phase A)"**): the Home greeting and widgets, the notepad, Task Summary tabs and Recently assigned. With it Off, Home and Task Summary are as before.
