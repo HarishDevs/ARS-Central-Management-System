@@ -76,7 +76,7 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
   - [x] PM-B10 (22 Nov 2026) Calendar week view, keyboard moves, No start date panel instead of the no-date drawer (due dates are mandatory) (D-373)
   - [x] PM-B11 (22 Nov 2026) Status updates: title, status, owner, dates, Summary/Next steps, highlights, recipients, Friday reminder job (D-373)
   - [x] PM-B12 (22 Nov 2026) Templates and copies carry every field type, and forms, automations, tabs, dashboard, dependencies (D-383, v1.70.0)
-- [ ] PM-C Phase C forms (v1.66.0, signed-in forms; the public link waits for C-1)
+- [x] PM-C Phase C forms (v1.66.0, signed-in forms) — 22 Nov 2026
   - [x] PM-C1 (22 Nov 2026) Feature switch pm_forms (default OFF; ON in e2e)
   - [x] PM-C2 (22 Nov 2026) System user ARS-CMS Automation (C-10): inactive, no sign-in by any route, hidden from Admin → Users, import and pickers
   - [x] PM-C3 (22 Nov 2026) Builder = the shared Form Designer's "Project intake form" kind: 7 question types + Heading, title, description, cover image, Name/Email read-only, move/drag/keyboard, duplicate, delete
@@ -87,8 +87,8 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
   - [x] PM-C8 (22 Nov 2026) Fill view: themed card, per-type controls, files by picker/drag-drop, client + server validation, live branches, confirmation with View request, submission key, 20 per hour per person per form
   - [x] PM-C9 (22 Nov 2026) Submission → task at the top of the section by the system user: assignee, due, mapped fields (dates too), ID field, description lines + footer link, files, follower, notices, confirmation email, activity story
   - [x] PM-C10 (22 Nov 2026) Forms in Customize (project settings) and the Home Forms widget (forms I may submit, my recent submissions)
-  - [ ] PM-C11 Public no-account link `pm_public_forms` (only if the owner approves C-1: rate limits per IP, challenge, scan decision, privacy/terms)
-- [ ] PM-D Phase D reporting, workload, automations, portfolios
+  - [~] PM-C11 (owner, 22 Nov 2026, D-386: no public forms) Public no-account link `pm_public_forms` (only if the owner approves C-1: rate limits per IP, challenge, scan decision, privacy/terms)
+- [x] PM-D Phase D reporting, workload, automations, portfolios — 22 Nov 2026 (v1.67.0–v1.69.0)
   - [x] PM-D1 (22 Nov 2026) Feature switch pm_reporting ("Projects D, dashboards and workload"; default OFF; ON in e2e)
   - [x] PM-D2 (22 Nov 2026) Dashboard tab type, 8 default widgets written once (projects.dashboard_set), ≤ 20 widgets, number/text widgets
   - [x] PM-D3 (22 Nov 2026) Chart builder: bar, stacked, grouped, line, burnup, burndown, donut, number, lollipop; tasks or time entries; X-axis incl. date units and select/people/date fields; count/sum/average incl. formula and timer; Add metric on one axis; filters incl. field filters; data labels; benchmark; percentage; live preview
@@ -1068,7 +1068,7 @@ Plan: `docs/CHATBOT_IMPLEMENTATION_PLAN.md`; audit: `docs/CHATBOT_ARCHITECTURE_A
 - [x] PB-89 Asana's toolbar look (pills with ×, Search icon, line before Options) on every list incl. Admin → Records (31 Oct 2026, D-228)
 - [x] PB-88 Classic view like Tally for every form, entry screen and report (31 Oct 2026, D-227)
 - [~] PB-81 (toolbar done in PB-87; the numbered, editable table stays for tasks) Same table and toolbar for the Approval and Information lists, if the owner wants the whole app in this style (2 Nov 2026: owner: keep the current Approval and Information lists; closed)
-- [ ] PB-78 Not planned unless asked (Asana spec §5): portfolios, goals, workload, rules builder, forms, guests, integrations, saved view tabs
+- [~] PB-78 (superseded 22 Nov 2026 by the PM plan, D-366..D-385: built) Not planned unless asked (Asana spec §5): portfolios, goals, workload, rules builder, forms, guests, integrations, saved view tabs
 - [x] PB-69 Custom loaders: sign-in to main page, every Classic page change (29 Oct 2026, D-214)
 - [x] PB-70 Classic navigation in and out for every role: Overview back, page titles, Esc out of text boxes, spaces and Quit (29 Oct 2026, D-214)
 - [x] PB-68 Classic keyboard works with closed confirmations on the page (29 Oct 2026, D-213)
