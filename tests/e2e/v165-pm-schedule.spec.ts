@@ -141,8 +141,11 @@ test("Gantt: keyboard and drag rescheduling move dependents (Undo), and a link b
   await expect(page.getByTestId("schedule-row").last()).toContainText(C);
 
   // A link by dragging Charlie's handle onto Bravo: the dialog picks the type.
-  await ganttRow(page, C).hover();
+  // Since v1.74.0 the Slack column widens the grid, so at 1280 px the handle sits past the
+  // chart's visible edge: scroll the chart to it first (as a person would).
   const handle = ganttRow(page, C).getByTestId("link-handle");
+  await handle.scrollIntoViewIfNeeded();
+  await ganttRow(page, C).hover();
   const from = (await handle.boundingBox())!;
   const to = (await bar(page, B).boundingBox())!;
   await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);

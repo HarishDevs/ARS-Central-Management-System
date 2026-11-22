@@ -88,7 +88,7 @@ test("a task is created, started and completed with its note; the assignee hears
   await expect(dropdown.getByTestId("notification-items").getByRole("button").first()).toContainText("Task");
   await dropdown.getByTestId("notification-items").getByRole("button").first().click();
   await expect(page).toHaveURL(taskUrl);
-  await page.getByRole("button", { name: "Start" }).click();
+  await page.getByRole("button", { name: "Start", exact: true }).click();
   await expect(page.getByTestId("record-history")).toContainText(/started/i); // v1.52.2: Asana-style "Name started"
   await page.getByRole("button", { name: "Complete" }).click();
   await page.getByLabel("Completion note").fill("Replaced the seal");
