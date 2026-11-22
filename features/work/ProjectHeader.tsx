@@ -125,7 +125,7 @@ export function ProjectHeader({
             <h2 id="save-template-title" className="font-semibold">
               Save {name} as a template
             </h2>
-            <p className="text-label text-ink-muted">Its sections, fields and tasks (with their dates relative to the start) become a template the project&apos;s people can start new projects from.</p>
+            <p className="text-label text-ink-muted">Its sections, tasks (with their dates relative to the start), fields and settings become a template the project&apos;s people can start new projects from.</p>
             <SaveTemplateForm projectId={projectId} name={name} />
             <button type="button" className="btn-secondary btn-compact" onClick={() => dialog.current?.close()}>
               Cancel

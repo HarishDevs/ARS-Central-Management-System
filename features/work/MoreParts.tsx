@@ -10,6 +10,7 @@ import { PRIVACY, PRIVACY_LABEL } from "@/server/work/access";
 import { ConfirmButton } from "@/features/ui/ConfirmButton";
 import { PersonSelect } from "@/features/ui/PersonSelect";
 import { FIELD_TYPE_LABEL, type FieldView } from "@/server/work/custom-fields";
+import { DEFAULT_DUPLICATE, DUPLICATE_PART_LABEL, DUPLICATE_PARTS, type DuplicatePart } from "@/server/work/template-rules";
 
 // D-218: repeating tasks, custom fields, templates, bulk actions, the inbox
 // and the morning summary switch.
@@ -219,8 +220,29 @@ export function SaveTemplateForm({ projectId, name }: { projectId: number; name:
   );
 }
 
-export function FromTemplateForm({ templates, copyFrom, departments, defaultName }: { templates?: { id: number; name: string }[]; copyFrom?: number; departments: { id: number; name: string }[]; defaultName?: string }) {
+// v1.70.0 (D-383, "pm_extras"): a copy offers what to copy and moves its
+// dates by a number of days; a template's assignee placeholders are given to
+// people (empty = you).
+export function FromTemplateForm({
+  templates,
+  copyFrom,
+  departments,
+  defaultName,
+  extras = false,
+  placeholders = [],
+  people = [],
+}: {
+  templates?: { id: number; name: string }[];
+  copyFrom?: number;
+  departments: { id: number; name: string }[];
+  defaultName?: string;
+  extras?: boolean;
+  placeholders?: { key: string; label: string }[];
+  people?: { id: number; label: string; detail?: string }[];
+}) {
   const { result, pending, onSubmit } = useActionForm(fromTemplateAction);
+  const [parts, setParts] = useState<Record<DuplicatePart, boolean>>(DEFAULT_DUPLICATE);
+  const needsTasks: DuplicatePart[] = ["subtasks", "assignees", "dueDates", "dependencies"];
   return (
     <form onSubmit={onSubmit} className="space-y-3" aria-label={copyFrom ? "Copy this project" : "New project from a template"}>
       {copyFrom ? (
@@ -251,13 +273,25 @@ export function FromTemplateForm({ templates, copyFrom, departments, defaultName
         <FieldError result={result} name="name" />
       </div>
       <div className="grid gap-3 md:grid-cols-3">
-        <div>
-          <label htmlFor={`from-start-${copyFrom ?? "t"}`} className="field-label">
-            Starts on
-          </label>
-          <input id={`from-start-${copyFrom ?? "t"}`} type="date" name="start_on" className="field-input" />
-          <p className="mt-1 text-caption text-ink-muted">Task dates move with it.</p>
-        </div>
+        {copyFrom && extras ? (
+          <div>
+            <label htmlFor={`from-shift-${copyFrom}`} className="field-label">
+              Move every date by (days)
+            </label>
+            <input id={`from-shift-${copyFrom}`} type="number" name="shift_days" min={-3650} max={3650} step={1} defaultValue={0} className="field-input" aria-describedby={`from-shift-help-${copyFrom}`} />
+            <p id={`from-shift-help-${copyFrom}`} className="mt-1 text-caption text-ink-muted">
+              0 keeps the dates; 7 moves everything a week later. Dates on a holiday move to the next working day.
+            </p>
+          </div>
+        ) : (
+          <div>
+            <label htmlFor={`from-start-${copyFrom ?? "t"}`} className="field-label">
+              Starts on
+            </label>
+            <input id={`from-start-${copyFrom ?? "t"}`} type="date" name="start_on" className="field-input" />
+            <p className="mt-1 text-caption text-ink-muted">Task dates move with it.</p>
+          </div>
+        )}
         <div>
           <label htmlFor={`from-privacy-${copyFrom ?? "t"}`} className="field-label">
             Who can see it
@@ -285,10 +319,44 @@ export function FromTemplateForm({ templates, copyFrom, departments, defaultName
           <FieldError result={result} name="department" />
         </div>
       </div>
-      {copyFrom && (
+      {copyFrom && !extras && (
         <label className="flex items-center gap-2 text-label">
           <input type="checkbox" name="copyMembers" /> Copy the members too
         </label>
+      )}
+      {copyFrom && extras && (
+        <fieldset className="rounded-lg border border-line px-3 py-2" data-testid="duplicate-parts">
+          <legend className="px-1 text-label font-semibold">What to copy</legend>
+          <input type="hidden" name="parts" value="1" />
+          <div className="grid gap-x-4 gap-y-1 sm:grid-cols-2">
+            {DUPLICATE_PARTS.map((part) => {
+              const disabled = !parts.tasks && needsTasks.includes(part);
+              return (
+                <label key={part} className={`flex min-h-8 items-center gap-2 text-label ${disabled ? "text-ink-muted" : ""}`}>
+                  <input type="checkbox" name={`part_${part}`} checked={parts[part] && !disabled} disabled={disabled} onChange={(event) => setParts((current) => ({ ...current, [part]: event.target.checked }))} />
+                  {DUPLICATE_PART_LABEL[part]}
+                </label>
+              );
+            })}
+          </div>
+          <p className="mt-1 text-caption text-ink-muted">Without due dates every task is due on the first day (a task always has a due date). Automations come as drafts owned by you, and forms as unpublished drafts.</p>
+        </fieldset>
+      )}
+      {!copyFrom && extras && placeholders.length > 0 && (
+        <fieldset className="rounded-lg border border-line px-3 py-2" data-testid="template-placeholders">
+          <legend className="px-1 text-label font-semibold">Who gets the tasks</legend>
+          <p className="mb-2 text-caption text-ink-muted">Each person in the template is a placeholder. Leave one empty to take those tasks yourself.</p>
+          <div className="grid gap-3 md:grid-cols-2">
+            {placeholders.map((holder) => (
+              <div key={holder.key}>
+                <span id={`assign-${holder.key}-label`} className="field-label">
+                  Tasks of “{holder.label}”
+                </span>
+                <PersonSelect name={`assign_${holder.key}`} options={people} emptyLabel="Me" placeholder="Me" ariaLabel={`Who gets the tasks of ${holder.label}`} />
+              </div>
+            ))}
+          </div>
+        </fieldset>
       )}
       <ResultMessage result={result} />
       <SubmitButton pending={pending}>{copyFrom ? "Copy project" : "Create from template"}</SubmitButton>

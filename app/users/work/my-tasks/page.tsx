@@ -29,6 +29,9 @@ import { workPage } from "@/server/work/page-context";
 import { calendarHolidays } from "@/server/work/holiday-store";
 import { isMobileLayout } from "@/server/ui/layout-mode";
 import { MobileTasks } from "@/features/mobile/MobileTasks";
+import { extrasOn } from "@/server/work/templates";
+import { currentFeed } from "@/server/work/calendar-feeds";
+import { CalendarFeedPanel } from "@/features/work/extras/CalendarFeedPanel";
 
 export const metadata: Metadata = { title: "Task Summary" };
 export const dynamic = "force-dynamic";
@@ -174,6 +177,8 @@ export default async function MyTasksPage({
   const links = paneLinks("/users/work/my-tasks", params);
   const paneId = paneTaskId(params.task);
   const pane = paneId ? <TaskPane taskId={paneId} user={user} closeHref={links.close} /> : null;
+  // v1.70.0 (D-383, "pm_extras"): the person's My Tasks calendar feed.
+  const feed = (await extrasOn(user)) ? await currentFeed("MY_TASKS", null, { id: user.id, name: user.name, roles: user.roles, modules: user.modules, sessionId: "", ipAddress: null }) : undefined;
   return (
     <>
       <header className="mb-4 flex flex-wrap items-center gap-3" data-testid="my-tasks-header">
@@ -293,6 +298,14 @@ export default async function MyTasksPage({
           />
         )}
       </WithPane>
+      {feed !== undefined && (
+        <details className="card mt-6 px-5 py-3" data-testid="my-tasks-feed">
+          <summary className="cursor-pointer font-semibold">Calendar feed</summary>
+          <div className="mt-3">
+            <CalendarFeedPanel scope="MY_TASKS" current={feed ? { hint: feed.hint, createdAt: feed.createdAt.toISOString(), lastUsedAt: feed.lastUsedAt?.toISOString() ?? null } : null} />
+          </div>
+        </details>
+      )}
     </>
   );
 }

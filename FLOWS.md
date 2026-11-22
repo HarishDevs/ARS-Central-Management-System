@@ -1889,6 +1889,54 @@ The application audit (`application-audit/`) found these gaps between flows and 
 - **F-59 Bulk import:** the import doesn't apply the rule that only the Super Admin changes another IT Admin's contact details (AUD-01). Fix planned: V181-A2.
 - **F-121 Page access:** an action posted from an address that is no configured page isn't restricted (AUD-14). Fix planned: V181-A7.
 
+## F-PM-TEMPLATES: Complete templates, gallery, duplicate (v1.70.0, D-383; "pm_extras")
+```mermaid
+flowchart TD
+  A[Project ⋯ → Save as template] --> B{pm_extras on? owner/editor?}
+  B -- switch off --> L[D-218 save: 4 old field types]
+  B -- no right --> X[Refused]
+  B -- yes --> C[captureProject: sections, tasks + subtasks as day offsets from the start, due always set, assignees → placeholders p1.., field defs 11 types + options, values by name/offset/key, dependencies type+lag, tabs, widgets, automation drafts, forms, scheduling, permissions]
+  C --> D[Template row: projects.is_template, template_json v2; members as viewers, saver owner]
+  D --> G[Projects → Project templates: Mine / Organisation (template_shared, IT) / Shared with me]
+  G --> P[Preview: by section, Day N, placeholder]
+  P --> U[Use template: name, start, privacy, department, a person per placeholder]
+  U --> V{Sees it? (member or organisation template)}
+  V -- no --> X
+  V -- yes --> I[instantiate in one transaction]
+  I --> I1[Sections; scheduling; fields: library linked by id, others made locally; formula/lookup refs remapped; permissions remapped]
+  I1 --> I2[Tasks: due = start + offset → next working day; assignee = chosen person if active and allowed by the General type, else the creator]
+  I2 --> I3[Values, dependencies, tabs, widgets; forms as DRAFT with new links; automations as unpublished drafts owned by the creator; ids remapped]
+  I3 --> I4[One notice per person given tasks; project event + audit]
+  S[Settings → Duplicate it: parts ticked, shift N days] --> T{owner/editor?}
+  T -- yes --> C2[captureProject → applyChoice → instantiate with the same people; members and status updates if ticked]
+```
+
+## F-PM-IO: Import and export (v1.70.0, D-383; "pm_extras")
+```mermaid
+flowchart TD
+  E[Settings → Import and export → CSV / Excel / JSON] --> E1{sees the project? JSON: owner/editor}
+  E1 -- yes --> E2[Rows: tasks + subtasks the person sees, List columns + every field as shown; formula-safe cells; audit PROJECT_EXPORTED; 10/min]
+  M[1. Choose file] --> M1{owner/editor? readUpload: .xlsx/.csv ≤ 2 MB}
+  M1 -- yes --> M2[2. Columns + guessed mapping]
+  M2 --> M3[3. Check the rows: planImport dry run: name + due mandatory, dates, people by email/User ID/unique name, priority, options; ≤ 500 rows]
+  M3 --> M4{Rows with problems?}
+  M4 -- yes, not skipped --> M5[Import refused: fix or tick Skip]
+  M4 -- none or skipped --> M6{≤ 10 imports an hour}
+  M6 -- yes --> M7[New sections; each row through quickAddTask (assignee rules, holidays kept) + field values; report per row; audit PROJECT_IMPORTED]
+```
+
+## F-PM-FEED: Calendar feeds (v1.70.0, D-383; "pm_extras")
+```mermaid
+flowchart TD
+  A[Task Summary or Project settings → Calendar feed → Make a calendar address] --> B[256-bit secret; store SHA-256 + last 4; earlier address revoked; shown once]
+  C[Calendar app: GET /api/calendar/secret.ics] --> D{hash known and not revoked? 30/min}
+  D -- no --> N[404]
+  D -- yes --> E{person active, Tasks, pm_extras; project still visible}
+  E -- no --> N
+  E -- yes --> F[Open tasks with a due date the person may see now → all-day VEVENTs, escaped, folded; text/calendar]
+  G[Stop the address] --> H[revoked_at set → 404 from then on]
+```
+
 ## F-PM-PORT: Portfolios (v1.69.0, D-382; "pm_portfolios")
 ```mermaid
 flowchart TD

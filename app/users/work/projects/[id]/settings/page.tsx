@@ -20,6 +20,10 @@ import { projectFormsFor } from "@/server/work/intake-forms";
 import { FormsPanel } from "@/features/work/forms/FormsPanel";
 import { projectRulesFor } from "@/server/work/automations";
 import { AutomationsPanel } from "@/features/work/automations/AutomationsPanel";
+import { extrasOn } from "@/server/work/templates";
+import { currentFeed } from "@/server/work/calendar-feeds";
+import { ImportExportPanel } from "@/features/work/extras/ImportExportPanel";
+import { CalendarFeedPanel } from "@/features/work/extras/CalendarFeedPanel";
 
 export const metadata: Metadata = { title: "Project settings" };
 export const dynamic = "force-dynamic";
@@ -49,6 +53,7 @@ const EVENT_WORD: Record<string, string> = {
   TEMPLATE_SAVED: "Made this template",
   FROM_TEMPLATE: "Made it from a template",
   COPIED: "Made it as a copy",
+  COPY_NOTES: "Noted what didn't come along",
   SCHEDULING: "Changed the scheduling",
   FORM_ADDED: "Added a form",
   FORM_PUBLISHED: "Published a form",
@@ -82,6 +87,9 @@ export default async function ProjectSettingsPage({ params }: { params: Promise<
   const projectForms = await projectFormsFor(project.id, actor);
   // v1.68.0 (D-380): Automations ("pm_automations"): owners and editors.
   const automations = await projectRulesFor(project.id, actor);
+  // v1.70.0 (D-383): "pm_extras": Duplicate with choices, import/export, the calendar feed.
+  const extras = await extrasOn(user);
+  const feed = extras ? await currentFeed("PROJECT", project.id, { ...actor, sessionId: "", ipAddress: null }) : null;
   return (
     <>
       <Breadcrumbs items={[{ href: "/users/work/projects", label: "Projects" }, { href: `/users/work/projects/${project.id}`, label: project.name }, { label: "Members & settings" }]} />
@@ -181,9 +189,25 @@ export default async function ProjectSettingsPage({ params }: { params: Promise<
               </h2>
               <SaveTemplateForm projectId={project.id} name={project.name} />
               <div className="border-t border-line pt-4">
-                <h3 className="mb-2 text-label font-semibold">Copy it as a new project</h3>
-                <FromTemplateForm copyFrom={project.id} departments={activeDepartments} defaultName={`${project.name} (copy)`} />
+                <h3 className="mb-2 text-label font-semibold">{extras ? "Duplicate it" : "Copy it as a new project"}</h3>
+                <FromTemplateForm copyFrom={project.id} departments={activeDepartments} defaultName={`${project.name} (copy)`} extras={extras} />
               </div>
+            </section>
+          )}
+          {extras && (
+            <section className="card px-5 py-4" aria-labelledby="import-export" id="import-export-section">
+              <h2 id="import-export" className="mb-2 font-semibold">
+                Import and export
+              </h2>
+              <ImportExportPanel projectId={project.id} canEdit={can.edit} />
+            </section>
+          )}
+          {extras && (
+            <section className="card px-5 py-4" aria-labelledby="calendar-feed" id="calendar-feed-section">
+              <h2 id="calendar-feed" className="mb-2 font-semibold">
+                Calendar feed
+              </h2>
+              <CalendarFeedPanel scope="PROJECT" projectId={project.id} current={feed ? { hint: feed.hint, createdAt: feed.createdAt.toISOString(), lastUsedAt: feed.lastUsedAt?.toISOString() ?? null } : null} />
             </section>
           )}
           <section className="card space-y-3 px-5 py-4" aria-labelledby="lifecycle">

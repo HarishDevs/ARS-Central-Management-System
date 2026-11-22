@@ -5,12 +5,13 @@ import { PageHeader } from "@/features/shell/PageHeader";
 import { Badge, EmptyState, NoResults } from "@/features/ui/Display";
 import { ProjectDot } from "@/features/work/client";
 import { ProjectCommandButton, StarButton } from "@/features/work/ProjectForms";
-import { countTemplateTasks, parseTemplate } from "@/server/work/more-rules";
+import { countTemplateTasks } from "@/server/work/more-rules";
 import { listDeletedProjects, listTemplates, listVisibleProjects } from "@/lib/db/repositories/work.repository";
 import { PRIVACY_LABEL, STATUS_KIND_LABEL, STATUS_KIND_TONE } from "@/server/work/access";
 import { workPage } from "@/server/work/page-context";
 import { purgeActive } from "@/server/work/purge-status";
 import { purgeText } from "@/server/work/pm-rules";
+import { readLegacyTemplate } from "@/server/work/template-rules";
 
 export const metadata: Metadata = { title: "Projects" };
 export const dynamic = "force-dynamic";
@@ -67,7 +68,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
                       {template.name}
                     </Link>
                     <span className="text-caption text-ink-muted">
-                      {countTemplateTasks(parseTemplate(template.body)?.tasks ?? [])} tasks · {template.ownerName}
+                      {countTemplateTasks(readLegacyTemplate(template.body)?.tasks ?? [])} tasks · {template.ownerName}
                     </span>
                     <Link href={`/users/work/projects/new?template=${template.id}`} className="btn-secondary btn-compact">
                       Use template

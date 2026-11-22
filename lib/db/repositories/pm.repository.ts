@@ -181,6 +181,8 @@ export async function purgeProject(projectId: number, db: Queryable, files: stri
   await db.query("DELETE v FROM portfolio_field_values v JOIN portfolio_items i ON i.id = v.item_id WHERE i.project_id = ?", [projectId]);
   await db.query("DELETE FROM portfolio_items WHERE project_id = ?", [projectId]);
   await db.query("DELETE FROM work_views WHERE scope = 'PROJECT' AND scope_id = ?", [projectId]);
+  // v1.70.0 (D-383): calendar addresses for the project stop with it.
+  await db.query("DELETE FROM calendar_feeds WHERE project_id = ?", [projectId]);
   await db.query("DELETE FROM work_favourites WHERE object_type = 'PROJECT' AND object_id = ?", [projectId]);
   const [result] = await db.query<ResultSetHeader>("DELETE FROM projects WHERE id = ? AND deleted_at IS NOT NULL", [projectId]);
   return result.affectedRows;

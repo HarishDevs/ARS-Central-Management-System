@@ -71,6 +71,8 @@ export const SETTING_DEFINITIONS: readonly SettingDefinition[] = [
   // v1.68.0 (D-380): project automations (rules with triggers, steps and paths, run on the job runner).
   { key: "features.pm_automations", group: "FEATURES", label: "Projects D, automations: rules that act on a project's tasks when something happens, on a schedule or from a webhook (phase D)", valueType: "STRING", encrypted: false, schema: z.enum(["ON", "OFF", "IT_ONLY"]), defaultValue: "OFF" },
   { key: "features.pm_portfolios", group: "FEATURES", label: "Projects D, portfolios: group projects (and other portfolios) to follow their status, task progress, dates and figures in one place (phase D)", valueType: "STRING", encrypted: false, schema: z.enum(["ON", "OFF", "IT_ONLY"]), defaultValue: "OFF" },
+  // v1.70.0 (D-383): phase E part 1.
+  { key: "features.pm_extras", group: "FEATURES", label: "Projects E, templates and extras: complete templates with a gallery, duplicate with choices, import and export (CSV, Excel, JSON), calendar feeds (phase E)", valueType: "STRING", encrypted: false, schema: z.enum(["ON", "OFF", "IT_ONLY"]), defaultValue: "OFF" },
   // Retention (FN10, D-126): 0 = not set, keep for ever. Setting a value only
   // changes the dry run; nothing is archived or deleted automatically.
   { key: "retention.requests_years", group: "RETENTION", label: "Keep finished requests for (years; 0 = keep for ever)", valueType: "NUMBER", encrypted: false, schema: z.coerce.number().int().min(0).max(50), defaultValue: "0" },

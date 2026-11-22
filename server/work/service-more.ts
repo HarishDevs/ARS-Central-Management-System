@@ -27,7 +27,6 @@ import {
   parseDigestSettings,
   parseRecurrence,
   parseRecurrenceSettings,
-  parseTemplate,
   RECURRENCE_SETTINGS_KEY,
   recurrenceLabel,
   shiftDays,
@@ -37,6 +36,7 @@ import {
   type TemplateTask,
 } from "@/server/work/more-rules";
 import { rightsOn, workViewer } from "@/server/work/task-access";
+import { readLegacyTemplate } from "@/server/work/template-rules";
 import * as work from "@/server/work/service";
 import * as fieldsService from "@/server/work/fields-service";
 import * as fieldsRepo from "@/lib/db/repositories/fields.repository";
@@ -185,7 +185,7 @@ export async function createFromTemplate(source: { templateId?: number; copyFrom
   if (source.templateId) {
     const found = await repo.projectFor(source.templateId, viewer);
     if (!found?.project.isTemplate) return fail(NOT_FOUND);
-    template = parseTemplate(await repo.templateBody(source.templateId));
+    template = readLegacyTemplate(await repo.templateBody(source.templateId));
     base = found.project;
   } else if (source.copyFrom) {
     const found = await repo.projectFor(source.copyFrom, viewer);

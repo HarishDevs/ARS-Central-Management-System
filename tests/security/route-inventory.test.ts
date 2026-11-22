@@ -28,6 +28,7 @@ const PUBLIC: Record<string, string> = {
   "app/api/push/resubscribe/route.ts": "service worker re-subscription (D-252): proven by the old endpoint, swaps only that row's endpoint and keys, rate-limited per IP",
   "app/api/webhooks/google-calendar/route.ts": "Google push notifications: channel id, resource id and hashed token must match, rate-limited",
   "app/api/webhooks/ceoitbox/route.ts": "provider receipts: shared secret compared in constant time, rate-limited",
+  "app/api/calendar/[token]/route.ts": "calendar feed (D-383): 256-bit secret address (only its SHA-256 hash stored; rotate and stop by its owner), read-only, 30 a minute per address, contents decided at request time by the person's current rights; off with the switch",
   "app/api/webhooks/automations/[token]/route.ts": "project automation webhook (D-380): 128-bit address token plus the rule's secret (HMAC-SHA256 signature or bearer, constant time), 60 a minute per rule, every call logged; off with the switch",
 };
 

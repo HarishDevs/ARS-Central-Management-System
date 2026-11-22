@@ -15,7 +15,7 @@ import { sessionCookieLooksValid } from "@/lib/security/session-cookie-edge";
 // Next.js reads the nonce from the request's CSP header and adds it to its
 // own scripts, so every page is rendered per request (root layout is dynamic).
 // v1.12.2: "/" (the public home page), "/privacy" and "/terms" are public (Google OAuth verification).
-const PUBLIC_PREFIXES = ["/", "/try", "/privacy", "/terms", "/login", "/signed-out", "/set-password", "/forgot-password", "/security", "/api/auth", "/api/jobs", "/api/health", "/api/webhooks", "/api/push/resubscribe", "/sw.js", "/offline.html", "/_next", "/brand", "/branding", "/animations", "/icons", "/manifest.webmanifest", "/favicon.ico", "/icon.svg", "/robots.txt", "/sitemap.xml"];
+const PUBLIC_PREFIXES = ["/", "/try", "/privacy", "/terms", "/login", "/signed-out", "/set-password", "/forgot-password", "/security", "/api/auth", "/api/jobs", "/api/health", "/api/webhooks", "/api/calendar", "/api/push/resubscribe", "/sw.js", "/offline.html", "/_next", "/brand", "/branding", "/animations", "/icons", "/manifest.webmanifest", "/favicon.ico", "/icon.svg", "/robots.txt", "/sitemap.xml"];
 // QA-SEC-02 (v1.42.1): GET routes that store something (OAuth connect and callback).
 const WRITING_GETS = ["/api/integrations/"];
 
@@ -47,7 +47,8 @@ const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 // attachments and the PDF summary, RD-02); the page policy mustn't replace it.
 const FILE_ROUTE = /^\/api\/(attachments\/\d+|requests\/\d+\/summary\.pdf)$/;
 // Called by machines, not browsers: the cron job and the provider webhook.
-const MACHINE_APIS = ["/api/jobs/", "/api/webhooks/"];
+// v1.70.0 (D-383): calendar apps fetching a feed (GET only, secret address).
+const MACHINE_APIS = ["/api/jobs/", "/api/webhooks/", "/api/calendar/"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

@@ -395,6 +395,19 @@ These are called by machines. The middleware's cross-site check doesn't apply to
 - The full `jobs/run` report shape and the CEOITBox receipt body format were not traced.
 - Which modules the page rules need (for example for Pic bot) is decided in `server/authorization/page-access.ts` and the page catalogue, not in the routes.
 
+## GET /api/calendar/{secret}.ics (v1.70.0, D-383)
+
+A person's calendar feed (iCalendar, RFC 5545) for calendar apps. Public (no session): the `{secret}` (43 characters, 256 random bits, base64url; `.ics` optional) is the key. It is shown once when the person makes it (**Task Summary → Calendar feed** or **Project settings → Calendar feed**); only its SHA-256 hash is stored. Making a new one stops the old one; **Stop the address** stops it.
+
+- **Answer:** `200` with `Content-Type: text/calendar; charset=utf-8`, `Cache-Control: private, no-store`: a `VCALENDAR` (`X-WR-CALNAME` "My Tasks (ARS-CMS)" or "<project> (ARS-CMS)", refresh hint 1 hour) with one all-day `VEVENT` per open task (Open, In progress, Blocked) with a due date, on its due day (India): `UID task-<id>@ars-cms`, `SUMMARY` "<task number> <title>", `DESCRIPTION` assignee, priority and link, `URL`. At most 1,000 events, soonest first. Text is escaped and lines folded at 75 octets.
+- **What it lists is decided at each request:** My Tasks = open tasks assigned to the person; a project = the project's open tasks and subtasks the person may see now. The person must still be active, with Tasks (and Projects for a project feed), and the **Projects E** switch on; the project must still be visible to them.
+- **Errors:** `404` (plain text) for an unknown, stopped or no-longer-allowed address; `429` more than 30 requests a minute for one address.
+- Read-only: there is no way to change anything through it.
+
+## GET /api/work/projects/{id}/export?format=csv|xlsx|json (v1.70.0, D-383)
+
+Signed in (users area, Tasks, Projects module, **Projects E** switch). `csv` and `xlsx`: anyone who sees the project; the List's columns (Task ID, Name, Section, Assignee, Assignee email, Due date, Start date, Priority, Status, Completed on, Parent task, Tags, Description) and every custom field as shown, for tasks and subtasks the person may see (CSV with a BOM; cells that start with = + - @ are prefixed with ' so spreadsheets don't run them). `json`: owners and editors; the full structure in the template shape (`version: 2`, see DATA_MODEL). `404` not found, `403` not allowed, `429` more than 10 downloads a minute. Audited (`PROJECT_EXPORTED`).
+
 ## POST /api/webhooks/automations/{token} (v1.68.0, D-380)
 
 The incoming webhook of one project automation whose trigger is **Web request received**. Public (no session); the `{token}` (22 characters, 128 random bits) is shown on the rule's page after publishing. "Not found" (404) for an unknown token, a rule that isn't a published webhook rule, or while the **Projects D, automations** switch is Off.

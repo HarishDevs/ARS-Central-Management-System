@@ -39,6 +39,8 @@ export async function usersNav(user: { id: number; roles: readonly string[] }): 
           { href: "/users/work/projects", label: "Projects", section: "Projects" },
           // v1.69.0 (D-382): portfolios, with the "pm_portfolios" switch.
           ...(features.pm_portfolios ? [{ href: "/users/work/portfolios", label: "Portfolios", section: "Projects" }] : []),
+          // v1.70.0 (D-383): the template gallery, with the "pm_extras" switch.
+          ...(features.pm_extras ? [{ href: "/users/work/templates", label: "Project templates", section: "Projects" }] : []),
           { href: "/users/work/search", label: "Task search", section: "Tasks" },
           // D-219: repeating tasks have their own list.
           { href: "/users/work/periodic", label: "Periodic tasks", section: "Tasks" },

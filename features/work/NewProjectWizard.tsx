@@ -8,6 +8,7 @@ import { FieldError, ResultMessage, SubmitButton, useActionForm } from "@/featur
 import { COLOR_HEX } from "@/features/work/client";
 import { PRIVACY, PRIVACY_LABEL, PROJECT_COLORS } from "@/server/work/access";
 import { RichEditor } from "@/features/ui/RichEditor";
+import { PersonSelect } from "@/features/ui/PersonSelect";
 
 // D-220 (owner: "create project like Asana, page by page"): 1. how to start
 // (blank or a template), 2. name, department, who can see it and the default
@@ -21,7 +22,20 @@ const VIEW_CARDS = [
   { key: "CALENDAR", label: "Calendar", icon: CalendarDays, hint: "Tasks on their due dates" },
 ] as const;
 
-export function NewProjectWizard({ templates, departments, myDepartmentId, startTemplate }: { templates: { id: number; name: string; tasks: number; sections: string[] }[]; departments: { id: number; name: string }[]; myDepartmentId: number | null; startTemplate: number | null }) {
+// v1.70.0 (D-383, "pm_extras"): a template's people placeholders are given to people here (empty = you).
+export function NewProjectWizard({
+  templates,
+  departments,
+  myDepartmentId,
+  startTemplate,
+  people = [],
+}: {
+  templates: { id: number; name: string; tasks: number; sections: string[]; placeholders?: { key: string; label: string }[]; shared?: boolean }[];
+  departments: { id: number; name: string }[];
+  myDepartmentId: number | null;
+  startTemplate: number | null;
+  people?: { id: number; label: string; detail?: string }[];
+}) {
   const [step, setStep] = useState<Step>(startTemplate ? "template" : "start");
   const [template, setTemplate] = useState<number | null>(startTemplate);
   const [name, setName] = useState("");
@@ -265,6 +279,20 @@ export function NewProjectWizard({ templates, departments, myDepartmentId, start
                 </select>
               </div>
             </div>
+          )}
+          {chosen?.placeholders && chosen.placeholders.length > 0 && (
+            <fieldset className="rounded-lg border border-line px-3 py-2" data-testid="template-placeholders">
+              <legend className="px-1 text-label font-semibold">Who gets the tasks</legend>
+              <p className="mb-2 text-caption text-ink-muted">Each person in the template is a placeholder. Leave one empty to take those tasks yourself.</p>
+              <div className="grid gap-3 md:grid-cols-2">
+                {chosen.placeholders.map((holder) => (
+                  <div key={`${chosen.id}-${holder.key}`}>
+                    <span className="field-label">Tasks of “{holder.label}”</span>
+                    <PersonSelect name={`assign_${holder.key}`} options={people} emptyLabel="Me" placeholder="Me" ariaLabel={`Who gets the tasks of ${holder.label}`} />
+                  </div>
+                ))}
+              </div>
+            </fieldset>
           )}
           <ResultMessage result={fromTemplate.result} />
           <div className="flex gap-2">

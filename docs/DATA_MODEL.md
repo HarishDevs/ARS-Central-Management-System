@@ -1091,6 +1091,16 @@ Times are stored in UTC (`DATETIME`, set by `CURRENT_TIMESTAMP` or the app). Ind
 - `meeting_open_points` (text, owner, review date, OPEN/CLOSED with note, `carried_from_id`) and `meeting_events` (history, reminders).
 - `tasks.meeting_id`: the meeting an action-item task came from (FK, indexed).
 
+## Templates, import/export and calendar feeds (v1.70.0, D-383; migration 202611221900_pm_e_extras.sql)
+
+| Table / column | Key columns | Notes |
+|---|---|---|
+| `projects.template_json` (v2) | `{version: 2, project, sections, fields, placeholders, tasks, dependencies, tabs, widgets, automations, forms}` (`server/work/template-rules.ts` `templateV2Schema`) | Saved by **Save as template** (a project row with `is_template` = TRUE) and given by the JSON export. Dates are days from the start (`dueOffset` always set); field values travel by option name / days / person id / template task key; ids inside settings are the source project's and are remapped (`remapRefs`) when a project is made. D-218 bodies (no `version`) are read by `parseTemplateBody` (upgraded) and shown by the old screens through `legacyView`. |
+| `projects.template_shared` | BOOLEAN, default FALSE | IT's "organisation template": everyone with Projects sees and uses it. |
+| `calendar_feeds` | `id`, `user_id` → users, `scope` MY_TASKS/PROJECT, `project_id` → projects (PROJECT), `token_hash` CHAR(64) UNIQUE (SHA-256 of the secret), `token_hint` (last 4 characters), `created_at`, `last_used_at`, `revoked_at` | One live address per person and calendar (making a new one revokes the old). The secret is never stored. Deleted with the project by the 30-day purge. |
+
+Setting: `features.pm_extras` (ON / OFF / IT_ONLY, default OFF). Imports and exports store nothing of their own: imported rows become ordinary tasks (audit `PROJECT_IMPORTED` with the file name and counts), exports are built on request (audit `PROJECT_EXPORTED`). Audit actions also: `PROJECT_FROM_TEMPLATE`, `PROJECT_DUPLICATED`, `PROJECT_TEMPLATE_RENAMED/DELETED/SHARED/UNSHARED`, `CALENDAR_FEED_CREATED/ROTATED/REVOKED`.
+
 ## Portfolios (v1.69.0, D-382; migration 202611221800_pm_d_portfolios.sql)
 
 | Table | Key columns | Notes |

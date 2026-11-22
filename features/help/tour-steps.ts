@@ -156,6 +156,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
       "Add a Dashboard tab for charts of the project's tasks (View as table shows the figures), and a Workload tab to see who has too much work against their capacity.",
       "Add automations (settings → Automations): when something happens to a task, a rule moves it, changes fields, comments or tells people for you; check its Run log.",
       "Portfolios group projects so you can follow their status and task progress together (List, Timeline, Progress, Dashboard); you only ever see the projects you already have access to.",
+      "Save a project as a template (Project templates lists yours and the organisation's), Duplicate it with what to copy, import tasks from Excel or CSV, and add your tasks to your own calendar with a Calendar feed.",
     ],
     path: "/users/work/projects",
     target: HEADER,

@@ -17,6 +17,7 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 **Multi-level approvals in any custom manner.** The engine must support any number of levels in any combination: sequential, parallel, any-one, any-N-of-M, conditional and hybrid. Approvers can come from any source, and levels can be added or skipped by rules. Build the engine for this from the first engine phase (P2). The drag-and-drop designer (P3) is only the screen for building it. Check every task against this.
 
 ## Now / Next
+- **Now (22 Nov 2026):** **v1.70.0** PM phase E part 1: complete templates (every part of a project) with a gallery, Duplicate with choices, import (mapping, dry run, row report) and export (CSV, Excel, JSON), calendar feeds (D-383). **Owner:** back up, publish (migration 202611221900_pm_e_extras.sql runs on start), switch "Projects E, templates and extras" on for IT only, try it (DEPLOYMENT G0p), then On. **Next:** phase E part 2 (Files tab, Messages, Page, time tracking); PM-E items listed under "Not built" in D-383 when asked.
 - **Now (22 Nov 2026):** **v1.69.0** PM phase D part 3: portfolios (wizard, List with roll-ups and masking of projects the viewer can't see, nesting ≤ 5 levels, own columns, Progress with status updates, quarter Timeline, Dashboard roll-ups, star, Ctrl K, notices, 30-day purge) (D-382). **Owner:** back up, publish (migration 202611221800_pm_d_portfolios.sql runs on start), switch "Projects D, portfolios" on for IT only, try it, then On (DEPLOYMENT G0o). **Next:** PM-B12 and phase E (PM-E); portfolio items listed under "Not built" in D-382 when asked.
 - **Now (22 Nov 2026):** **v1.68.1** purge note capped at 30 days (D-381). **Owner:** publish (no migration).
 - [x] OPS-33 (22 Nov 2026) Deleted pages: "in 31 days" from clock skew
@@ -59,7 +60,7 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
   - [x] PM-A12 (22 Nov 2026) Home greeting and widget sections (from PM-A10): greeting with date, customisable widgets (add, remove, keyboard and drag reorder, half/full, reset), My Tasks, Tasks I've assigned, Projects Recent/Starred, status updates, People, private notepad; Forms slot hidden until phase C (D-369)
   - [x] PM-A13 (22 Nov 2026) My Tasks: tab management like project tabs, per person (List/Board/Calendar, rename, default, duplicate, copy link, remove, keyboard reorder, Save view / Reset), Recently assigned section (D-369)
   - [x] PM-A14 (22 Nov 2026) Home widgets for people without the Approval module: the widget board first, their modules below (D-373)
-- [ ] PM-B Phase B planning and data (in progress: part 1 in v1.64.0, part 2 in v1.65.0; PM-B12 left)
+- [x] PM-B Phase B planning and data (22 Nov 2026: part 1 in v1.64.0, part 2 in v1.65.0, PM-B12 in v1.70.0)
   - [x] PM-B1 (22 Nov 2026) Feature switch pm_planning (default OFF; ON in e2e)
   - [x] PM-B2 (22 Nov 2026) Custom fields, 11 types: text, number (formats, decimals), single/multi-select (colours, reorder), date (time), people, formula (own parser, no eval), ID (prefix, sequence), timer, reference, lookup (D-371)
   - [x] PM-B3 (22 Nov 2026) Typed value storage; v1.63 values copied side by side; old column kept until the owner confirms (G0j)
@@ -71,7 +72,7 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
   - [x] PM-B9 (22 Nov 2026) Editable Timeline and a Gantt tab: scale/zoom, today line, off-day shading, drag/resize/keyboard, connectors, link by drag or keys, Blocked by column, milestones, sections, windowing (D-373)
   - [x] PM-B10 (22 Nov 2026) Calendar week view, keyboard moves, No start date panel instead of the no-date drawer (due dates are mandatory) (D-373)
   - [x] PM-B11 (22 Nov 2026) Status updates: title, status, owner, dates, Summary/Next steps, highlights, recipients, Friday reminder job (D-373)
-  - [ ] PM-B12 Templates and copies carry every field type (from D-371)
+  - [x] PM-B12 (22 Nov 2026) Templates and copies carry every field type, and forms, automations, tabs, dashboard, dependencies (D-383, v1.70.0)
 - [ ] PM-C Phase C forms (v1.66.0, signed-in forms; the public link waits for C-1)
   - [x] PM-C1 (22 Nov 2026) Feature switch pm_forms (default OFF; ON in e2e)
   - [x] PM-C2 (22 Nov 2026) System user ARS-CMS Automation (C-10): inactive, no sign-in by any route, hidden from Admin → Users, import and pickers
@@ -104,7 +105,16 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
     - [x] PM-D9h (22 Nov 2026) Notices: added to a portfolio, status update posted, project in it set Off track (owners who can see it)
     - [x] PM-D9i (22 Nov 2026) 30-day purge of portfolios; a purged project leaves every portfolio; purge-coverage guard extended
     - [ ] PM-D9j Later (not built, D-382): saved/added tabs, Workload and Messages tabs, share project access with members, access requests, rollup formula fields, portfolio dashboard builder, goals, AI summary, export
-- [ ] PM-E Phase E backlog
+- [ ] PM-E Phase E backlog (part 1 in v1.70.0, D-383)
+  - [x] PM-E1 (22 Nov 2026) Feature switch pm_extras ("Projects E, templates and extras"; default OFF; ON in e2e)
+  - [x] PM-E2 (22 Nov 2026) Template v2: sections, tasks/subtasks with day offsets (due mandatory), placeholders, 11 field types + options (library by reference), values, dependencies (type + lag), tabs, dashboard widgets, automations (drafts, creator owns, never published), forms (unpublished drafts), scheduling and permissions; ids remapped; D-218 templates still read
+  - [x] PM-E3 (22 Nov 2026) Template gallery (mine / organisation (IT shares) / shared with me), preview, use with placeholder people, rename, delete
+  - [x] PM-E4 (22 Nov 2026) Duplicate with component checkboxes (status updates off by default) and shift by N days
+  - [x] PM-E5 (22 Nov 2026) Export CSV / Excel (List columns + custom fields) / JSON (template shape)
+  - [x] PM-E6 (22 Nov 2026) Import CSV / Excel: column mapping, dry run with row errors, skip rows with problems, new sections, 500 rows / 2 MB / 10 an hour
+  - [x] PM-E7 (22 Nov 2026) Calendar feeds (iCal) for My Tasks and per project: hashed secret, rotate, revoke, visibility at request time; API_REFERENCE
+  - [ ] PM-E8 Phase E part 2: Files tab, Messages, Page, time tracking
+  - [ ] PM-E9 Later (not built, D-383): JSON import as a new project, subtasks in CSV import, template versions, feeds with completed tasks
 - **Now (21 Nov 2026):** **v1.60.0** edit and delete every comment, versions kept (D-365). **Owner:** back up, run migration 202611211000_comment_edits.sql (and 202611201000 first if v1.59.3 isn't live), publish.
 - [x] COL-12 (21 Nov 2026) Edit and delete on request comments, ticket remarks and task comments (author and IT), every earlier version kept and shown
 - [x] TSK-60 (20 Nov 2026) Add subtask button and the + open the Create task window for a subtask

@@ -24,7 +24,7 @@ import { ProjectCommandButton, RemoveStatusButton, StatusForm } from "@/features
 import { ProjectHeader } from "@/features/work/ProjectHeader";
 import { FromTemplateForm } from "@/features/work/MoreParts";
 import { listDepartments } from "@/lib/db/repositories/organisation.repository";
-import { countTemplateTasks, parseTemplate, type TemplateTask } from "@/server/work/more-rules";
+import { countTemplateTasks, type TemplateTask } from "@/server/work/more-rules";
 import { indiaDayOf } from "@/features/work/format";
 import { listChildTasks, listProjectTabs, listWorkViews, workDensity, listProjectTasks, listSections, listStatusUpdates, projectCounts, projectFor, templateBody, touchRecentProject } from "@/lib/db/repositories/work.repository";
 import { getDbPool } from "@/lib/db/client";
@@ -42,6 +42,9 @@ import { FieldDialogHost } from "@/features/work/FieldDialog";
 import { Dashboard } from "@/features/work/reporting/Dashboard";
 import { Workload } from "@/features/work/reporting/Workload";
 import { loadDashboard, loadWorkload, reportingOn } from "@/server/work/reporting-service";
+import { readLegacyTemplate } from "@/server/work/template-rules";
+import { extrasOn, templateFor } from "@/server/work/templates";
+import { TemplatePreview } from "@/features/work/extras/TemplatePreview";
 
 export const metadata: Metadata = { title: "Project" };
 export const dynamic = "force-dynamic";
@@ -83,12 +86,21 @@ export default async function ProjectPage({
   const { id } = await params;
   if (!/^\d{1,10}$/.test(id)) notFound();
   const found = await projectFor(Number(id), viewer);
+  // v1.70.0 (D-383): with "pm_extras" on, a template opens as its full preview
+  // (an organisation template for everyone with Projects).
+  if ((!found || found.project.isTemplate) && viewer.projects !== false && (await extrasOn(user))) {
+    const shown = await templateFor(Number(id), { id: user.id, name: user.name, roles: user.roles, modules: user.modules, sessionId: "", ipAddress: null });
+    if (shown) {
+      const [allDepartments, people] = await Promise.all([listDepartments(), shown.template.placeholders.length ? peopleOptions() : Promise.resolve([])]);
+      return <TemplatePreview item={shown.item} template={shown.template} departments={allDepartments.filter((department) => department.active).map((department) => ({ id: department.id, name: department.name }))} people={people} />;
+    }
+  }
   if (!found) notFound();
   const { project, members, role } = found;
   const can = projectAbilities(role);
   // D-218: a template shows what it holds and makes projects.
   if (project.isTemplate) {
-    const template = parseTemplate(await templateBody(project.id));
+    const template = readLegacyTemplate(await templateBody(project.id));
     const departments = (await listDepartments()).filter((department) => department.active).map((department) => ({ id: department.id, name: department.name }));
     const lines = (tasks: TemplateTask[], level = 0): React.ReactNode[] =>
       tasks.flatMap((task, index) => [

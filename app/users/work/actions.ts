@@ -13,6 +13,8 @@ import * as repo from "@/lib/db/repositories/work.repository";
 import { parseWorkSearch, workSearchQuery } from "@/server/work/rules";
 import { workViewer } from "@/server/work/task-access";
 import * as more from "@/server/work/service-more";
+import * as templates from "@/server/work/templates";
+import { DUPLICATE_PARTS, readDuplicateChoice } from "@/server/work/template-rules";
 import * as fieldsService from "@/server/work/fields-service";
 import { parseGridConfig } from "@/server/work/grid";
 import { projectAbilities } from "@/server/work/access";
@@ -511,7 +513,8 @@ export async function fieldTaskSearchAction(q: string): Promise<ActionResult & {
 export async function saveTemplateAction(_previous: ActionResult | null, formData: FormData): Promise<ActionResult> {
   const projectId = id(text(formData, "projectId"));
   if (!projectId) return NOT_FOUND;
-  const result = await runProject("saveTemplate", await actorForProjects(), (me) => more.saveAsTemplate(projectId, text(formData, "name"), me));
+  // v1.70.0 (D-383): with "pm_extras" on, a complete template (every part of the project).
+  const result = await runProject("saveTemplate", await actorForProjects(), async (me) => ((await templates.extrasOn(me)) ? templates.saveTemplate(projectId, text(formData, "name"), me) : more.saveAsTemplate(projectId, text(formData, "name"), me)));
   if (!result.ok || !result.value) return result;
   redirect(`/users/work/projects/${(result.value as { id: number }).id}`);
 }
@@ -520,7 +523,25 @@ export async function fromTemplateAction(_previous: ActionResult | null, formDat
   const templateId = id(text(formData, "templateId"));
   const copyFrom = id(text(formData, "copyFrom"));
   if (!templateId && !copyFrom) return { ok: false, message: "Choose a template.", fieldErrors: { templateId: "Choose a template." } };
-  const result = await runProject("fromTemplate", await actorForProjects(), (me) =>
+  const details = { name: text(formData, "name"), startOn: text(formData, "start_on"), privacy: text(formData, "privacy"), departmentId: id(text(formData, "department")) };
+  // v1.70.0 (D-383): with "pm_extras" on, complete templates (placeholders chosen per person) and Duplicate with choices.
+  const me = await actorForProjects();
+  if (me && me !== "OFF" && (await templates.extrasOn(me))) {
+    const extras = await runProject("fromTemplateExtras", me, async (who) => {
+      if (templateId) {
+        const assign: Record<string, number | null> = {};
+        for (const [key, value] of formData.entries()) if (key.startsWith("assign_") && typeof value === "string") assign[key.slice(7)] = id(value);
+        return templates.useTemplate(templateId, { ...details, assign }, who);
+      }
+      // Ticked boxes are sent; with the "parts" marker an unticked box means off.
+      const marked = formData.get("parts") === "1";
+      const parts = Object.fromEntries(DUPLICATE_PARTS.map((part) => [part, marked ? formData.get(`part_${part}`) === "on" : undefined]));
+      return templates.duplicateProject(copyFrom!, details, readDuplicateChoice({ parts, shiftDays: text(formData, "shift_days") || 0 }), who);
+    });
+    if (!extras.ok || !extras.value) return extras;
+    redirect(`/users/work/projects/${(extras.value as { id: number }).id}?created=1`);
+  }
+  const result = await runProject("fromTemplate", me, (me) =>
     more.createFromTemplate(
       { templateId: templateId ?? undefined, copyFrom: copyFrom ?? undefined, copyMembers: text(formData, "copyMembers") === "on" },
       { name: text(formData, "name"), startOn: text(formData, "start_on"), privacy: text(formData, "privacy"), departmentId: id(text(formData, "department")) },

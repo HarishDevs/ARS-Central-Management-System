@@ -1,5 +1,15 @@
 # Release notes
 
+## v1.70.0 (22 Nov 2026): Templates, duplicate, import and export, calendar feeds (Project Management phase E, part 1)
+Behind a new feature switch, **Projects E, templates and extras**, Off until IT turns it on. With it Off nothing changes.
+- **Complete templates:** **Save as template** now keeps the sections, tasks and subtasks (dates as days from the start; every task keeps a due date), custom fields of all 11 types with their options and values (library fields stay shared), dependencies with their type, saved tabs, the dashboard, forms, automations, and the project's scheduling and permissions. The people tasks were given to become **placeholders**.
+- **Projects → Project templates:** my templates, **organisation templates** (IT chooses them with *Share with everyone*) and templates shared with me; **Preview** (what's in it, by section, "Day 1…"), **Use template**, **Rename**, **Delete**. Using one asks who gets each placeholder's tasks (empty = you; each person is told once). Forms come as **unpublished drafts** and automations as **drafts owned by you**: nothing runs until you publish it.
+- **Duplicate with choices** (Project settings → Duplicate it): tasks, subtasks, assignees, due dates, fields, dependencies, tabs, dashboard, forms, automations, members, status updates (off unless ticked), and **move every date by N days**.
+- **Export:** CSV or Excel with the List's columns and every custom field (only what you can see), or the full structure as JSON (owners and editors).
+- **Import:** tasks from an Excel or CSV file (500 rows, 2 MB, 10 imports an hour): choose the file, say what each column is (name, description, section, assignee by name / email / User ID, due date, priority, custom fields), **check the rows** (each problem listed by row), then import; rows with problems only left out if you tick it.
+- **Calendar feeds:** a secret address for your Task Summary or a project, for Google Calendar or Outlook (read-only; open tasks with a due date that you can see at that moment). Shown once; make a new one or stop it at any time.
+- **Owner steps:** back up the database, publish v1.70.0 (the migration `202611221900_pm_e_extras.sql` runs on start: `projects.template_shared` and the table `calendar_feeds`; no triggers; rollback inside). Switch **Projects E, templates and extras** to IT only, try it (DEPLOYMENT G0p), then On. Calendar apps reach `/api/calendar/…` from their own servers: don't block that path in Cloudflare.
+
 ## v1.69.0 (22 Nov 2026): Portfolios (Project Management phase D, part 3)
 Behind a new feature switch, **Projects D, portfolios**, Off until IT turns it on. With it Off nothing changes.
 - **+ Create → Portfolio** (or **Projects → Portfolios → Create portfolio**): three steps: name, colour, who can see it (private to members, a department or everyone) and the tab it opens on; the projects (and portfolios) to add, from those you can see; people with a role (owner, editor, commenter, viewer). People added are told.
