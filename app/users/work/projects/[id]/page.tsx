@@ -39,6 +39,9 @@ import { getUserSetting } from "@/lib/db/repositories/user-settings.repository";
 import { clampPaneWidth, PANE_SETTING } from "@/server/work/pm-rules";
 import { cellsFor, projectFieldsFor } from "@/server/work/fields-service";
 import { FieldDialogHost } from "@/features/work/FieldDialog";
+import { Dashboard } from "@/features/work/reporting/Dashboard";
+import { Workload } from "@/features/work/reporting/Workload";
+import { loadDashboard, loadWorkload, reportingOn } from "@/server/work/reporting-service";
 
 export const metadata: Metadata = { title: "Project" };
 export const dynamic = "force-dynamic";
@@ -52,7 +55,8 @@ const VIEWS = [
   { key: "calendar", label: "Calendar" },
 ] as const;
 // v1.65.0 (D-373): a Gantt tab (from the tab catalogue, with "pm_planning" on).
-type ViewKey = (typeof VIEWS)[number]["key"] | "gantt";
+// v1.67.0 (D-375): Dashboard and Workload tabs (with "pm_reporting" on).
+type ViewKey = (typeof VIEWS)[number]["key"] | "gantt" | "dashboard" | "workload";
 
 // D-215: one project. Only people with a role on it (members, its department
 // or everyone, by its privacy) can open it; anyone else gets "not found".
@@ -70,6 +74,9 @@ export default async function ProjectPage({
     task?: string;
     status?: string;
     tab?: string;
+    wfrom?: string;
+    wunit?: string;
+    wmetric?: string;
   }>;
 }) {
   const { user, viewer } = await workPage();
@@ -152,6 +159,11 @@ export default async function ProjectPage({
     ? await Promise.all([linksFor(tasks.map((task) => task.id)), getWorkingDays().then((days) => days.map((day) => WEEKDAYS.indexOf(day))), calendarHolidays(undefined, viewer.departmentId)])
     : [[], [], {}];
   const statusSetup = planning && view === "overview" && can.edit ? await projectSchedule(project.id) : null;
+  // v1.67.0 (D-375): the dashboard's widgets with their figures, or the workload grid.
+  const reporting = await reportingOn(user);
+  const actor = { id: user.id, name: user.name, roles: user.roles, modules: user.modules };
+  const dashboard = reporting && view === "dashboard" ? await loadDashboard(project.id, actor) : null;
+  const workload = reporting && view === "workload" ? await loadWorkload(project.id, actor, { from: query.wfrom, unit: query.wunit, metric: query.wmetric }) : null;
   // D-220: the project's saved tabs (List views with their filters, sort and groups).
   const savedTabs = pmOn ? [] : await listWorkViews("PROJECT", project.id);
   const currentTab = savedTabs.find((item) => String(item.id) === query.tab) ?? null;
@@ -212,7 +224,7 @@ export default async function ProjectPage({
       )}
       {project.archivedAt && <p className="mb-4 rounded-md bg-surface-muted px-3 py-2 text-label">This project is archived. Its tasks still work; it is hidden from the project list.</p>}
       <LiveRefresh />
-      {pmOn && <ViewTabs projectId={project.id} base={base} strip={strip} activeKey={activeTab?.key ?? null} canEdit={can.edit} planning={planning} />}
+      {pmOn && <ViewTabs projectId={project.id} base={base} strip={strip} activeKey={activeTab?.key ?? null} canEdit={can.edit} planning={planning} reporting={reporting} />}
       {!pmOn && (
       <nav aria-label="Project views" className="mb-3 flex flex-wrap gap-1 border-b border-line" data-testid="view-tabs">
         {VIEWS.map((item) => (
@@ -349,6 +361,9 @@ export default async function ProjectPage({
             meId={user.id}
           />
         )}
+        {dashboard?.ok && <Dashboard key={activeTab?.key ?? "dashboard"} projectId={project.id} {...dashboard.value} />}
+        {workload?.ok && <Workload projectId={project.id} data={workload.value} />}
+        {(view === "dashboard" || view === "workload") && !reporting && <p className="card px-5 py-8 text-center text-ink-muted">The {view === "dashboard" ? "Dashboard" : "Workload"} view isn&apos;t switched on yet.</p>}
         {view === "gantt" && !planning && <p className="card px-5 py-8 text-center text-ink-muted">The Gantt view isn&apos;t switched on yet.</p>}
         {view === "timeline" && !planning && (
           <Timeline

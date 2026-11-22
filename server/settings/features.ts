@@ -11,7 +11,8 @@ import { getSettingValue } from "@/server/settings/values";
 // v1.61.0 (D-367): "pm_foundations" switches Project Management phase A (default OFF).
 // v1.64.0 (D-371): "pm_planning" switches phase B (custom fields first; default OFF).
 // v1.66.0 (D-374): "pm_forms" switches phase C, project intake forms (default OFF).
-export type Feature = "analytics" | "reports" | "scheduled_reports" | "amendments" | "templates" | "tasks" | "information" | "ai" | "pm_foundations" | "pm_planning" | "pm_forms";
+// v1.67.0 (D-375): "pm_reporting" switches phase D reporting: project dashboards and Workload (default OFF).
+export type Feature = "analytics" | "reports" | "scheduled_reports" | "amendments" | "templates" | "tasks" | "information" | "ai" | "pm_foundations" | "pm_planning" | "pm_forms" | "pm_reporting";
 
 export async function featureMode(feature: Feature): Promise<"ON" | "OFF" | "IT_ONLY"> {
   const value = await getSettingValue(`features.${feature}`).catch(() => null);
@@ -26,7 +27,7 @@ export async function featureOn(feature: Feature, user: { roles: readonly string
 }
 
 export async function enabledFeatures(user: { roles: readonly string[] }): Promise<Record<Feature, boolean>> {
-  const features: Feature[] = ["analytics", "reports", "scheduled_reports", "amendments", "templates", "tasks", "information", "ai", "pm_foundations", "pm_planning", "pm_forms"];
+  const features: Feature[] = ["analytics", "reports", "scheduled_reports", "amendments", "templates", "tasks", "information", "ai", "pm_foundations", "pm_planning", "pm_forms", "pm_reporting"];
   const values = await Promise.all(features.map((feature) => featureOn(feature, user)));
   return Object.fromEntries(features.map((feature, index) => [feature, values[index]])) as Record<Feature, boolean>;
 }

@@ -19,7 +19,7 @@ import { addableViews, maxTabs, moveKey, placeKey, tabHref, tabMenu, TAB_NAME_MA
 // (announced), or "Move left / right" in its menu. Everyone else can copy links.
 // v1.63.0 (D-369, PM-A13): the same strip for a person's My Tasks (scope
 // MY_TASKS): their own tabs, List / Board / Calendar only.
-export function ViewTabs({ projectId = 0, scope = "PROJECT", base, strip, activeKey, canEdit, label = "Project views", planning = false }: { projectId?: number; scope?: TabScope; base: string; strip: StripTab[]; activeKey: string | null; canEdit: boolean; label?: string; planning?: boolean }) {
+export function ViewTabs({ projectId = 0, scope = "PROJECT", base, strip, activeKey, canEdit, label = "Project views", planning = false, reporting = false }: { projectId?: number; scope?: TabScope; base: string; strip: StripTab[]; activeKey: string | null; canEdit: boolean; label?: string; planning?: boolean; reporting?: boolean }) {
   const { call, pending } = useWorkCall();
   const toast = useToast();
   const router = useRouter();
@@ -211,7 +211,7 @@ export function ViewTabs({ projectId = 0, scope = "PROJECT", base, strip, active
           >
             <p className="mb-2 font-semibold">Add a tab</p>
             <ul className="space-y-0.5" aria-label="Views">
-              {addableViews(scope, planning).map((entry) => (
+              {addableViews(scope, planning, reporting).map((entry) => (
                 <li key={entry.type}>
                   <button
                     type="button"

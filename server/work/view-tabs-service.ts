@@ -109,7 +109,7 @@ async function applyTabChange(owner: Owner, input: Op, actor: TaskActor, db: Poo
   {
     const MAX = maxTabs(owner.scope);
     // Checks that need no writing come first.
-    if (input.op === "add" && !allowedView(owner.scope, input.type, await featureOn("pm_planning", actor).catch(() => false))) return { ok: false, message: "That view isn't available yet." };
+    if (input.op === "add" && !allowedView(owner.scope, input.type, await featureOn("pm_planning", actor).catch(() => false), await featureOn("pm_reporting", actor).catch(() => false))) return { ok: false, message: "That view isn't available yet." };
     if (input.op === "rename" && !cleanTabName(input.name)) return { ok: false, message: "Give the tab a name (up to 60 characters)." };
     if (input.op === "reorder" && (!Array.isArray(input.keys) || input.keys.length > MAX + 5 || !input.keys.every((key) => typeof key === "string" && /^(t\d{1,10}|v[A-Z]{4,8})$/.test(key)))) return { ok: false, message: "That order isn't valid." };
     const { strip, ids } = await materialise(owner, actor.id, db);
