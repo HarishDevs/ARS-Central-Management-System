@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type BrowserContext, type Locator, type Page } from "@playwright/test";
-import { sessionCookie } from "./db";
+import { sessionCookie, typeCreateDue } from "./db";
 
 // v1.73.0 (D-396, layout parity part 2; owner: "use the skeleton and layout
 // design and options design ... and use dropdowns wherever required"): the
@@ -137,7 +137,7 @@ test("task ⋯: Create follow-up task and Duplicate task fill the Create window;
   await more.getByRole("menuitem", { name: "Create follow-up task" }).click();
   await expect(dialog).toContainText("Create follow-up task");
   await expect(dialog.getByLabel("Task name")).toHaveValue(`Follow-up: Alpha ${stamp}`);
-  await dialog.locator("#create-due").fill(nextWednesday());
+  await typeCreateDue(dialog, nextWednesday());
   // The ▾ beside Create task: Create and add another (the window stays, emptied).
   const split = dialog.getByTestId("create-split");
   await trigger(split).click();

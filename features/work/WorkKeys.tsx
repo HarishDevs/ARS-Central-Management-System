@@ -34,7 +34,8 @@ export function WorkKeys() {
   useEffect(() => {
     const rows = () => [...document.querySelectorAll<HTMLElement>(".work-row")];
     const onKey = (event: KeyboardEvent) => {
-      if (event.ctrlKey || event.metaKey || event.altKey || isTyping(event.target) || document.querySelector("dialog[open]")) return;
+      // v1.75.0 (D-399): an open date picker takes Escape (and its other keys) first.
+      if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey || isTyping(event.target) || document.querySelector("dialog[open], [data-date-picker-open]")) return;
       const key = event.key.toLowerCase();
       const take = () => {
         event.preventDefault();

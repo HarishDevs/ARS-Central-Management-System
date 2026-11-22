@@ -2412,6 +2412,39 @@ flowchart LR
 - A radio or checkbox item normally keeps the menu open (part 1); a picker's item has `close: true` and closes it. A menu inside a transformed window (the centred Create task window) is placed from that window.
 - Duplicate widget: `dashboardAction` save with no id (the 20-widget limit and editor rights are checked on the server as for a new widget). Duplicate form, Unpublish and Delete form use the existing form actions (owners and editors; delete asks first).
 
+## F-PM-DATES: Pick a date or a From–To range (v1.75.0, D-399)
+```mermaid
+flowchart TD
+  B[Date button: Create task, pane Due date row, list cell, project Dates, forms] -->|click, Enter| P[Picker: Start / Due boxes, Monday-first month, footer]
+  P -->|type dd-mm-yyyy or yyyy-mm-dd| V{Real day, within min/max?}
+  V -->|no| E[Say: enter a real date] --> P
+  V -->|yes| A[Fill the active box]
+  P -->|click a day or Enter on the grid| A
+  A --> S{Start after due?}
+  S -->|yes| W[Swap and say so] --> N
+  S -->|no| N[Move to the other box; shade the range; announce it]
+  N -->|Escape, Done, click outside| C{Changed?}
+  C -->|no| X[Close, focus back on the button]
+  C -->|yes, form| H[Hidden fields start_on / due_on] --> X
+  C -->|yes, saved at once| R[taskFieldsAction / projectDatesAction] --> Q{Holiday?}
+  Q -->|yes| HP[Holiday question: keep or move] --> R
+  Q -->|no| X
+```
+- Weekly offs and holidays come from `GET /api/work/calendar`; a task's due date can't be cleared (kept with a notice); a milestone has one date.
+- List Filters › Due date / Start date › Is between… / Is not between… keep `between:FROM:TO` in the view (both days included).
+
+## F-PM-REPEAT: A repeating task for anyone (v1.75.0, D-400; supersedes the D-313 self-only rule)
+```mermaid
+flowchart LR
+  C[Create task: Myself or Others, Periodic] --> M{Several people?}
+  M -->|yes| G[One copy each, same assign group] --> R[Repeat set on every copy]
+  M -->|no| R
+  R --> D[Assignee completes] --> N[Next occurrence: same assignee, same creator, told as a new assignment]
+  E[Change or stop the repeat] --> W{Creator, assigner, assignee, IT or project editor?}
+  W -->|yes| OK[Saved, story REPEAT_SET]
+  W -->|no| NO[Only the person who set it, the assignee and IT can change the repeat.]
+```
+
 ## F-PM-MENUS: Project screens' dropdown menus and Customize panel (v1.72.0, D-387)
 ```mermaid
 flowchart LR

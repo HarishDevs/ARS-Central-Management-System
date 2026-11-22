@@ -281,17 +281,51 @@ describe("ad hoc tasks and project permissions (D-222)", () => {
     expect((await work.toggleComplete(id, who(helper))).ok).toBe(true); // progress is still theirs
   });
 
-  it("v1.54.4 (owner): only a task kept for oneself repeats; given to someone else it is ad hoc", async () => {
-    const forHelper = await work.quickAddTask({ title: `Periodic rules ${tag}`, projectId, sectionId: null, parentId: null, assigneeId: helper, dueDay: "", mySectionId: null }, who(owner));
-    const helperTask = forHelper.ok ? forHelper.value.id : 0;
-    const refused = await more.setRecurrence(helperTask, { kind: "MONTHLY", every: 1 }, who(owner));
-    expect(refused).toMatchObject({ ok: false, message: expect.stringMatching(/Only a task you give yourself can repeat/) });
-    // The owner's own task repeats; reassigning it to the helper makes it ad hoc.
+  it("v1.75.0 (D-400, owner): a repeating task may be set for anyone; the next one is the same person's", async () => {
+    // A (owner) gives B (viewerOnly, outside any edit role) a repeating task in no project.
+    const forB = await work.quickAddTask({ title: `Periodic for B ${tag}`, projectId: null, sectionId: null, parentId: null, assigneeId: viewerOnly, dueDay: await futureDay(3, 3), mySectionId: null }, who(owner));
+    const id = forB.ok ? forB.value.id : 0;
+    expect((await more.setRecurrence(id, { kind: "WEEKLY", every: 1, weekdays: [3] }, who(owner))).ok).toBe(true);
+    // B, the assignee, may change the repeat; an outsider may not.
+    expect((await more.setRecurrence(id, { kind: "WEEKLY", every: 2, weekdays: [3] }, who(viewerOnly))).ok).toBe(true);
+    const outsider = await createUser({ name: `More outsider ${tag}` });
+    expect(await more.setRecurrence(id, { kind: "DAILY", every: 1 }, who(outsider))).toMatchObject({ ok: false });
+    // Completing it (as B) makes the next one for B, still set by A (who follows it).
+    expect((await work.toggleComplete(id, who(viewerOnly))).ok).toBe(true);
+    const [next] = await sql<{ id: number }>("SELECT id FROM tasks WHERE series_id = ? AND id <> ? AND deleted_at IS NULL", [id, id]);
+    const created = await findTask(Number(next!.id));
+    expect(created?.assigneeId).toBe(viewerOnly);
+    expect(created?.createdBy).toBe(owner);
+    expect(await more.recurrenceOf(Number(next!.id))).toMatchObject({ kind: "WEEKLY", every: 2 });
+    expect(await sql("SELECT 1 FROM task_followers WHERE task_id = ? AND user_id = ?", [Number(next!.id), owner])).toHaveLength(1);
+    // Reassigning a repeating task keeps it repeating.
     const own = await work.quickAddTask({ title: `Own periodic ${tag}`, projectId, sectionId: null, parentId: null, assigneeId: null, dueDay: "", mySectionId: null }, who(owner));
     const ownId = own.ok ? own.value.id : 0;
     expect((await more.setRecurrence(ownId, { kind: "MONTHLY", every: 1 }, who(owner))).ok).toBe(true);
     expect((await work.setTaskFields(ownId, { assigneeId: helper }, who(owner))).ok).toBe(true);
-    expect(await more.recurrenceOf(ownId)).toBeNull();
+    expect(await more.recurrenceOf(ownId)).toMatchObject({ kind: "MONTHLY" });
+  });
+
+  it("v1.75.0 (D-400): periodic for two people gives each their own repeating copy", async () => {
+    const made = await work.quickAddForMany({ title: `Periodic pair ${tag}`, projectId: null, sectionId: null, parentId: null, assigneeId: null, dueDay: "", mySectionId: null }, [helper, viewerOnly], who(owner));
+    expect(made.ok).toBe(true);
+    const ids = made.ok ? made.value.ids : [];
+    expect(ids).toHaveLength(2);
+    for (const one of ids) expect((await more.setRecurrence(one, { kind: "DAILY", every: 1 }, who(owner))).ok).toBe(true);
+    for (const one of ids) expect(await more.recurrenceOf(one)).toMatchObject({ kind: "DAILY" });
+    expect((await repo.assignGroup(ids[0]!)).map((item) => item.id)).toEqual([ids[1]]);
+  });
+
+  it("v1.75.0 (D-399): Create task may set a start day (a real day, not after the due day)", async () => {
+    const due = await futureDay(3, 10);
+    const start = new Date(new Date(`${due}T00:00:00Z`).getTime() - 2 * 86_400_000).toISOString().slice(0, 10);
+    const ok = await work.quickAddTask({ title: `Ranged ${tag}`, projectId: null, sectionId: null, parentId: null, assigneeId: null, dueDay: due, startDay: start, holidayOk: true, mySectionId: null }, who(owner));
+    expect(ok.ok).toBe(true);
+    expect((await findTask(ok.ok ? ok.value.id : 0))?.startsOn).toBe(start);
+    const after = await work.quickAddTask({ title: `Ranged bad ${tag}`, projectId: null, sectionId: null, parentId: null, assigneeId: null, dueDay: start, startDay: due, holidayOk: true, mySectionId: null }, who(owner));
+    expect(after).toMatchObject({ ok: false, message: "The start date can't be after the due date." });
+    const unreal = await work.quickAddTask({ title: `Ranged unreal ${tag}`, projectId: null, sectionId: null, parentId: null, assigneeId: null, dueDay: due, startDay: "2027-02-30", mySectionId: null }, who(owner));
+    expect(unreal).toMatchObject({ ok: false, message: "Choose a valid start date." });
   });
 
   it("project permissions: a restricted field and who may share tasks", async () => {

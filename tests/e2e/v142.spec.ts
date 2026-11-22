@@ -45,7 +45,8 @@ test("Create task: two columns on a computer, with a priority that is saved", as
   const dialog = page.getByTestId("create-dialog");
   await expect(dialog.getByRole("complementary", { name: "Task settings" })).toBeVisible();
   // The settings show without a toolbar click on a computer.
-  await expect(dialog.getByRole("textbox", { name: "Due date", exact: true })).toBeVisible();
+  // v1.75.0 (D-399): the dates are one picker button (start and due) in the settings.
+  await expect(dialog.getByTestId("create-dates-button")).toBeVisible();
   await dialog.getByLabel("Task name").fill(title);
   await dialog.getByLabel("Priority").selectOption("HIGH");
   await fillDue(dialog);

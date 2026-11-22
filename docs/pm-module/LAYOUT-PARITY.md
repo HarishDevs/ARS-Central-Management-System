@@ -220,3 +220,19 @@ Same rules as part 1 (structure, option sets and order from the spec; ARS looks;
 | Create task window | 3 | 0 | 0 |
 | Part-1 deferrals | 5 (rename, Timeline ×1 set, Calendar ×1 set, follow-up, duplicate) | 0 | 4 (Calendar Options, merge/convert, duplicate section, group order/subgroups) |
 | **Total** | **35** | **10** | **9** |
+
+## 22. Task side pane and dates (v1.75.0, D-399)
+
+Owner's screenshots: the date picker ("use this kind so that from date to date can be captured") and the task side pane ("use this kind of layout for side bar"); spec `12-modules/DATE_RANGES.md`.
+
+| # | Spec / screenshot | We had | Change |
+|---|---|---|---|
+| P1 | Bar: Mark complete left; avatars + "+", Share, divider, like, copy link, expand, ⋯, close (→\|) | Mark complete; people count; compact Share; like; copy; full page; ⋯; × | Avatars with +, Share with text, a divider, →\| close; bar sticky |
+| P2 | Banner: lock + "private to members of this project" + Make public | Eye + who sees it, no Make public (D-368) | Lock + the sentence for a task in one private project; Make public for the project owner or IT (confirmed) |
+| P3 | Large bold title, inline editable | 22 px semibold, read only | 22 px bold, editable where the name may change |
+| P4 | Field rows: Assignee, Due date, Dependencies | Facts in the Details card; start date in Planning and people | Label/value rows in the pane and the Details card; the date row opens the picker (start – due, ×) |
+| P5 | Projects: count, +, collapsible project with section and field rows, Show N more | Projects card with selects and fields inline | Count badge, + (focuses Add to a project), ▾ groups, field rows with type icons, five then Show N more |
+| P6 | Comment box pinned at the bottom (+, emoji, @, AI, send) | Composer inside the Comments tab | Pinned rounded box: editor (emoji, @ in its toolbar), + attach, round send; Pico Bot not offered (it only drafts descriptions) |
+| D1 | Date picker anatomy §2 | Native date inputs | Shared picker: Start/Due boxes, Monday-first grid, band, weekend tint, clock, repeat, Clear |
+| D2 | Display formats §3 | "1 Dec" or ISO in inputs | `formatDayRange` (day-first): Today/Tomorrow/weekday, "30 Nov – 4 Dec", "7 – 11 Dec", years when needed |
+| D3 | Filters is between / is not between §6 | Due quick values only | Due date and Start date windows in the list filters |

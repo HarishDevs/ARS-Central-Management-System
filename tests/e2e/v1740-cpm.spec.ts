@@ -77,18 +77,23 @@ test("From and To: the project's working days and hours in settings, the header 
   await linkByTitle(C, D);
 
   await page.goto(`${projectUrl}/settings`);
-  await expect(page.getByLabel("From (start date)")).toBeVisible();
-  // To before From is refused on the server.
-  await page.getByLabel("From (start date)").fill(plus(monday, 10));
-  await page.getByLabel("To (due date)").fill(monday);
-  await page.getByRole("button", { name: "Save details" }).click();
-  await expect(page.getByText("The To (due) date can't be before the From (start) date.")).toBeVisible();
-  await page.getByLabel("From (start date)").fill(monday);
-  await page.getByLabel("To (due date)").fill(plus(monday, 60));
+  // v1.75.0 (D-399): From and To are the date range picker. To typed before From swaps them (with a notice);
+  // the server still refuses To before From (integration tests).
+  await page.getByTestId("project-dates-picker-button").click();
+  const picker = page.getByRole("dialog", { name: "Project dates" });
+  await picker.getByTestId("project-dates-picker-add-start").click();
+  await picker.getByRole("textbox", { name: "To (due date)" }).fill(monday);
+  await picker.getByRole("textbox", { name: "From (start date)" }).fill(plus(monday, 10));
+  await expect(picker.getByRole("alert")).toContainText("Swapped");
+  await picker.getByRole("textbox", { name: "From (start date)" }).fill(monday);
+  await picker.getByRole("textbox", { name: "To (due date)" }).fill(plus(monday, 60));
+  expect(await axe(page, "[data-testid=project-dates-picker-panel]")).toEqual([]);
+  await picker.getByRole("textbox", { name: "To (due date)" }).press("Enter");
+  await expect(picker).toHaveCount(0);
   await page.getByRole("button", { name: "Save details" }).click();
   await expect(page.getByTestId("settings-duration")).toContainText("working days", { timeout: 15_000 });
   // The changed fields (the privacy radios above them have a known, separate target-size finding).
-  for (const part of ["#project-start", "#project-due", "[data-testid=settings-duration]"]) expect(await axe(page, part)).toEqual([]);
+  for (const part of ["[data-testid=project-dates-picker]", "[data-testid=settings-duration]"]) expect(await axe(page, part)).toEqual([]);
 
   await page.goto(`${projectUrl}?view=overview`);
   await expect(page.getByTestId("project-dates")).toContainText("Dates: From");

@@ -15,6 +15,7 @@ import {
 import { useToast } from "@/features/ui/Toast";
 import { COPY_BLOCKED, copyText } from "@/features/ui/clipboard";
 import { PRIORITY_LABEL, TASK_PRIORITIES } from "@/server/modules/settings";
+import { DateRangePicker } from "@/features/ui/DateRangePicker";
 import {
   allSteps,
   BUILT_IN_FIELD_LABEL,
@@ -696,7 +697,8 @@ function FieldValue({ id, field, value, people, disabled, onChange }: { id: stri
         <label htmlFor={id} className="field-label">
           Date (blank = clears the field)
         </label>
-        <input id={id} type="date" className="field-input h-9" value={typeof value === "string" ? value : ""} disabled={disabled} onChange={(event) => onChange(event.target.value || null)} />
+        {/* v1.75.0 (D-399): the shared date picker, one day. */}
+        <DateRangePicker mode="single" idBase={`${id}-picker`} triggerId={id} label="Date" dueLabel="Date" disabled={disabled} value={{ start: "", due: typeof value === "string" ? value : "" }} onChange={(next) => onChange(next.due || null)} placeholder="No date" triggerClass="field-input flex h-9 w-full items-center gap-2 text-left" />
       </div>
     );
   return <TextInput id={id} label={field.type === "NUMBER" ? "Number (blank = clears the field)" : "Text (blank = clears the field)"} value={value === null || value === undefined ? "" : String(value)} max={500} disabled={disabled} onChange={(next) => onChange(next === "" ? null : next)} inputMode={field.type === "NUMBER" ? "decimal" : undefined} />;
@@ -797,7 +799,7 @@ function ConditionRow({ condition, id, n, readOnly, props, onChange, onRemove }:
             <label htmlFor={`${id}-value`} className="field-label">
               Value
             </label>
-            <input id={`${id}-value`} type="date" className="field-input h-9" value={String(condition.value ?? "")} disabled={readOnly} onChange={(event) => onChange({ ...condition, value: event.target.value || null })} />
+            <DateRangePicker mode="single" idBase={`${id}-value-picker`} triggerId={`${id}-value`} label="Value" dueLabel="Date" disabled={readOnly} value={{ start: "", due: String(condition.value ?? "") }} onChange={(next) => onChange({ ...condition, value: next.due || null })} placeholder="Choose a date" triggerClass="field-input flex h-9 w-full items-center gap-2 text-left" />
           </div>
         ) : (
           <TextInput id={`${id}-value`} label="Value" value={String(condition.value ?? "")} max={500} disabled={readOnly} onChange={(value) => onChange({ ...condition, value: value || null })} />

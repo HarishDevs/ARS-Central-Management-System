@@ -1,6 +1,6 @@
 "use client";
 
-import { Heart, Pin, SendHorizontal, SmilePlus } from "lucide-react";
+import { Heart, Pin, Plus, SendHorizontal, SmilePlus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { commentAction, commentChangeAction, likeAction, reactionAction } from "@/app/users/work/actions";
 import { reactionLabel, REACTIONS, type ReactionCount } from "@/server/work/pm-rules";
@@ -34,7 +34,27 @@ export interface CommentView {
   reactions?: ReactionCount[]; // v1.62.0 (D-368): set when reactions are on
 }
 
-export function CommentThread({ taskId, comments, meId, canComment, canPin, people, isAdmin, docked = false }: { taskId: number; comments: CommentView[]; meId: number; canComment: boolean; canPin: boolean; people: Mentionable[]; isAdmin: boolean; docked?: boolean }) {
+export function CommentThread({
+  taskId,
+  comments,
+  meId,
+  canComment,
+  canPin,
+  people,
+  isAdmin,
+  docked = false,
+  composer = true,
+}: {
+  taskId: number;
+  comments: CommentView[];
+  meId: number;
+  canComment: boolean;
+  canPin: boolean;
+  people: Mentionable[];
+  isAdmin: boolean;
+  docked?: boolean;
+  composer?: boolean; // v1.75.0 (D-399): false in the task pane, whose box is pinned at its bottom (PaneComposer)
+}) {
   const roots = comments.filter((comment) => comment.parentCommentId === null).sort((a, b) => Number(b.isPinned) - Number(a.isPinned) || a.id - b.id);
   const replies = (id: number) => comments.filter((comment) => comment.parentCommentId === id);
   return (
@@ -59,7 +79,7 @@ export function CommentThread({ taskId, comments, meId, canComment, canPin, peop
         ))}
       </ol>
       {/* v1.46.0 (owner, Asana): on a phone the comment box stays at the bottom of the screen. */}
-      {canComment ? docked ? <DockedComposer taskId={taskId} people={people} /> : <Composer taskId={taskId} people={people} /> : <p className="text-caption text-ink-muted">You can read this task but not comment on it.</p>}
+      {!composer ? null : canComment ? docked ? <DockedComposer taskId={taskId} people={people} /> : <Composer taskId={taskId} people={people} /> : <p className="text-caption text-ink-muted">You can read this task but not comment on it.</p>}
     </section>
   );
 }
@@ -160,6 +180,56 @@ function Composer({ taskId, people }: { taskId: number; people: Mentionable[] })
           Comment
         </SubmitButton>
       </div>
+      <ResultMessage result={result} />
+    </form>
+  );
+}
+
+// v1.75.0 (D-399, owner's screenshot of the task side pane): the comment box
+// pinned at the bottom of the pane: a rounded box with the formatted editor
+// (its own emoji and @mention tools), + to attach files (the Attachments
+// section's picker) and a round send button. The same comment action.
+export function PaneComposer({ taskId, people, canComment }: { taskId: number; people: Mentionable[]; canComment: boolean }) {
+  const { result, pending, onSubmit, formRef } = useActionForm(commentAction, { resetOnSuccess: true });
+  const [key, setKey] = useState(0);
+  useEffect(() => {
+    if (result?.ok) setKey((value) => value + 1);
+  }, [result]);
+  if (!canComment)
+    return (
+      <p className="sticky bottom-0 z-[2] -mx-4 -mb-4 mt-4 border-t border-line bg-surface px-4 py-3 text-caption text-ink-muted sm:-mx-5 sm:-mb-5" data-testid="pane-composer">
+        You can read this task but not comment on it.
+      </p>
+    );
+  return (
+    <form ref={formRef} onSubmit={onSubmit} aria-label="New comment" className="sticky bottom-0 z-[2] -mx-4 -mb-4 mt-4 border-t border-line bg-surface px-4 py-3 sm:-mx-5 sm:-mb-5" data-testid="pane-composer">
+      <input type="hidden" name="taskId" value={taskId} />
+      <div className="rounded-xl border border-line bg-surface focus-within:border-primary-600 [&_[data-testid=rich-editor]]:border-0">
+        <RichEditor key={key} name="body" id="comment-body" label="Add a comment" placeholder="Add a comment…" people={people} minHeight={44} />
+        <div className="flex items-center gap-1 px-2 pb-2">
+          <button
+            type="button"
+            aria-label="Attach files"
+            title="Attach files (Attachments)"
+            onClick={() => {
+              const picker = document.querySelector<HTMLInputElement>("[data-testid=task-files] input[type=file]");
+              picker?.scrollIntoView({ block: "center" });
+              picker?.click();
+            }}
+            className="grid h-8 w-8 place-items-center rounded-full text-ink-muted hover:bg-surface-muted hover:text-ink"
+          >
+            <Plus aria-hidden="true" className="h-4 w-4" />
+          </button>
+          <label className="ml-1 flex min-w-0 items-center gap-1.5 text-caption text-ink-muted">
+            <input type="checkbox" name="mentionAccess" value="yes" defaultChecked />
+            <span className="truncate">Let people I mention see this task</span>
+          </label>
+          <button type="submit" disabled={pending} aria-label="Comment" title="Send" className="ml-auto grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary-solid text-on-solid hover:bg-primary-solid-hover disabled:opacity-60" data-testid="pane-send">
+            <SendHorizontal aria-hidden="true" className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+      <FieldError result={result} name="body" />
       <ResultMessage result={result} />
     </form>
   );

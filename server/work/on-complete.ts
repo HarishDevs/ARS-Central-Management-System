@@ -85,7 +85,7 @@ export async function createNextOccurrence(taskId: number, actor: { id: number; 
     const shift = dueDay ? daysBetween(dueDay, next) : 0;
     const dueAt = task.dueAt ? new Date(task.dueAt.getTime() + shift * 86_400_000) : new Date(`${next}T23:59:00+05:30`);
     const seriesId = rows[0]?.series_id ? Number(rows[0].series_id) : task.id;
-    const newId = await cloneTask(task, { parentId: task.parentTaskId, rootId: task.rootTaskId, depth: task.depth, dueAt, shiftDays: shift, recurrence: JSON.stringify(occurrence.rule), seriesId, withProjects: true }, actor.id, connection);
+    const newId = await cloneTask(task, { parentId: task.parentTaskId, rootId: task.rootTaskId, depth: task.depth, dueAt, shiftDays: shift, recurrence: JSON.stringify(occurrence.rule), seriesId, withProjects: true, keepCreator: true }, actor.id, connection);
     await connection.query("UPDATE tasks SET recurrence_json = NULL, series_id = ? WHERE id = ?", [seriesId, task.id]);
     const created = (await findTask(newId, connection))!;
     await appendTaskEvent(task.id, { actorId: actor.id, type: "RECURRED", body: `Next: ${created.taskNo}, due ${next}`, payload: { nextId: newId } }, connection);
@@ -102,13 +102,13 @@ export async function createNextOccurrence(taskId: number, actor: { id: number; 
 // priority, assignee, form values, tags, followers, (optionally) projects.
 async function cloneTask(
   source: TaskRecord,
-  place: { parentId: number | null; rootId: number | null; depth: number; dueAt: Date | null; shiftDays: number; recurrence: unknown; seriesId: number | null; withProjects: boolean },
+  place: { parentId: number | null; rootId: number | null; depth: number; dueAt: Date | null; shiftDays: number; recurrence: unknown; seriesId: number | null; withProjects: boolean; keepCreator?: boolean },
   actorId: number,
   db: Queryable,
 ): Promise<number> {
   const taskNo = await nextRequestNumber("TSK", db);
   const id = await insertTask(
-    { taskNo, typeVersionId: source.typeVersionId, title: source.title, description: source.description, priority: source.priority, createdBy: actorId, assigneeId: source.assigneeId, dueAt: place.dueAt, startsOn: source.startsOn ? shiftDay(source.startsOn, place.shiftDays) : null, formData: withoutMirrorLink(source.formData), relatedRequestId: workMirrorLink(source.formData) ? null : source.relatedRequestId, submissionKey: null },
+    { taskNo, typeVersionId: source.typeVersionId, title: source.title, description: source.description, priority: source.priority, createdBy: place.keepCreator ? source.createdBy : actorId, assigneeId: source.assigneeId, dueAt: place.dueAt, startsOn: source.startsOn ? shiftDay(source.startsOn, place.shiftDays) : null, formData: withoutMirrorLink(source.formData), relatedRequestId: workMirrorLink(source.formData) ? null : source.relatedRequestId, submissionKey: null },
     db,
   );
   const position = place.parentId === null ? 0 : positionBetween(await repo.lastSubtaskPosition(place.parentId, db), null);

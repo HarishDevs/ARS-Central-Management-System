@@ -263,7 +263,7 @@ async function ProjectView({ found, user, viewer, searchParams }: { found: NonNu
         color={project.color}
         meta={`${PRIVACY_LABEL[project.privacy]}${project.departmentName ? ` · ${project.departmentName}` : ""} · You: ${PROJECT_ROLE_LABEL[role]} · ${counts.completed}/${counts.open + counts.completed} done${counts.overdue ? ` · ${counts.overdue} overdue` : ""}`}
         starred={starred}
-        dates={planning ? { text: datesLine, duration: duration ? durationText(duration) : null, href: can.manage ? `${base}/settings#details` : null } : undefined}
+        dates={planning ? { text: datesLine, duration: duration ? durationText(duration) : null, href: can.manage ? `${base}/settings#details` : null, from: project.startOn ?? "", to: project.dueOn ?? "" } : undefined}
         status={project.currentStatus}
         members={members.filter((member) => member.type === "USER").map((member) => ({ id: member.id, name: member.name }))}
         canEdit={can.edit}

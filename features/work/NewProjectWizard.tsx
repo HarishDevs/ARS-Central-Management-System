@@ -9,6 +9,7 @@ import { COLOR_HEX } from "@/features/work/client";
 import { PRIVACY, PRIVACY_LABEL, PROJECT_COLORS } from "@/server/work/access";
 import { RichEditor } from "@/features/ui/RichEditor";
 import { PersonSelect } from "@/features/ui/PersonSelect";
+import { DateRangePicker } from "@/features/ui/DateRangePicker";
 
 // D-220 (owner: "create project like Asana, page by page"): 1. how to start
 // (blank or a template), 2. name, department, who can see it and the default
@@ -248,10 +249,12 @@ export function NewProjectWizard({
                 <input id="template-project-name" name="name" required minLength={2} maxLength={150} defaultValue={chosen.name.replace(/\s*\(template\)\s*$/i, "")} className="field-input" />
               </div>
               <div>
-                <label htmlFor="template-start" className="field-label">
+                <span className="field-label">
                   Starts on <span className="font-normal text-ink-faint">(task dates move with it)</span>
-                </label>
-                <input id="template-start" type="date" name="start_on" className="field-input" />
+                </span>
+                {/* v1.75.0 (D-399): the shared date picker, one day. */}
+                <DateRangePicker mode="single" idBase="template" label="Starts on" dueLabel="Starts on" names={{ due: "start_on" }} placeholder="Choose a day" testId="template-start" />
+
               </div>
               <div>
                 <label htmlFor="template-privacy" className="field-label">

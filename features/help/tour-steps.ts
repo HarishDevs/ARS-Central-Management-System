@@ -132,11 +132,11 @@ export const TOUR_STEPS: readonly TourStep[] = [
     id: "new-task",
     section: "Tasks",
     title: "Give someone a task",
-    intro: "Create → Task opens Create task: details on the left, settings (due date, priority, repeat, collaborators) on the right.",
+    intro: "Create → Task opens Create task: details on the left, settings (the dates: start, due, time and repeat in one picker; priority, collaborators) on the right.",
     points: [
       "Name it; it's for Myself, or choose Others (type part of a name). Pick a project if it belongs to one.",
       "In the description, type / for the menu, @ to mention someone (they follow the task), or paste a screenshot to attach it.",
-      "The toolbar adds a due date, a repeat (periodic), files, emoji and collaborators. They're told straight away.",
+      "The date picker sets the start and due dates, the time and a repeat (for anyone); the toolbar adds files, emoji and collaborators. They're told straight away.",
       "Create task ▾ has Create and add another, which keeps the window open for the next task. A task's ⋯ makes a follow-up task or a duplicate.",
     ],
     path: "/users/work/my-tasks",

@@ -50,20 +50,25 @@ const fail = (message: string, fieldErrors?: Record<string, string>): { ok: fals
 const NOT_FOUND = "Not found.";
 
 // ---- recurring tasks -------------------------------------------------------------------
+export const REPEAT_WHO = "Only the person who set it, the assignee and IT can change the repeat.";
 export async function setRecurrence(taskId: number, raw: unknown, actor: TaskActor): Promise<Result> {
   const task = await findTask(taskId);
   if (!task || task.deletedAt) return fail(NOT_FOUND);
-  const rights = await rightsOn(task, await workViewer(actor));
+  const viewer = await workViewer(actor);
+  const rights = await rightsOn(task, viewer);
   if (!rights.view) return fail(NOT_FOUND);
   // QA-WF-03 (v1.42.1): a work step doesn't repeat (its request decides when there's work).
   if (workMirrorLink(task.formData)) return fail(`This task is a work step of ${task.relatedRequestNo ?? "a request"}; it can't be made to repeat.`);
-  // D-222: making a task periodic or ad hoc is a detail: an ad hoc task's creator decides.
-  if (!rights.planning) return fail(rights.adhoc ? "Only its creator can change an ad hoc task's details." : "You can't change how this task repeats.");
+  // v1.75.0 (D-400, owner: "rebuild it for all: anyone can assign a repeating
+  // task for anyone"; supersedes D-313 and v1.54.4's "only for yourself"):
+  // the repeat is set, changed or stopped by the person who set the task
+  // (creator or assigner), its current assignee, IT, and the editors/owners of
+  // a project it is in. Anyone else is refused.
+  const projectEditor = rights.bestRole === "OWNER" || rights.bestRole === "EDITOR";
+  if (!(task.createdBy === actor.id || task.assignedBy === actor.id || task.assigneeId === actor.id || viewer.isAdmin || projectEditor)) return fail(REPEAT_WHO);
   const settings = parseRecurrenceSettings(await loadSetting(RECURRENCE_SETTINGS_KEY));
   if (!settings.enabled && raw !== null) return fail("Repeating tasks are switched off (Admin → Task settings).");
   if (!OPEN_STATUSES.includes(task.status) && raw !== null) return fail("Reopen the task first.");
-  // v1.54.4 (owner): "a periodic task can be created only for oneself; given to others it is ad hoc".
-  if (raw !== null && task.assigneeId !== task.createdBy) return fail("Only a task you give yourself can repeat. A task for someone else is ad hoc.");
   const rule: Recurrence | null = raw === null ? null : parseRecurrence(raw);
   if (raw !== null && !rule) return fail("Choose how often it repeats.");
   await withTransaction(async (connection) => {

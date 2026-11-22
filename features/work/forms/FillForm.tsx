@@ -7,6 +7,7 @@ import { submitFormAction } from "@/app/users/work/form-actions";
 import { MAX_FILE_BYTES } from "@/server/attachments/files";
 import { visibleFields } from "@/server/forms/dynamic";
 import type { FormField } from "@/server/forms/fields";
+import { DateRangePicker } from "@/features/ui/DateRangePicker";
 
 // v1.66.0 (D-374, spec FORMS_MODULE §3.9–§3.10): the fill view of a project
 // form, for signed-in people. A centred card; required marks; one control per
@@ -266,7 +267,22 @@ function Question({ field, value, files, error, onChange, onFiles }: { field: Fo
       break;
     }
     case "DATE":
-      control = <input {...common} type="date" value={(value as string) ?? ""} onChange={(event) => onChange(event.target.value)} className={`field-input w-full sm:w-1/2 ${ring}`} />;
+      // v1.75.0 (D-399): the shared date picker, one day (a label outside names its button).
+      control = (
+        <DateRangePicker
+          mode="single"
+          idBase={`${id}-picker`}
+          triggerId={id}
+          triggerDescribedBy={describedBy}
+          triggerInvalid={Boolean(error) || undefined}
+          label={field.label}
+          dueLabel="Date"
+          value={{ start: "", due: (value as string) ?? "" }}
+          onChange={(next) => onChange(next.due)}
+          placeholder="Choose a date"
+          triggerClass={`field-input flex w-full items-center gap-2 text-left sm:w-1/2 ${ring}`}
+        />
+      );
       break;
     case "NUMBER":
       control = <input {...common} type="text" inputMode="decimal" value={(value as string) ?? ""} onChange={(event) => onChange(event.target.value)} placeholder="Enter a number" className={`field-input w-full sm:w-1/2 ${ring}`} />;

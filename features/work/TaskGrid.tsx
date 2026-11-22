@@ -3,6 +3,8 @@
 import { TaskPriorityPill, priorityControlProps } from "@/features/ui/ChoicePill";
 import { ApprovalBadge, approvalRowClass } from "@/features/work/ApprovalLink";
 import { ArrowDown, ArrowUp, ArrowUpDown, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ChevronsDownUp, ChevronsUpDown, EyeOff, Filter, GitBranch, Layers, Lock, MessageSquare, MoreHorizontal, Pencil, Plus, Repeat, Settings2, Users, X } from "lucide-react";
+import { DueCell } from "@/features/work/DueCell";
+import { DateRangePicker } from "@/features/ui/DateRangePicker";
 import Link from "next/link";
 import { useProjectsOn } from "@/features/work/projects-access";
 import { LockedProjectName } from "@/features/ui/ComingSoon";
@@ -30,6 +32,8 @@ import { useColumnWidths, type ColumnDefault } from "@/features/work/useColumnWi
 import {
   applyGrid,
   columnSortState,
+  dateWindowValue,
+  parseDateWindow,
   COLUMN_LABEL,
   COMPLETED_RANGES,
   FILTER_FIELDS,
@@ -776,7 +780,7 @@ export function TaskGrid({
                         <span key={column} role="gridcell" className="flex min-w-0 items-center border-r border-line px-2 py-1">
                           {column === "due" &&
                             (task.canEdit && open ? (
-                              <DueInput task={task} toneClass={due ? TONE_TEXT[due.tone] : ""} />
+                              <DueCell task={task} toneClass={due ? TONE_TEXT[due.tone] : ""} />
                             ) : (
                               <span className={due ? TONE_TEXT[due.tone] : "text-ink-faint"}>{due?.text ?? <CalendarDays aria-hidden="true" className="h-4 w-4" />}</span>
                             ))}
@@ -947,6 +951,16 @@ function FilterPanel({ config, set, people, projects, fields }: { config: GridCo
           ["today", "Today"],
           ["next7", "Next 7 days"],
           ["none", "No due date"],
+          ["between::", "Is between…"],
+          ["notbetween::", "Is not between…"],
+        ];
+      // v1.75.0 (D-399, spec DATE_RANGES §6): the start date, with the same windows.
+      case "start":
+        return [
+          ["set", "Has a start date"],
+          ["none", "No start date"],
+          ["between::", "Is between…"],
+          ["notbetween::", "Is not between…"],
         ];
       case "tag":
         return [];
@@ -1034,6 +1048,36 @@ function FilterPanel({ config, set, people, projects, fields }: { config: GridCo
                   compact
                   className="flex-1"
                 />
+              ) : (filter.field === "due" || filter.field === "start") && parseDateWindow(filter.value) ? (
+                // v1.75.0 (D-399): "is between / is not between" From – To (both days included).
+                <span className="flex flex-1 flex-wrap items-center gap-2">
+                  <select
+                    aria-label="Filter value"
+                    value={parseDateWindow(filter.value)!.not ? "notbetween::" : "between::"}
+                    onChange={(event) => {
+                      const window = parseDateWindow(filter.value)!;
+                      const next = event.target.value;
+                      set({ filters: config.filters.map((item, at) => (at === index ? { ...item, value: next.endsWith("::") ? dateWindowValue(next.startsWith("not"), window.from, window.to) : next } : item)) });
+                    }}
+                    className="field-input h-9 w-40"
+                  >
+                    {options(filter.field).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                  <DateRangePicker
+                    compact
+                    label={`${FILTER_LABEL[filter.field]} from – to`}
+                    startLabel="From"
+                    dueLabel="To"
+                    value={{ start: parseDateWindow(filter.value)!.from, due: parseDateWindow(filter.value)!.to }}
+                    onChange={(next) => set({ filters: config.filters.map((item, at) => (at === index ? { ...item, value: dateWindowValue(parseDateWindow(filter.value)!.not, next.start, next.due) } : item)) })}
+                    placeholder="From – To"
+                    testId="filter-window"
+                  />
+                </span>
               ) : (
                 <select
                   aria-label="Filter value"
@@ -1068,27 +1112,6 @@ function FilterPanel({ config, set, people, projects, fields }: { config: GridCo
   );
 }
 
-function DueInput({ task, toneClass }: { task: GridTask; toneClass: string }) {
-  const { call } = useWorkCall();
-  const before = task.dueAt ? indiaDayOf(new Date(task.dueAt)) : "";
-  return (
-    <input
-      key={task.dueAt ?? "none"}
-      type="date"
-      aria-label={`Due date of ${task.title}`}
-      defaultValue={before}
-      onBlur={(event) => {
-        const input = event.target;
-        const picked = input.value;
-        if (picked !== before)
-          void call((choice) => taskFieldsAction(task.id, { dueDay: choice?.moveTo ?? picked, holidayOk: choice?.holidayOk }), { success: false }).then((result) => {
-            if (!result?.ok) input.value = before;
-          });
-      }}
-      className={`w-full rounded border-0 bg-transparent text-label focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600/40 ${toneClass} ${before ? "" : "text-ink-faint"}`}
-    />
-  );
-}
 
 export function PersonDot({ name, size = "sm", ring }: { name: string; size?: "sm" | "md"; ring?: boolean }) {
   return (

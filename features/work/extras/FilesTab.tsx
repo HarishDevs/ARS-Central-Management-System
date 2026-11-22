@@ -7,6 +7,7 @@ import { useId, useMemo, useState } from "react";
 import { Dialog } from "@/features/ui/Dialog";
 import { formatSize } from "@/server/attachments/files";
 import { EMPTY_FILE_FILTER, FILE_KIND_LABEL, FILE_KINDS, FILE_SORTS, FILE_SOURCE_LABEL, fileKind, filterFiles, sortFiles, type FileFilter, type FileItem, type FileKind, type FileSort } from "@/server/work/collab-rules";
+import { DateRangePicker } from "@/features/ui/DateRangePicker";
 
 // v1.71.0 (D-384, PM phase E part 2, spec PROJECTS_VIEWS §9): every file on
 // the project's tasks (and their form submissions) and on its messages, as a
@@ -120,14 +121,20 @@ export function FilesTab({ files, taskHref, messagesHref }: { files: FileItem[];
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1 text-caption text-ink-muted">
-          From
-          <input type="date" className="field-input field-compact w-auto" value={filter.from} max={filter.to || undefined} onChange={(event) => set({ from: event.target.value })} />
-        </label>
-        <label className="flex flex-col gap-1 text-caption text-ink-muted">
-          To
-          <input type="date" className="field-input field-compact w-auto" value={filter.to} min={filter.from || undefined} onChange={(event) => set({ to: event.target.value })} />
-        </label>
+        {/* v1.75.0 (D-399): the From–To window in the shared date range picker (both days included). */}
+        <div className="flex flex-col gap-1 text-caption text-ink-muted">
+          From – To
+          <DateRangePicker
+            compact
+            label="Files added from – to"
+            startLabel="From"
+            dueLabel="To"
+            value={{ start: filter.from, due: filter.to }}
+            onChange={(next) => set({ from: next.start, to: next.due })}
+            placeholder="Any day"
+            testId="files-window"
+          />
+        </div>
         <label className="flex flex-col gap-1 text-caption text-ink-muted">
           Sort
           <select className="field-input field-compact w-auto" value={sort} onChange={(event) => setSort(event.target.value as FileSort)}>

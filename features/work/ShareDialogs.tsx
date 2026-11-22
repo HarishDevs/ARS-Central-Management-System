@@ -1,6 +1,6 @@
 "use client";
 
-import { Link2, Lock, Share2, Users, X } from "lucide-react";
+import { Link2, Lock, Plus, Share2, Users, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { followAction, memberAction, privacyAction } from "@/app/users/work/actions";
@@ -223,10 +223,23 @@ export function TaskShareButton(props: { taskId: number; title: string; follower
     <>
       {/* v1.62.0 (D-368): the task pane's "Add or remove collaborators" button opens the same dialog. */}
       {props.collaborators ? (
-        <button type="button" onClick={() => setOpen(true)} aria-label={`Collaborators: ${props.followers.length}. Add or remove collaborators`} title="Collaborators" className="inline-flex h-8 items-center gap-1 rounded-md px-2 text-label text-ink-muted hover:bg-surface-muted hover:text-ink" data-testid="pane-collaborators">
-          <Users aria-hidden="true" className="h-4 w-4" />
-          <span aria-hidden="true" className="tabular-nums">
-            {props.followers.length}
+        // v1.75.0 (D-399, owner's pane screenshot): the collaborators' avatars and a "+".
+        <button type="button" onClick={() => setOpen(true)} aria-label={`Collaborators: ${props.followers.length}. Add or remove collaborators`} title={props.followers.map((person) => person.name).join(", ") || "Collaborators"} className="inline-flex h-8 items-center gap-1 rounded-full px-1 text-label text-ink-muted hover:bg-surface-muted hover:text-ink" data-testid="pane-collaborators">
+          <span aria-hidden="true" className="flex -space-x-1.5">
+            {props.followers.slice(0, 3).map((person) => (
+              <span key={person.id} className="grid h-6 w-6 place-items-center rounded-full border-2 border-surface bg-primary-50 text-[length:calc(10px*var(--text-scale,1))] font-semibold text-primary-700">
+                {person.name
+                  .split(/\s+/)
+                  .slice(0, 2)
+                  .map((word) => word[0]?.toUpperCase() ?? "")
+                  .join("")}
+              </span>
+            ))}
+            {props.followers.length === 0 && <Users className="h-4 w-4" />}
+          </span>
+          {props.followers.length > 3 && <span aria-hidden="true" className="text-caption tabular-nums">+{props.followers.length - 3}</span>}
+          <span aria-hidden="true" className="grid h-6 w-6 place-items-center rounded-full border border-dashed border-line-strong">
+            <Plus className="h-3.5 w-3.5" />
           </span>
         </button>
       ) : (

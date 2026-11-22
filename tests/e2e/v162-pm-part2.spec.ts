@@ -93,7 +93,8 @@ test("the task pane opens on the right, resizes from the keyboard, and keeps the
   const pane = page.getByTestId("task-pane");
   await expect(pane).toHaveAttribute("data-pane-mode", "side");
   await expect(pane.getByTestId("pane-bar")).toBeVisible();
-  await expect(pane.getByTestId("visibility-banner")).toContainText(`members of ${projectName}`);
+  // v1.75.0 (D-399): a task in one private project says so ("private to members of this project", with Make public for its owner).
+  await expect(pane.getByTestId("visibility-banner")).toContainText("This task is private to members of this project.");
   await expect(pane.getByTestId("mark-complete")).toBeVisible();
   await expect(pane.getByTestId("pane-collaborators")).toBeVisible();
   await expect(pane.getByTestId("pane-like")).toBeVisible();

@@ -322,6 +322,8 @@ export interface QuickTaskInput {
   parentId: number | null;
   assigneeId: number | null; // default: the creator
   dueDay: string; // YYYY-MM-DD or ""
+  // v1.75.0 (D-399): the Create task window's date range picker may also set a start day (YYYY-MM-DD; start ≤ due).
+  startDay?: string;
   mySectionId: number | null; // My Tasks: where it goes
   description?: string;
   priority?: string;
@@ -377,6 +379,15 @@ export async function quickAddTask(input: QuickTaskInput, actor: TaskActor): Pro
     const hit = checkHoliday(dayPart(input.dueDay), "due", calendar, holidays, Boolean(input.holidayOk));
     if (hit) return holidayFail(hit);
   }
+  // v1.75.0 (D-399): an optional start day: a real day, not after the due day; the same holiday question as the due date.
+  const startsOn = input.startDay ? realDay(input.startDay) : null;
+  if (input.startDay && !startsOn) return fail("Choose a valid start date.");
+  if (startsOn && startsOn > dayPart(dueDay)) return fail("The start date can't be after the due date.");
+  if (startsOn) {
+    const { settings: holidays, calendar } = await holidayContext(undefined, assignee.departmentId, assigneeId);
+    const hit = checkHoliday(startsOn, "start", calendar, holidays, Boolean(input.holidayOk));
+    if (hit) return holidayFail(hit);
+  }
   const priority = (TASK_PRIORITIES as readonly string[]).includes(input.priority ?? "") ? (input.priority as TaskPriority) : settings.defaultPriority;
   const description = (input.description ?? "").trim().slice(0, 4000) || null;
   const relatedRequestId = input.relatedRequestId ?? null;
@@ -389,7 +400,7 @@ export async function quickAddTask(input: QuickTaskInput, actor: TaskActor): Pro
   const outcome = await withTransaction(async (connection) => {
     const taskNo = await nextRequestNumber("TSK", connection);
     const id = await insertTask(
-      { taskNo, typeVersionId: general.versionId, title, description, priority, createdBy: actor.id, assigneeId, dueAt, startsOn: null, formData: relatedRequestId !== null ? { [REQUEST_FOLLOW_UP_KEY]: true } : {}, relatedRequestId, submissionKey: null },
+      { taskNo, typeVersionId: general.versionId, title, description, priority, createdBy: actor.id, assigneeId, dueAt, startsOn, formData: relatedRequestId !== null ? { [REQUEST_FOLLOW_UP_KEY]: true } : {}, relatedRequestId, submissionKey: null },
       connection,
     );
     if (parent) {
@@ -541,7 +552,9 @@ export async function setTaskFields(taskId: number, change: { dueDay?: string; s
     const due = dueFromDay(change.dueDay);
     if (!due) return fail("Choose a valid date.");
     changes.due_at = due;
-    notes.push(change.dueDay ? `Due date set to ${change.dueDay}` : "Due date removed");
+    // v1.75.0 (D-399, spec DATE_RANGES BR-DATE-006 / AC-DATE-07): the story keeps the old and the new value.
+    const was = task.dueAt ? indiaDay(task.dueAt) : null;
+    notes.push(was ? `Due date changed from ${was} to ${dayPart(change.dueDay)}` : `Due date set to ${dayPart(change.dueDay)}`);
   }
   if (change.startDay !== undefined) {
     if (task.isMilestone && change.startDay) return fail("A milestone has no start date.");
@@ -549,7 +562,7 @@ export async function setTaskFields(taskId: number, change: { dueDay?: string; s
     const start = change.startDay ? realDay(change.startDay) : null;
     if (change.startDay && !start) return fail("Choose a valid start date.");
     changes.starts_on = start;
-    notes.push(start ? `Start date set to ${start}` : "Start date removed");
+    notes.push(start ? (task.startsOn ? `Start date changed from ${task.startsOn} to ${start}` : `Start date set to ${start}`) : task.startsOn ? `Start date removed (was ${task.startsOn})` : "Start date removed");
   }
   if (change.priority !== undefined) {
     if (!rights.details) return fail(rights.adhoc ? "Only its creator can change an ad hoc task's details." : "Only the task's owners and project editors can change its priority.");

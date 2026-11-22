@@ -6,6 +6,7 @@ import { statusHighlightsAction, statusReminderAction, statusUpdateAction } from
 import { FieldError, ResultMessage, SubmitButton, useActionForm } from "@/features/ui/form";
 import { PersonSelect, type PersonChoice } from "@/features/ui/PersonSelect";
 import { RichEditor } from "@/features/ui/RichEditor";
+import { DateRangePicker } from "@/features/ui/DateRangePicker";
 import { InlineLoading } from "@/features/ui/Spinner";
 import { useWorkCall } from "@/features/work/client";
 import { STATUS_KIND_LABEL, STATUS_KINDS } from "@/server/work/access";
@@ -121,15 +122,12 @@ export function StatusComposer({
             ))}
           </select>
         </label>
-        <label className="block">
-          <span className="field-label">Start</span>
-          <input type="date" name="start_on" defaultValue={startOn} className="field-input" />
-        </label>
-        <label className="block">
-          <span className="field-label">Due</span>
-          <input type="date" name="due_on" defaultValue={dueOn} className="field-input" />
+        {/* v1.75.0 (D-399): Start and Due in the shared date range picker (form fields start_on / due_on as before). */}
+        <div className="block">
+          <span className="field-label">Start – Due</span>
+          <DateRangePicker label="Status dates" startLabel="Start date" dueLabel="Due date" defaultValue={{ start: startOn ?? "", due: dueOn ?? "" }} names={{ start: "start_on", due: "due_on" }} testId="status-dates" />
           <FieldError result={result} name="due_on" />
-        </label>
+        </div>
       </div>
       <div>
         <span className="field-label" id="status-summary-label">

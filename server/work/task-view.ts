@@ -2,7 +2,7 @@ import "server-only";
 import type { TaskRecord } from "@/lib/db/repositories/tasks.repository";
 import { listPeopleFacts } from "@/lib/db/repositories/tasks.repository";
 import { personLabel } from "@/lib/people/label";
-import { assignGroup, ancestors, likesOf, listComments, listDependencies, listFollowers, listSections, listSubtasks, listTaskItems, listTaskProjects, listVisibleProjects } from "@/lib/db/repositories/work.repository";
+import { assignGroup, ancestors, likesOf, listComments, listDependencies, listFollowers, listSections, listSubtasks, listTaskItems, listTaskProjects, listVisibleProjects, projectFor } from "@/lib/db/repositories/work.repository";
 import { OPEN_STATUSES } from "@/server/modules/task-rules";
 import { indiaDateTimeText } from "@/server/modules/settings";
 import { loadSetting } from "@/server/work/holiday-store";
@@ -42,6 +42,8 @@ export async function taskWorkView(task: TaskRecord, user: { id: number; roles: 
   const allDefs = [...new Map(linkFields.flatMap((item) => item?.defs ?? []).map((field) => [field.id, field])).values()];
   const ownCells = (await cellsFor([task.id], allDefs, viewer))[task.id] ?? {};
   const planning = await featureOn("pm_planning", user).catch(() => false);
+  // v1.75.0 (D-399): the pane's visibility banner: each project's privacy and whether this person may change it.
+  const access = await Promise.all(links.map((link) => projectFor(link.projectId, viewer).catch(() => null)));
   const panel: PanelData = {
     taskId: task.id,
     taskNo: task.taskNo,
@@ -74,6 +76,12 @@ export async function taskWorkView(task: TaskRecord, user: { id: number; roles: 
     recurrenceOn: recurrenceSettings.enabled,
     fields: links.map((link, index) => ({ projectId: link.projectId, fields: linkFields[index]?.views ?? [], values: ownCells })),
     planning,
+    // v1.75.0 (D-399/D-400): the pane's field rows and the repeat rule.
+    dueAt: task.dueAt?.toISOString() ?? null,
+    assigneeId: task.assigneeId,
+    assigneeName: task.assigneeName,
+    canRepeat: !task.deletedAt && (task.createdBy === user.id || task.assignedBy === user.id || task.assigneeId === user.id || viewer.isAdmin || rights.bestRole === "OWNER" || rights.bestRole === "EDITOR"),
+    privacy: links.map((link, index) => ({ projectId: link.projectId, privacy: access[index]?.project.privacy ?? "PRIVATE", canManage: access[index]?.role === "OWNER" || (viewer.isAdmin && Boolean(access[index])) })),
   };
   // v1.62.0 (D-368): emoji reactions beside Like ("pm_foundations").
   const pmOn = await featureOn("pm_foundations", user).catch(() => false);

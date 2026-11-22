@@ -52,6 +52,12 @@ export interface PanelData {
   // v1.64.0 (D-371): typed cells; `planning` = the "pm_planning" switch (every field type).
   fields: { projectId: number; fields: FieldView[]; values: Record<number, FieldCell> }[];
   planning?: boolean;
+  // v1.75.0 (D-399): the pane's field rows; D-400: who may change the repeat.
+  dueAt?: string | null;
+  assigneeId?: number;
+  assigneeName?: string;
+  canRepeat?: boolean;
+  privacy?: { projectId: number; privacy: string; canManage: boolean }[];
 }
 
 const OPEN = ["OPEN", "IN_PROGRESS", "BLOCKED"];
@@ -80,9 +86,25 @@ export function TaskWorkPanel({ data }: { data: PanelData }) {
     <div className="space-y-6">
       <section className="card space-y-3 px-5 py-4" aria-labelledby="work-projects">
         <div className="flex flex-wrap items-center gap-2">
-          <h2 id="work-projects" className="font-semibold">
+          {/* v1.75.0 (D-399, owner's pane screenshot): "Projects" with a count and a + to add one. */}
+          <h2 id="work-projects" className="flex items-center gap-2 font-semibold">
             Projects
+            <span className="rounded-full bg-surface-muted px-2 py-0.5 text-caption font-semibold text-ink-muted" data-testid="projects-count" aria-label={`${data.links.length} ${data.links.length === 1 ? "project" : "projects"}`}>
+              {data.links.length}
+            </span>
           </h2>
+          {projectsOn && data.canProgress && data.projectChoices.length > 0 && (
+            <button
+              type="button"
+              aria-label="Add to a project"
+              title="Add to a project"
+              onClick={() => document.getElementById("add-to-project")?.focus()}
+              className="grid h-7 w-7 place-items-center rounded-md text-ink-muted hover:bg-surface-muted hover:text-ink"
+              data-testid="projects-add"
+            >
+              <Plus aria-hidden="true" className="h-4 w-4" />
+            </button>
+          )}
           <button
             type="button"
             aria-pressed={liked}
@@ -98,53 +120,36 @@ export function TaskWorkPanel({ data }: { data: PanelData }) {
         {data.links.length === 0 && <p className="text-label text-ink-muted">In no project: only you, its people and its followers see it.</p>}
         <ul className="space-y-2">
           {data.links.map((link) => (
-            <li key={link.projectId} className="flex flex-wrap items-center gap-2 text-label">
-              <ProjectDot color={link.color} />
-              {projectsOn ? (
-                <Link href={`/users/work/projects/${link.projectId}`} className="link">
-                  {link.projectName}
-                </Link>
-              ) : (
-                <LockedProjectName name={link.projectName} />
-              )}
-              <select
-                aria-label={`Section in ${link.projectName}`}
-                value={link.sectionId}
-                disabled={!data.canEdit || !projectsOn}
-                onChange={(event) => void call(() => moveTaskAction({ taskId: data.taskId, projectId: link.projectId, sectionId: Number(event.target.value), beforeId: null, afterId: null }))}
-                className="field-input h-8 w-auto py-0 text-label"
-              >
-                {link.sections.map((section) => (
-                  <option key={section.id} value={section.id}>
-                    {section.name}
-                  </option>
-                ))}
-              </select>
-              {data.fields
-                .find((item) => item.projectId === link.projectId)
-                ?.fields.map((field) => {
-                  const cell = data.fields.find((item) => item.projectId === link.projectId)?.values[field.id];
-                  return (
-                    <span key={field.id} className="flex w-full items-center gap-2 pl-5 text-caption" data-testid="pane-field">
-                      <span className="flex w-28 shrink-0 items-center gap-1 truncate text-ink-muted" title={field.description ?? field.name}>
-                        {data.planning && <FieldGlyph kind={field.kind} />}
-                        <span className="truncate">{field.name}</span>
-                      </span>
-                      <span className="min-w-0 w-56">
-                        {data.planning ? (
-                          <FieldValueEditor taskId={data.taskId} field={field} cell={cell} label={field.name} canChange={data.canProgress && projectsOn} people={data.people} compact />
-                        ) : (
-                          <FieldInput taskId={data.taskId} field={field} value={cell?.edit ?? ""} canChange={data.canProgress && projectsOn} compact />
-                        )}
-                      </span>
-                    </span>
-                  );
-                })}
-              {data.canEdit && projectsOn && (
-                <button type="button" aria-label={`Remove from ${link.projectName}`} onClick={() => void call(() => taskProjectAction(data.taskId, link.projectId, false))} className="rounded p-1 text-ink-faint hover:text-danger-600">
-                  <X aria-hidden="true" className="h-4 w-4" />
-                </button>
-              )}
+            <li key={link.projectId} className="text-label" data-testid="project-group">
+              {/* v1.75.0 (D-399): each project folds open (▾, colour, name, section) over its fields. */}
+              <ProjectGroup name={link.projectName} body={<ProjectFieldRows data={data} projectId={link.projectId} projectsOn={projectsOn} />}>
+                  <ProjectDot color={link.color} className="h-3 w-3" />
+                  {projectsOn ? (
+                    <Link href={`/users/work/projects/${link.projectId}`} className="link">
+                      {link.projectName}
+                    </Link>
+                  ) : (
+                    <LockedProjectName name={link.projectName} />
+                  )}
+                  <select
+                    aria-label={`Section in ${link.projectName}`}
+                    value={link.sectionId}
+                    disabled={!data.canEdit || !projectsOn}
+                    onChange={(event) => void call(() => moveTaskAction({ taskId: data.taskId, projectId: link.projectId, sectionId: Number(event.target.value), beforeId: null, afterId: null }))}
+                    className="field-input h-8 w-auto py-0 text-label"
+                  >
+                    {link.sections.map((section) => (
+                      <option key={section.id} value={section.id}>
+                        {section.name}
+                      </option>
+                    ))}
+                  </select>
+                  {data.canEdit && projectsOn && (
+                    <button type="button" aria-label={`Remove from ${link.projectName}`} onClick={() => void call(() => taskProjectAction(data.taskId, link.projectId, false))} className="ml-auto rounded p-1 text-ink-faint hover:text-danger-600">
+                      <X aria-hidden="true" className="h-4 w-4" />
+                    </button>
+                  )}
+              </ProjectGroup>
             </li>
           ))}
         </ul>
@@ -263,6 +268,69 @@ export function TaskWorkPanel({ data }: { data: PanelData }) {
   );
 }
 
+// v1.75.0 (D-399): one project's group: a ▾ toggle, then the row's own controls; the fields fold under it.
+function ProjectGroup({ name, body, children }: { name: string; body: React.ReactNode; children: React.ReactNode }) {
+  const [open, setOpen] = useState(true);
+  return (
+    <>
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="button" aria-expanded={open} aria-label={`${open ? "Hide" : "Show"} the fields of ${name}`} onClick={() => setOpen((value) => !value)} className="grid h-6 w-6 place-items-center rounded text-ink-muted hover:bg-surface-muted hover:text-ink">
+          <ChevronDown aria-hidden="true" className={`h-4 w-4 transition-transform motion-reduce:transition-none ${open ? "" : "-rotate-90"}`} />
+        </button>
+        {children}
+      </div>
+      {open && body}
+    </>
+  );
+}
+
+// v1.75.0 (D-399): a project's fields as rows (type icon, name, value), the first five then "Show N more".
+const FIELDS_SHOWN = 5;
+const SHOWN_ALL = new Set<string>();
+function ProjectFieldRows({ data, projectId, projectsOn }: { data: PanelData; projectId: number; projectsOn: boolean }) {
+  // Kept for the page visit (a refresh after a change must not fold the fields again).
+  const key = `${data.taskId}-${projectId}`;
+  const [all, setAllState] = useState(() => SHOWN_ALL.has(key));
+  const setAll = (next: (value: boolean) => boolean) =>
+    setAllState((value) => {
+      const result = next(value);
+      if (result) SHOWN_ALL.add(key);
+      else SHOWN_ALL.delete(key);
+      return result;
+    });
+  const group = data.fields.find((item) => item.projectId === projectId);
+  const fields = group?.fields ?? [];
+  if (!fields.length) return null;
+  const shown = all ? fields : fields.slice(0, FIELDS_SHOWN);
+  return (
+    <div className="mt-1 space-y-0.5 pl-6">
+      {shown.map((field) => {
+        const cell = group?.values[field.id];
+        return (
+          <div key={field.id} className="grid min-h-8 grid-cols-[minmax(6rem,8.25rem)_minmax(0,1fr)] items-center gap-x-3 text-caption" data-testid="pane-field">
+            <span className="flex min-w-0 items-center gap-1.5 text-ink-muted" title={field.description ?? field.name}>
+              {data.planning && <FieldGlyph kind={field.kind} />}
+              <span className="truncate">{field.name}</span>
+            </span>
+            <span className="min-w-0">
+              {data.planning ? (
+                <FieldValueEditor taskId={data.taskId} field={field} cell={cell} label={field.name} canChange={data.canProgress && projectsOn} people={data.people} compact />
+              ) : (
+                <FieldInput taskId={data.taskId} field={field} value={cell?.edit ?? ""} canChange={data.canProgress && projectsOn} compact />
+              )}
+            </span>
+          </div>
+        );
+      })}
+      {fields.length > FIELDS_SHOWN && (
+        <button type="button" className="link text-caption" aria-expanded={all} onClick={() => setAll((value) => !value)} data-testid="fields-more">
+          {all ? "Show fewer" : `Show ${fields.length - FIELDS_SHOWN} more`}
+        </button>
+      )}
+    </div>
+  );
+}
+
 function DependencyList({ items, taskId, canChange }: { items: PanelData["blockedBy"]; taskId: number; canChange: boolean }) {
   const { call } = useWorkCall();
   const paneLink = usePaneLink();
@@ -341,7 +409,8 @@ export function TaskWorkSide({ data }: { data: PanelData }) {
         <ChevronDown aria-hidden="true" className="h-4 w-4 shrink-0 text-ink-muted transition-transform group-open:rotate-180" />
       </summary>
       <div className="space-y-4 border-t border-line px-5 py-4">
-      {(data.recurrenceOn || data.recurrence) && <RepeatEditor taskId={data.taskId} current={data.recurrence} canChange={data.canProgress && data.open} />}
+      {/* v1.75.0 (D-400): the repeat is changed by whoever set the task, its assignee, IT and project editors. */}
+      {(data.recurrenceOn || data.recurrence) && <RepeatEditor taskId={data.taskId} current={data.recurrence} canChange={Boolean(data.canRepeat ?? data.canProgress) && data.open} />}
       {data.adhoc && !data.canDetails && <p className="rounded-md bg-surface-muted px-3 py-2 text-caption text-ink-muted">Ad hoc task: only its creator changes the details. You can start it, complete it and comment.</p>}
       {data.canDetails && (
         <label className="flex items-center gap-2 text-label">
@@ -349,17 +418,7 @@ export function TaskWorkSide({ data }: { data: PanelData }) {
           <Diamond aria-hidden="true" className="h-3.5 w-3.5 text-primary-600" /> Milestone (a point to reach, no start date)
         </label>
       )}
-      {!data.isMilestone && data.canProgress && data.open && (
-        <div>
-          <label htmlFor="start-on" className="field-label">
-            Start date <span className="font-normal text-ink-faint">(shows the task as a range on the Timeline)</span>
-          </label>
-          <input id="start-on" type="date" defaultValue={data.startsOn} onBlur={(event) => {
-              const picked = event.target.value;
-              if (picked !== data.startsOn) void call((choice) => taskFieldsAction(data.taskId, { startDay: choice?.moveTo ?? picked, holidayOk: choice?.holidayOk }));
-            }} className="field-input h-9" />
-        </div>
-      )}
+      {/* v1.75.0 (D-399): the start date moved to the Due date row's date range picker (Details / pane). */}
       <div>
         <h3 className="field-label">Tags</h3>
         <ul className="flex flex-wrap gap-1.5">

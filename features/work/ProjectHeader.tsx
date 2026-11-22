@@ -8,7 +8,8 @@ import { Menu, type MenuItem } from "@/features/ui/Menu";
 import { initials } from "@/features/ui/Display";
 import { useToast } from "@/features/ui/Toast";
 import { COLOR_HEX, useWorkCall } from "@/features/work/client";
-import { renameProjectAction } from "@/app/users/work/actions";
+import { projectDatesAction, renameProjectAction } from "@/app/users/work/actions";
+import { DateRangePicker } from "@/features/ui/DateRangePicker";
 import { StarButton } from "@/features/work/ProjectForms";
 import { ProjectShareButton } from "@/features/work/ShareDialogs";
 import { CustomizeButton, type CustomizeCounts } from "@/features/work/CustomizePanel";
@@ -105,7 +106,7 @@ export function ProjectHeader({
   meta: string;
   starred: boolean;
   // v1.74.0 (D-398, "pm_planning"): "From 1 Dec To 12 Dec" and "10 working days · 80 h"; href: owners set them.
-  dates?: { text: string; duration: string | null; href: string | null };
+  dates?: { text: string; duration: string | null; href: string | null; from?: string; to?: string };
   status: ProjectStatusKind | null;
   members: { id: number; name: string }[];
   canEdit: boolean;
@@ -117,6 +118,7 @@ export function ProjectHeader({
   share: { privacy: string; departmentId: number | null; departments: { id: number; name: string }[]; members: { type: "USER" | "DEPARTMENT"; id: number; name: string; role: ProjectRole }[]; people: { id: number; label: string }[]; canShare: boolean };
 }) {
   const toast = useToast();
+  const { call } = useWorkCall();
   const [saving, setSaving] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -208,16 +210,29 @@ export function ProjectHeader({
             )
           )}
         </div>
-        <p className="text-caption text-ink-muted">
+        <div className="text-caption text-ink-muted">
           {meta}
           {dates && (dates.text || dates.href) && (
             <>
               {" · "}
               {dates.href ? (
-                <Link href={dates.href} className="inline-flex items-center gap-1 rounded hover:text-ink hover:underline" title={dates.text ? "Change the project's dates" : "Set the project's dates"} data-testid="project-dates">
-                  <CalendarRange aria-hidden="true" className="h-3.5 w-3.5" />
-                  {dates.text ? `Dates: ${dates.text}` : "Set dates"}
-                </Link>
+                // v1.75.0 (D-399): owners set From and To right here with the date range picker.
+                <DateRangePicker
+                  label="Project dates"
+                  startLabel="From (start date)"
+                  dueLabel="To (due date)"
+                  value={{ start: dates.from ?? "", due: dates.to ?? "" }}
+                  onCommit={(next) => void call(() => projectDatesAction(projectId, next.start, next.due), { success: "Project dates saved." })}
+                  testId="project-dates-header"
+                  triggerLabel={dates.text ? `Dates: ${dates.text}. Change the project's dates` : "Set the project's dates"}
+                  triggerClass="inline-flex min-h-6 items-center gap-1 rounded align-baseline text-caption text-ink-muted hover:text-ink hover:underline"
+                  triggerContent={
+                    <span className="inline-flex items-center gap-1" data-testid="project-dates">
+                      <CalendarRange aria-hidden="true" className="h-3.5 w-3.5" />
+                      {dates.text ? `Dates: ${dates.text}` : "Set dates"}
+                    </span>
+                  }
+                />
               ) : (
                 <span className="inline-flex items-center gap-1" data-testid="project-dates">
                   <CalendarRange aria-hidden="true" className="h-3.5 w-3.5" />
@@ -227,7 +242,7 @@ export function ProjectHeader({
               {dates.duration && <span data-testid="project-duration"> · {dates.duration}</span>}
             </>
           )}
-        </p>
+        </div>
       </div>
       <div className="ml-auto flex items-center gap-2">
         <Link href={`${base}/settings#members`} className="flex -space-x-1.5 rounded-full hover:opacity-90" aria-label={`Manage project members (${members.length} member${members.length === 1 ? "" : "s"})`} title="Manage project members" data-testid="member-stack">

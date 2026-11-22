@@ -133,11 +133,15 @@ test("the task inbox: archive a notice; the morning summary switch", async ({ pa
     await expect(page.getByRole("button", { name: `Move back to the inbox: ${title}` }).first()).toBeVisible();
   }
   await page.goto("/users/work/my-tasks");
-  const toggle = page.getByLabel("Morning summary email");
-  await expect(toggle).toBeChecked();
-  await toggle.uncheck();
+  // v1.73.0 (D-396) moved the switch into the title's ▾ menu (a menu checkbox); this check followed in v1.75.0.
+  const actions = page.getByTestId("my-tasks-actions");
+  const toggle = () => actions.getByRole("menuitemcheckbox", { name: /Morning summary email/ });
+  await actions.locator("button[aria-haspopup]").first().click();
+  await expect(toggle()).toHaveAttribute("aria-checked", "true");
+  await toggle().click();
   await expect(page.getByText("Morning summary switched off.")).toBeVisible();
-  await page.getByLabel("Morning summary email").check();
+  if (!(await toggle().isVisible().catch(() => false))) await actions.locator("button[aria-haspopup]").first().click();
+  await toggle().click();
   await expect(page.getByText("You'll get the morning summary.")).toBeVisible();
 });
 

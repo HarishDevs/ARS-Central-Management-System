@@ -154,5 +154,15 @@ export async function fillDue(dialog: import("@playwright/test").Locator, daysAh
   const date = new Date(Date.now() + 330 * 60_000 + daysAhead * 86_400_000);
   if (date.getUTCDay() === 0) date.setUTCDate(date.getUTCDate() + 1);
   const day = date.toISOString().slice(0, 10);
-  await dialog.locator("#create-due").fill(day);
+  await typeCreateDue(dialog, day);
+}
+
+// v1.75.0 (D-399): the Create task window's dates are the shared date range
+// picker: open it, type the due day into its Due field (yyyy-mm-dd works),
+// Enter keeps it and closes the picker.
+export async function typeCreateDue(dialog: import("@playwright/test").Locator, day: string): Promise<void> {
+  const field = dialog.locator("#create-due");
+  if (!(await field.isVisible())) await dialog.getByTestId("create-dates-button").click();
+  await field.fill(day);
+  await field.press("Enter");
 }

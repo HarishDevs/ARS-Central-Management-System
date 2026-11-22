@@ -6,6 +6,7 @@ import { changeTimeEntryAction, logTimeAction, setEstimateAction, timeTimerActio
 import { ConfirmButton } from "@/features/ui/ConfirmButton";
 import { useWorkCall } from "@/features/work/client";
 import { formatMinutes } from "@/server/work/collab-rules";
+import { DateRangePicker } from "@/features/ui/DateRangePicker";
 
 // v1.71.0 (D-384, PM phase E part 2): a task's Time section. Log time by hand
 // (day, how long, a note) or with Start/Stop; the task's estimate; every
@@ -136,10 +137,11 @@ export function TimeSection({ data }: { data: TimeData }) {
               if (!pending) void log();
             }}
           >
-            <label className="flex flex-col gap-1 text-caption text-ink-muted">
+            {/* v1.75.0 (D-399): the shared date picker, one day up to today. */}
+            <div className="flex flex-col gap-1 text-caption text-ink-muted">
               Day
-              <input type="date" className="field-input field-compact w-auto" value={day} max={data.today} required onChange={(event) => setDay(event.target.value)} data-testid="time-day" />
-            </label>
+              <DateRangePicker mode="single" compact label="Day worked" dueLabel="Day" max={data.today} value={{ start: "", due: day }} onChange={(next) => setDay(next.due)} placeholder="Choose the day" testId="time-day" />
+            </div>
             <label className="flex flex-col gap-1 text-caption text-ink-muted">
               How long
               <input className="field-input field-compact w-28" value={duration} required placeholder="1h 30m" onChange={(event) => setDuration(event.target.value)} data-testid="time-duration" />
@@ -169,10 +171,10 @@ export function TimeSection({ data }: { data: TimeData }) {
                     if (!pending) void call(() => changeTimeEntryAction(entry.id, draft)).then((result) => result?.ok && setEditing(null));
                   }}
                 >
-                  <label className="flex flex-col gap-1 text-caption text-ink-muted">
+                  <div className="flex flex-col gap-1 text-caption text-ink-muted">
                     Day
-                    <input type="date" className="field-input field-compact w-auto" value={draft.workDay} max={data.today} onChange={(event) => setDraft({ ...draft, workDay: event.target.value })} />
-                  </label>
+                    <DateRangePicker mode="single" compact label="Day worked" dueLabel="Day" max={data.today} value={{ start: "", due: draft.workDay }} onChange={(next) => setDraft({ ...draft, workDay: next.due })} placeholder="Choose the day" />
+                  </div>
                   <label className="flex flex-col gap-1 text-caption text-ink-muted">
                     How long
                     <input className="field-input field-compact w-28" value={draft.duration} onChange={(event) => setDraft({ ...draft, duration: event.target.value })} />

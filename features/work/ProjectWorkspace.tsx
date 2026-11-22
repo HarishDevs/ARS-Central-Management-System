@@ -2,6 +2,7 @@
 
 import { ApprovalBadge, approvalRowClass } from "@/features/work/ApprovalLink";
 import { ArrowDown, ArrowUp, ArrowUpDown, CalendarClock, ChevronDown, ChevronRight, Filter, GitBranch, GripVertical, Heart, Layers, ListPlus, Lock, MessageSquare, MoreHorizontal, Pencil, Plus, Repeat, Settings2, Trash2, Diamond, X, Zap } from "lucide-react";
+import { DueCell } from "@/features/work/DueCell";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -818,23 +819,10 @@ export function ProjectWorkspace({
                       </div>
                       <div role="cell" className="min-w-0">
                         {canEdit || task.assigneeId === meId ? (
-                          <input
-                            key={task.dueAt ?? "none"}
-                            type="date"
-                            aria-label={`Due date of ${task.title}`}
-                            defaultValue={task.dueAt ? indiaDayOf(new Date(task.dueAt)) : ""}
-                            disabled={!OPEN.has(task.status)}
-                            onBlur={(event) => {
-                              const before = task.dueAt ? indiaDayOf(new Date(task.dueAt)) : "";
-                              const input = event.target;
-                              const picked = input.value;
-                              if (picked !== before)
-                                void call((choice) => taskFieldsAction(task.id, { dueDay: choice?.moveTo ?? picked, holidayOk: choice?.holidayOk }), { success: false }).then((result) => {
-                                  if (!result?.ok) input.value = before; // refused or cancelled: show the saved date again
-                                });
-                            }}
-                            className={`field-input h-8 w-full max-w-[124px] py-0 text-label ${TONE_TEXT[dueLabel(task.dueAt, now, OPEN.has(task.status))?.tone ?? "neutral"]}`}
-                          />
+                          // v1.75.0 (D-399): the compact due-only date picker.
+                          <span className="block max-w-[124px]">
+                            <DueCell task={task} boxed disabled={!OPEN.has(task.status)} toneClass={TONE_TEXT[dueLabel(task.dueAt, now, OPEN.has(task.status))?.tone ?? "neutral"]} />
+                          </span>
                         ) : (
                           <span className="text-label">{dueLabel(task.dueAt, now, OPEN.has(task.status))?.text ?? "—"}</span>
                         )}

@@ -138,16 +138,18 @@ test("a due date on a holiday: the warning offers to keep it or move it", async 
     await conn.query("INSERT IGNORE INTO holidays (holiday_on, name) VALUES (?, ?)", [day, `E2E holiday ${stamp}`]);
     await as(context, "E2E_REQ");
     await page.goto(projectUrl);
-    const due = page.getByLabel(`Due date of Survey the site ${stamp}`);
-    await due.fill(day);
-    await due.blur();
+    // v1.75.0 (D-399): the cell is the compact date picker: open it, type the day, Enter.
+    await page.getByRole("button", { name: new RegExp(`^Due date of Survey the site ${stamp}`) }).click();
+    const field = page.getByRole("dialog", { name: `Due date of Survey the site ${stamp}` }).getByRole("textbox", { name: "Due date" });
+    await field.fill(day);
+    await field.press("Enter");
     const prompt = page.getByTestId("holiday-prompt");
     await expect(prompt).toContainText(`E2E holiday ${stamp}`);
     await page.screenshot({ path: "test-results/work-holiday-prompt.png" });
     await prompt.getByRole("button", { name: `Move to ${next}` }).click();
     await expect(prompt).not.toBeVisible();
     // The new date is saved once the list shows it.
-    await expect(page.getByLabel(`Due date of Survey the site ${stamp}`)).toHaveValue(next);
+    await expect(page.locator(`[data-due="${next}"]`).getByRole("button", { name: new RegExp(`^Due date of Survey the site ${stamp}`) })).toBeVisible();
     await expect.poll(async () => {
       const [rows] = await conn.query("SELECT DATE_FORMAT(DATE_ADD(due_at, INTERVAL 330 MINUTE), '%Y-%m-%d') AS d FROM tasks WHERE title = ?", [`Survey the site ${stamp}`]);
       return (rows as { d: string }[])[0]?.d;

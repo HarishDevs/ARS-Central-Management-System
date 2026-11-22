@@ -1,6 +1,7 @@
 "use client";
 
-import { CalendarDays, ChevronDown, Paperclip, Plus, Repeat, Sparkles, UserPlus, X } from "lucide-react";
+import { ChevronDown, Paperclip, Plus, Sparkles, UserPlus, X } from "lucide-react";
+import { DateRangePicker, type DateRangeHandle } from "@/features/ui/DateRangePicker";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { followAction, quickAddAction, recurrenceAction, taskFieldsAction } from "@/app/users/work/actions";
@@ -13,7 +14,7 @@ import { useProjectsOn } from "@/features/work/projects-access";
 import { mentionIds } from "@/features/work/rich-text";
 import { RECURRENCE_KINDS, type Recurrence } from "@/server/work/more-rules";
 
-// D-221 (owner): "Create â†’ Task" anywhere in the app opens Asana's Draft
+// D-221 (owner): "Create → Task" anywhere in the app opens Asana's Draft
 // task panel (bottom right). Mounted once in the users layout; anything can
 // ask for it with CREATE_TASK_EVENT (detail.projectId picks the project).
 type RailProject = { id: number; name: string; color: string };
@@ -80,7 +81,7 @@ const sizeText = (bytes: number) => (bytes < 1024 * 1024 ? `${Math.max(1, Math.r
 // right: Task name; "For <people> in <project>"; Description; then the
 // due date, repeat (periodic) and Create task. Ad hoc unless a repeat is set.
 // D-238 (owner's Asana screenshots): the toolbar under the description: + (more),
-// Formatting, Emoji, @mention, Attach (or paste an image), âœ¨ Pico Bot (only for
+// Formatting, Emoji, @mention, Attach (or paste an image), ✨ Pico Bot (only for
 // people it answers), the due date and repeat; collaborators beside Create task;
 // "/" in the description opens the same commands. The panel is taller than wide
 // and grows a step at a time with the screen.
@@ -117,6 +118,8 @@ function CreateTaskDialog({
   const [forWhom, setForWhom] = useState<"self" | "others">("self");
   const [others, setOthers] = useState<number[]>([]);
   const [due, setDue] = useState("");
+  const [start, setStart] = useState(""); // v1.75.0 (D-399): optional, from the date range picker
+  const dates = useRef<DateRangeHandle>(null);
   const [dueTime, setDueTime] = useState("23:59"); // v1.54.7 (owner): 11:59 pm unless changed
   const [project, setProject] = useState<number | "">(defaultProject ?? "");
   const [description, setDescription] = useState(prefill?.description ?? "");
@@ -124,7 +127,8 @@ function CreateTaskDialog({
   const [periodic, setPeriodic] = useState(false);
   // D-259: priority, set on the new task(s) right after they are made.
   const [priority, setPriority] = useState<"LOW" | "NORMAL" | "ELEVATED" | "IMPORTANT" | "HIGH" | "URGENT">((["LOW", "NORMAL", "ELEVATED", "IMPORTANT", "HIGH", "URGENT"] as const).find((value) => value === prefill?.priority) ?? "NORMAL");
-  const assignees = forWhom === "self" || periodic ? [meId] : others;
+  // v1.75.0 (D-400): periodic or ad hoc, for yourself or for others (each person gets their own copy, and each copy repeats).
+  const assignees = forWhom === "self" ? [meId] : others;
   const [kind, setKind] = useState<Recurrence["kind"]>("WEEKLY");
   const [every, setEvery] = useState(1);
   const [weekdays, setWeekdays] = useState<number[]>([]);
@@ -140,24 +144,14 @@ function CreateTaskDialog({
   // window, where both settings are always shown): the calendar button opens
   // the due date's picker; the repeat button makes the task periodic and
   // takes you to its repeat settings.
+  // v1.75.0 (D-399): the shared date range picker (start and due, time, repeat).
   const openDue = () => {
     setPicking("due");
-    window.requestAnimationFrame(() => {
-      const input = document.getElementById("create-due") as HTMLInputElement | null;
-      input?.focus();
-      try {
-        input?.showPicker?.();
-      } catch {
-        // Some browsers allow the picker only from a direct click; the box has focus.
-      }
-    });
+    window.requestAnimationFrame(() => dates.current?.open("due"));
   };
   const openRepeat = () => {
-    if (!periodic) {
-      // v1.54.4 (owner): a repeating task is always for yourself.
-      setPeriodic(true);
-      setForWhom("self");
-    }
+    // v1.75.0 (D-400, owner): a repeating task may be for anyone (it no longer switches to "Myself").
+    if (!periodic) setPeriodic(true);
     setPicking("repeat");
     window.requestAnimationFrame(() => {
       const every = document.getElementById("create-every") as HTMLInputElement | null;
@@ -204,27 +198,34 @@ function CreateTaskDialog({
 
   const submit = async (another = false) => {
     if (!title.trim() || assignees.length === 0 || !due) {
-      if (!due) setPicking("due");
+      if (!due) openDue();
       return;
     }
     const body = description;
+    // D-217: "Move to" from the holiday question applies to the date that fell on the holiday.
+    let hitField: "due" | "start" = "due";
     const result = await call(
-      (choice) =>
-        quickAddAction({
+      async (choice) => {
+        const moved = choice?.moveTo;
+        const answer = await quickAddAction({
           title,
           assigneeId: assignees[0] ?? meId,
-          assigneeIds: !periodic && assignees.length > 1 ? assignees : undefined,
-          dueDay: `${choice?.moveTo ?? due}T${/^\d{2}:\d{2}$/.test(dueTime) ? dueTime : "23:59"}`,
+          assigneeIds: assignees.length > 1 ? assignees : undefined,
+          dueDay: `${moved && hitField === "due" ? moved : due}T${/^\d{2}:\d{2}$/.test(dueTime) ? dueTime : "23:59"}`,
+          startDay: (milestone ? "" : moved && hitField === "start" ? moved : start) || undefined,
           holidayOk: choice?.holidayOk,
           projectId: project === "" ? null : project,
           parentId,
           description: body,
-        }),
+        });
+        if (!answer.ok && answer.holiday) hitField = answer.holiday.field;
+        return answer;
+      },
       { success: false },
     );
     if (!result?.ok || !result.value) return;
     const id = result.value.id;
-    if (periodic) await call(() => recurrenceAction(id, { kind, every, weekdays: kind === "WEEKLY" ? weekdays : [] }), { success: false });
+    if (periodic) for (const one of (result.value as { ids?: number[] }).ids ?? [id]) await call(() => recurrenceAction(one, { kind, every, weekdays: kind === "WEEKLY" ? weekdays : [] }), { success: false });
     if (priority !== "NORMAL") for (const one of (result.value as { ids?: number[] }).ids ?? [id]) await call(() => taskFieldsAction(one, { priority }), { success: false });
     if (milestone) for (const one of (result.value as { ids?: number[] }).ids ?? [id]) await call(() => taskFieldsAction(one, { milestone: true }), { success: false });
     // D-238: files and collaborators follow once the task exists (its own checks apply).
@@ -283,7 +284,7 @@ function CreateTaskDialog({
     >
       <header className="draft-head flex items-center gap-2 border-b border-line px-4 py-2.5">
         <h2 id="draft-task-title" className="flex-1 font-semibold">
-          {parentId !== null ? "Create subtask" : milestone ? "Create milestone" : (prefill?.heading ?? "Create task")} <span className="text-caption font-normal text-ink-muted">Â· draft</span>
+          {parentId !== null ? "Create subtask" : milestone ? "Create milestone" : (prefill?.heading ?? "Create task")} <span className="text-caption font-normal text-ink-muted">· draft</span>
           {parentId !== null && (
             <span className="ml-2 text-caption font-normal text-ink-muted" data-testid="create-parent">
               under {parentLabel ?? "this task"}
@@ -333,8 +334,7 @@ function CreateTaskDialog({
                       aria-checked={forWhom === value}
                       onClick={() => {
                         setForWhom(value);
-                        // v1.54.4 (owner): a task for others is ad hoc; only one for yourself repeats.
-                        if (value === "others") setPeriodic(false);
+                        // v1.75.0 (D-400): a task for others may repeat too (periodic stays as chosen).
                         setPicking(value === "others" && others.length === 0 ? "assignee" : "");
                       }}
                       className={`rounded-full px-2.5 py-0.5 text-label ${forWhom === value ? "bg-primary-50 font-semibold text-primary-700" : "text-ink-muted hover:text-ink"}`}
@@ -362,9 +362,8 @@ function CreateTaskDialog({
                     <PersonSearch
                       people={people.filter((item) => item.id !== meId && !others.includes(item.id))}
                       onPick={(id) => {
-                        // Periodic: one person (the choice replaces); ad hoc: add people.
-                        setOthers((value) => (periodic ? [id] : [...value, id]));
-                        if (periodic) setPicking("");
+                        // v1.75.0 (D-400): periodic or ad hoc, add people (each gets their own copy).
+                        setOthers((value) => [...value, id]);
                       }}
                       onDone={() => setPicking("")}
                     />
@@ -373,9 +372,9 @@ function CreateTaskDialog({
                       type="button"
                       className={`${chip} border-dashed text-ink-muted`}
                       onClick={() => setPicking("assignee")}
-                      aria-label={periodic && others.length ? "Change the assignee" : "Add an assignee"}
+                      aria-label="Add an assignee"
                     >
-                      {periodic && others.length ? "Change" : "+ Person"}
+                      + Person
                     </button>
                   ))}
                 {projectsOn && <span className="text-ink-muted">in</span>}
@@ -473,17 +472,32 @@ function CreateTaskDialog({
             </div>
             <aside className="draft-settings flex flex-col gap-3 lg:rounded-lg lg:border lg:border-line lg:bg-surface-muted lg:p-3" aria-label="Task settings">
               <p className="hidden text-caption font-semibold uppercase tracking-wide text-ink-muted lg:block">Task settings</p>
-              <div className={`${picking === "due" || due ? "flex" : "hidden lg:flex"} items-center gap-2 text-label lg:flex-col lg:items-stretch lg:gap-1`}>
-                <label htmlFor="create-due" className="text-ink-muted">
-                  Due date <span className="text-danger-600" aria-hidden="true">*</span>
-                </label>
-                <span className="flex items-center gap-1.5">
-                  <input id="create-due" type="date" value={due} required aria-required="true" onChange={(event) => setDue(event.target.value)} className="field-input h-8 w-40 py-0 text-label lg:w-full" />
-                  <label htmlFor="create-due-time" className="sr-only">
-                    Due time
-                  </label>
-                  <input id="create-due-time" type="time" value={dueTime} onChange={(event) => setDueTime(event.target.value || "23:59")} className="field-input h-8 w-28 py-0 text-label" />
+              {/* v1.75.0 (D-399): one date range picker: optional start, the due date (required) and its time; repeat for your own tasks. */}
+              <div className="flex items-center gap-2 text-label lg:flex-col lg:items-stretch lg:gap-1">
+                <span className="text-ink-muted">
+                  {milestone ? "Date" : "Dates"} <span className="text-danger-600" aria-hidden="true">*</span>
                 </span>
+                <DateRangePicker
+                  handle={dates}
+                  idBase="create"
+                  label={milestone ? "Milestone date" : "Task dates"}
+                  mode={milestone ? "single" : "range"}
+                  dueLabel="Due date"
+                  startLabel="Start date"
+                  value={{ start, due, dueTime }}
+                  onChange={(next) => {
+                    setStart(next.start);
+                    setDue(next.due);
+                    setDueTime(next.dueTime || "23:59");
+                  }}
+                  time={{ due: true }}
+                  onRepeat={openRepeat}
+                  repeatOn={periodic}
+                  placeholder="Choose the due date"
+                  triggerLabel={`${milestone ? "Milestone date" : "Task dates"}: ${due ? `${start ? `start ${start}, ` : ""}due ${due} at ${dueTime}` : "no due date yet (required)"}. Change`}
+                  testId="create-dates"
+                />
+                {due && dueTime !== "23:59" && <span className="text-caption text-ink-muted" data-testid="create-due-time-text">at {dueTime}</span>}
               </div>
               <div className="flex items-center gap-2 text-label lg:flex-col lg:items-stretch lg:gap-1">
                 <label htmlFor="create-priority" className="text-ink-muted">
@@ -510,12 +524,9 @@ function CreateTaskDialog({
                       type="radio"
                       name="create-kind"
                       checked={periodic}
-                      onChange={() => {
-                        setPeriodic(true);
-                        setForWhom("self");
-                      }}
+                      onChange={() => setPeriodic(true)}
                     />{" "}
-                    Periodic (repeats; only for yourself)
+                    Periodic (repeats; for you or for others, each their own)
                   </label>
                 </div>
                 {periodic && (
@@ -646,12 +657,6 @@ function CreateTaskDialog({
                 <Sparkles aria-hidden="true" className={`h-4 w-4 ${aiBusy ? "animate-pulse text-primary-700" : ""}`} />
               </button>
             )}
-            <button type="button" aria-label="Set a due date" title="Due date" onClick={openDue} className={tool(Boolean(due))}>
-              <CalendarDays aria-hidden="true" className="h-4 w-4" />
-            </button>
-            <button type="button" aria-label="Repeat (periodic)" title="Repeat" onClick={openRepeat} className={tool(periodic)}>
-              <Repeat aria-hidden="true" className="h-4 w-4" />
-            </button>
             <span className="ml-auto flex items-center gap-2">
               <button
                 type="button"
@@ -682,7 +687,7 @@ function CreateTaskDialog({
               <button type="button" onClick={onClose} className="btn-ghost btn-compact hidden lg:inline-flex">
                 Cancel
               </button>
-              {/* v1.73.0 (D-396): a split button: Create task â”‚ â–¾ Create and add another. */}
+              {/* v1.73.0 (D-396): a split button: Create task | ▾ Create and add another. */}
               <span className="inline-flex">
                 <button
                   type="submit"
@@ -755,7 +760,7 @@ function PersonSearch({
         aria-controls={listId}
         aria-autocomplete="list"
         aria-activedescendant={matches[at] ? `${listId}-${matches[at].id}` : undefined}
-        placeholder="Type a nameâ€¦"
+        placeholder="Type a name…"
         value={query}
         onChange={(event) => {
           setQuery(event.target.value);

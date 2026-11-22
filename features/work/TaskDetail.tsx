@@ -24,7 +24,9 @@ import { taskWorkView } from "@/server/work/task-view";
 import { TaskCompleteButton } from "@/features/work/client";
 import { TaskShareButton } from "@/features/work/ShareDialogs";
 import { visibilityText } from "@/features/work/visibility";
-import { ArrowLeft, CalendarDays, Eye, Maximize2, MoreHorizontal, X } from "lucide-react";
+import { ArrowLeft, ArrowRightToLine, CalendarDays, Eye, Maximize2, MoreHorizontal } from "lucide-react";
+import { PaneTitle, PaneVisibilityBanner, TaskFieldRows } from "@/features/work/PaneLayout";
+import { PaneComposer } from "@/features/work/CommentThread";
 import { PaneMoreMenu, TaskLikeButton } from "@/features/work/PaneParts";
 import { isMobileLayout } from "@/server/ui/layout-mode";
 import { SheetButton } from "@/features/mobile/BottomSheet";
@@ -250,12 +252,17 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
       />}
       {popup?.side ? (
         // v1.62.0 (D-368, spec PRJ views §13.1): the pane's action bar, then the task's name.
+        // v1.75.0 (D-399, owner's pane screenshot): Mark complete on the left; on the
+        // right the collaborators' avatars with +, Share, a divider, then like, copy
+        // link, full page, more and close (→|). The banner, the bold editable name
+        // and the field rows follow; the comment box is pinned at the bottom.
         <header className="mb-4 space-y-3">
-          <div className="-mx-4 -mt-4 flex flex-wrap items-center gap-1 border-b border-line bg-surface px-3 py-2 sm:-mx-5 sm:-mt-5" role="toolbar" aria-label="Task actions" data-testid="pane-bar">
+          <div className="sticky top-0 z-[3] -mx-4 -mt-4 flex flex-wrap items-center gap-1 border-b border-line bg-surface px-3 py-2 sm:-mx-5 sm:-mt-5" role="toolbar" aria-label="Task actions" data-testid="pane-bar">
             {canTick && <TaskCompleteButton taskId={task.id} done={task.status === "COMPLETED"} disabled={!(actions.has("COMPLETE") || actions.has("REOPEN"))} title={task.title} />}
             <span className="flex-1" />
             <TaskShareButton taskId={task.id} title={task.title} followers={panel.followers} people={panel.people} visibility={visibilityText(links)} canAdd={rights.comment} collaborators />
-            <TaskShareButton taskId={task.id} title={task.title} followers={panel.followers} people={panel.people} visibility={visibilityText(links)} canAdd={rights.comment} compact />
+            <TaskShareButton taskId={task.id} title={task.title} followers={panel.followers} people={panel.people} visibility={visibilityText(links)} canAdd={rights.comment} />
+            <span aria-hidden="true" className="mx-1 h-5 w-px bg-line" />
             <TaskLikeButton taskId={task.id} liked={panel.likes.some((person) => person.id === user.id)} count={panel.likes.length} names={panel.likes.map((person) => person.name)} />
             <CopyLinkButton path={`/users/tasks/${task.id}`} />
             <Link href={`/users/tasks/${task.id}`} aria-label="Open full page" title="Full screen (the task's own page)" className="grid h-8 w-8 place-items-center rounded-md text-ink-muted hover:bg-surface-muted hover:text-ink" data-testid="pane-full">
@@ -263,14 +270,15 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
             </Link>
             <PaneMoreMenu taskId={task.id} title={task.title} canDelete={rights.edit && !task.deletedAt} closeHref={popup.closeHref} automations={manualRules} copy={{ projectId: (fromProject ?? links[0])?.projectId ?? null, description: task.description ?? "", priority: task.priority }} />
             <Link href={popup.closeHref} scroll={false} aria-label="Close task" aria-keyshortcuts="Escape" title="Close" className="grid h-8 w-8 place-items-center rounded-md text-ink-muted hover:bg-surface-muted hover:text-ink" data-testid="close-pane">
-              <X aria-hidden="true" className="h-5 w-5" />
+              <ArrowRightToLine aria-hidden="true" className="h-5 w-5" />
             </Link>
           </div>
-          {view.pmOn && <VisibilityBanner text={visibilityText(links)} />}
+          {view.pmOn && <PaneVisibilityBanner text={visibilityText(links)} data={panel} />}
+          <PaneTitle taskId={task.id} title={task.title} canEdit={panel.canDetails && !task.deletedAt} />
           <p className="font-mono text-caption text-ink-muted">
             {task.taskNo} · {task.typeName}
           </p>
-          <h2 className="text-[22px] font-semibold leading-tight text-ink">{task.title}</h2>
+          <TaskFieldRows data={panel} canAssign={(actions.has("REASSIGN") || rights.edit) && !task.deletedAt} />
           <div className="flex flex-wrap gap-2">
             <Badge tone={STATUS_TONE[task.status]}>{TASK_STATUS_LABEL[task.status]}</Badge>
             <TaskPriorityPill priority={task.priority} showNormal />
@@ -323,6 +331,8 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
             <h2 id="details" className="font-semibold">
               Details
             </h2>
+            {/* v1.75.0 (D-399): the task's people and dates as field rows (the date range picker), as in the pane. */}
+            {!popup?.side && !task.deletedAt && <TaskFieldRows data={panel} canAssign={actions.has("REASSIGN") || rights.edit} />}
             {task.description && <RichText text={task.description} />}
             <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
               <Fact label="Assigned to" value={task.assigneeName} />
@@ -394,7 +404,7 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
           <TaskActivity
             comments={
               <>
-                <CommentThread taskId={task.id} meId={user.id} canComment={rights.comment && !task.deletedAt} canPin={rights.edit} isAdmin={viewer.isAdmin} people={panel.people} comments={view.comments} docked={mobile && !popup} />
+                <CommentThread taskId={task.id} meId={user.id} canComment={rights.comment && !task.deletedAt} canPin={rights.edit} isAdmin={viewer.isAdmin} people={panel.people} comments={view.comments} docked={mobile && !popup} composer={!popup?.side} />
                 {ticketSide && ticketRemarks.length > 0 && (
                   <section className="card mt-4 px-5 py-4" aria-labelledby="ticket-remarks" data-testid="task-ticket-remarks">
                     <h2 id="ticket-remarks" className="mb-3 font-semibold">
@@ -445,6 +455,8 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
           <TaskWorkSide data={panel} />
         </aside>
       </div>
+      {/* v1.75.0 (D-399): the pane's comment box, pinned at its bottom. */}
+      {popup?.side && <PaneComposer taskId={task.id} people={panel.people} canComment={rights.comment && !task.deletedAt} />}
     </>
   );
 }

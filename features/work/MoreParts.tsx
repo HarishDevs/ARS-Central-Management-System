@@ -11,6 +11,7 @@ import { ConfirmButton } from "@/features/ui/ConfirmButton";
 import { PersonSelect } from "@/features/ui/PersonSelect";
 import { FIELD_TYPE_LABEL, type FieldView } from "@/server/work/custom-fields";
 import { DEFAULT_DUPLICATE, DUPLICATE_PART_LABEL, DUPLICATE_PARTS, type DuplicatePart } from "@/server/work/template-rules";
+import { DateRangePicker } from "@/features/ui/DateRangePicker";
 
 // D-218: repeating tasks, custom fields, templates, bulk actions, the inbox
 // and the morning summary switch.
@@ -285,10 +286,9 @@ export function FromTemplateForm({
           </div>
         ) : (
           <div>
-            <label htmlFor={`from-start-${copyFrom ?? "t"}`} className="field-label">
-              Starts on
-            </label>
-            <input id={`from-start-${copyFrom ?? "t"}`} type="date" name="start_on" className="field-input" />
+            <span className="field-label">Starts on</span>
+            {/* v1.75.0 (D-399): the shared date picker, one day. */}
+            <DateRangePicker mode="single" idBase={`from-start-${copyFrom ?? "t"}`} label="Starts on" dueLabel="Starts on" names={{ due: "start_on" }} placeholder="Choose a day" />
             <p className="mt-1 text-caption text-ink-muted">Task dates move with it.</p>
           </div>
         )}
@@ -418,7 +418,7 @@ export function BulkBar({ ids, clear, people, sections, projectId }: { ids: numb
       {op === "ASSIGN" && (
         <PersonSelect ariaLabel="Person" options={people ?? []} value={value ? Number(value) : null} onChange={(id) => setValue(id === null ? "" : String(id))} emptyLabel="Choose…" compact className="w-56 text-label" />
       )}
-      {op === "DUE" && <input type="date" aria-label="Due date" value={value} onChange={(event) => setValue(event.target.value)} className="field-input h-8 w-40 py-0 text-label" />}
+      {op === "DUE" && <DateRangePicker mode="single" compact label="Due date" dueLabel="Due date" value={{ start: "", due: value }} onChange={(next) => setValue(next.due)} placeholder="Choose the due date" testId="bulk-due" />}
       {op === "PRIORITY" && (
         <select aria-label="Priority" value={value} onChange={(event) => setValue(event.target.value)} className="field-input h-8 w-32 py-0 text-label">
           <option value="">Choose…</option>

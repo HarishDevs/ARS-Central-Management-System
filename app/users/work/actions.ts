@@ -180,14 +180,14 @@ export async function sectionAction(sectionId: number, change: { name?: string; 
 }
 
 // ---- tasks -----------------------------------------------------------------------------
-export async function quickAddAction(input: { title: string; projectId?: number | null; sectionId?: number | null; parentId?: number | null; assigneeId?: number | null; assigneeIds?: number[]; dueDay?: string; mySectionId?: number | null; holidayOk?: boolean; description?: string }): Promise<ActionResult & { value?: { id: number; taskNo: string }; holiday?: HolidayHit }> {
+export async function quickAddAction(input: { title: string; projectId?: number | null; sectionId?: number | null; parentId?: number | null; assigneeId?: number | null; assigneeIds?: number[]; dueDay?: string; startDay?: string; mySectionId?: number | null; holidayOk?: boolean; description?: string }): Promise<ActionResult & { value?: { id: number; taskNo: string }; holiday?: HolidayHit }> {
   // D-222: an ad hoc task for several people (one copy each).
   const many = (Array.isArray(input.assigneeIds) ? input.assigneeIds : []).map((item) => id(item)).filter((item): item is number => item !== null);
   if (id(input.projectId) !== null && (await actorForProjects()) === "OFF") return PROJECTS_OFF;
   if (many.length > 1)
     return run("quickAddMany", await actor(), (me) =>
       work.quickAddForMany(
-        { title: String(input.title ?? ""), projectId: id(input.projectId), sectionId: id(input.sectionId), parentId: id(input.parentId), assigneeId: null, dueDay: typeof input.dueDay === "string" ? input.dueDay : "", mySectionId: null, holidayOk: input.holidayOk === true, description: typeof input.description === "string" ? input.description : undefined },
+        { title: String(input.title ?? ""), projectId: id(input.projectId), sectionId: id(input.sectionId), parentId: id(input.parentId), assigneeId: null, dueDay: typeof input.dueDay === "string" ? input.dueDay : "", startDay: typeof input.startDay === "string" ? input.startDay : undefined, mySectionId: null, holidayOk: input.holidayOk === true, description: typeof input.description === "string" ? input.description : undefined },
         many,
         me,
       ),
@@ -201,6 +201,7 @@ export async function quickAddAction(input: { title: string; projectId?: number 
         parentId: id(input.parentId),
         assigneeId: id(input.assigneeId),
         dueDay: typeof input.dueDay === "string" ? input.dueDay : "",
+        startDay: typeof input.startDay === "string" ? input.startDay : undefined,
         mySectionId: id(input.mySectionId),
         holidayOk: input.holidayOk === true,
         description: typeof input.description === "string" ? input.description : undefined,
@@ -734,6 +735,32 @@ export async function privacyAction(projectId: number, privacy: string, departme
         defaultView: project.defaultView,
         startOn: project.startOn ?? "",
         dueOn: project.dueOn ?? "",
+      },
+      who,
+    ),
+  );
+}
+
+// v1.75.0 (D-399): the project's From and To from the header's date range
+// picker (owners only; the same checks as the details form: real days, From ≤ To).
+export async function projectDatesAction(projectId: number, startOn: string, dueOn: string): Promise<ActionResult> {
+  const me = await actor();
+  const project = id(projectId) ? await repo.findProject(id(projectId)!) : null;
+  if (!me || !project) return NOT_FOUND;
+  if (!projectsAllowed(me)) return PROJECTS_OFF;
+  return run("projectDates", me, (who) =>
+    work.updateProjectDetails(
+      project.id,
+      {
+        name: project.name,
+        description: project.description ?? "",
+        color: project.color,
+        privacy: project.privacy,
+        departmentId: project.departmentId,
+        defaultAccessRole: project.defaultAccessRole,
+        defaultView: project.defaultView,
+        startOn: typeof startOn === "string" ? startOn : "",
+        dueOn: typeof dueOn === "string" ? dueOn : "",
       },
       who,
     ),

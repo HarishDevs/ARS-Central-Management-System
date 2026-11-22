@@ -405,6 +405,10 @@ A person's calendar feed (iCalendar, RFC 5545) for calendar apps. Public (no ses
 - **Errors:** `404` (plain text) for an unknown, stopped or no-longer-allowed address; `429` more than 30 requests a minute for one address.
 - Read-only: there is no way to change anything through it.
 
+## GET /api/work/calendar (v1.75.0, D-399)
+
+Signed in (users area). The organisation's holidays from about 400 days back to 800 days ahead as `{ "holidays": { "YYYY-MM-DD": "Name" }, "workingWeekdays": [1, 2, 3, 4, 5, 6] }` (0 = Sunday; empty = every day works), for the shared date picker's dimmed days. `Cache-Control: private, max-age=300`. `404` when not signed in. Nothing is changed or audited.
+
 ## GET /api/work/projects/{id}/time (v1.71.0, D-384)
 
 Signed in (users area, Tasks, Projects module, **Projects E** switch). Anyone who sees the project. A CSV (with a BOM; formula-looking cells prefixed with ') of the time entries on the project's tasks and subtasks that the person may see, stopped entries only: Date (India day), Person, Task ID, Task, Section, Hours (2 decimals), Minutes, Note, How (By hand / Timer), Logged on. Ordered by day and person; at most 20,000 rows. `404` not found or switched off, `429` more than 10 downloads a minute (shared with the export). Audited (`PROJECT_TIME_EXPORTED`).

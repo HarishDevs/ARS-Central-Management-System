@@ -8,6 +8,7 @@ import { PersonSelect } from "@/features/ui/PersonSelect";
 import { useCellPanel } from "@/features/work/GridCellEditors";
 import { useWorkCall } from "@/features/work/client";
 import { FIELD_FILTER_LABEL, filterOps, timerText, type FieldCell, type FieldFilter, type FieldType, type FieldView } from "@/server/work/custom-fields";
+import { DateRangePicker } from "@/features/ui/DateRangePicker";
 
 // v1.64.0 (D-371, PM phase B part 1, spec PC §8.9): how custom field values
 // show and change in the List, on Board cards and in the task pane. Every
@@ -183,7 +184,20 @@ export function FieldValueEditor({
       };
       return (
         <span className="flex w-full gap-1">
-          <input key={`d${current.edit}`} type="date" aria-label={label} defaultValue={day ?? ""} onBlur={(event) => send(event.target.value, time ?? "")} className={`field-input ${size} min-w-0 flex-1`} />
+          {/* v1.75.0 (D-399): the shared date picker, one day. */}
+          <span className="min-w-0 flex-1">
+            <DateRangePicker
+              mode="single"
+              compact
+              label={label}
+              dueLabel={label}
+              value={{ start: "", due: day ?? "" }}
+              onCommit={(next) => send(next.due, time ?? "")}
+              triggerLabel={`${label}: ${day || "none"}. Change`}
+              triggerClass={`field-input ${size} flex w-full min-w-0 items-center text-left`}
+              placeholder="Set a date"
+            />
+          </span>
           {field.config?.withTime && (
             <input key={`t${current.edit}`} type="time" aria-label={`${label}, time`} defaultValue={time ?? ""} onBlur={(event) => send(day ?? "", event.target.value)} className={`field-input ${size} w-24`} />
           )}

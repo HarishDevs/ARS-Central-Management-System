@@ -27,7 +27,8 @@ let timer: number | null = null;
 let last = 0;
 let listening = false;
 
-const busy = () => Boolean(document.querySelector("input:focus, textarea:focus, select:focus, [contenteditable='true']:focus, dialog[open]"));
+// v1.75.0 (D-399): an open date picker counts as busy too (a refresh would close it).
+const busy = () => Boolean(document.querySelector("input:focus, textarea:focus, select:focus, [contenteditable='true']:focus, dialog[open], [data-date-picker-open]"));
 function tick(force = false) {
   const now = Date.now();
   if (!shouldRefresh({ visible: document.visibilityState === "visible", busy: busy(), now, last, every: LIVE_REFRESH_MS, force })) return;

@@ -9,6 +9,7 @@ import { Menu } from "@/features/ui/Menu";
 import { AddTaskSplit, ViewSearch } from "@/features/work/ViewToolbar";
 import { indiaDayOf } from "@/features/work/format";
 import { addDays, dayDiff } from "@/server/work/schedule";
+import { DateRangePicker } from "@/features/ui/DateRangePicker";
 
 // D-215: tasks on a month grid by due date (India time). Drag a task to
 // another day to move its due date; "+" on a day adds a task due that day.
@@ -392,16 +393,22 @@ export function TaskCalendar({
                   {task.title}
                 </Link>
                 {may(task) && (
-                  <input
-                    type="date"
-                    aria-label={`Start date for ${task.title}`}
-                    max={dueDay(task) ?? undefined}
-                    className="field-input mt-0.5 h-7 text-caption"
-                    onChange={(event) => {
-                      const value = event.target.value;
-                      if (/^\d{4}-\d{2}-\d{2}$/.test(value)) void call((choice) => taskFieldsAction(task.id, { startDay: value, holidayOk: choice?.holidayOk }), { success: "Start date set." });
-                    }}
-                  />
+                  // v1.75.0 (D-399): the shared date picker, one day, not after the due date.
+                  <span className="mt-0.5 block">
+                    <DateRangePicker
+                      mode="single"
+                      compact
+                      label={`Start date for ${task.title}`}
+                      dueLabel="Start date"
+                      max={dueDay(task) ?? ""}
+                      value={{ start: "", due: "" }}
+                      triggerLabel={`Start date for ${task.title}`}
+                      placeholder="Set a start date"
+                      onCommit={(next) => {
+                        if (next.due) void call((choice) => taskFieldsAction(task.id, { startDay: choice?.moveTo ?? next.due, holidayOk: choice?.holidayOk }), { success: "Start date set." });
+                      }}
+                    />
+                  </span>
                 )}
               </li>
             ))}

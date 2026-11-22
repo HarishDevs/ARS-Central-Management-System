@@ -7,6 +7,7 @@ import { FieldError, ResultMessage, SubmitButton, useActionForm } from "@/featur
 import { COLOR_HEX, useWorkCall } from "@/features/work/client";
 import { PRIVACY, PRIVACY_LABEL, PROJECT_COLORS, PROJECT_ROLE_HELP, PROJECT_ROLE_LABEL, PROJECT_ROLES, STATUS_KIND_LABEL, STATUS_KINDS, type ProjectRole } from "@/server/work/access";
 import { RichEditor } from "@/features/ui/RichEditor";
+import { DateRangePicker } from "@/features/ui/DateRangePicker";
 
 // D-215: creating and editing a project, its members, its status updates,
 // and the small project commands (star, join, leave, archive, delete).
@@ -89,18 +90,22 @@ export function ProjectForm({ values, departments, myDepartmentId, fromTo }: { v
           </select>
           {privacy === "PRIVATE" && <input type="hidden" name="default_access_role" value={values?.defaultAccessRole ?? "COMMENTER"} />}
         </div>
-        <div>
-          <label htmlFor="project-start" className="field-label">
-            {fromTo ? "From (start date)" : "Starts"} <span className="font-normal text-ink-faint">(optional)</span>
-          </label>
-          <input id="project-start" type="date" name="start_on" defaultValue={values?.startOn} className="field-input" aria-describedby={fromTo ? "project-duration-hint" : undefined} />
+        {/* v1.75.0 (D-399): From and To in one date range picker (fields start_on / due_on as before). */}
+        <div className="md:col-span-2">
+          <span className="field-label" id="project-dates-label">
+            {fromTo ? "From – To" : "Dates"} <span className="font-normal text-ink-faint">(optional)</span>
+          </span>
+          <DateRangePicker
+            idBase="project"
+            label="Project dates"
+            startLabel={fromTo ? "From (start date)" : "Start date"}
+            dueLabel={fromTo ? "To (due date)" : "Due date"}
+            defaultValue={{ start: values?.startOn ?? "", due: values?.dueOn ?? "" }}
+            names={{ start: "start_on", due: "due_on" }}
+            placeholder="Choose From and To"
+            testId="project-dates-picker"
+          />
           <FieldError result={result} name="start_on" />
-        </div>
-        <div>
-          <label htmlFor="project-due" className="field-label">
-            {fromTo ? "To (due date)" : "Due"} <span className="font-normal text-ink-faint">(optional)</span>
-          </label>
-          <input id="project-due" type="date" name="due_on" defaultValue={values?.dueOn} className="field-input" aria-describedby={fromTo ? "project-duration-hint" : undefined} />
           <FieldError result={result} name="due_on" />
         </div>
         {fromTo && (

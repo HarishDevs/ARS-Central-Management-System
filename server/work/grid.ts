@@ -55,7 +55,7 @@ export const SORT_LABEL: Record<GridSort, string> = {
 export const GROUPS = ["none", "section", "assignee", "department", "createdBy", "project", "due", "priority", "kind"] as const;
 export type GridGroup = (typeof GROUPS)[number];
 export const GROUP_LABEL: Record<GridGroup, string> = { none: "None", section: "Sections", assignee: "Assignee", department: "Department", createdBy: "Created by", project: "Project", due: "Due date", priority: "Priority", kind: "Periodic or ad hoc" };
-export const FILTER_FIELDS = ["completion", "assignee", "createdBy", "project", "priority", "kind", "due", "tag"] as const;
+export const FILTER_FIELDS = ["completion", "assignee", "createdBy", "project", "priority", "kind", "due", "start", "tag"] as const;
 export type FilterField = (typeof FILTER_FIELDS)[number];
 export const FILTER_LABEL: Record<FilterField, string> = {
   completion: "Completion status",
@@ -65,8 +65,31 @@ export const FILTER_LABEL: Record<FilterField, string> = {
   priority: "Priority",
   kind: "Periodic or ad hoc",
   due: "Due date",
+  start: "Start date",
   tag: "Tag",
 };
+
+// v1.75.0 (D-399, spec DATE_RANGES §6, BR-DATE-008): a date window filter's
+// value: "between:FROM:TO" or "notbetween:FROM:TO" (both days included; a
+// window still missing a day filters nothing).
+const WINDOW_RE = /^(between|notbetween):(\d{4}-\d{2}-\d{2})?:(\d{4}-\d{2}-\d{2})?$/;
+export function parseDateWindow(value: string): { not: boolean; from: string; to: string } | null {
+  const match = WINDOW_RE.exec(value);
+  return match ? { not: match[1] === "notbetween", from: match[2] ?? "", to: match[3] ?? "" } : null;
+}
+export function dateWindowValue(not: boolean, from: string, to: string): string {
+  return `${not ? "notbetween" : "between"}:${from}:${to}`;
+}
+/** Does a day pass the window? Null (no window yet) passes. */
+export function passesWindow(day: string | null, value: string): boolean | null {
+  const window = parseDateWindow(value);
+  if (!window) return null;
+  if (!window.from || !window.to) return true;
+  const from = window.from <= window.to ? window.from : window.to;
+  const to = window.from <= window.to ? window.to : window.from;
+  const inside = day !== null && day >= from && day <= to;
+  return window.not ? !inside : inside;
+}
 export const COMPLETED_RANGES = ["none", "all", "today", "week", "month"] as const;
 
 export const gridConfigSchema = z.object({
@@ -183,7 +206,16 @@ function passes(task: GridTask, config: GridConfig, today: string, meId: number)
       case "kind":
         if ((value === "periodic") !== task.isPeriodic) return false;
         break;
+      case "start": {
+        const startDay = task.startsOn ?? null;
+        const windowed = passesWindow(startDay, value);
+        if (windowed === false) return false;
+        if (value === "none" && startDay) return false;
+        if (value === "set" && !startDay) return false;
+        break;
+      }
       case "due":
+        if (passesWindow(due, value) === false) return false;
         if (value === "none" && due) return false;
         if (value === "overdue" && !(due && due < today && open)) return false;
         if (value === "today" && due !== today) return false;

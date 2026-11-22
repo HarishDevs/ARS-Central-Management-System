@@ -41,6 +41,8 @@ test("the sidebar's Tasks & projects group; + Create → Task makes a periodic t
   // D-220: the Draft task panel: "For <assignee> in <project>", then Repeat.
   await dialog.getByRole("button", { name: /^Project:/ }).click();
   await dialog.getByRole("combobox", { name: "Project" }).selectOption({ label: projectName });
+  // v1.75.0 (D-399): Repeat sits in the date picker's footer (for your own tasks).
+  await dialog.getByTestId("create-dates-button").click();
   await dialog.getByRole("button", { name: "Repeat (periodic)" }).click();
   await dialog.getByLabel(/Periodic \(repeats/).check();
   await dialog.getByLabel("Mon").check();

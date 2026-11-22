@@ -194,11 +194,17 @@ test("Board columns by a field: a keyboard move sets the option; the task pane e
   await expect(page.getByTestId("board-card").filter({ hasText: alpha }).getByTestId("card-fields")).toContainText("Done");
   // Pane rows: Notes edited from the task.
   await page.getByTestId("board-card").filter({ hasText: beta }).getByRole("link").click();
+  // v1.75.0 (D-399): a project shows five fields in the pane, then "Show N more".
+  await expect(page.getByTestId("task-pane").getByTestId("pane-field").first()).toBeVisible();
+  const moreFields = page.getByTestId("task-pane").getByTestId("fields-more");
+  if (await moreFields.first().isVisible().catch(() => false)) await moreFields.first().click();
   const paneNotes = page.getByTestId("pane-field").filter({ hasText: "Notes" }).getByRole("textbox");
   await paneNotes.fill("From the pane");
   await paneNotes.press("Enter");
   await page.waitForLoadState("networkidle");
   await page.reload();
+  await expect(page.getByTestId("task-pane").getByTestId("pane-field").first()).toBeVisible();
+  await page.getByTestId("task-pane").getByTestId("fields-more").first().click();
   await expect(page.getByTestId("pane-field").filter({ hasText: "Notes" }).getByRole("textbox")).toHaveValue("From the pane");
 });
 

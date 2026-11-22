@@ -10,6 +10,7 @@ import { useToast } from "@/features/ui/Toast";
 import { PersonSelect, type PersonChoice } from "@/features/ui/PersonSelect";
 import { COPY_BLOCKED, copyText } from "@/features/ui/clipboard";
 import { COLOR_HEX, useWorkCall } from "@/features/work/client";
+import { DateRangePicker } from "@/features/ui/DateRangePicker";
 import { PortfolioStar } from "@/features/work/portfolios/PortfolioParts";
 import { PRIVACY, PRIVACY_LABEL, PROJECT_COLORS, PROJECT_ROLE_LABEL, PROJECT_ROLES, STATUS_KIND_LABEL, STATUS_KINDS, type ProjectRole, type ProjectStatusKind } from "@/server/work/access";
 import { FIELD_KIND_LABEL, FIELD_KINDS, PORTFOLIO_ROLE_HELP, type PortfolioFieldKind } from "@/server/work/portfolio-rules";
@@ -224,17 +225,20 @@ function DetailsForm({ portfolio, members, departments, manage, onDone }: { port
             <textarea id={`${id}-desc`} value={description} onChange={(event) => setDescription(event.target.value)} maxLength={4000} rows={3} className="field-input" />
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label htmlFor={`${id}-start`} className="field-label">
-                Start date
-              </label>
-              <input id={`${id}-start`} type="date" value={startOn} onChange={(event) => setStartOn(event.target.value)} className="field-input" />
-            </div>
-            <div>
-              <label htmlFor={`${id}-due`} className="field-label">
-                Due date
-              </label>
-              <input id={`${id}-due`} type="date" value={dueOn} onChange={(event) => setDueOn(event.target.value)} className="field-input" />
+            {/* v1.75.0 (D-399): the portfolio's start and due dates in the shared date range picker. */}
+            <div className="sm:col-span-2">
+              <span className="field-label">Dates</span>
+              <DateRangePicker
+                idBase={id}
+                label="Portfolio dates"
+                value={{ start: startOn, due: dueOn }}
+                onChange={(next) => {
+                  setStartOn(next.start);
+                  setDueOn(next.due);
+                }}
+                placeholder="Choose the start and due dates"
+                testId="portfolio-dates"
+              />
             </div>
             <div>
               <label htmlFor={`${id}-owner`} className="field-label">
