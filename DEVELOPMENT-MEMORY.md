@@ -830,6 +830,9 @@
 
 ## 5. Work log (newest first)
 
+### 22 Nov 2026 (triggers on publish: not possible on GoDaddy; code guard instead)
+- Owner asked to install the optional triggers automatically on publish. They already are attempted on every start (the -- @optional blocks in the migrations) and GoDaddy's MySQL refuses them (SUPER + binary logging), so publish can never create them. Added tests/ops/history-append-only.test.ts: on every release the code may not UPDATE task_events / info_events / comment_versions, and may delete them only inside purgeTasks (30-day purge). The app needs nothing else; the optional files stay for a server where triggers are allowed.
+
 ### 22 Nov 2026 (after v1.76.2: the optional trigger files emptied the database again)
 - The owner ran `database/optional/v1600_comment_triggers.sql` and `v190_append_only_triggers.sql` through Database Manager → Import database, as Claude's D-402/D-403 owner steps said ("run once in the Database Manager"). That importer drops every table before running the file, so the database was emptied again (very likely also the cause of the first loss at 21:05). The files themselves only drop/create triggers. Fix (part of D-403, no new decision number to avoid clashing with the R2 agent's D-404+): owner steps now say skip the trigger files; a warning heads both files and DEPLOYMENT Part B. Recovery: set RESTORE_CONFIRM and RESTORE_BACKUP_KEY again and restart; ops_restores was dropped with everything else, so the restore runs again.
 
