@@ -17,6 +17,11 @@ describe("onboarding tour steps", () => {
     for (const words of ["All my open tasks", "My sections", "Customise", "CSV"]) expect(text).toContain(words);
   });
 
+  it("the Task Summary step names Share, read-only and Customise › Fields (v1.77.0, D-404)", () => {
+    const text = TOUR_STEPS.find((step) => step.id === "tasks")!.points.join(" ");
+    for (const words of ["Share", "read-only", "Customise › Fields", "Board and Calendar"]) expect(text).toContain(words);
+  });
+
   it("every step says something, and every page it opens is in the user space", () => {
     for (const step of TOUR_STEPS) {
       expect(step.title.length).toBeGreaterThan(3);

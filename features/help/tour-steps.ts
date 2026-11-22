@@ -125,6 +125,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
       "List, Board and Calendar views, and your own tabs (+ adds one; its ⋯ menu renames, sets the default or removes it); Filter, Sort and Group like any list, then Save view. Periodic tasks repeat by themselves.",
       "The morning summary email lists what's due; switch it off here.",
       "Each tab shows the Summary window or All my open tasks (Show ▾), and saves itself. Group a tab by My sections for your own sections; Customise sets the rules that move tasks to Today and Upcoming each night. Title ▾ › Sync / export › CSV downloads the tab.",
+      "Share lets chosen people open your Task Summary, read-only (your managers always can); the people button opens one shared with you or your team's. Customise › Fields picks the columns; Board and Calendar tabs keep their own filter and sort.",
     ],
     path: "/users/work/my-tasks",
     target: "main h1",

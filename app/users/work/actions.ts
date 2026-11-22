@@ -25,6 +25,7 @@ import type { HolidayHit } from "@/server/work/holidays";
 import { z } from "zod";
 import { changeMyTabs, changeTabs } from "@/server/work/view-tabs-service";
 import { saveRules, startMySections } from "@/server/work/my-rules";
+import { changeShare, saveSummaryFields } from "@/server/work/summary-share";
 import { setUserSetting } from "@/lib/db/repositories/user-settings.repository";
 import { CELEBRATION_LABEL, CELEBRATION_SETTING, clampPaneWidth, PANE_SETTING, parseCelebration, SIDEBAR_LISTS, SIDEBAR_SORT_LABEL, SIDEBAR_SORTS, type SidebarList, type SidebarSort } from "@/server/work/pm-rules";
 import { moveSidebarProject, setSidebarSort } from "@/server/work/sidebar";
@@ -796,6 +797,37 @@ export async function projectDatesAction(projectId: number, startOn: string, due
 export async function permissionsAction(projectId: number, permissions: unknown): Promise<ActionResult> {
   const project = id(projectId);
   return project ? runProject("permissions", await actorForProjects(), (me) => work.setPermissions(project, permissions, me)) : NOT_FOUND;
+}
+// v1.77.0 (D-404, owner's decision 3): Share → Manage privacy. The signed-in
+// person shares their own Task Summary read-only (or stops sharing); nobody
+// can change anyone else's sharing.
+export async function summaryShareAction(input: unknown): Promise<ActionResult> {
+  const me = await actor();
+  if (!me || (me.modules && !hasModule({ roles: me.roles, modules: me.modules }, "TASK"))) return NOT_FOUND;
+  if (!(await featureOn("pm_foundations", me))) return { ok: false, message: "Sharing isn't switched on yet." };
+  try {
+    const result = await changeShare(input, me);
+    if (result.ok) revalidatePath("/users/work/my-tasks");
+    return result;
+  } catch (error) {
+    logError("summaryShareAction failed", error);
+    return { ok: false, message: "Couldn't change the sharing. Please try again." };
+  }
+}
+
+// v1.77.0 (D-404): Customise › Fields: the columns of the person's Task Summary lists.
+export async function summaryFieldsAction(input: unknown): Promise<ActionResult> {
+  const me = await actor();
+  if (!me || (me.modules && !hasModule({ roles: me.roles, modules: me.modules }, "TASK"))) return NOT_FOUND;
+  if (!(await featureOn("pm_foundations", me))) return { ok: false, message: "This isn't switched on yet." };
+  try {
+    const result = await saveSummaryFields(input, me);
+    if (result.ok) revalidatePath("/users/work/my-tasks");
+    return result;
+  } catch (error) {
+    logError("summaryFieldsAction failed", error);
+    return { ok: false, message: "Couldn't save the columns. Please try again." };
+  }
 }
 
 // ---- v1.62.0 (D-368, PM phase A part 2) ---------------------------------------------------

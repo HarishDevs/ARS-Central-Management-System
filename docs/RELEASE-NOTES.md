@@ -1,5 +1,15 @@
 # Release notes
 
+## v1.77.0 (23 Nov 2026): Task Summary, organise and share: Share read-only, your team's Task Summary, Customise › Fields, Board and Calendar tab settings
+Comes with the Projects phase A switch. Migration `202611231100_task_summary_r2.sql` (runs on start; no triggers).
+- **Share:** the lock button beside Task Summary's title lets chosen people open your Task Summary, read-only. **Invite** works once you choose someone; they are told. The list shows who can see it: you, your managers in the reporting line (always, read-only) and the people you added, each with **Remove**.
+- **Only what they may see:** anyone opening someone else's Task Summary sees only the tasks they may already see; the rest are left out (no names, not counted).
+- **Your team's Task Summary:** managers (every level) open a team member's Task Summary read-only from the **people button** beside Share or from the person's profile (**View Task Summary**). A banner says *Viewing: <name>'s Task Summary · read-only*, with **Back to my Task Summary**. Nothing can be changed from there.
+- **Customise › Fields:** choose the columns your lists show; new tabs and Reset start with them, and **Also use in my List tabs** updates the tabs you have.
+- **Board tabs:** Filter, Sort, Group (columns by date or My sections) and Search, saved with each tab. **Calendar tabs:** Weeks or Months, Filter and **Show weekends**, saved with each tab.
+- **Your picture** beside the title opens your profile.
+- **Owner steps:** publish v1.77.0 (the migration runs by itself). Nothing else.
+
 ## v1.76.2 (22 Nov 2026): One-time restore of the 22 Nov backup on start-up
 - GoDaddy's Database Manager import would not start, so the release carries the 22 Nov 2026 backup (taken 8:55 pm IST), **encrypted** (AES-256-GCM; the key is not in the repository), and restores it once when the app starts, before the migrations. Nothing happens unless the owner sets the two secrets below; it refuses to replace a database that already has requests, records the restore so it never repeats, and never stops the app from starting.
 - **Owner steps:**

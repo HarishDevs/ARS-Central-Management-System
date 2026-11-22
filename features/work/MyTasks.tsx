@@ -2,14 +2,20 @@
 
 import type { CellMap, FieldView } from "@/server/work/custom-fields";
 import { ApprovalBadge, approvalRowClass } from "@/features/work/ApprovalLink";
-import { ArrowLeftRight, ChevronDown, ExternalLink, FileDown, FolderKanban, Link2, MessageSquare, MoreHorizontal, Pencil, Plus, Printer, Rss, Settings2, Table2, Trash2, Zap } from "lucide-react";
+import { ArrowLeftRight, ChevronDown, Columns3, ExternalLink, FileDown, Filter, FolderKanban, Layers, Link2, MessageSquare, MoreHorizontal, Pencil, Plus, Printer, RotateCcw, Rss, Settings2, Table2, Trash2, X, Zap } from "lucide-react";
 import { Menu, type MenuItem } from "@/features/ui/Menu";
 import { useToast } from "@/features/ui/Toast";
 import { COPY_BLOCKED, copyText } from "@/features/ui/clipboard";
 import { digestChoiceAction } from "@/app/users/work/actions";
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { myPlaceAction, myRulesAction, mySectionAction, myTasksTabAction } from "@/app/users/work/actions";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { myPlaceAction, myRulesAction, mySectionAction, myTasksTabAction, summaryFieldsAction } from "@/app/users/work/actions";
+import { boardCards, boardFilterCount, DEFAULT_SUMMARY_BOARD, SUMMARY_BOARD_SORT_LABEL, SUMMARY_BOARD_SORTS, SUMMARY_COLUMNS, type SummaryBoard, type SummaryColumn } from "@/server/work/summary-views";
+import { COLUMN_LABEL } from "@/server/work/grid";
+import { Drop } from "@/features/ui/Drop";
+import { SortMenu, ViewSearch } from "@/features/work/ViewToolbar";
+import { indiaDayOf } from "@/features/work/format";
 import { Dialog } from "@/features/ui/Dialog";
 import { BOARD_SECTIONS, BOARD_SECTIONS_LABEL, MAX_UPCOMING_DAYS, TAB_RANGE_HINT, TAB_RANGE_LABEL, TAB_RANGES, type BoardSections, type MyRules, type TabRange } from "@/server/work/my-sections";
 import { openCreateTask, ProjectDot, TaskCheck, usePaneLink, useWorkCall } from "@/features/work/client";
@@ -54,8 +60,30 @@ export interface MySectionRow {
 // v1.54.4 (owner): Task Summary's sections are fixed (Overdue, Due today, Due
 // in the next 7 days, Completed today) and follow the dates: "fixed" turns off
 // renaming, adding sections, adding into a section and moving between them.
-export function MyTasks({ sections, tasks, layout, nowIso, fixed = false }: { sections: MySectionRow[]; tasks: MyTaskRow[]; layout: "LIST" | "BOARD"; nowIso: string; fixed?: boolean }) {
+// v1.77.0 (D-404): `readOnly` (someone else's Task Summary: nothing can be
+// changed, ticked, moved or added) and `boardView` (a Task Summary Board tab's
+// own toolbar: Filter, Sort, Group = columns, Search; saved with the tab).
+export function MyTasks({
+  sections,
+  tasks: allTasks,
+  layout,
+  nowIso,
+  fixed: fixedIn = false,
+  readOnly = false,
+  boardView,
+}: {
+  sections: MySectionRow[];
+  tasks: MyTaskRow[];
+  layout: "LIST" | "BOARD";
+  nowIso: string;
+  fixed?: boolean;
+  readOnly?: boolean;
+  boardView?: { initial: SummaryBoard; tabKey: string; canSave: boolean; sections: BoardSections; mineOffered: boolean };
+}) {
+  const fixed = fixedIn || readOnly;
   const { call, pending: busy } = useWorkCall();
+  const [view, setView] = useState<SummaryBoard>(boardView?.initial ?? DEFAULT_SUMMARY_BOARD);
+  const tasks = useMemo(() => (boardView ? boardCards(allTasks, view, indiaDayOf(new Date(nowIso))) : allTasks), [allTasks, boardView, view, nowIso]);
   const now = useMemo(() => new Date(nowIso), [nowIso]);
   const [dragging, setDragging] = useState<number | null>(null);
   const [newSection, setNewSection] = useState("");
@@ -63,7 +91,8 @@ export function MyTasks({ sections, tasks, layout, nowIso, fixed = false }: { se
   const [selected, setSelected] = useState<number[]>([]);
   const paneLink = usePaneLink();
   useAutoRefresh();
-  const inSection = (id: number) => tasks.filter((task) => task.sectionId === id).sort((a, b) => a.position - b.position || a.id - b.id);
+  const sorted = Boolean(boardView) && view.sort !== "manual";
+  const inSection = (id: number) => (sorted ? tasks.filter((task) => task.sectionId === id) : tasks.filter((task) => task.sectionId === id).sort((a, b) => a.position - b.position || a.id - b.id));
 
   const place = (taskId: number, sectionId: number, beforeId: number | null) => {
     const list = inSection(sectionId).filter((task) => task.id !== taskId);
@@ -112,13 +141,15 @@ export function MyTasks({ sections, tasks, layout, nowIso, fixed = false }: { se
         className={`work-row ${card ? "kanban-card rounded-lg border border-line bg-surface p-3 shadow-card hover:border-line-strong" : "flex items-center gap-2 border-b border-line px-3 py-1.5 hover:bg-surface-muted"} ${approvalRowClass(task.approval)} ${dragging === task.id ? "opacity-50" : ""}`}
       >
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          <input
-            type="checkbox"
-            aria-label={`Select ${task.title}`}
-            checked={selected.includes(task.id)}
-            onChange={(event) => setSelected((value) => (event.target.checked ? [...value, task.id] : value.filter((one) => one !== task.id)))}
-          />
-          <TaskCheck taskId={task.id} done={task.status === "COMPLETED"} disabled={task.status === "CANCELLED"} label={task.title} />
+          {!readOnly && (
+            <input
+              type="checkbox"
+              aria-label={`Select ${task.title}`}
+              checked={selected.includes(task.id)}
+              onChange={(event) => setSelected((value) => (event.target.checked ? [...value, task.id] : value.filter((one) => one !== task.id)))}
+            />
+          )}
+          <TaskCheck taskId={task.id} done={task.status === "COMPLETED"} disabled={readOnly || task.status === "CANCELLED"} label={task.title} />
           <Link href={paneLink(task.id)} scroll={false} className={`min-w-0 flex-1 truncate text-label hover:underline ${task.status === "COMPLETED" ? "text-ink-muted line-through" : ""}`}>
             {task.isPeriodic && <Repeat aria-label="Periodic" className="mr-1 inline h-3.5 w-3.5 text-info-600" />}
             {task.title}
@@ -176,8 +207,9 @@ export function MyTasks({ sections, tasks, layout, nowIso, fixed = false }: { se
       <span role="status" aria-live="polite" className="sr-only">
         {live}
       </span>
+      {boardView && <SummaryBoardToolbar view={view} setView={setView} {...boardView} dragOff={sorted || boardFilterCount(view) > 0 || Boolean(view.search)} readOnly={readOnly} />}
       {layout === "BOARD" ? (
-        <div className="scroll-hint flex gap-3 overflow-x-auto pb-4" data-testid="my-board">
+        <div className="scroll-hint flex gap-3 overflow-x-auto pb-4" data-testid="my-board" tabIndex={0} role="region" aria-label="Board columns">
           {sections.map((section, index) => (
             <section
               key={section.id}
@@ -218,7 +250,7 @@ export function MyTasks({ sections, tasks, layout, nowIso, fixed = false }: { se
           {!fixed && addSection}
         </div>
       )}
-      <BulkBar ids={selected.filter((one) => tasks.some((task) => task.id === one))} clear={() => setSelected([])} />
+      {!readOnly && <BulkBar ids={selected.filter((one) => tasks.some((task) => task.id === one))} clear={() => setSelected([])} />}
       {recent && !fixed && <p className="mt-2 text-caption text-ink-muted">New tasks given to you land in {recent.name}. Tasks in Upcoming and Later move to Today on their due date.</p>}
     </div>
   );
@@ -242,10 +274,11 @@ function TaskRowMenu({ task, href }: { task: MyTaskRow; href: string }) {
 // calendar feed (when offered) and Print.
 // v1.76.0 (D-401, spec §3.3): plus "Sync / export ▸" with Calendar feed, CSV
 // (the current tab, downloaded at once) and Print; the v1.73.0 items stay.
-export function MyTasksTitle({ title, digestOn, feed, csvHref }: { title: string; digestOn: boolean; feed: boolean; csvHref?: string }) {
+// v1.77.0 (D-404): on someone else's Task Summary (read-only) the menu has Print only.
+export function MyTasksTitle({ title, digestOn, feed, csvHref, readOnly = false }: { title: string; digestOn: boolean; feed: boolean; csvHref?: string; readOnly?: boolean }) {
   const { call } = useWorkCall();
   const [digest, setDigest] = useState(digestOn);
-  const items: MenuItem[] = [
+  const items: MenuItem[] = readOnly ? [{ label: "Print", icon: <Printer className="h-4 w-4" />, onSelect: () => window.print() }] : [
     { label: "Add task", icon: <Plus className="h-4 w-4" />, onSelect: () => openCreateTask({ projectId: null }) },
     {
       kind: "checkbox",
@@ -343,9 +376,12 @@ export function MyTasksGrid({
   fields,
   mySections,
   resetTo,
+  readOnly = false,
 }: {
   rows: GridTask[];
   sections: MySectionRow[];
+  // v1.77.0 (D-404): someone else's Task Summary: no moves, adds, renames, saves or selection.
+  readOnly?: boolean;
   // v1.76.0 (D-401): the person's own sections ("My sections" grouping) and the tab's starting view.
   mySections?: MySectionRow[];
   resetTo?: GridConfig;
@@ -386,13 +422,15 @@ export function MyTasksGrid({
       mySections={mySections?.map((section) => ({ id: section.id, name: section.name }))}
       sectionHeader={(section, count) => {
         const own = mine.find((item) => item.id === section.id);
-        if (own) return own.system === "OVERDUE" ? <FixedTitle name={own.name} count={count} /> : <SectionTitle section={own} count={count} />;
-        return fixed ? <FixedTitle name={section.name} count={count} /> : <SectionTitle section={sections.find((item) => item.id === section.id)!} count={count} />;
+        if (own) return own.system === "OVERDUE" || readOnly ? <FixedTitle name={own.name} count={count} /> : <SectionTitle section={own} count={count} />;
+        return fixed || readOnly ? <FixedTitle name={section.name} count={count} /> : <SectionTitle section={sections.find((item) => item.id === section.id)!} count={count} />;
       }}
-      onMove={mySections ? place : fixed ? undefined : place}
+      onMove={readOnly ? undefined : mySections ? place : fixed ? undefined : place}
       moveGroup={mySections ? "mySection" : "section"}
-      onAddSection={mySections ? addSection : undefined}
-      addTo={mySections || !fixed ? { mySections: true } : undefined}
+      onAddSection={mySections && !readOnly ? addSection : undefined}
+      addTo={!readOnly && (mySections || !fixed) ? { mySections: true } : undefined}
+      readOnly={readOnly}
+      bulk={!readOnly}
       resetTo={resetTo}
       people={people}
       projects={projects}
@@ -405,15 +443,18 @@ export function MyTasksGrid({
       fieldScope={fields?.scope}
       planning={Boolean(fields)}
       testId="my-grid"
+      editAssignee={!readOnly}
+      editPriority={!readOnly}
       emptyText="Nothing here. Clear the filters, or add a task."
     />
   );
 }
 
 // v1.76.0 (D-401, owner): the bar above a Task Summary tab: which tasks it
-// shows (Summary window or All my open tasks) and, on a Board, its columns
-// (by date or My sections). Saved with the tab at once.
-export function TabSettingsBar({ tabKey, range, sections, board }: { tabKey: string; range: TabRange; sections: BoardSections; board: boolean }) {
+// shows (Summary window or All my open tasks). Saved with the tab at once.
+// v1.77.0 (D-404): a Board's columns (by date or My sections) moved into the
+// Board's own toolbar (Group); `sections`/`board` are kept for callers.
+export function TabSettingsBar({ tabKey, range }: { tabKey: string; range: TabRange; sections?: BoardSections; board?: boolean }) {
   const { call, pending } = useWorkCall();
   const save = (change: { range?: TabRange; sections?: BoardSections }) => void call(() => myTasksTabAction({ op: "settings", key: tabKey, ...change }), { success: false });
   return (
@@ -428,49 +469,290 @@ export function TabSettingsBar({ tabKey, range, sections, board }: { tabKey: str
           ))}
         </select>
       </label>
-      {board && (
-        <label className="inline-flex items-center gap-2 text-label">
-          <span className="text-ink-muted">Columns</span>
-          <select value={sections} disabled={pending} onChange={(event) => save({ sections: event.target.value as BoardSections })} className="field-input h-8 text-label" data-testid="tab-board-sections">
-            {BOARD_SECTIONS.map((value) => (
-              <option key={value} value={value}>
-                {BOARD_SECTIONS_LABEL[value]}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
     </div>
+  );
+}
+
+// v1.77.0 (D-404, spec §3.13): a Task Summary Board tab's toolbar: Filter
+// (Show incomplete / completed / all; due this or next week), Sort, Group (the
+// columns: by date or My sections) and Search. Saved with the tab a second
+// after each change (search isn't saved); Reset goes back to the defaults.
+function SummaryBoardToolbar({
+  view,
+  setView,
+  tabKey,
+  canSave,
+  sections,
+  mineOffered,
+  dragOff,
+  readOnly,
+}: {
+  view: SummaryBoard;
+  setView: (next: SummaryBoard) => void;
+  tabKey: string;
+  canSave: boolean;
+  sections: BoardSections;
+  mineOffered: boolean;
+  dragOff: boolean;
+  readOnly: boolean;
+}) {
+  const { call } = useWorkCall();
+  const router = useRouter();
+  const [state, setState] = useState<"" | "saving" | "saved">("");
+  const key = JSON.stringify({ ...view, search: "" });
+  const savedKey = useRef(key);
+  useEffect(() => {
+    if (!canSave || key === savedKey.current) return;
+    const timer = window.setTimeout(() => {
+      setState("saving");
+      void myTasksTabAction({ op: "save", key: tabKey, config: JSON.parse(key) as SummaryBoard, auto: true }).then((result) => {
+        if (result?.ok) {
+          savedKey.current = key;
+          setState("saved");
+          // The first save writes the built-in tabs as rows: fetch their new keys.
+          if (tabKey.startsWith("v")) router.refresh();
+        } else setState("");
+      });
+    }, 1000);
+    return () => window.clearTimeout(timer);
+  }, [canSave, key, tabKey, router]);
+  const set = (change: Partial<SummaryBoard>) => setView({ ...view, ...change });
+  const count = boardFilterCount(view);
+  const showText: Record<SummaryBoard["show"], string> = { all: "All tasks", incomplete: "Incomplete tasks", completed: "Completed tasks" };
+  const grouping = sections === "mine";
+  return (
+    <>
+      <div className="mb-3 flex flex-wrap items-center gap-2" role="toolbar" aria-label="Board options" data-testid="summary-board-toolbar">
+        <span className="ml-auto flex flex-wrap items-center gap-0.5">
+          <span className={count ? "tb-pill" : "inline-flex items-center"}>
+            <Drop
+              label={count ? `Filters: ${count}` : "Filter"}
+              icon={
+                <>
+                  <Filter aria-hidden="true" className="h-4 w-4" /> {count ? `Filters: ${count}` : "Filter"}
+                </>
+              }
+              buttonClass="tb-btn"
+              panelClass="right-0 w-64"
+              testId="board-filter"
+            >
+              <fieldset className="space-y-1.5 text-label">
+                <legend className="mb-1 text-caption font-semibold text-ink-muted">Show</legend>
+                {(["all", "incomplete", "completed"] as const).map((choice) => (
+                  <label key={choice} className="flex items-center gap-2">
+                    <input type="radio" name={`board-show-${tabKey}`} checked={view.show === choice} onChange={() => set({ show: choice })} data-testid={`board-show-${choice}`} /> {showText[choice]}
+                  </label>
+                ))}
+              </fieldset>
+              <fieldset className="mt-3 space-y-1.5 border-t border-line pt-3 text-label">
+                <legend className="mb-1 text-caption font-semibold text-ink-muted">Due</legend>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={view.dueWithin === "this"} onChange={(event) => set({ dueWithin: event.target.checked ? "this" : "" })} /> Due this week
+                </label>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={view.dueWithin === "next"} onChange={(event) => set({ dueWithin: event.target.checked ? "next" : "" })} /> Due next week
+                </label>
+              </fieldset>
+            </Drop>
+            {count > 0 && (
+              <button type="button" aria-label="Clear filters" onClick={() => set({ show: "all", dueWithin: "" })} className="tb-x">
+                <X aria-hidden="true" className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </span>
+          <SortMenu
+            entries={SUMMARY_BOARD_SORTS.map((sort) => ({ key: sort, label: SUMMARY_BOARD_SORT_LABEL[sort] }))}
+            current={view.sort}
+            dir={view.dir}
+            onPick={(sort) => set({ sort: sort as SummaryBoard["sort"] })}
+            onDir={(dir) => set({ dir })}
+            onClear={() => set({ sort: "manual", dir: "asc" })}
+            chip
+          />
+          {mineOffered && !readOnly && (
+            <span className={grouping ? "tb-pill" : "inline-flex items-center"}>
+              <Drop
+                label={grouping ? "Groups: 1, by My sections" : "Group"}
+                icon={
+                  <>
+                    <Layers aria-hidden="true" className="h-4 w-4" /> {grouping ? "Groups: 1" : "Group"}
+                  </>
+                }
+                buttonClass="tb-btn"
+                panelClass="right-0 w-64"
+                testId="board-group"
+              >
+                <label className="block text-caption text-ink-muted">
+                  Columns
+                  <select
+                    value={sections}
+                    onChange={(event) => void call(() => myTasksTabAction({ op: "settings", key: tabKey, sections: event.target.value as BoardSections }), { success: false })}
+                    className="field-input mt-1 h-9 w-full text-label"
+                    data-testid="tab-board-sections"
+                  >
+                    {BOARD_SECTIONS.map((value) => (
+                      <option key={value} value={value}>
+                        {BOARD_SECTIONS_LABEL[value]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </Drop>
+              {grouping && (
+                <button type="button" aria-label="Clear groups" title="Back to columns by date" onClick={() => void call(() => myTasksTabAction({ op: "settings", key: tabKey, sections: "date" }), { success: false })} className="tb-x">
+                  <X aria-hidden="true" className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </span>
+          )}
+          <span aria-hidden="true" className="tb-sep" />
+          <ViewSearch value={view.search} onChange={(search) => set({ search })} />
+          {canSave && (
+            <span className="inline-flex items-center gap-1.5" data-testid="board-auto-save">
+              <span role="status" aria-live="polite" className="text-caption text-ink-muted">
+                {state === "saving" ? "Saving…" : state === "saved" ? "Saved" : ""}
+              </span>
+              {key !== JSON.stringify({ ...DEFAULT_SUMMARY_BOARD, search: "" }) && (
+                <button type="button" onClick={() => setView({ ...DEFAULT_SUMMARY_BOARD })} className="tb-btn" data-testid="board-reset" title="Back to this tab's starting view">
+                  <RotateCcw aria-hidden="true" className="h-3.5 w-3.5" /> Reset
+                </button>
+              )}
+            </span>
+          )}
+        </span>
+      </div>
+      {dragOff && grouping && !readOnly && (
+        <p className="mb-2 text-caption text-ink-muted" data-testid="board-drag-blocked">
+          Clear the sort, filters and search to move cards between your sections by hand.
+        </p>
+      )}
+    </>
   );
 }
 
 // v1.76.0 (D-401, spec §3.5 / §4.3): Customise ▸ Rules: the auto-promotion
 // presets for My sections. They run every night at midnight (India time),
 // from any section, once per due day, and at once when saved.
-export function CustomiseButton({ rules }: { rules: MyRules }) {
+// v1.77.0 (D-404, spec §3.5): Customise ▸ Fields: the columns a Task Summary
+// list shows (new List tabs, the built-in List and Reset start with them; with
+// "Also use in my List tabs" the stored ones change too).
+export interface CustomiseFields {
+  hidden: SummaryColumn[];
+  hiddenFields: number[];
+  customFields: { id: number; name: string }[];
+}
+export function CustomiseButton({ rules, fields }: { rules: MyRules; fields?: CustomiseFields }) {
   const { call, pending } = useWorkCall();
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(rules);
+  const [hidden, setHidden] = useState<SummaryColumn[]>(fields?.hidden ?? []);
+  const [hiddenFields, setHiddenFields] = useState<number[]>(fields?.hiddenFields ?? []);
+  const [applyTabs, setApplyTabs] = useState(true);
   return (
     <>
-      <button type="button" className="btn-secondary btn-compact" onClick={() => { setValue(rules); setOpen(true); }} data-testid="my-customise">
+      <button
+        type="button"
+        className="btn-secondary btn-compact"
+        onClick={() => {
+          setValue(rules);
+          setHidden(fields?.hidden ?? []);
+          setHiddenFields(fields?.hiddenFields ?? []);
+          setOpen(true);
+        }}
+        data-testid="my-customise"
+        aria-haspopup="dialog"
+      >
         <Settings2 aria-hidden="true" className="h-4 w-4" /> Customise
       </button>
       <Dialog
         open={open}
         onClose={() => setOpen(false)}
         title="Customise Task Summary"
-        description="Rules move tasks between your own sections (group a tab by My sections to see them)."
+        description="Choose the columns your lists show, and the rules that move tasks between your own sections."
         variant="drawer"
         testId="my-customise-panel"
         footer={
-          <>
-            <button type="button" className="btn-secondary" onClick={() => setOpen(false)}>
-              Cancel
-            </button>
+          <button type="button" className="btn-secondary" onClick={() => setOpen(false)}>
+            Close
+          </button>
+        }
+      >
+        <div className="space-y-6">
+          {fields && (
+            <section aria-labelledby="my-fields-head" className="space-y-3" data-testid="my-fields">
+              <h3 id="my-fields-head" className="flex items-center gap-2 font-semibold">
+                <Columns3 aria-hidden="true" className="h-4 w-4 text-primary-700" /> Fields
+              </h3>
+              <p className="text-caption text-ink-muted">The columns shown in your Task Summary lists. The task name is always shown.</p>
+              <fieldset className="space-y-1 rounded-lg border border-line p-3 text-label">
+                <legend className="px-1 text-caption font-semibold text-ink-muted">Columns</legend>
+                {SUMMARY_COLUMNS.map((column) => (
+                  <label key={column} className="flex items-center gap-2 py-0.5">
+                    <input type="checkbox" checked={!hidden.includes(column)} onChange={(event) => setHidden(event.target.checked ? hidden.filter((item) => item !== column) : [...hidden, column])} data-testid={`field-${column}`} /> {COLUMN_LABEL[column]}
+                  </label>
+                ))}
+              </fieldset>
+              {fields.customFields.length > 0 && (
+                <fieldset className="space-y-1 rounded-lg border border-line p-3 text-label">
+                  <legend className="px-1 text-caption font-semibold text-ink-muted">Custom fields of your tasks&apos; projects</legend>
+                  {fields.customFields.map((field) => (
+                    <label key={field.id} className="flex items-center gap-2 py-0.5">
+                      <input type="checkbox" checked={!hiddenFields.includes(field.id)} onChange={(event) => setHiddenFields(event.target.checked ? hiddenFields.filter((id) => id !== field.id) : [...hiddenFields, field.id])} /> {field.name}
+                    </label>
+                  ))}
+                </fieldset>
+              )}
+              <label className="flex items-center gap-2 text-label">
+                <input type="checkbox" checked={applyTabs} onChange={(event) => setApplyTabs(event.target.checked)} data-testid="fields-apply-tabs" /> Also use in my List tabs
+              </label>
+              <button
+                type="button"
+                className="btn-primary btn-compact"
+                disabled={pending}
+                aria-busy={pending || undefined}
+                data-testid="my-fields-save"
+                onClick={() => void call(() => summaryFieldsAction({ hidden, hiddenFields, applyToTabs: applyTabs })).then((result) => result?.ok && setOpen(false))}
+              >
+                Save columns
+              </button>
+            </section>
+          )}
+          <section aria-labelledby="my-rules-head" className="space-y-3">
+            <h3 id="my-rules-head" className="flex items-center gap-2 font-semibold">
+              <Zap aria-hidden="true" className="h-4 w-4 text-primary-700" /> Rules
+            </h3>
+            <p className="text-caption text-ink-muted">Every night at midnight, from any of your sections, once for each due date. You can move a task back and it stays. Group a tab by My sections to see them.</p>
+            <label className="flex items-start gap-2 rounded-lg border border-line p-3 text-label">
+              <input type="checkbox" checked={value.todayOn} onChange={(event) => setValue({ ...value, todayOn: event.target.checked })} data-testid="rule-today" className="mt-0.5" />
+              <span>
+                Move to <strong>Today</strong> when the task is due today
+              </span>
+            </label>
+            <div className="rounded-lg border border-line p-3 text-label">
+              <label className="flex items-start gap-2">
+                <input type="checkbox" checked={value.upcomingOn} onChange={(event) => setValue({ ...value, upcomingOn: event.target.checked })} data-testid="rule-upcoming" className="mt-0.5" />
+                <span>
+                  Move to <strong>Upcoming</strong> when the task is due within the next few working days
+                </span>
+              </label>
+              <label className="ml-6 mt-2 flex items-center gap-2">
+                <span className="text-ink-muted">Working days</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={MAX_UPCOMING_DAYS}
+                  value={value.upcomingDays}
+                  disabled={!value.upcomingOn}
+                  onChange={(event) => setValue({ ...value, upcomingDays: Math.max(1, Math.min(MAX_UPCOMING_DAYS, Math.round(Number(event.target.value) || 1))) })}
+                  className="field-input h-8 w-20 text-label"
+                  data-testid="rule-upcoming-days"
+                />
+              </label>
+              <p className="ml-6 mt-1 text-caption text-ink-muted">Weekly offs and holidays don&apos;t count.</p>
+            </div>
             <button
               type="button"
-              className="btn-primary"
+              className="btn-primary btn-compact"
               disabled={pending}
               aria-busy={pending || undefined}
               data-testid="my-rules-save"
@@ -478,43 +760,8 @@ export function CustomiseButton({ rules }: { rules: MyRules }) {
             >
               Save rules
             </button>
-          </>
-        }
-      >
-        <section aria-labelledby="my-rules-head" className="space-y-3">
-          <h3 id="my-rules-head" className="flex items-center gap-2 font-semibold">
-            <Zap aria-hidden="true" className="h-4 w-4 text-primary-700" /> Rules
-          </h3>
-          <p className="text-caption text-ink-muted">Every night at midnight, from any of your sections, once for each due date. You can move a task back and it stays.</p>
-          <label className="flex items-start gap-2 rounded-lg border border-line p-3 text-label">
-            <input type="checkbox" checked={value.todayOn} onChange={(event) => setValue({ ...value, todayOn: event.target.checked })} data-testid="rule-today" className="mt-0.5" />
-            <span>
-              Move to <strong>Today</strong> when the task is due today
-            </span>
-          </label>
-          <div className="rounded-lg border border-line p-3 text-label">
-            <label className="flex items-start gap-2">
-              <input type="checkbox" checked={value.upcomingOn} onChange={(event) => setValue({ ...value, upcomingOn: event.target.checked })} data-testid="rule-upcoming" className="mt-0.5" />
-              <span>
-                Move to <strong>Upcoming</strong> when the task is due within the next few working days
-              </span>
-            </label>
-            <label className="ml-6 mt-2 flex items-center gap-2">
-              <span className="text-ink-muted">Working days</span>
-              <input
-                type="number"
-                min={1}
-                max={MAX_UPCOMING_DAYS}
-                value={value.upcomingDays}
-                disabled={!value.upcomingOn}
-                onChange={(event) => setValue({ ...value, upcomingDays: Math.max(1, Math.min(MAX_UPCOMING_DAYS, Math.round(Number(event.target.value) || 1))) })}
-                className="field-input h-8 w-20 text-label"
-                data-testid="rule-upcoming-days"
-              />
-            </label>
-            <p className="ml-6 mt-1 text-caption text-ink-muted">Weekly offs and holidays don&apos;t count.</p>
-          </div>
-        </section>
+          </section>
+        </div>
       </Dialog>
     </>
   );

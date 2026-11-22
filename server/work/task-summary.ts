@@ -1,5 +1,7 @@
 import "server-only";
-import { listTaskItems, ensureMySections, myPlacements, type MySection, type WorkTaskItem } from "@/lib/db/repositories/work.repository";
+import { listTaskItems, ensureMySections, listMySectionsOnly, myPlacements, visibleTaskClause, type MySection, type WorkTaskItem } from "@/lib/db/repositories/work.repository";
+import type { WorkViewer } from "@/server/work/access";
+import { readOnlyRow } from "@/server/work/summary-views";
 import { toGridTask } from "@/server/work/grid-rows";
 import type { GridTask } from "@/server/work/grid";
 import { summarySection, summarySections, type SummarySection } from "@/server/work/my-summary";
@@ -19,7 +21,11 @@ export interface SummaryData {
   today: string;
 }
 
-export async function loadTaskSummary(userId: number, input: { range: TabRange; recentOn: boolean; mine: boolean; now?: Date }): Promise<SummaryData> {
+// v1.77.0 (D-404): `viewer` = someone else opening this person's Task Summary
+// (a manager above them, or a person it is shared with): only the tasks the
+// viewer may see themselves are listed (the rest are left out, never masked),
+// every row is read-only, and the owner's sections are read without creating any.
+export async function loadTaskSummary(userId: number, input: { range: TabRange; recentOn: boolean; mine: boolean; now?: Date; viewer?: WorkViewer }): Promise<SummaryData> {
   const now = input.now ?? new Date();
   const today = indiaDay(now);
   const weekEnd = indiaDay(new Date(now.getTime() + 7 * 86_400_000));
@@ -27,14 +33,23 @@ export async function loadTaskSummary(userId: number, input: { range: TabRange; 
   const recentSince = new Date(now.getTime() - 3 * 86_400_000);
   const range = rangeWhere(input.range, input.recentOn);
   const values = { weekEnd, todayStart, recentSince };
-  const list = await listTaskItems(["t.assignee_id = ?", "t.deleted_at IS NULL", range.sql], [userId, ...range.uses.map((key) => values[key])], "t.due_at IS NULL, t.due_at, t.id", rangeLimit(input.range));
-  const [mySections, placements] = input.mine ? await Promise.all([ensureMySections(userId), myPlacements(userId)]) : [null, null];
+  const other = input.viewer && input.viewer.id !== userId ? input.viewer : null;
+  const seen = other ? visibleTaskClause(other) : null;
+  const list = await listTaskItems(
+    ["t.assignee_id = ?", "t.deleted_at IS NULL", range.sql, ...(seen ? [seen.sql] : [])],
+    [userId, ...range.uses.map((key) => values[key]), ...(seen ? seen.params : [])],
+    "t.due_at IS NULL, t.due_at, t.id",
+    rangeLimit(input.range),
+  );
+  const sectionsOf = other ? listMySectionsOnly(userId).then((sections) => (sections.length ? sections : null)) : ensureMySections(userId);
+  const [mySections, placements] = input.mine ? await Promise.all([sectionsOf, myPlacements(userId)]) : [null, null];
   const allOpen = input.range === "all";
   const rows = list.items.map((task) => {
     const dueDay = task.dueAt ? indiaDay(task.dueAt) : null;
     const sectionId = summarySection({ status: task.status, dueDay, assignedAt: task.assignedAt, selfAssigned: task.createdBy === userId }, today, now, input.recentOn, allOpen);
     const position = task.dueAt ? task.dueAt.getTime() / 1000 : 9e9;
-    const row = toGridTask(task, userId, true, sectionId, position);
+    const base = toGridTask(task, userId, true, sectionId, position);
+    const row = other ? readOnlyRow(base) : base;
     if (mySections && placements) {
       const placement = placements.get(task.id) ?? null;
       row.mySectionId = mySectionOf({ open: ["OPEN", "IN_PROGRESS", "BLOCKED"].includes(task.status), dueDay }, placement, mySections, today);

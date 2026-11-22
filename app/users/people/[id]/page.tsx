@@ -8,6 +8,11 @@ import { personProfile } from "@/lib/db/repositories/profile.repository";
 import { photoUrl } from "@/server/profile/photo";
 import { RichText } from "@/features/work/RichText";
 import { BackLink } from "@/features/ui/BackLink";
+import { ListTodo } from "lucide-react";
+import { featureOn } from "@/server/settings/features";
+import { hasModule } from "@/server/modules/modules";
+import { workViewer } from "@/server/work/task-access";
+import { summaryAccess } from "@/server/work/summary-share";
 
 export const metadata: Metadata = { title: "Profile" };
 
@@ -21,6 +26,10 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
   const profile = await personProfile(Number(id));
   if (!profile || !profile.active) notFound();
   const mine = profile.id === user.id;
+  // v1.77.0 (D-404): "View Task Summary" when this person may open it (their
+  // manager above them, or they shared it with this person), read-only.
+  const summaryOn = !mine && hasModule(user, "TASK") && (await featureOn("tasks", user).catch(() => false)) && (await featureOn("pm_foundations", user).catch(() => false));
+  const canSummary = summaryOn ? (await summaryAccess(await workViewer(user), profile.id)).access !== null : false;
   return (
     <>
     {/* v1.72.1 (D-395, QA F-13): a way back (the card is reached from many pages). */}
@@ -81,6 +90,11 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
           {mine && (
             <Link href="/users/profile" className="btn-primary btn-compact w-auto">
               Edit profile
+            </Link>
+          )}
+          {canSummary && (
+            <Link href={`/users/work/my-tasks?of=${profile.id}`} className="btn-secondary btn-compact inline-flex w-auto items-center gap-1.5" data-testid="person-view-summary">
+              <ListTodo aria-hidden="true" className="h-4 w-4" /> View Task Summary
             </Link>
           )}
         </div>

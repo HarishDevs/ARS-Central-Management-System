@@ -101,6 +101,12 @@ export const automationMessages = {
     message("WORK_AUTOMATION_NOTICE", to, `Automation taken over: ${ruleName}`, `${by} changed the automation "${ruleName}" in the project "${project.name}", so it now belongs to them and runs with their rights, not yours.`, `${projectPath(project)}/settings#automations`, null),
 };
 
+// v1.77.0 (D-404): someone shared their Task Summary with the person (read-only).
+export const summaryMessages = {
+  shared: (owner: { id: number; name: string }, to: number) =>
+    message("WORK_SUMMARY_SHARED", to, `${owner.name} shared their Task Summary with you`, `${owner.name} shared their Task Summary with you, read-only. You see only the tasks in it that you may already see.`, `/users/work/my-tasks?of=${owner.id}`, null),
+};
+
 // v1.69.0 (D-382): portfolios. Added to a portfolio; a status update on it
 // (to its people); a project in it goes off track (to its owners who can see
 // that project).

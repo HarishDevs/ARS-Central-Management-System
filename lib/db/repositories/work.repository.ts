@@ -854,6 +854,11 @@ export async function deleteMySection(userId: number, id: number, db: Queryable 
   const [result] = await db.query<ResultSetHeader>("DELETE FROM my_task_sections WHERE id = ? AND user_id = ? AND system_key IS NULL", [id, userId]);
   return result.affectedRows === 1;
 }
+// v1.77.0 (D-404): a person's sections, read only (someone else opening their Task Summary creates nothing).
+export async function listMySectionsOnly(userId: number, db: Queryable = getDbPool()): Promise<MySection[]> {
+  const [rows] = await db.query<Row[]>("SELECT id, name, position, system_key FROM my_task_sections WHERE user_id = ? ORDER BY position, id", [userId]);
+  return rows.map((row) => ({ id: num(row.id), name: String(row.name), position: Number(row.position), system: (row.system_key as MySystemSection | null) ?? null }));
+}
 export async function myPlacements(userId: number, db: Queryable = getDbPool()): Promise<Map<number, { sectionId: number; position: number }>> {
   const [rows] = await db.query<Row[]>("SELECT task_id, section_id, position FROM my_task_placements WHERE user_id = ?", [userId]);
   return new Map(rows.map((row) => [num(row.task_id), { sectionId: num(row.section_id), position: Number(row.position) }]));

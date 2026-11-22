@@ -7,6 +7,8 @@ import * as repo from "@/lib/db/repositories/work.repository";
 import type { TaskActor } from "@/server/modules/tasks";
 import { projectAbilities, type WorkViewer } from "@/server/work/access";
 import { BOARD_SECTIONS, isTabRange, tabSettings } from "@/server/work/my-sections";
+import { DEFAULT_SUMMARY_BOARD, DEFAULT_SUMMARY_CALENDAR, parseSummaryFields, FIELDS_SETTING, summaryListStart, validSummaryView } from "@/server/work/summary-views";
+import { getUserSetting } from "@/lib/db/repositories/user-settings.repository";
 import {
   buildStrip,
   canRemoveTab,
@@ -37,7 +39,14 @@ export type TabResult<T = undefined> = { ok: true; value: T; message: string } |
 const NOT_FOUND = { ok: false as const, message: "Not found." };
 const ONLY_EDITORS = { ok: false as const, message: "Only the project's owners and editors can change its tabs." };
 
-const starterConfig = (type: TabView) => (type === "LIST" ? DEFAULT_PROJECT_LIST : type === "BOARD" ? DEFAULT_BOARD : {});
+const starterConfig = (type: TabView): object => (type === "LIST" ? DEFAULT_PROJECT_LIST : type === "BOARD" ? DEFAULT_BOARD : {});
+// v1.77.0 (D-404): a Task Summary tab starts with the person's Customise › Fields
+// columns (List) and the Task Summary Board / Calendar settings.
+async function starterFor(owner: Owner, db: PoolConnection): Promise<(type: TabView) => object> {
+  if (owner.scope === "PROJECT") return starterConfig;
+  const list = summaryListStart(parseSummaryFields(await getUserSetting(owner.id, FIELDS_SETTING, db)));
+  return (type) => (type === "LIST" ? list : type === "BOARD" ? DEFAULT_SUMMARY_BOARD : type === "CALENDAR" ? DEFAULT_SUMMARY_CALENDAR : {});
+}
 
 type Owner = repo.TabOwner;
 const labelFor = (owner: Owner) => (owner.scope === "PROJECT" ? "A project" : "My Tasks");
@@ -61,11 +70,12 @@ export async function materialise(target: number | Owner, by: number, db: PoolCo
     return { strip: strip as (StripTab & { id: number })[], ids };
   }
   const plan = materialisePlan(strip);
+  const start = await starterFor(owner, db);
   const ordered: number[] = [];
   for (const [index, item] of plan.entries()) {
     let id = item.id;
     if (id === null) {
-      const inserted = await repo.insertTab(owner, { type: item.type, name: item.name, config: starterConfig(item.type), position: (index + 1) * 1024 }, by, db);
+      const inserted = await repo.insertTab(owner, { type: item.type, name: item.name, config: start(item.type), position: (index + 1) * 1024 }, by, db);
       if (inserted === "DUPLICATE") throw new Error("tab name clash while writing the strip");
       id = inserted;
     }
@@ -133,7 +143,7 @@ async function applyTabChange(owner: Owner, input: Op, actor: TaskActor, db: Poo
         const asked = input.name === undefined || input.name === "" ? TAB_VIEW_LABEL[type] : cleanTabName(input.name);
         if (!asked) return { ok: false, message: "Give the tab a name (up to 60 characters)." };
         const name = nameFor(asked, strip.map((tab) => tab.name));
-        const id = await repo.insertTab(owner, { type, name, config: starterConfig(type), position: (strip.length + 1) * 1024 }, actor.id, db);
+        const id = await repo.insertTab(owner, { type, name, config: (await starterFor(owner, db))(type), position: (strip.length + 1) * 1024 }, actor.id, db);
         if (id === "DUPLICATE") return { ok: false, message: "There is a tab with that name." };
         await audit("add", { tab: id, type });
         return { ok: true, value: { id }, message: `Tab "${name}" added.` };
@@ -191,7 +201,8 @@ async function applyTabChange(owner: Owner, input: Op, actor: TaskActor, db: Poo
       case "save": {
         const tab = tabOf(input.key);
         if (!tab) return NOT_FOUND;
-        const config = validTabConfig(tab.type, input.config);
+        // v1.77.0 (D-404): a Task Summary Board or Calendar tab keeps its own settings.
+        const config = personal && (tab.type === "BOARD" || tab.type === "CALENDAR") ? validSummaryView(tab.type, input.config) : validTabConfig(tab.type, input.config);
         if (config === null) return { ok: false, message: "That view can't be saved. Reset it and try again." };
         // v1.76.0 (D-401): a Task Summary tab keeps its range and sections (set apart, op "settings").
         const stored = personal ? tabSettings((await repo.findTab(owner, tab.id, db))?.config) : null;

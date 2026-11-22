@@ -191,7 +191,8 @@ export function pickTab(strip: readonly StripTab[], query: { tab?: string | null
   return strip.find((tab) => tab.isDefault) ?? strip[0]!;
 }
 
-export const tabHref = (base: string, tab: Pick<StripTab, "id" | "type">) => (tab.id !== null ? `${base}?tab=${tab.id}` : `${base}?view=${tab.type.toLowerCase()}`);
+// v1.77.0 (D-404): a base that has a query already (Task Summary ?of=) gets "&".
+export const tabHref = (base: string, tab: Pick<StripTab, "id" | "type">) => `${base}${base.includes("?") ? "&" : "?"}${tab.id !== null ? `tab=${tab.id}` : `view=${tab.type.toLowerCase()}`}`;
 
 // Keyboard reorder: move one key by delta (−1 left, +1 right), clamped.
 export function moveKey(keys: readonly string[], key: string, delta: number): string[] {

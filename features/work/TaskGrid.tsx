@@ -113,7 +113,10 @@ export function TaskGrid({
   onAddSection,
   groupLabels,
   resetTo,
+  readOnly = false,
 }: {
+  // v1.77.0 (D-404): someone else's Task Summary: no Add task, nothing saved.
+  readOnly?: boolean;
   rows: GridTask[];
   // v1.61.0 (D-367): each task's subtasks (shown inline, folded), and the person's row density.
   subtasks?: Record<number, GridTask[]>;
@@ -492,7 +495,7 @@ export function TaskGrid({
       {/* v1.72.0 (D-387, spec PM §3.8, CMP-10): [＋ Add task │▾] on the left; Filter, Sort (a menu in the
           spec's order), Group (a "Group by" dropdown), Options (rows that open their own pages) and Search on the right. */}
       <div ref={toolbar} className="mb-2 flex flex-wrap items-center gap-2" role="toolbar" aria-label="View options">
-        <AddTaskSplit projectId={addTo?.projectId ?? null} onSection={addTo?.projectId ? () => window.dispatchEvent(new Event(ADD_SECTION_EVENT)) : onAddSection && config.group === "mySection" ? onAddSection : undefined} sectionOff={onAddSection && config.group !== "mySection" ? "Group by My sections to add a section" : undefined} />
+        {!readOnly && <AddTaskSplit projectId={addTo?.projectId ?? null} onSection={addTo?.projectId ? () => window.dispatchEvent(new Event(ADD_SECTION_EVENT)) : onAddSection && config.group === "mySection" ? onAddSection : undefined} sectionOff={onAddSection && config.group !== "mySection" ? "Group by My sections to add a section" : undefined} />}
         <span className="ml-auto flex flex-wrap items-center gap-0.5">
           <span className={count ? "tb-pill" : "inline-flex items-center"}>
             <Drop
@@ -678,7 +681,7 @@ export function TaskGrid({
               )}
             </span>
           )}
-          {dirty && view?.phaseA && view.tabKey && !autoSave && (
+          {dirty && !readOnly && view?.phaseA && view.tabKey && !autoSave && (
             <UnsavedView
               canSave={view.canSave}
               onReset={() => setConfig(JSON.parse(saved) as GridConfig)}

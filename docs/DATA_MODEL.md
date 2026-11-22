@@ -591,6 +591,13 @@ erDiagram
         bigint user_id PK, FK
         date last_run_day
     }
+    task_summary_shares {
+        bigint id PK
+        bigint owner_id FK
+        bigint viewer_id FK
+        bigint granted_by FK
+        datetime revoked_at
+    }
 
     module_types ||--o{ module_type_versions : "type_id"
     module_type_versions ||--o{ tasks : "type_version_id"
@@ -621,6 +628,7 @@ erDiagram
     work_tags ||--o{ task_tags : "tag_id"
     users ||--o{ my_task_sections : "user_id"
     users ||--o| my_task_rules : "user_id"
+    users ||--o{ task_summary_shares : "owner_id, viewer_id"
     my_task_sections ||--o{ my_task_placements : "section_id, cascade"
     tasks ||--o{ my_task_placements : "task_id"
     tasks |o..o{ tasks : "root_task_id, series_id, assign_group_id"
@@ -967,6 +975,7 @@ Migration names are shortened to their date-time prefix; the full file is `datab
 | `my_task_sections` | Tasks | A person's My Tasks sections | 202610301000 |
 | `my_task_placements` | Tasks | Where each task sits in My Tasks; `rule_key` since v1.76.0 | 202610301000, 202611231000 |
 | `my_task_rules` | Personal | A person's Task Summary section rules and their last run day (v1.76.0) | 202611231000 |
+| `task_summary_shares` | Personal | Who a person shared their Task Summary with (read-only), who granted it and when; `revoked_at`/`revoked_by` when removed (the row is kept; sharing again reopens it) (v1.77.0) | 202611231100 |
 | `work_saved_searches` | Personal | Saved task searches | 202610301000 |
 | `project_fields` | Projects | Custom field definitions: 11 types (v1.64.0), local (`project_id`) or library (`project_id` NULL, `is_library`, unique `library_key`), description, `notify_on_change`, `config_json` (number format and decimals, formula `{f<id>}`, date with time, lookup fields), `id_prefix` / `id_next`, soft delete (`deleted_at`, `deleted_by`; purged after 30 days) | 202610301200, 202611221300 |
 | `project_field_links` | Projects | Which projects show which fields, in what order, `show_on_cards`; `removed_at` = removed from the project (values kept) | 202611221300 |
@@ -1046,6 +1055,12 @@ JSON is used for engine and form data that changes shape between versions, not f
 
 ### Times
 Times are stored in UTC (`DATETIME`, set by `CURRENT_TIMESTAMP` or the app). India dates are plain `DATE` columns: `holidays.holiday_on`, `department_holidays.holiday_on`, `delegations.starts_on` / `ends_on`, `work_digest_sends.day`. Event and audit tables use `DATETIME(3)` (milliseconds) so their order is stable.
+
+## v1.77.0: Task Summary release 2 (migration 202611231100_task_summary_r2, D-404)
+- `task_summary_shares` (id PK, `owner_id` → users, `viewer_id` → users, `granted_by` → users, `granted_at`, `revoked_at` NULL, `revoked_by` → users NULL; UNIQUE (owner_id, viewer_id); index (viewer_id, revoked_at)): one row per owner and viewer; a removal sets `revoked_at`, sharing again clears it. Managers above the owner (D-216) need no row.
+- `user_settings` key `work.my_tasks.fields`: JSON `{hidden: column[], hiddenFields: fieldId[]}` (Customise › Fields), the starting columns of a person's Task Summary lists.
+- A Task Summary **Board** tab's `config_json`: `show` ("all" | "incomplete" | "completed"), `dueWithin` ("" | "this" | "next"), `sort` ("manual" | "due" | "priority" | "title"), `dir`, `search` (not saved by the toolbar), plus `range`/`sections`. A **Calendar** tab's: `show`, `weekends` (boolean), `unit` ("month" | "week"), plus `range`.
+- Notification event `WORK_SUMMARY_SHARED` (Task category, "Task updates"): the person added is told. Audit: `TASK_SUMMARY_SHARED`, `TASK_SUMMARY_UNSHARED` (entity USER = the owner, metadata viewerId), `MY_TASKS_FIELDS_CHANGED`.
 
 ## v1.76.0: Task Summary release 1 (migration 202611231000_task_summary_r1, D-401)
 - `work_views.name_key` (generated, STORED: the name for `scope = 'PROJECT'`, NULL for `MY_TASKS`); the unique key `uq_work_views_name` is now (scope, scope_id, name_key), so a person's own tab names may repeat while a project's stay unique.

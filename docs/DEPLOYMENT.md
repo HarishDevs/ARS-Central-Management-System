@@ -211,6 +211,11 @@ Stops anyone reaching the GoDaddy server directly, around Cloudflare (and faking
 1. https://approval.arssteels.net → **Continue with Google** → **itsupport@arsenergy.co.in** (D-082). The seed created this Super Admin, User ID `itadmin`. `itadmin@arssteels.co.in` can't be used: it's only an alias, and Google reports the main address.
 2. You land on **My approvals**. Your name at the top right opens a menu whose **Switch space** section shows Admin and Super Admin.
 
+### G0v. Task Summary: Share, team members' Task Summary, Customise › Fields, Board and Calendar settings (v1.77.0)
+1. Publish v1.77.0. The migration `202611231100_task_summary_r2.sql` runs on start (no triggers, nothing optional): it adds the table `task_summary_shares`.
+2. Nothing to switch on beyond the existing **Projects phase A** switch (`pm_foundations`). No new job or cron entry.
+3. Check: Task Summary shows **Share** and **Customise › Fields**; a manager sees **View Task Summary** on a team member's profile.
+
 ### G0u. One-time restore of the 22 Nov backup (v1.76.2, D-403)
 1. GoDaddy → the app → **Secrets**: add `RESTORE_CONFIRM` = the database name (`db_30yc8vknqm`) and `RESTORE_BACKUP_KEY` = the value in the key file kept on the owner's PC (`ARS-RESTORE-KEY.txt`, never in the repository).
 2. **Update Preview** (or Publish): on start the app restores the bundled backup (`database/restore/ars-db-20261122-152503.sql.gz.enc`, 22 Nov 2026 8:55 pm IST) once, then the migrations add anything newer. It takes about a minute; the log shows `[restore-on-start] restored … statements`.

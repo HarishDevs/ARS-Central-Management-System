@@ -19,7 +19,7 @@ export default function TermsPage() {
     <PublicPage>
       <Prose>
         <h1>Terms of use</h1>
-        <p className="text-label text-ink-muted">Effective 22 November 2026 · approved by the head of IT, 2 November 2026</p>
+        <p className="text-label text-ink-muted">Effective 23 November 2026 · approved by the head of IT, 2 November 2026</p>
         <p>
           ARS CMS (approval.arssteels.net) is provided by {COMPANY} (&ldquo;ARS&rdquo;) for its employees to carry out company work. By signing in you agree to these terms and to ARS&apos;s
           policies that apply to company systems.
@@ -69,6 +69,10 @@ export default function TermsPage() {
           <li>
             Templates, copies, import and export: a template or copy can give tasks to other people, who are told; give work only to people who should do it. An organisation template is chosen by IT. Import only files you are allowed to put in the app, and keep exported files as carefully as the app keeps the data.
             Calendar addresses are personal: anyone who has yours can read the task names and dates in it, so don&apos;t share or post it; stop it (or make a new one) if it may have been seen by someone else.
+          </li>
+          <li>
+            Sharing your Task Summary: share it only with people who need to follow your work, and remove them when they no longer do. They see it read-only and only the tasks they may already
+            see; your managers in the reporting line can always open it. Opening someone else&apos;s Task Summary is for following their work, not for copying or passing on what you see there.
           </li>
           <li>
             Project messages and pages are read by everyone on the project: write them as you would a work email, attach only files you may share with all of them, and @mention only people who should be told. Edits and deletions keep every earlier version, and a page keeps its last 50 versions.

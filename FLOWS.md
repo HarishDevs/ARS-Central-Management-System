@@ -2493,6 +2493,26 @@ flowchart TD
 ```
 - 150 lines or more: only the lines near the screen are drawn (spacers keep the scroll height). Every open project view, My Tasks and the task pane refresh every 15 s while visible, on focus, and after a change (paused when hidden or while typing).
 
+## F-TS-R2: Share Task Summary, open someone else's read-only (v1.77.0, D-404)
+```mermaid
+flowchart TD
+  A[Owner: Share lock button] --> B[Manage privacy dialog: Invite disabled until a person is chosen]
+  B -->|Invite| C{Server: active person, not me, at most 50}
+  C -- no --> C1[Message, nothing saved]
+  C -- yes --> D[task_summary_shares row active; audit TASK_SUMMARY_SHARED; notice WORK_SUMMARY_SHARED to them]
+  B -->|Remove| E[revoked_at set, row kept; audit TASK_SUMMARY_UNSHARED; they lose access at once]
+  F[Viewer: switcher, profile View Task Summary, or the notice link] --> G[/users/work/my-tasks?of=owner/]
+  G --> H{summaryAccess: owner active and viewer is a manager above them D-216, or has an active share}
+  H -- no, IT included --> I[You can't open this Task Summary]
+  H -- yes --> J[Banner: Viewing: name's Task Summary · read-only, Back to my Task Summary]
+  J --> K[Owner's tabs, read-only: rows = owner's tasks AND visibleTaskClause of the viewer<br/>others left out, cards count the same; no tick, move, add, rename, save, share, customise]
+  K --> L[Opening a task: the task pane checks the viewer's own rights on that task]
+  M[Owner: Customise › Fields] --> N[user_settings work.my_tasks.fields; new tabs and Reset start with it; optional: write into stored List tabs]
+  O[Board tab toolbar: Filter, Sort, Group = columns, Search] --> P[op save 1 s later: show, dueWithin, sort, dir; range and sections kept]
+  Q[Calendar tab: Weeks/Months, Filter, Show weekends] --> P
+```
+- Viewers never see a task they couldn't open themselves: rows are filtered on the server (deny by default), never masked.
+
 ## F-TS-R1: Task Summary for daily use (v1.76.0, D-401)
 ```mermaid
 flowchart TD
@@ -2511,7 +2531,7 @@ flowchart TD
   P[Change filters, sort, groups in a personal tab] --> Q[Saved 1 s later, no Save view; Reset to the start view]
   R[Show: Summary window / All my open tasks] --> S[Tab setting op 'settings', kept apart from the view, page reloads]
 ```
-- Nobody sees anyone else's sections, order, rules or rule notes (R1). Sharing (managers read-only, chosen people) is release 2.
+- Nobody sees anyone else's sections, order, rules or rule notes (R1). Sharing (managers read-only, chosen people) came in release 2 (F-TS-R2): viewers see the owner's sections and order, read-only, and never the rules or rule notes.
 
 ## F-PM-BOARD-KEYS: Move a Board card from the keyboard (v1.62.0, D-368)
 ```mermaid

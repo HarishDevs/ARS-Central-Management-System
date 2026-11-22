@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { quickAddAction, taskFieldsAction } from "@/app/users/work/actions";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { myTasksTabAction, quickAddAction, taskFieldsAction } from "@/app/users/work/actions";
+import type { SummaryCalendar } from "@/server/work/summary-views";
 import { TaskCheck, usePaneLink, useWorkCall } from "@/features/work/client";
-import { ChevronDown, Filter } from "lucide-react";
+import { ChevronDown, Filter, Settings2 } from "lucide-react";
 import { Menu } from "@/features/ui/Menu";
 import { AddTaskSplit, ViewSearch } from "@/features/work/ViewToolbar";
 import { indiaDayOf } from "@/features/work/format";
@@ -52,7 +54,11 @@ export function TaskCalendar({
   monthHref,
   holidays = {},
   planning,
+  settings,
 }: {
+  // v1.77.0 (D-404, spec §3.14): a Task Summary Calendar tab keeps its Show
+  // filter, weekends choice and unit (Weeks / Months), saved a second after a change.
+  settings?: { initial: SummaryCalendar; tabKey: string; canSave: boolean };
   tasks: CalendarTask[];
   month: string;
   todayDay: string;
@@ -67,7 +73,28 @@ export function TaskCalendar({
   // v1.73.0 (D-396, spec PV §6 / S-12 "Filter · Search"): the view's Filter
   // dropdown (Incomplete, Completed or All tasks; Just my tasks) and Search
   // this view, on the tasks already on the page.
-  const [show, setShow] = useState<"all" | "incomplete" | "completed">("all");
+  const [show, setShow] = useState<"all" | "incomplete" | "completed">(settings?.initial.show ?? "all");
+  const [weekends, setWeekends] = useState(settings?.initial.weekends ?? true);
+  const router = useRouter();
+  const unitNow = planning?.unit ?? "month";
+  const settingsKey = JSON.stringify({ show, weekends, unit: unitNow });
+  const storedKey = useRef(settings ? JSON.stringify({ show: settings.initial.show, weekends: settings.initial.weekends, unit: settings.initial.unit }) : settingsKey);
+  const [saveState, setSaveState] = useState<"" | "saving" | "saved">("");
+  useEffect(() => {
+    if (!settings?.canSave || settingsKey === storedKey.current) return;
+    const timer = window.setTimeout(() => {
+      setSaveState("saving");
+      void myTasksTabAction({ op: "save", key: settings.tabKey, config: JSON.parse(settingsKey) as SummaryCalendar, auto: true }).then((result) => {
+        if (result?.ok) {
+          storedKey.current = settingsKey;
+          setSaveState("saved");
+          // The first save writes the built-in tabs as rows: fetch their new keys.
+          if (settings.tabKey.startsWith("v")) router.refresh();
+        } else setSaveState("");
+      });
+    }, 1000);
+    return () => window.clearTimeout(timer);
+  }, [settings?.canSave, settings?.tabKey, settingsKey, router]);
   const [mineOnly, setMineOnly] = useState(false);
   const [query, setQuery] = useState("");
   const tasks = useMemo(() => {
@@ -172,7 +199,7 @@ export function TaskCalendar({
       data-cal-due={due ? "1" : "0"}
       data-testid="calendar-task"
       aria-label={planning && due ? `${task.title}, due${lifted?.id === task.id ? " (moving)" : ""}${may(task) ? ". Space picks it up to move it" : ""}` : undefined}
-      className={`flex items-center gap-1 rounded px-1 py-0.5 text-caption focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-600 ${due ? "bg-surface-muted" : "border border-dashed border-line text-ink-muted"} ${lifted?.id === task.id ? "ring-2 ring-warning-600" : ""}`}
+      className={`flex min-h-7 items-center gap-1 rounded px-1 py-0.5 text-caption focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-600 ${due ? "bg-surface-muted" : "border border-dashed border-line text-ink-muted"} ${lifted?.id === task.id ? "ring-2 ring-warning-600" : ""}`}
     >
       {due ? <TaskCheck taskId={task.id} done={task.status === "COMPLETED"} disabled={!may(task)} label={task.title} size="sm" /> : <span aria-hidden="true">→</span>}
       <Link href={paneLink(task.id)} scroll={false} tabIndex={planning && due ? -1 : undefined} className={`min-w-0 truncate hover:underline ${task.status === "COMPLETED" ? "text-ink-muted line-through" : ""}`}>
@@ -319,7 +346,26 @@ export function TaskCalendar({
               ]}
             />
           </span>
+          {settings && (
+            <Menu
+              label="Calendar options"
+              trigger={
+                <>
+                  <Settings2 aria-hidden="true" className="h-4 w-4" /> Options
+                </>
+              }
+              buttonClass="tb-btn"
+              menuClass="w-56"
+              testId="calendar-options"
+              items={[{ kind: "checkbox", label: "Show weekends", checked: weekends, onSelect: () => setWeekends((value) => !value), testId: "calendar-weekends" }]}
+            />
+          )}
           <ViewSearch value={query} onChange={setQuery} />
+          {settings?.canSave && (
+            <span role="status" aria-live="polite" className="text-caption text-ink-muted" data-testid="calendar-auto-save">
+              {saveState === "saving" ? "Saving…" : saveState === "saved" ? "Saved" : ""}
+            </span>
+          )}
           {(filters > 0 || query) && tasks.length === 0 && <p className="w-full text-label text-ink-muted" role="status">No tasks match. Change the filter or the search.</p>}
         </div>
         {planning && (
@@ -328,14 +374,14 @@ export function TaskCalendar({
           </p>
         )}
         {week ? (
-          <div role="grid" aria-label={`Week of ${dayLabel(weekStart)}`} className="grid grid-cols-2 overflow-hidden rounded-lg border border-line sm:grid-cols-6" data-testid="calendar-week">
+          <div role="grid" aria-label={`Week of ${dayLabel(weekStart)}`} className={`grid grid-cols-2 overflow-hidden rounded-lg border border-line ${weekends ? "sm:grid-cols-6" : "sm:grid-cols-5"}`} data-testid="calendar-week">
             <div role="row" className="contents">
               {[0, 1, 2, 3, 4].map((offset) => {
                 const day = addDays(weekStart, offset);
                 return dayCell(day, badge(day, dayLabel(day)), "min-h-48");
               })}
-              {/* Saturday and Sunday share one column (spec BR-PROJ-032). */}
-              <div className="grid grid-rows-2" role="presentation">
+              {/* Saturday and Sunday share one column (spec BR-PROJ-032); hidden with weekends off (v1.77.0). */}
+              <div className={weekends ? "grid grid-rows-2" : "hidden"} role="presentation">
                 {[5, 6].map((offset) => {
                   const day = addDays(weekStart, offset);
                   return dayCell(day, badge(day, dayLabel(day)), "min-h-24");
@@ -344,10 +390,10 @@ export function TaskCalendar({
             </div>
           </div>
         ) : (
-          <div role="grid" aria-label={`${MONTH_NAMES[monthIndex - 1]} ${year}`} className="grid grid-cols-7 overflow-hidden rounded-lg border border-line">
+          <div role="grid" aria-label={`${MONTH_NAMES[monthIndex - 1]} ${year}`} className={`grid overflow-hidden rounded-lg border border-line ${weekends ? "grid-cols-7" : "grid-cols-5"}`} data-weekends={weekends ? "on" : "off"}>
             {/* v1.73.0 (D-396): the grid's rows (axe aria-required-children / -parent); display: contents keeps the 7-column layout. */}
             <div role="row" className="contents">
-              {WEEKDAYS.map((day) => (
+              {(weekends ? WEEKDAYS : WEEKDAYS.slice(0, 5)).map((day) => (
                 <div key={day} role="columnheader" className="border-b border-line bg-surface-muted px-2 py-1 text-caption font-semibold text-ink-faint">
                   {day}
                 </div>
@@ -355,7 +401,7 @@ export function TaskCalendar({
             </div>
             {Array.from({ length: cells / 7 }, (_, week) => (
               <div key={week} role="row" className="contents">
-                {Array.from({ length: 7 }, (_, column) => {
+                {Array.from({ length: weekends ? 7 : 5 }, (_, column) => {
                   const index = week * 7 + column;
                   const date = index - lead + 1;
                   if (date < 1 || date > days) return <div key={index} role="gridcell" className="min-h-24 border-b border-r border-line bg-surface-muted/50" />;

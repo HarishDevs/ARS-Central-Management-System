@@ -17,6 +17,14 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 **Multi-level approvals in any custom manner.** The engine must support any number of levels in any combination: sequential, parallel, any-one, any-N-of-M, conditional and hybrid. Approvers can come from any source, and levels can be added or skipped by rules. Build the engine for this from the first engine phase (P2). The drag-and-drop designer (P3) is only the screen for building it. Check every task against this.
 
 ## Now / Next
+- **Now (23 Nov 2026):** **v1.77.0** Task Summary release 2 (D-404): Share → Manage privacy (read-only grants, Invite needs a person, who can see it, Remove; audited; the person is told), managers open a team member's Task Summary read-only (switcher, profile View Task Summary, banner with Back), viewers see only tasks they may see (left out, never masked), Customise › Fields, Board toolbar and per-tab Board/Calendar settings, avatar → profile. **Owner:** publish (migration 202611231100_task_summary_r2.sql runs on start). **Next:** Task Summary R3 (Dashboard, Notes, Files tabs; profile Tasks card; Add tasks with AI; Request access).
+- [x] TS-R2-1 (23 Nov 2026) Access rule: owner / managers up the chain (D-216) / active grant; deny IT, peers, revoked, inactive owners; `?of=` read-only page and no-access card
+- [x] TS-R2-2 (23 Nov 2026) Viewer sees only tasks they may see (SQL visibility clause; cards too); read-only rows; owner's sections read without creating
+- [x] TS-R2-3 (23 Nov 2026) Share dialog (Invite disabled until chosen; who can see it incl. managers; Remove), task_summary_shares, audit, WORK_SUMMARY_SHARED notice
+- [x] TS-R2-4 (23 Nov 2026) Entry points: switcher (Shared with you / Your team), profile View Task Summary, banner with Back; tab links keep ?of=
+- [x] TS-R2-5 (23 Nov 2026) Customise › Fields (default columns, apply to List tabs, new tabs and Reset)
+- [x] TS-R2-6 (23 Nov 2026) Board toolbar per tab (Filter, Sort, Group = columns, Search, auto-save, Reset); Calendar per tab (Weeks/Months, Filter, Show weekends)
+- [x] TS-R2-7 (23 Nov 2026) Avatar → profile; tests (unit, integration matrix, e2e share/manager/revoke/fields/board/calendar, axe light/dark, phone); general pages; living files
 - **Now (22 Nov 2026):** **v1.76.2** one-time restore of the 22 Nov backup on start (D-403). **Owner:** add secrets RESTORE_CONFIRM and RESTORE_BACKUP_KEY, Update Preview, check the data, Publish, remove the secrets, run the two optional trigger files.
 - [ ] BK-1 (planned 22 Nov 2026, after the motion review) Backup, Restore and Migrate centre in Super Admin — brief docs/ops/BACKUP-CENTRE-BRIEF.md: full encrypted package (DB + attachments + secrets, owner passphrase), all destinations/sources, safety snapshot before restore, app-to-app and DB-to-DB migration GoDaddy <-> VPS
 - [x] OPS-38 (22 Nov 2026) Append-only history enforced by a code test (triggers can't be created on GoDaddy)
