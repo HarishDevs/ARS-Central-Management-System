@@ -534,7 +534,7 @@ export async function listFollowers(taskId: number, db: Queryable = getDbPool())
   const [rows] = await db.query<Row[]>("SELECT u.id, u.name FROM task_followers f JOIN users u ON u.id = f.user_id WHERE f.task_id = ? ORDER BY f.created_at, u.name", [taskId]);
   return rows.map((row) => ({ id: num(row.id), name: String(row.name) }));
 }
-export async function addFollower(taskId: number, userId: number, source: "CREATOR" | "ASSIGNEE" | "MANUAL" | "MENTION" | "COMMENT", addedBy: number | null, db: Queryable): Promise<boolean> {
+export async function addFollower(taskId: number, userId: number, source: "CREATOR" | "ASSIGNEE" | "MANUAL" | "MENTION" | "COMMENT" | "FORM", addedBy: number | null, db: Queryable): Promise<boolean> {
   const [result] = await db.query<ResultSetHeader>("INSERT IGNORE INTO task_followers (task_id, user_id, source, added_by) VALUES (?, ?, ?, ?)", [taskId, userId, source, addedBy]);
   return result.affectedRows === 1;
 }

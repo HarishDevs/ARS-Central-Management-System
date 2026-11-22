@@ -16,6 +16,8 @@ import { FieldsPanel } from "@/features/work/FieldsPanel";
 import { FieldDialogHost } from "@/features/work/FieldDialog";
 import { DependenciesPanel, SchedulingPanel } from "@/features/work/SchedulingPanel";
 import { projectSchedule } from "@/server/work/schedule-service";
+import { projectFormsFor } from "@/server/work/intake-forms";
+import { FormsPanel } from "@/features/work/forms/FormsPanel";
 
 export const metadata: Metadata = { title: "Project settings" };
 export const dynamic = "force-dynamic";
@@ -46,6 +48,10 @@ const EVENT_WORD: Record<string, string> = {
   FROM_TEMPLATE: "Made it from a template",
   COPIED: "Made it as a copy",
   SCHEDULING: "Changed the scheduling",
+  FORM_ADDED: "Added a form",
+  FORM_PUBLISHED: "Published a form",
+  FORM_UNPUBLISHED: "Unpublished a form",
+  FORM_DELETED: "Deleted a form",
 };
 
 // D-215: members and roles, details and privacy, archive and delete, history.
@@ -66,6 +72,8 @@ export default async function ProjectSettingsPage({ params }: { params: Promise<
   const [planFields, gone] = planning ? await Promise.all([projectFieldsFor(project.id, actor), goneFieldsFor(project.id, actor)]) : [null, null];
   // v1.65.0 (D-373): the Dependencies and Scheduling settings ("pm_planning").
   const scheduling = planning ? await projectSchedule(project.id) : null;
+  // v1.66.0 (D-374): Forms ("pm_forms"): builders see every form, others the published ones.
+  const projectForms = await projectFormsFor(project.id, actor);
   return (
     <>
       <Breadcrumbs items={[{ href: "/users/work/projects", label: "Projects" }, { href: `/users/work/projects/${project.id}`, label: project.name }, { label: "Members & settings" }]} />
@@ -124,6 +132,14 @@ export default async function ProjectSettingsPage({ params }: { params: Promise<
             </h2>
             <PermissionsPanel projectId={project.id} projectName={project.name} initial={project.permissions} fields={fields.map((field) => ({ id: field.id, name: field.name }))} canManage={can.manage} planning={planning} />
           </section>
+          {projectForms && (
+            <section className="card px-5 py-4" aria-labelledby="forms" id="forms-section">
+              <h2 id="forms" className="mb-1 font-semibold">
+                Forms
+              </h2>
+              <FormsPanel projectId={project.id} rows={projectForms.rows} build={projectForms.build} />
+            </section>
+          )}
           {planFields && gone && (
             <section className="card px-5 py-4" aria-labelledby="fields" id="fields-section">
               <h2 id="fields" className="mb-1 font-semibold">

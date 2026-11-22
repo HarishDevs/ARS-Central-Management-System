@@ -196,7 +196,7 @@ export async function saveProjectSchedule(projectId: number, input: { mode?: unk
 }
 
 // ---- auto-shift ---------------------------------------------------------------------------------
-async function workCalendar(db: Queryable): Promise<WorkCalendar> {
+export async function workCalendar(db: Queryable): Promise<WorkCalendar> {
   const [rows] = await db.query<RowDataPacket[]>(
     "SELECT DATE_FORMAT(holiday_on, '%Y-%m-%d') AS day FROM holidays WHERE holiday_on >= DATE_SUB(UTC_DATE(), INTERVAL 400 DAY) AND holiday_on < DATE_ADD(UTC_DATE(), INTERVAL 1200 DAY)",
   );

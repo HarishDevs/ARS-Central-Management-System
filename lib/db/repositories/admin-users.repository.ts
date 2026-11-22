@@ -76,6 +76,8 @@ export async function listUsersForAdmin(
       params.push(filter.departmentId);
     }
   }
+  // v1.66.0 (D-374): the system user (ARS-CMS Automation) is never listed, edited or reactivated.
+  where.push("u.is_system = FALSE");
   const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
   const [countRows] = await db.query<(RowDataPacket & { total: number })[]>(`SELECT COUNT(*) AS total FROM users u ${whereSql}`, params);
@@ -163,7 +165,7 @@ export async function getUserForAdmin(id: number, db: Queryable = getDbPool()): 
      FROM users u
      LEFT JOIN departments d ON d.id = u.department_id
      LEFT JOIN users m ON m.id = u.reporting_manager_id
-     WHERE u.id = ? LIMIT 1`,
+     WHERE u.id = ? AND u.is_system = FALSE LIMIT 1`,
     [id],
   );
   const row = rows[0];

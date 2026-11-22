@@ -10,7 +10,8 @@ import { getSettingValue } from "@/server/settings/values";
 // v1.55.1 (D-329): Ticketing is a module now (users.module_access), not a switch.
 // v1.61.0 (D-367): "pm_foundations" switches Project Management phase A (default OFF).
 // v1.64.0 (D-371): "pm_planning" switches phase B (custom fields first; default OFF).
-export type Feature = "analytics" | "reports" | "scheduled_reports" | "amendments" | "templates" | "tasks" | "information" | "ai" | "pm_foundations" | "pm_planning";
+// v1.66.0 (D-374): "pm_forms" switches phase C, project intake forms (default OFF).
+export type Feature = "analytics" | "reports" | "scheduled_reports" | "amendments" | "templates" | "tasks" | "information" | "ai" | "pm_foundations" | "pm_planning" | "pm_forms";
 
 export async function featureMode(feature: Feature): Promise<"ON" | "OFF" | "IT_ONLY"> {
   const value = await getSettingValue(`features.${feature}`).catch(() => null);
@@ -25,7 +26,7 @@ export async function featureOn(feature: Feature, user: { roles: readonly string
 }
 
 export async function enabledFeatures(user: { roles: readonly string[] }): Promise<Record<Feature, boolean>> {
-  const features: Feature[] = ["analytics", "reports", "scheduled_reports", "amendments", "templates", "tasks", "information", "ai", "pm_foundations", "pm_planning"];
+  const features: Feature[] = ["analytics", "reports", "scheduled_reports", "amendments", "templates", "tasks", "information", "ai", "pm_foundations", "pm_planning", "pm_forms"];
   const values = await Promise.all(features.map((feature) => featureOn(feature, user)));
   return Object.fromEntries(features.map((feature, index) => [feature, values[index]])) as Record<Feature, boolean>;
 }

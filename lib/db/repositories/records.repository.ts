@@ -206,7 +206,7 @@ export async function recordChoices(kind: RecordKind, db: Queryable = getDbPool(
     db.query<RowDataPacket[]>(typeSql, kind === "requests" ? [] : [kind === "tasks" ? "TASK" : "INFO"]),
     db.query<RowDataPacket[]>("SELECT id, name FROM departments ORDER BY name"),
     // v1.52.1: code and department too, for the "Name - code" picker.
-    db.query<RowDataPacket[]>("SELECT u.id, u.name, u.login_id, d.name AS department_name FROM users u LEFT JOIN departments d ON d.id = u.department_id WHERE u.is_break_glass = FALSE ORDER BY u.name"),
+    db.query<RowDataPacket[]>("SELECT u.id, u.name, u.login_id, d.name AS department_name FROM users u LEFT JOIN departments d ON d.id = u.department_id WHERE u.is_break_glass = FALSE AND u.is_system = FALSE ORDER BY u.name"),
   ]);
   const pick = (list: RowDataPacket[]) => list.map((row) => ({ id: Number(row.id), name: String(row.name) }));
   return {

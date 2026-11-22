@@ -19,6 +19,7 @@ export interface UserRecord {
   active: boolean;
   isBreakGlass: boolean;
   isDemo: boolean;
+  isSystem: boolean; // v1.66.0 (D-374): ARS-CMS Automation; never signs in (always treated as inactive)
   breakGlassSecondsRemaining: number;
   hasLoggedInBefore: boolean;
   roles: RoleCode[];
@@ -41,6 +42,7 @@ interface UserRow extends RowDataPacket {
   active: number;
   is_break_glass: number;
   is_demo: number;
+  is_system: number;
   break_glass_seconds_remaining: number | null;
   last_login_at: Date | null;
   role_codes: string | null;
@@ -53,7 +55,7 @@ interface UserRow extends RowDataPacket {
 // (never mix JS Dates with CURRENT_TIMESTAMP — Power BI site lesson).
 const SELECT_USER = `
   SELECT u.id, u.login_id, u.name, u.email, u.whatsapp_number, u.sign_in_method, u.firebase_uid,
-         u.password_hash, u.failed_login_count, u.active, u.is_break_glass, u.is_demo, u.last_login_at, u.module_access, u.chat_modes, u.salesforce_scope,
+         u.password_hash, u.failed_login_count, u.active, u.is_break_glass, u.is_demo, u.is_system, u.last_login_at, u.module_access, u.chat_modes, u.salesforce_scope,
          GREATEST(COALESCE(TIMESTAMPDIFF(SECOND, CURRENT_TIMESTAMP, u.locked_until), 0), 0) AS locked_seconds_remaining,
          GREATEST(COALESCE(TIMESTAMPDIFF(SECOND, CURRENT_TIMESTAMP, u.break_glass_until), 0), 0) AS break_glass_seconds_remaining,
          (SELECT GROUP_CONCAT(r.code) FROM user_roles ur JOIN roles r ON r.id = ur.role_id AND r.active = TRUE
@@ -74,9 +76,11 @@ function toUser(row: UserRow): UserRecord {
     passwordHash: row.password_hash,
     failedLoginCount: row.failed_login_count,
     lockedSecondsRemaining: Number(row.locked_seconds_remaining ?? 0),
-    active: row.active === 1,
+    // v1.66.0 (D-374): the system user is inactive for every sign-in route and session check, whatever its row says.
+    active: row.active === 1 && row.is_system !== 1,
     isBreakGlass: row.is_break_glass === 1,
     isDemo: row.is_demo === 1,
+    isSystem: row.is_system === 1,
     breakGlassSecondsRemaining: Number(row.break_glass_seconds_remaining ?? 0),
     hasLoggedInBefore: row.last_login_at !== null,
     roles,

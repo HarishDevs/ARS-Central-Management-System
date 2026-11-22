@@ -35,7 +35,7 @@ import { Hint } from "@/features/ui/Hint";
 import { ConfirmDialog } from "@/features/ui/Dialog";
 import { useToast } from "@/features/ui/Toast";
 import { FieldProperties } from "@/features/admin/form-designer/FieldProperties";
-import { conversionLosses, dependentsOf, duplicateField, fieldProblems, formulaProblem, GROUP_LABEL, moveItem, newField, TYPE_CHOICES, typeChoice, withType, type FieldGroup } from "@/features/admin/form-designer/model";
+import { choicesFor, conversionLosses, dependentsOf, duplicateField, fieldProblems, formulaProblem, GROUP_LABEL, moveItem, newField, newIntakeQuestion, TYPE_CHOICES, typeChoice, typeValue, withType, type DesignerKind, type FieldGroup } from "@/features/admin/form-designer/model";
 
 export { slugKey } from "@/features/admin/form-designer/model";
 export { ChoiceListEditor, NumberDraftInput, SOURCE_LABEL } from "@/features/admin/form-designer/FieldProperties";
@@ -102,13 +102,24 @@ export function FormFieldsEditor({
   lockedKeys,
   recordOptions = false,
   intro,
+  kind = "STANDARD",
+  renderExtra,
+  problemsFor,
 }: {
   form: FormField[];
   setForm: (update: (all: FormField[]) => FormField[]) => void;
   lockedKeys: readonly string[];
   recordOptions?: boolean;
   intro?: string;
+  // v1.66.0 (D-374): a project intake form (fewer types, keys of their own,
+  // "Connect to field" and branches from renderExtra, the form's own checks).
+  kind?: DesignerKind;
+  renderExtra?: (field: FormField, update: (change: (field: FormField) => FormField, tag: string) => void) => React.ReactNode;
+  problemsFor?: (field: FormField) => string[];
 }) {
+  const intake = kind === "PROJECT_INTAKE";
+  const choices = useMemo(() => choicesFor(kind), [kind]);
+  const choiceOf = useCallback((field: FormField) => choices.find((choice) => choice.value === typeValue(field)) ?? typeChoice(field), [choices]);
   const toast = useToast();
   const box = useRef<HTMLElement>(null);
   const wide = useWide(box);
@@ -174,8 +185,9 @@ export function FormFieldsEditor({
     commit({ form: form.map((field, i) => (i === index ? change(field) : field)), ids }, `${id}:${tag}`);
   };
   const add = (value: string, at = form.length) => {
-    const field = newField(value, keys);
+    const field = intake ? newIntakeQuestion(value, keys) : newField(value, keys);
     const id = newId();
+    if (intake) setEditedKeys((all) => new Set(all).add(id));
     commit({ form: [...form.slice(0, at), field, ...form.slice(at)], ids: [...ids.slice(0, at), id, ...ids.slice(at)] });
     setSelected(id);
     setQuery("");
@@ -227,8 +239,8 @@ export function FormFieldsEditor({
     const words = query.toLowerCase().split(/\s+/).filter(Boolean);
     return form
       .map((field, index) => ({ field, index, id: ids[index] ?? `${index}` }))
-      .filter(({ field }) => words.every((word) => `${field.label} ${field.key} ${typeChoice(field)?.label ?? ""}`.toLowerCase().includes(word)));
-  }, [form, ids, query]);
+      .filter(({ field }) => words.every((word) => `${field.label} ${field.key} ${choiceOf(field)?.label ?? ""}`.toLowerCase().includes(word)));
+  }, [form, ids, query, choiceOf]);
   const selectedIndex = selected ? indexOf(selected) : -1;
   const selectedField = selectedIndex >= 0 ? form[selectedIndex] : undefined;
   const deleting = confirmDelete ? form[indexOf(confirmDelete)] : undefined;
@@ -239,8 +251,10 @@ export function FormFieldsEditor({
       field={field}
       form={form}
       locked={lockedKeys.includes(field.key)}
-      keyFollows={!lockedKeys.includes(field.key) && !editedKeys.has(id)}
+      keyFollows={!intake && !lockedKeys.includes(field.key) && !editedKeys.has(id)}
       recordOptions={recordOptions}
+      kind={kind}
+      extra={renderExtra ? renderExtra(field, (change, tag) => updateField(id, change, tag)) : null}
       onChange={(change, tag) => updateField(id, change, tag)}
       onKeyEdited={() => setEditedKeys((all) => new Set(all).add(id))}
       onTypeChange={(value) => changeType(id, value)}
@@ -252,7 +266,7 @@ export function FormFieldsEditor({
       {(["BASIC", "ADVANCED", "LAYOUT"] as FieldGroup[]).map((group) => (
         <div key={group} className={wide ? "space-y-1" : "contents"}>
           {wide && <p className="px-1 text-caption font-semibold uppercase tracking-wide text-ink-faint">{GROUP_LABEL[group]}</p>}
-          {TYPE_CHOICES.filter((choice) => choice.group === group).map((choice) => {
+          {choices.filter((choice) => choice.group === group).map((choice) => {
             const Icon = TYPE_ICON[choice.value] ?? Type;
             return (
               <button
@@ -264,7 +278,7 @@ export function FormFieldsEditor({
                   event.dataTransfer.effectAllowed = "copy";
                 }}
                 onClick={() => add(choice.value)}
-                aria-label={`Add a ${choice.short} field`}
+                aria-label={intake ? `Add a ${choice.short} question` : `Add a ${choice.short} field`}
                 title={choice.label}
                 className={
                   wide
@@ -287,11 +301,12 @@ export function FormFieldsEditor({
       <div className="flex flex-wrap items-center gap-2 border-b border-line px-5 py-3">
         <div className="flex items-center gap-1.5">
           <h2 id="form-fields-title" className="font-semibold">
-            Form fields
+            {intake ? "Questions" : "Form fields"}
           </h2>
           <Hint text={intro ?? "What the requester fills in. Steps can skip on these values, e.g. amount, a date or a department."} align="start" />
           <span className="text-caption text-ink-muted">
-            {form.length} field{form.length === 1 ? "" : "s"}
+            {form.length} {intake ? "item" : "field"}
+            {form.length === 1 ? "" : "s"}
           </span>
         </div>
         <span className="ml-auto flex items-center gap-1">
@@ -334,7 +349,7 @@ export function FormFieldsEditor({
             >
               {shown.map(({ field, index, id }) => {
                 const name = field.label || field.key || `field ${index + 1}`;
-                const problems = fieldProblems(field, form);
+                const problems = [...fieldProblems(field, form), ...(problemsFor ? problemsFor(field) : [])];
                 const Icon = iconFor(field);
                 const isSelected = selected === id;
                 return (
@@ -401,9 +416,9 @@ export function FormFieldsEditor({
                             )}
                           </span>
                           <span className="block truncate text-caption text-ink-muted">
-                            {typeChoice(field)?.short ?? field.type}
-                            {field.key ? ` · ${field.key}` : ""}
-                            {field.showIf ? " · shown when…" : ""}
+                            {choiceOf(field)?.short ?? field.type}
+                            {field.key && !intake ? ` · ${field.key}` : ""}
+                            {field.showIf ? (intake ? " · follows a branch" : " · shown when…") : ""}
                             {field.confidential ? " · confidential" : ""}
                             {field.help ? ` · ${field.help}` : ""}
                           </span>
@@ -441,10 +456,12 @@ export function FormFieldsEditor({
             </ol>
           )}
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <button type="button" onClick={() => add("TEXT")} className="btn-secondary btn-compact">
-              Add field
+            <button type="button" onClick={() => add(intake ? "CHOICE" : "TEXT")} className="btn-secondary btn-compact" data-testid="designer-add">
+              {intake ? "New question" : "Add field"}
             </button>
-            <span className="text-caption text-ink-muted">or pick a type{wide ? " on the left" : " above"}; drag fields, or Alt+↑/↓, to change the order.</span>
+            <span className="text-caption text-ink-muted">
+              or pick a type{wide ? " on the left" : " above"}; drag {intake ? "questions" : "fields"}, or Alt+↑/↓, to change the order.
+            </span>
           </div>
         </div>
 
@@ -453,11 +470,11 @@ export function FormFieldsEditor({
             {selectedField && selected ? (
               <>
                 <p className="mb-3 truncate text-label font-semibold">{selectedField.label || "Untitled field"}</p>
-                <Problems problems={fieldProblems(selectedField, form)} field={selectedField} form={form} />
+                <Problems problems={[...fieldProblems(selectedField, form), ...(problemsFor ? problemsFor(selectedField) : [])]} field={selectedField} form={form} />
                 {properties(selected, selectedField)}
               </>
             ) : (
-              <p className="text-label text-ink-muted">Choose a field to see and change its properties.</p>
+              <p className="text-label text-ink-muted">{intake ? "Choose a question to see and change it." : "Choose a field to see and change its properties."}</p>
             )}
           </aside>
         )}

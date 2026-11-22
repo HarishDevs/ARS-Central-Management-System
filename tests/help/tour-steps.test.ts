@@ -49,6 +49,12 @@ describe("onboarding tour steps", () => {
     expect(points).toContain("Blocked by");
   });
 
+  it("the Projects step mentions project forms (v1.66.0, D-374)", () => {
+    const points = TOUR_STEPS.find((step) => step.id === "projects")?.points.join(" ") ?? "";
+    expect(points).toContain("Add a form");
+    expect(points).toContain("QR code");
+  });
+
   it("Home mentions Customise and the private notepad, and My Tasks its own tabs (v1.63.0, D-369)", () => {
     const home = TOUR_STEPS.find((step) => step.id === "overview")?.points.join(" ") ?? "";
     expect(home).toContain("Customise");

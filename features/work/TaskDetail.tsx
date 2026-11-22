@@ -69,6 +69,8 @@ export const TASK_EVENT_TEXT: Record<string, string> = {
   REPEAT_SET: "Repeat changed",
   RECURRED: "Repeated",
   FIELD_SET: "Field changed",
+  // v1.66.0 (D-374): made from a project form by the system user, on behalf of the submitter.
+  FORM_SUBMITTED: "Submitted through a form",
 };
 
 // v1.9.0 (D-143): one task. Only its creator, assigner, assignee, the

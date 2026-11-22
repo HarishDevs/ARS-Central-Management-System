@@ -209,6 +209,12 @@ Stops anyone reaching the GoDaddy server directly, around Cloudflare (and faking
 1. https://approval.arssteels.net → **Continue with Google** → **itsupport@arsenergy.co.in** (D-082). The seed created this Super Admin, User ID `itadmin`. `itadmin@arssteels.co.in` can't be used: it's only an alias, and Google reports the main address.
 2. You land on **My approvals**. Your name at the top right opens a menu whose **Switch space** section shows Admin and Super Admin.
 
+### G0l. Project intake forms (v1.66.0)
+1. Back up the database. Publish v1.66.0; on start the runner applies `database/migrations/202611221500_pm_c_intake_forms.sql` (after 202611221400; no triggers, no special rights). It adds `users.is_system` and **one system user, "ARS-CMS Automation"** (User ID `ars-cms-automation`; inactive, no password, an email that can't exist: it never signs in and is hidden from Admin → Users), the tables `project_forms`, `project_form_versions` and `project_form_submissions`, `tasks.source_form_id`, and FORM as a follower source. Nothing existing changes. Rollback inside.
+2. Check (phpMyAdmin): `SELECT id, active, is_system FROM users WHERE login_id = 'ars-cms-automation';` shows one row, active 0, is_system 1. Never reactivate it.
+3. Everything new is behind **Super Admin → Features → "Projects: intake forms … (phase C)"** (default Off). Try IT only first: a project's **Settings → Forms → Add form**, publish, open the link as another person, submit; then On.
+4. Forms are for signed-in people only. A link for people without an account (C-1) is not built; it would need the owner's approval and its own release.
+
 ### G0k. Dependencies, auto-shift, Timeline/Gantt, week calendar, status updates (v1.65.0)
 1. Back up the database. Publish v1.65.0; on start the runner applies `database/migrations/202611221400_pm_b_schedule.sql` (after 202611221300; no triggers, no special rights). It adds the link type and lag to `task_dependencies` (every existing link becomes finish-to-start, lag 0), the scheduling settings and the weekly reminder to `projects` (Off for every project), the table `task_shift_batches` (Undo of moved dates), GANTT as a tab type, and the new status update parts. Nothing existing changes. Rollback inside.
 2. Everything new is behind **Super Admin → Features → "Projects: custom fields, … (phase B)"** (the same switch as v1.64.0, default Off). Try IT only first: a project's **Settings → Dependencies** and **Scheduling**, a **Gantt** tab, the Calendar's **Weeks**.

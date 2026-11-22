@@ -8,7 +8,7 @@ import type { StoredRule } from "@/server/conditions/rule";
 import { Hint } from "@/features/ui/Hint";
 import { choicePillStyle } from "@/features/ui/ChoicePill";
 import { isOptionColor, OPTION_COLOR_LABEL, OPTION_COLORS, reconcileOptionColors, type OptionColor } from "@/server/forms/option-colors";
-import { formulaProblem, slugKey, TYPE_CHOICES, typeValue } from "@/features/admin/form-designer/model";
+import { choicesFor, formulaProblem, slugKey, TYPE_CHOICES, typeValue, type DesignerKind } from "@/features/admin/form-designer/model";
 
 // D-235 (Form Designer): the selected field's properties, in tabs, showing
 // only what applies to its type. Labels stay as they were (Field label,
@@ -41,23 +41,33 @@ export function FieldProperties({
   onChange,
   onKeyEdited,
   onTypeChange,
+  kind = "STANDARD",
+  extra,
 }: {
   field: FormField;
   form: readonly FormField[];
   locked: boolean;
   keyFollows: boolean;
   recordOptions: boolean;
+  // v1.66.0 (D-374): a project intake form shows only what its questions use
+  // (question, type, required, description, options, files) plus `extra`
+  // (Connect to field and branches, from the project form builder).
+  kind?: DesignerKind;
+  extra?: React.ReactNode;
   onChange: (change: (field: FormField) => FormField, tag: string) => void;
   onKeyEdited: () => void;
   onTypeChange: (value: string) => void;
 }) {
   const name = field.label || field.key || "this field";
-  const tabs: Tab[] = [
-    "general",
+  const intake = kind === "PROJECT_INTAKE";
+  const tabs: Tab[] = intake
+    ? ["general"]
+    : [
+        "general",
     ...(field.type === "NUMBER" || field.type === "CURRENCY" || field.type === "ATTACHMENT" || field.type === "DATE" ? (["validation"] as const) : []),
     "conditions" as const,
-    ...(field.type !== "SECTION" || recordOptions ? (["advanced"] as const) : []),
-  ];
+        ...(field.type !== "SECTION" || recordOptions ? (["advanced"] as const) : []),
+      ];
   const [chosen, setTab] = useState<Tab>("general");
   // A tab that no longer applies (the type changed) falls back to General.
   const tab: Tab = tabs.includes(chosen) ? chosen : "general";
@@ -65,7 +75,7 @@ export function FieldProperties({
 
   return (
     <div className="space-y-4" data-testid="field-properties">
-      <div role="tablist" aria-label={`Properties of ${name}`} className="flex gap-1 border-b border-line">
+      <div role="tablist" aria-label={`Properties of ${name}`} className={`flex gap-1 border-b border-line ${intake ? "hidden" : ""}`}>
         {tabs.map((item) => (
           <button
             key={item}
@@ -82,7 +92,7 @@ export function FieldProperties({
 
       {tab === "general" && (
         <div role="tabpanel" aria-label="General" className="space-y-3">
-          <Row label="Label" htmlFor="fd-label">
+          <Row label={intake ? (field.type === "SECTION" ? "Heading" : "Question") : "Label"} htmlFor="fd-label">
             <input
               id="fd-label"
               aria-label="Field label"
@@ -91,11 +101,12 @@ export function FieldProperties({
                 const label = event.target.value;
                 onChange((item) => ({ ...item, label, key: keyFollows ? slugKey(label) : item.key }), "label");
               }}
-              placeholder="e.g. Amount (₹)"
+              placeholder={intake ? "e.g. What do you need?" : "e.g. Amount (₹)"}
               className="field-input"
             />
           </Row>
-          <Row label="Key" htmlFor="fd-key" hint={locked ? "Saved keys can't change: running requests and conditions use them." : "Used in conditions and formulas. Fills in from the label until you change it."}>
+          {!intake && (
+            <Row label="Key" htmlFor="fd-key" hint={locked ? "Saved keys can't change: running requests and conditions use them." : "Used in conditions and formulas. Fills in from the label until you change it."}>
             <input
               id="fd-key"
               aria-label="Field key"
@@ -108,10 +119,11 @@ export function FieldProperties({
               placeholder="key"
               className="field-input font-mono read-only:bg-surface read-only:text-ink-muted"
             />
-          </Row>
-          <Row label="Type" htmlFor="fd-type" hint={typeHelp(field)}>
-            <select id="fd-type" aria-label="Field type" value={typeValue(field)} onChange={(event) => onTypeChange(event.target.value)} className="field-input">
-              {TYPE_CHOICES.map((type) => (
+            </Row>
+          )}
+          <Row label="Type" htmlFor="fd-type" hint={intake ? undefined : typeHelp(field)}>
+            <select id="fd-type" aria-label={intake ? "Question type" : "Field type"} value={typeValue(field)} onChange={(event) => onTypeChange(event.target.value)} className="field-input">
+              {(intake ? choicesFor(kind) : TYPE_CHOICES).map((type) => (
                 <option key={type.value} value={type.value}>
                   {type.label}
                 </option>
@@ -132,13 +144,13 @@ export function FieldProperties({
               {field.type === "CALC" && <span className="text-caption text-ink-muted">(worked out, so never asked)</span>}
             </label>
           )}
-          <Row label="Help text" htmlFor="fd-help">
+          <Row label={intake ? "Description" : "Help text"} htmlFor="fd-help">
             <input
               id="fd-help"
               aria-label={`Help text for ${name}`}
               value={field.help ?? ""}
               onChange={(event) => onChange((item) => ({ ...item, help: event.target.value ? event.target.value.slice(0, 200) : undefined }), "help")}
-              placeholder="Optional: shown under the field"
+              placeholder={intake ? "Optional: shown under the question" : "Optional: shown under the field"}
               className="field-input"
             />
           </Row>
@@ -158,7 +170,7 @@ export function FieldProperties({
                   }, "options")
                 }
                 colors={field.optionColors}
-                onColorsChange={(colors) =>
+                onColorsChange={intake ? undefined : (colors) =>
                   onChange((item) => {
                     const next: FormField = { ...item, optionColors: colors };
                     if (!Object.keys(colors).length) delete next.optionColors;
@@ -204,7 +216,19 @@ export function FieldProperties({
               </label>
             </div>
           )}
-          {["TEXT", "NUMBER", "CURRENCY", "DATE", "URL"].includes(field.type) && (
+          {intake && field.type === "ATTACHMENT" && (
+            <label className="flex min-h-9 items-center gap-2 text-label">
+              <input
+                type="checkbox"
+                checked={(field.maxFiles ?? 1) > 1}
+                onChange={(event) => onChange((item) => ({ ...item, maxFiles: event.target.checked ? 10 : 1 }), "maxFiles")}
+                className="h-5 w-5"
+              />
+              Allow multiple attachments (up to 10, 10 MB each)
+            </label>
+          )}
+          {extra}
+          {!intake && ["TEXT", "NUMBER", "CURRENCY", "DATE", "URL"].includes(field.type) && (
             <Row label="Default value" htmlFor="fd-default">
               <input
                 id="fd-default"
@@ -217,7 +241,7 @@ export function FieldProperties({
               />
             </Row>
           )}
-          {(field.type === "CHOICE" || field.type === "RADIO") && (field.options ?? []).length > 0 && (
+          {!intake && (field.type === "CHOICE" || field.type === "RADIO") && (field.options ?? []).length > 0 && (
             <Row label="Default choice" htmlFor="fd-default-choice">
               <select id="fd-default-choice" value={field.defaultValue ?? ""} onChange={(event) => onChange((item) => ({ ...item, defaultValue: event.target.value || undefined }), "default")} className="field-input">
                 <option value="">None</option>

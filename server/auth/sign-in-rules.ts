@@ -7,7 +7,8 @@ export type SignInDenialReason = "INACTIVE" | "WRONG_METHOD" | "LOCKED" | "BREAK
 export type SignInRuleResult = { allowed: true } | { allowed: false; reason: SignInDenialReason; retryAfterSeconds?: number };
 
 export function checkSignInAllowed(user: UserRecord, method: SignInAttempt): SignInRuleResult {
-  if (!user.active) return { allowed: false, reason: "INACTIVE" };
+  // v1.66.0 (D-374): the system user (ARS-CMS Automation) never signs in, by any route.
+  if (!user.active || user.isSystem) return { allowed: false, reason: "INACTIVE" };
   // D-005: the admin sets how each user signs in; D-208: BOTH allows either.
   if (!(method === "GOOGLE" ? allowsGoogle(user.signInMethod) : allowsPassword(user.signInMethod))) return { allowed: false, reason: "WRONG_METHOD" };
   if (user.lockedSecondsRemaining > 0) return { allowed: false, reason: "LOCKED", retryAfterSeconds: user.lockedSecondsRemaining };

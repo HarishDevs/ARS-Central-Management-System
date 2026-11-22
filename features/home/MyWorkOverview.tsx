@@ -46,6 +46,7 @@ import { HomeNotepad } from "@/features/home/HomeNotepad";
 import { TeamWorkloadTable } from "@/features/work/TeamWorkloadTable";
 import { teamWorkload } from "@/lib/db/repositories/work.repository";
 import type { WidgetItem, WidgetKind } from "@/server/home/widgets";
+import { homeForms, type HomeForms } from "@/server/work/intake-forms";
 
 // v1.63.0 (D-369, PM-A12): with "pm_foundations" on, Home's sections are the
 // person's own widgets (order, width, which ones), plus the private notepad
@@ -149,6 +150,8 @@ export async function MyWorkOverview({
     personProfile(user.id).catch(() => null),
     widgets && shown("people") ? teamWorkload(viewer.teamIds, user.id) : Promise.resolve([]),
   ]);
+  // v1.66.0 (D-374): the Forms widget: forms the person may submit, and their recent submissions.
+  const formsData: HomeForms | null = widgets && shown("forms") ? await homeForms({ id: user.id, name: user.name, roles: user.roles, modules: user.modules }).catch(() => null) : null;
   // Projects widget (spec §3.7): Recent (last opened first) or Starred.
   const projects = !widgets
     ? projectRows
@@ -565,7 +568,7 @@ export async function MyWorkOverview({
       case "notepad":
         return widgets ? <HomeNotepad initialText={widgets.note.body} version={widgets.note.version} /> : null;
       case "forms":
-        return null; // Phase C
+        return formsData ? <FormsWidget data={formsData} /> : null;
     }
   };
   const workloadNode = (
@@ -812,4 +815,54 @@ function describe(event: WorkActivity, meId: number): { title: string; text: str
     default:
       return { title: "Task updated", text: event.body ?? "", icon: Pencil, tone: blue };
   }
+}
+
+// v1.66.0 (D-374, spec HOME_MODULE §3.6 / FORMS_MODULE §3.1): forms the person
+// may submit (published forms of live projects whose "who may submit" lets
+// them in) and their latest submissions, each with its task when they can see it.
+function FormsWidget({ data }: { data: HomeForms }) {
+  return (
+    <section className="card min-w-0 px-4 py-4 sm:px-5" aria-labelledby="mw-forms" data-testid="forms-widget">
+      <h2 id="mw-forms" className="mb-2 text-[calc(17px*var(--text-scale,1))] font-semibold">
+        Forms
+      </h2>
+      {data.forms.length === 0 ? (
+        <p className="text-label text-ink-muted">No forms to fill in yet. A project&apos;s owners and editors add them in the project&apos;s settings (Customize → Forms).</p>
+      ) : (
+        <ul className="divide-y divide-line" aria-label="Forms you can submit">
+          {data.forms.map((form) => (
+            <li key={form.link} className="flex items-center gap-2 py-2 text-label">
+              <span className="min-w-0 flex-1">
+                <Link href={form.link} className="link font-medium">
+                  {form.name}
+                </Link>
+                <span className="block truncate text-caption text-ink-muted">{form.projectName}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {data.mine.length > 0 && (
+        <>
+          <h3 className="mb-1 mt-3 text-label font-semibold">Your recent submissions</h3>
+          <ul className="space-y-1 text-label" aria-label="Your recent submissions">
+            {data.mine.map((item) => (
+              <li key={item.id} className="flex flex-wrap items-baseline gap-x-2">
+                {item.taskId && item.taskNo ? (
+                  <Link href={`/users/tasks/${item.taskId}`} className="link">
+                    {item.taskNo} {item.taskTitle}
+                  </Link>
+                ) : (
+                  <span>{item.formName}</span>
+                )}
+                <span className="text-caption text-ink-muted">
+                  {item.formName} · {indiaDateTimeText(item.createdAt)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </section>
+  );
 }

@@ -846,7 +846,7 @@ Migration names are shortened to their date-time prefix; the full file is `datab
 |---|---|---|---|
 | `departments` | Organisation | Departments, with the HOD | 202609281200 |
 | `designations` | Organisation | Job titles; `is_approver` says who can be chosen as an approver | 202609281200 |
-| `users` | People | Every person: sign-in method, manager, modules, AI chat modes | 202609281201 |
+| `users` | People | Every person: sign-in method, manager, modules, AI chat modes; `is_system` since v1.66.0 (the one system user "ARS-CMS Automation", never signs in) | 202609281201, 202611221500 |
 | `roles` | People | Role list (SUPER_ADMIN, IT_ADMIN, USER and more) | 202609281201 |
 | `user_roles` | People | Which roles each person holds | 202609281201 |
 | `otp_challenges` | Sign-in | WhatsApp one-time codes, stored as hashes | 202609281202 |
@@ -941,7 +941,10 @@ Migration names are shortened to their date-time prefix; the full file is `datab
 | `project_members` | Projects | Members (people or departments) with a role | 202610301000 |
 | `project_sections` | Projects | Sections of a project | 202610301000 |
 | `task_projects` | Projects | A task's place in each project | 202610301000 |
-| `task_followers` | Tasks | People following a task | 202610301000 |
+| `task_followers` | Tasks | People following a task; `source` FORM since v1.66.0 (the submitter of a project form) | 202610301000, 202611221500 |
+| `project_forms` | Projects | v1.66.0: a project's intake forms (kind PROJECT_INTAKE of the shared Form Builder): `share_token` (128 random bits, base64url; `/users/forms/<token>`, signed in only), `status` (DRAFT / PUBLISHED / UNPUBLISHED), `name`, `description`, `cover_path` / `cover_type`, `draft_json` (`fields`: the builder's FormField list; `mappings`: question key → task field or project field), `settings_json` (section, default assignee, due offset in working days, copy to description, confirmation, Submit another, add followers, who may submit, notices), `current_version_id`, `draft_changed`, `row_version`, soft delete | 202611221500 |
+| `project_form_versions` | Projects | v1.66.0: each published snapshot of a form (`version_no` per form, `snapshot_json` never changed); people fill in the current one | 202611221500 |
+| `project_form_submissions` | Projects | v1.66.0: one row per accepted submission: the version answered, the submitter, the typed answers (`answers_json`), the task made; UNIQUE (`form_id`, `submitter_id`, `submission_key`) stops a double submit; the hourly limit (20 per person per form) counts these rows | 202611221500 |
 | `task_comments` | Tasks | Task comments with one level of replies | 202610301000 |
 | `work_likes` | Tasks | Likes on tasks, comments and status updates | 202610301000 |
 | `task_dependencies` | Tasks | Blocked-by links between tasks; since v1.65.0 `dep_type` (FS default, SS, FF, SF) and `lag_days` (reserved, 0) | 202610301000, 202611221400 |
@@ -1033,6 +1036,12 @@ JSON is used for engine and form data that changes shape between versions, not f
 
 ### Times
 Times are stored in UTC (`DATETIME`, set by `CURRENT_TIMESTAMP` or the app). India dates are plain `DATE` columns: `holidays.holiday_on`, `department_holidays.holiday_on`, `delegations.starts_on` / `ends_on`, `work_digest_sends.day`. Event and audit tables use `DATETIME(3)` (milliseconds) so their order is stable.
+
+## v1.66.0: project intake forms (migration 202611221500_pm_c_intake_forms, D-374)
+- `users.is_system` BOOLEAN (default FALSE) and one row `ars-cms-automation` / "ARS-CMS Automation" (active FALSE, no password, an `.invalid` email): the creator of tasks made from form submissions. The app reads it as inactive whatever its row says; sign-in rules and the session check refuse it; Admin → Users never lists it.
+- `project_forms`, `project_form_versions`, `project_form_submissions` (see the table list). A form's questions use the shared Form Builder's `FormField` JSON (the same as approval, task-type and ticket forms); branches are the fields' `showIf` rules (`{field, operator: "IN", value: [options]}`), at most 5 levels.
+- `tasks.source_form_id` → `project_forms`: the form a task came from (such a task is edited like a project task, not as an ad hoc task of its creator).
+- `task_followers.source` gets `FORM`.
 
 ## v1.63.0: Home widgets, private notepad, My Tasks tabs (migration 202611221200_pm_a_home_widgets, D-369)
 - `home_layouts` (user_id PK → users, `widgets_json` JSON `[{ "kind": "my_tasks" | "projects" | "status_updates" | "notepad" | "workload" | "assigned" | "people", "size": "half" | "full" }]` in order, at most 20, each kind once; `version` INT for optimistic saves; updated_at). No row = the default layout. Kinds of modules the person lacks are dropped when read and refused when saved (`server/home/widgets.ts`). `forms` is reserved for phase C.

@@ -30,9 +30,11 @@ describe("which widgets a person may have", () => {
     expect(availableKinds(all)).toEqual(["my_tasks", "projects", "status_updates", "notepad", "workload", "assigned", "people"]);
     expect(availableKinds(noProjects)).not.toContain("projects");
     expect(availableKinds(noTasks)).toEqual(["notepad"]);
-    // Forms waits for phase C (hidden until then).
+    // v1.66.0 (D-374): Forms came with phase C; it needs the "pm_forms" switch (and Tasks).
     expect(availableKinds(all)).not.toContain("forms");
-    expect(WIDGETS.find((entry) => entry.kind === "forms")?.available).toBe(false);
+    expect(WIDGETS.find((entry) => entry.kind === "forms")?.available).toBe(true);
+    expect(availableKinds({ ...all, forms: true })).toContain("forms");
+    expect(availableKinds({ ...noTasks, forms: true })).not.toContain("forms");
   });
   it("has no third-party names in titles or descriptions", () => {
     expect(WIDGETS.every((entry) => !/asana/i.test(`${entry.title} ${entry.description}`))).toBe(true);

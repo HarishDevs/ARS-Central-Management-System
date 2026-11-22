@@ -41,6 +41,11 @@ export default function TermsPage() {
           <li>A project&apos;s tabs and saved views are shared with everyone in the project. Only its owners and editors add, rename, reorder, remove or save them; change them with care.</li>
           <li>Custom fields: a field added to the ARS field library is seen by every project that uses it, and changes to it show everywhere; deleting a field removes its values for good after 30 days. Choose people in a People field, or start a timer, only for real work on the task.</li>
           <li>Dependencies: when a project moves dependent tasks with their task (Project settings → Dependencies), changing a date can move other people&apos;s tasks in that project too; they are told, and you can Undo for 15 minutes. Change dates with care. Status updates go to the project&apos;s members and anyone you add: add only people who should see them.</li>
+          <li>
+            Project forms: only a project&apos;s owners and editors (or only its owners, if the project says so) build its forms, and they choose who may submit. Build forms for genuine work
+            requests, ask only for what you need, and don&apos;t ask for passwords or other people&apos;s personal details. When you fill in a form, your name and email go with your answers, and the
+            task made from it is seen by the project&apos;s people: answer as you would in any work message.
+          </li>
           <li>The private notepad on Home is for your work notes. Only you see it in the app, but it is stored with your other records: don&apos;t keep passwords or other people&apos;s personal details in it.</li>
           <li>You can edit or delete your own comments, and IT can edit or delete any comment. Every earlier version is kept and shown to the people who can see the comment, so edit to correct, not to rewrite what was agreed.</li>
           <li>

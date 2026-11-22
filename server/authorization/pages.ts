@@ -133,6 +133,8 @@ export const OPEN_PATHS: readonly RegExp[] = [
   under("/admin/notifications"), // broadcast notifications (not yet a configurable page)
   exact("/users/no-access"), // v1.50.3: the "you don't have access" screen itself
   exact("/admin/no-access"),
+  // v1.66.0 (D-374): a project form's link: who may submit is the form's own setting (checked on the server).
+  under("/users/forms"),
 ];
 
 // May a restricted person use an address that is no configured page?

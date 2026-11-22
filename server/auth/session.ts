@@ -67,7 +67,7 @@ async function loadCurrentSession(touch: boolean): Promise<CurrentSession | { se
   // only; it doesn't end sessions already open (anyone who knows a colleague's
   // email or mobile could otherwise sign them out). "This wasn't me" (the
   // year-long security lock) still ends them.
-  if (!user || !user.active || user.lockedSecondsRemaining > SECURITY_LOCK_SECONDS) return null;
+  if (!user || !user.active || user.isSystem || user.lockedSecondsRemaining > SECURITY_LOCK_SECONDS) return null;
   if (user.isBreakGlass && user.breakGlassSecondsRemaining <= 0) return null;
   // D-250: a daily session has no idle limit; it ends at midnight (its expiry).
   const limitSeconds = live.daily ? null : (await idleLimitMinutes()) * 60;

@@ -61,6 +61,22 @@ export const projectMessages = {
     message("WORK_PROJECT_STATUS", to, `Status update due: ${project.name}`, `It's Friday: post this week's status update on "${project.name}".`, `${projectPath(project)}?view=overview`, null),
 };
 
+// v1.66.0 (D-374): project intake forms. The project's people hear of a new
+// submission; the submitter gets a confirmation (in-app and email).
+export const formMessages = {
+  submitted: (task: TaskInfo, to: number, formName: string, submitter: string) =>
+    message("WORK_FORM_SUBMITTED", to, `New form submission: ${task.taskNo}`, `${submitter} submitted the form "${formName}". It is now the task "${task.title}" (${task.taskNo}).${due(task)}`, taskPath(task), { type: "TASK", id: task.id }),
+  received: (task: TaskInfo, to: number, formName: string, canSee: boolean, path: string) =>
+    message(
+      "WORK_FORM_RECEIVED",
+      to,
+      `We received your form: ${formName}`,
+      canSee ? `Thanks: your submission to "${formName}" is the task "${task.title}" (${task.taskNo}). You follow it, so you'll hear about changes.` : `Thanks: your submission to "${formName}" has been received (${task.taskNo}).`,
+      canSee ? taskPath(task) : path,
+      canSee ? { type: "TASK", id: task.id } : null,
+    ),
+};
+
 export interface InfoSummary {
   id: number;
   infoNo: string;

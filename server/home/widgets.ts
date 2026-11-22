@@ -11,7 +11,7 @@ export interface WidgetEntry {
   kind: WidgetKind;
   title: string;
   description: string;
-  needs: "TASK" | "PROJECT" | null; // the module the widget's data comes from
+  needs: "TASK" | "PROJECT" | "FORMS" | null; // the module the widget's data comes from (FORMS: the "pm_forms" switch, D-374)
   defaultSize: WidgetSize;
   sizes: readonly WidgetSize[];
   available: boolean; // false: listed for a later phase, hidden until then
@@ -24,8 +24,8 @@ export const WIDGETS: readonly WidgetEntry[] = [
   { kind: "workload", title: "My weekly workload", description: "Tasks given to you and completed, day by day.", needs: "TASK", defaultSize: "half", sizes: ["half", "full"], available: true },
   { kind: "assigned", title: "Tasks I've assigned", description: "Tasks you gave others: this week, upcoming, overdue, completed.", needs: "TASK", defaultSize: "half", sizes: ["half", "full"], available: true },
   { kind: "people", title: "People", description: "Your reporting line: who you report to, and your team's open and overdue tasks.", needs: "TASK", defaultSize: "full", sizes: ["full", "half"], available: true },
-  // Phase C (project intake forms) fills this one; hidden until then.
-  { kind: "forms", title: "Forms", description: "Forms you use and share.", needs: "PROJECT", defaultSize: "half", sizes: ["half", "full"], available: false },
+  // v1.66.0 (D-374, phase C): forms the person may submit and their recent submissions.
+  { kind: "forms", title: "Forms", description: "Forms you can submit, and your recent submissions.", needs: "FORMS", defaultSize: "half", sizes: ["half", "full"], available: true },
 ];
 export const widgetEntry = (kind: WidgetKind): WidgetEntry => WIDGETS.find((entry) => entry.kind === kind)!;
 export const MAX_WIDGETS = 20; // BR-HOME-011
@@ -38,12 +38,13 @@ export interface WidgetItem {
 export interface HomeAccess {
   tasks: boolean; // the Tasks module and switch
   projects: boolean; // the Projects module
+  forms?: boolean; // v1.66.0 (D-374): the "pm_forms" switch (project intake forms)
 }
 
 // The widgets a person may have. Without Tasks only the notepad; without
 // Projects nothing that shows projects (D-307: their placeholders are locked).
 export function availableKinds(access: HomeAccess): WidgetKind[] {
-  return WIDGETS.filter((entry) => entry.available && (entry.needs === null || (entry.needs === "TASK" ? access.tasks : access.tasks && access.projects))).map((entry) => entry.kind);
+  return WIDGETS.filter((entry) => entry.available && (entry.needs === null || (entry.needs === "TASK" ? access.tasks : entry.needs === "FORMS" ? access.tasks && Boolean(access.forms) : access.tasks && access.projects))).map((entry) => entry.kind);
 }
 
 // The layout a person starts with (spec §4.1 order, our widgets).

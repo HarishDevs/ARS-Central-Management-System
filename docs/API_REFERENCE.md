@@ -75,6 +75,7 @@ Routes that answer differently are noted below.
 | `/api/users/[id]/photo` | GET | `requireApiArea("users")` | A person's profile photo |
 | `/api/attachments/[id]` | GET | `requireApiArea("users")` + record check | Download or preview a request attachment |
 | `/api/files/[id]` | GET | `requireApiArea("users")` + record check | Download or preview a task/information file |
+| `/api/forms/[token]/cover` | GET | `requireApiArea("users")` + the form's fill rule (or a builder) | A project form's cover image (v1.66.0, D-374) |
 | `/api/requests/[id]/summary.pdf` | GET | `requireApiArea("users")` + record check | PDF summary of a request |
 | `/api/exports/[id]` | GET | `requireApiArea("users")` + reports + export permission, owner only | Download a background export |
 | `/api/reports/[key]` | GET | `requireApiArea("users")` + reports + export permission | Export a catalogue report (CSV/XLSX/PDF) |

@@ -1889,6 +1889,48 @@ The application audit (`application-audit/`) found these gaps between flows and 
 - **F-59 Bulk import:** the import doesn't apply the rule that only the Super Admin changes another IT Admin's contact details (AUD-01). Fix planned: V181-A2.
 - **F-121 Page access:** an action posted from an address that is no configured page isn't restricted (AUD-14). Fix planned: V181-A7.
 
+## F-PM-FORMS: Project intake forms (v1.66.0, D-374; "pm_forms")
+Signed-in people only (C-1: no public link in this release). One builder: the shared Form Designer in its "Project intake form" kind.
+```mermaid
+flowchart TD
+  A[Owner/editor: Project settings → Forms → Add form] --> B{Server: pm_forms on? may build: owner/editor, or owners only with Only admins customise? ≤ 20 forms?}
+  B -- no --> X[Refused]
+  B -- yes --> C[Draft: title = project name, first section, owner as default assignee, due +3 working days]
+  C --> D[Builder: title, description, cover image, Name/Email read-only; questions Text/Long text/Single/Multi/Date/Number/Attachment/Heading]
+  D --> E[Per question: Connect to field: task name/description/due/priority or a project field of a matching type; Add branch per option]
+  D --> F[Settings: section, task name, default assignee, due offset, copy to description, confirmation, Submit another, followers, who may submit, notices]
+  E --> G[Save draft: row version checked]
+  F --> G
+  G --> H{Publish: checkIntakeForm on the server}
+  H -- problems --> D
+  H -- ok --> I[(New version: immutable snapshot)] --> J[Share: link /users/forms/token + QR code]
+  J --> K[Unpublish → link says not accepting] 
+  J --> L[Duplicate → draft copy · Delete → soft]
+```
+```mermaid
+flowchart TD
+  A[Signed-in person opens /users/forms/token] --> B{pm_forms on, form published, project live?}
+  B -- unknown --> N[Not found]
+  B -- unpublished / archived --> C[This form isn't accepting submissions]
+  B -- yes --> D{Who may submit: everyone / departments / members; builders always}
+  D -- no --> E[You can't submit this form]
+  D -- yes --> F[Fill view: published version; branches live; This field is required on Submit]
+  F --> G[Submit with a submission key + files]
+  G --> H{Server: same key? → the first task · ≥ 20 this hour? → refused}
+  H --> I[parseFormSubmission + branches + mapped due not past + mapped fields checkValue; files checked and staged]
+  I -- errors --> F
+  I -- ok --> J[One transaction: task by ARS-CMS Automation, General type, default assignee, due = mapped date or + offset working days]
+  J --> K[Top of the target section (first if gone) · ID field numbered · mapped fields written · files on the task · description Label: value + footer link]
+  K --> L[Followers: assignee, submitter FORM · stories CREATED + Submitted through the form X on behalf of Y · submission row · audit]
+  L --> M[After commit: assignee told · project owner told · submitter confirmation in-app + email]
+  M --> O[Confirmation screen: message, View request when they may see the task, Submit another]
+```
+```mermaid
+flowchart LR
+  S[(users: ars-cms-automation, is_system, inactive, no password)] --> T{Any sign-in route / session / Try as / Admin → Users}
+  T --> U[Refused: read as inactive; never listed or reactivated]
+```
+
 ## F-PM-DEPS: Typed dependencies (v1.65.0, D-373; "pm_planning")
 ```mermaid
 flowchart TD

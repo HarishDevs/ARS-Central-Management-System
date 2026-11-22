@@ -107,7 +107,8 @@ test("Home: greeting with the date; customise widgets with the keyboard; width, 
   await expect(page.getByRole("heading", { level: 1, name: /My Work/ })).toBeVisible();
   for (const key of ["total", "upcoming", "overdue", "completed"]) await expect(page.getByTestId(`work-kpi-${key}`)).toBeVisible();
   const start = await widgetKinds(page);
-  expect(start).toEqual(["my_tasks", "projects", "status_updates", "notepad", "workload", "assigned", "people"]);
+  // v1.66.0 (D-374): Forms joined the default widgets (pm_forms is ON in the e2e seed).
+  expect(start).toEqual(["my_tasks", "projects", "status_updates", "notepad", "workload", "assigned", "people", "forms"]);
   await expect(page.getByTestId("people-widget")).toContainText("You report to Manoj Manager");
 
   // Customise: pick up Private notepad with Space, ↑ twice, drop with Enter.
@@ -116,12 +117,12 @@ test("Home: greeting with the date; customise widgets with the keyboard; width, 
   const handle = page.getByRole("button", { name: "Move Private notepad", exact: true });
   await handle.focus();
   await handle.press("Space");
-  await expect(page.getByTestId("home-live")).toContainText("Picked up Private notepad, position 4 of 7");
+  await expect(page.getByTestId("home-live")).toContainText("Picked up Private notepad, position 4 of 8");
   await page.keyboard.press("ArrowUp");
   await page.keyboard.press("ArrowUp");
-  await expect(page.getByTestId("home-live")).toContainText("Private notepad, position 2 of 7");
+  await expect(page.getByTestId("home-live")).toContainText("Private notepad, position 2 of 8");
   await page.keyboard.press("Enter");
-  await expect(page.getByTestId("home-live")).toContainText("dropped at position 2 of 7");
+  await expect(page.getByTestId("home-live")).toContainText("dropped at position 2 of 8");
   // Escape puts a picked-up widget back.
   await page.getByRole("button", { name: "Move People", exact: true }).focus();
   await page.keyboard.press("Space");
@@ -131,7 +132,7 @@ test("Home: greeting with the date; customise widgets with the keyboard; width, 
   // Alt + ↓ moves at once.
   await page.getByRole("button", { name: "Move My Tasks", exact: true }).focus();
   await page.keyboard.press("Alt+ArrowDown");
-  await expect(page.getByTestId("home-live")).toContainText("My Tasks moved to position 2 of 7");
+  await expect(page.getByTestId("home-live")).toContainText("My Tasks moved to position 2 of 8");
 
   // Full width for the notepad; remove Workload.
   const notepad = page.getByTestId("home-widget").filter({ has: page.getByTestId("home-notepad") });
@@ -144,14 +145,14 @@ test("Home: greeting with the date; customise widgets with the keyboard; width, 
 
   // Kept after a reload.
   await page.reload();
-  await expect.poll(() => widgetKinds(page)).toEqual(["notepad", "my_tasks", "projects", "status_updates", "assigned", "people"]);
+  await expect.poll(() => widgetKinds(page)).toEqual(["notepad", "my_tasks", "projects", "status_updates", "assigned", "people", "forms"]);
   await expect(page.getByTestId("home-widget").and(page.locator('[data-kind="notepad"]'))).toHaveAttribute("data-size", "full");
 
   // Add it back from the menu: it comes last.
   await page.getByTestId("customise-home").click();
   await page.getByTestId("add-widget").locator("summary").click();
   await page.getByTestId("add-widget-workload").click();
-  await expect.poll(() => widgetKinds(page)).toEqual(["notepad", "my_tasks", "projects", "status_updates", "assigned", "people", "workload"]);
+  await expect.poll(() => widgetKinds(page)).toEqual(["notepad", "my_tasks", "projects", "status_updates", "assigned", "people", "forms", "workload"]);
   await expect(page.getByTestId("workload-chart")).toBeVisible();
   await page.getByTestId("customise-home").click();
 

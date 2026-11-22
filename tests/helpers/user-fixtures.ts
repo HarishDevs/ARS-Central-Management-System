@@ -15,6 +15,7 @@ export function userRecord(overrides: Partial<UserRecord> = {}): UserRecord {
     active: true,
     isBreakGlass: false,
     isDemo: false,
+    isSystem: false,
     breakGlassSecondsRemaining: 0,
     hasLoggedInBefore: true,
     roles: ["USER"],

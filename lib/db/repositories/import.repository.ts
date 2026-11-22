@@ -35,7 +35,7 @@ export async function loadImportSnapshot(db: Queryable = getDbPool()): Promise<O
             COALESCE((SELECT d.is_approver FROM designations d WHERE d.id = u.designation_id), FALSE) AS approver,
             (u.firebase_uid IS NOT NULL) AS google_linked, (u.password_hash IS NOT NULL) AS has_password,
             (SELECT GROUP_CONCAT(r.code ORDER BY r.id) FROM user_roles ur JOIN roles r ON r.id = ur.role_id AND r.active = TRUE WHERE ur.user_id = u.id) AS roles
-     FROM users u ORDER BY u.name`,
+     FROM users u WHERE u.is_system = FALSE ORDER BY u.name`, // v1.66.0 (D-374): never the system user
   );
   const [departments] = await db.query<(RowDataPacket & { id: number; code: string; name: string; hod_user_id: number | null; active: number })[]>(
     "SELECT id, code, name, hod_user_id, active FROM departments ORDER BY name",

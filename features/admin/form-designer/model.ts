@@ -39,6 +39,32 @@ export const TYPE_CHOICES: TypeChoice[] = [
 ];
 export const GROUP_LABEL: Record<FieldGroup, string> = { BASIC: "Basic fields", ADVANCED: "Advanced fields", LAYOUT: "Layout" };
 
+// v1.66.0 (D-374): the kinds of form the shared designer builds. A project
+// intake form offers only the question types a project form takes (spec
+// FORMS_MODULE §4.1), named as its builders know them.
+export type DesignerKind = "STANDARD" | "PROJECT_INTAKE";
+const INTAKE_CHOICES: TypeChoice[] = [
+  { value: "TEXT", label: "Text", short: "Text", group: "BASIC" },
+  { value: "LONG_TEXT", label: "Long text", short: "Long text", group: "BASIC" },
+  { value: "CHOICE", label: "Single-select", short: "Single-select", group: "BASIC" },
+  { value: "MULTI_CHOICE", label: "Multi-select", short: "Multi-select", group: "BASIC" },
+  { value: "DATE", label: "Date", short: "Date", group: "BASIC" },
+  { value: "NUMBER", label: "Number", short: "Number", group: "BASIC" },
+  { value: "ATTACHMENT", label: "Attachment", short: "Attachment", group: "BASIC" },
+  { value: "SECTION", label: "Heading", short: "Heading", group: "LAYOUT" },
+];
+export const choicesFor = (kind: DesignerKind): TypeChoice[] => (kind === "PROJECT_INTAKE" ? INTAKE_CHOICES : TYPE_CHOICES);
+
+// A new question on an intake form: a stable key of its own (branches and
+// field connections refer to it, so it never follows the label), "New
+// question" ready to be typed over; one file unless "multiple" is ticked.
+export function newIntakeQuestion(value: string, taken: readonly string[]): FormField {
+  const field = newField(value, taken);
+  const key = uniqueKey("q", taken);
+  if (field.type === "SECTION") return { ...field, key, label: "Heading" };
+  return { ...field, key, label: "New question", ...(field.type === "ATTACHMENT" ? { maxFiles: 1 } : {}) };
+}
+
 export const typeValue = (field: FormField): string => (field.type === "LOOKUP" ? `LOOKUP:${field.source ?? "DEPARTMENT"}` : field.type);
 export const typeChoice = (field: FormField): TypeChoice | undefined => TYPE_CHOICES.find((choice) => choice.value === typeValue(field));
 

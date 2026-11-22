@@ -93,3 +93,13 @@ describe("settings display (D-016)", () => {
     expect(resolveSettingForDisplay(plain, { key: plain.key, encrypted: false, value: "UTC", updatedAt: new Date() }).value).toBe("UTC");
   });
 });
+
+// v1.66.0 (D-374, C-10): the system user (ARS-CMS Automation) never signs in,
+// by either method, even if its row were marked active.
+describe("the system user", () => {
+  it("is refused by both sign-in methods", () => {
+    const system = userRecord({ isSystem: true, active: true, signInMethod: "PASSWORD" });
+    expect(checkSignInAllowed(system, "PASSWORD")).toEqual({ allowed: false, reason: "INACTIVE" });
+    expect(checkSignInAllowed({ ...system, signInMethod: "GOOGLE" }, "GOOGLE")).toEqual({ allowed: false, reason: "INACTIVE" });
+  });
+});

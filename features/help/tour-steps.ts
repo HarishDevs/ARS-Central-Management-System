@@ -152,6 +152,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
       "Star a project to keep it in the sidebar under Starred; a task opens beside the view, and completing or deleting one offers Undo.",
       "Add custom fields (Add field: text, number, select, date, people, formula, ID, timer and more) and filter, sort or group any view by them.",
       "Plan dates on the Timeline or a Gantt tab: drag bars (or use the arrow keys), link tasks as Blocked by / Blocking, and let dependent tasks move with them.",
+      "Add a form (settings → Forms): people fill it in through its link or QR code, and each submission becomes a task in the section you choose.",
     ],
     path: "/users/work/projects",
     target: HEADER,

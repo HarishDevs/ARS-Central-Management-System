@@ -47,7 +47,9 @@ export async function rightsOn(task: TaskShape, viewer: WorkViewer, db: Queryabl
   }
   const follower = await isFollowing([task.id, task.rootTaskId ?? task.id], viewer.id, db);
   // D-222: ad hoc = not repeating and not part of a repeating series.
-  const [kind] = await db.query<RowDataPacket[]>("SELECT recurrence_json IS NULL AND series_id IS NULL AS adhoc FROM tasks WHERE id = ?", [task.id]);
+  // v1.66.0 (D-374): nor made from a project form (its creator is the system
+  // user, so it is the project's to edit, like a periodic task).
+  const [kind] = await db.query<RowDataPacket[]>("SELECT recurrence_json IS NULL AND series_id IS NULL AND source_form_id IS NULL AS adhoc FROM tasks WHERE id = ?", [task.id]);
   const adhoc = Boolean(kind[0]?.adhoc);
   const rights = taskRights({
     isAssignee: task.assigneeId === viewer.id,

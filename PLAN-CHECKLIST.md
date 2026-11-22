@@ -17,6 +17,8 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 **Multi-level approvals in any custom manner.** The engine must support any number of levels in any combination: sequential, parallel, any-one, any-N-of-M, conditional and hybrid. Approvers can come from any source, and levels can be added or skipped by rules. Build the engine for this from the first engine phase (P2). The drag-and-drop designer (P3) is only the screen for building it. Check every task against this.
 
 ## Now / Next
+- **Now (22 Nov 2026):** **v1.66.0** PM phase C: project intake forms for signed-in people: the shared Form Designer's intake kind, Connect to field, branches, versioned publish, link + QR, fill view, submission → task by the system user ARS-CMS Automation, Forms in Customize and the Home widget (D-374). **Owner:** back up, publish (migration 202611221500_pm_c_intake_forms.sql runs on start), switch "phase C" on for IT only, try a form, then On (DEPLOYMENT G0l). The public no-account link (C-1) waits for your decision.
+- **Next (22 Nov 2026):** PM-B12 (templates and copies carry every field type, and project forms), then phase D (D-366); PM-C11 only if the owner approves public links (C-1).
 - **Now (22 Nov 2026):** **v1.65.0** PM phase B part 2: dependency types and auto-shift with Undo, Dependencies/Scheduling settings, editable Timeline and a Gantt tab, Calendar weeks, fuller status updates with a Friday reminder, Home widgets without Approvals (D-373). **Owner:** back up, publish (migration 202611221400_pm_b_schedule.sql runs on start), try with phase B on for IT only, then On (DEPLOYMENT G0k).
 - **Now (22 Nov 2026):** **v1.64.1** List layout fix (D-372). **Owner:** publish (no migration); switch on pm_planning to see the new custom fields.
 - [x] UI-91 (22 Nov 2026) List: section headings and Add task lines stay in view when scrolled sideways; the table fills the card
@@ -56,7 +58,18 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
   - [x] PM-B10 (22 Nov 2026) Calendar week view, keyboard moves, No start date panel instead of the no-date drawer (due dates are mandatory) (D-373)
   - [x] PM-B11 (22 Nov 2026) Status updates: title, status, owner, dates, Summary/Next steps, highlights, recipients, Friday reminder job (D-373)
   - [ ] PM-B12 Templates and copies carry every field type (from D-371)
-- [ ] PM-C Phase C forms
+- [ ] PM-C Phase C forms (v1.66.0, signed-in forms; the public link waits for C-1)
+  - [x] PM-C1 (22 Nov 2026) Feature switch pm_forms (default OFF; ON in e2e)
+  - [x] PM-C2 (22 Nov 2026) System user ARS-CMS Automation (C-10): inactive, no sign-in by any route, hidden from Admin → Users, import and pickers
+  - [x] PM-C3 (22 Nov 2026) Builder = the shared Form Designer's "Project intake form" kind: 7 question types + Heading, title, description, cover image, Name/Email read-only, move/drag/keyboard, duplicate, delete
+  - [x] PM-C4 (22 Nov 2026) Connect to field (task name, description, due date, priority; project fields of a matching type) and branches per option (show-if, ≤ 5 levels)
+  - [x] PM-C5 (22 Nov 2026) Settings: section, title, default assignee (C-2), due offset in working days (C-3), copy to description, confirmation, Submit another, followers, who may submit, notices
+  - [x] PM-C6 (22 Nov 2026) Inline validation, Publish disabled while invalid, versioned publish (immutable snapshots), unpublish, duplicate, soft delete
+  - [x] PM-C7 (22 Nov 2026) Share: signed-in link /users/forms/<token> (128-bit), copy, our own QR encoder; no embed (public only)
+  - [x] PM-C8 (22 Nov 2026) Fill view: themed card, per-type controls, files by picker/drag-drop, client + server validation, live branches, confirmation with View request, submission key, 20 per hour per person per form
+  - [x] PM-C9 (22 Nov 2026) Submission → task at the top of the section by the system user: assignee, due, mapped fields (dates too), ID field, description lines + footer link, files, follower, notices, confirmation email, activity story
+  - [x] PM-C10 (22 Nov 2026) Forms in Customize (project settings) and the Home Forms widget (forms I may submit, my recent submissions)
+  - [ ] PM-C11 Public no-account link `pm_public_forms` (only if the owner approves C-1: rate limits per IP, challenge, scan decision, privacy/terms)
 - [ ] PM-D Phase D reporting, workload, automations, portfolios
 - [ ] PM-E Phase E backlog
 - **Now (21 Nov 2026):** **v1.60.0** edit and delete every comment, versions kept (D-365). **Owner:** back up, run migration 202611211000_comment_edits.sql (and 202611201000 first if v1.59.3 isn't live), publish.

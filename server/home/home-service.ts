@@ -19,7 +19,7 @@ export type HomeResult<T> = { ok: true; value: T; message: string } | { ok: fals
 
 export async function homeAccess(person: HomePerson): Promise<HomeAccess> {
   const tasks = hasModule(person, "TASK") && (await featureOn("tasks", person).catch(() => false)) && !isHiddenHref("/users/work", (await navAccess(person)).hidden);
-  return { tasks, projects: tasks && hasModule(person, "PROJECT") };
+  return { tasks, projects: tasks && hasModule(person, "PROJECT"), forms: tasks && (await featureOn("pm_forms", person).catch(() => false)) };
 }
 
 export async function homeLayoutFor(person: HomePerson, access?: HomeAccess): Promise<{ widgets: WidgetItem[]; version: number }> {
