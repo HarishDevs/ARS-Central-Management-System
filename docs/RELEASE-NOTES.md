@@ -1,5 +1,11 @@
 # Release notes
 
+## v1.67.1 (22 Nov 2026): Fix: the 30-day clean-up stopped on projects with forms or dashboards
+- The automatic clean-up of items deleted more than 30 days ago (v1.62.0) didn't know about intake forms (v1.66.0) or dashboards and Workload capacity (v1.67.0). A deleted project with a form, a dashboard or a capacity setting, or a deleted task made from a form, made the whole clean-up fail, so nothing more was removed.
+- Now a project goes with its forms (their versions, submitted answers and cover images), dashboard charts and capacity settings. Tasks made from its forms stay, like its other tasks, and only lose the link to the form. A task made from a form goes with its submitted answers.
+- A new check fails the build if a future table that points at a task or a project isn't handled by the clean-up.
+- **Owner steps:** none (no migration); publish v1.67.1.
+
 ## v1.67.0 (22 Nov 2026): Project dashboards with charts, and Workload (Project Management phase D, part 1)
 Behind a new feature switch, **Projects D, dashboards and workload**, Off until IT turns it on. With it Off nothing changes.
 - **Dashboard tab** (Add tab → Dashboard): a new dashboard starts with 8 widgets: Total completed, incomplete and overdue tasks, Total tasks, Incomplete tasks by section, Tasks by completion status (donut), Upcoming tasks by assignee, and Task completion over time (Total and Completed per day).

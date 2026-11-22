@@ -17,6 +17,8 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 **Multi-level approvals in any custom manner.** The engine must support any number of levels in any combination: sequential, parallel, any-one, any-N-of-M, conditional and hybrid. Approvers can come from any source, and levels can be added or skipped by rules. Build the engine for this from the first engine phase (P2). The drag-and-drop designer (P3) is only the screen for building it. Check every task against this.
 
 ## Now / Next
+- **Now (22 Nov 2026):** **v1.67.1** the 30-day clean-up covers forms and dashboards (D-379). **Owner:** publish (no migration).
+- [x] OPS-32 (22 Nov 2026) Purge: intake forms, submissions, dashboard widgets, capacity; guard test for future tables
 - **Now (22 Nov 2026):** **v1.67.0** PM phase D part 1: project Dashboard tab (8 default widgets, chart builder with 9 styles, tasks or time entries, metrics on one axis, filters, data labels, benchmark, View as table, keyboard reorder) and Workload tab (person × day/week, task count or an effort field, capacity, over-capacity, reassign) (D-375). **Owner:** back up, publish (migration 202611221600_pm_d_dashboards.sql runs on start), switch "Projects D, dashboards and workload" on for IT only, try, then On (DEPLOYMENT G0m).
 - **Next (22 Nov 2026):** PM phase D part 2: automations and portfolios (D-366); then PM-B12 and phase E.
 - **Now (22 Nov 2026):** **v1.66.3** section ⋯ menu opens on top (D-378). **Owner:** publish (no migration).

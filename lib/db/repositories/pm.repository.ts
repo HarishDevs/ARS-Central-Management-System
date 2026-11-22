@@ -124,6 +124,9 @@ export async function purgeTasks(ids: readonly number[], db: Queryable): Promise
     await db.query(`DELETE FROM ${table} WHERE task_id IN (?)`, [ids]);
   }
   await db.query("DELETE FROM notification_rule_sends WHERE record_kind = 'TASK' AND record_id IN (?)", [ids]);
+  // v1.67.1 (D-379): a task made from an intake form (D-374) has its submission
+  // (the answers) pointing at it; it goes with the task.
+  await db.query("DELETE FROM project_form_submissions WHERE task_id IN (?)", [ids]);
   await db.query("DELETE FROM gcal_links WHERE entity_type = 'TASK' AND entity_id IN (?)", [ids]);
   // Subtasks before parents: one at a time in the given order.
   let removed = 0;
@@ -142,7 +145,21 @@ export async function purgeProjectCandidates(limit: number, db: Queryable = getD
 // Removes a project and everything that belongs to it. Its tasks are not
 // deleted (a task can be in other projects, and has its own people); they
 // only leave this project, as when it was deleted.
-export async function purgeProject(projectId: number, db: Queryable): Promise<number> {
+export async function purgeProject(projectId: number, db: Queryable, files: string[] = []): Promise<number> {
+  // v1.67.1 (D-379): the project's intake forms (D-374) with their versions and
+  // submissions, and its dashboard widgets and capacity (D-375). Tasks made from
+  // a form stay (like the project's other tasks) and only lose the link to it.
+  const [forms] = await db.query<Row[]>("SELECT id, cover_path FROM project_forms WHERE project_id = ?", [projectId]);
+  if (forms.length) {
+    const formIds = forms.map((row) => num(row.id));
+    await db.query("UPDATE tasks SET source_form_id = NULL WHERE source_form_id IN (?)", [formIds]);
+    await db.query("UPDATE project_forms SET current_version_id = NULL WHERE id IN (?)", [formIds]);
+    await db.query("DELETE FROM project_form_submissions WHERE form_id IN (?)", [formIds]);
+    await db.query("DELETE FROM project_form_versions WHERE form_id IN (?)", [formIds]);
+    await db.query("DELETE FROM project_forms WHERE id IN (?)", [formIds]);
+    for (const row of forms) if (row.cover_path) files.push(String(row.cover_path));
+  }
+  for (const table of ["project_dashboard_widgets", "project_capacity"]) await db.query(`DELETE FROM ${table} WHERE project_id = ?`, [projectId]);
   // v1.64.0 (D-371): the project's own (local) fields go with their values,
   // options, timers and links; library fields only lose this project's link.
   for (const table of ["task_field_values", "task_field_timer_runs", "project_field_options", "project_field_links"])
@@ -167,5 +184,8 @@ export async function departmentName(id: number | null, db: Queryable = getDbPoo
 // Does any record still point at this stored file?
 export async function storedFileInUse(storedPath: string, db: Queryable = getDbPool()): Promise<boolean> {
   const [rows] = await db.query<Row[]>("SELECT 1 FROM record_files WHERE stored_path = ? LIMIT 1", [storedPath]);
-  return rows.length > 0;
+  if (rows.length > 0) return true;
+  // v1.67.1: an intake form's cover image (a duplicated form shares its file).
+  const [covers] = await db.query<Row[]>("SELECT 1 FROM project_forms WHERE cover_path = ? LIMIT 1", [storedPath]);
+  return covers.length > 0;
 }

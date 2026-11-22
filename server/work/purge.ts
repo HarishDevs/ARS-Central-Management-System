@@ -41,12 +41,16 @@ export async function runWorkPurge(options: { force?: boolean } = {}): Promise<{
   const projects = await purgeProjectCandidates(PROJECT_BATCH);
   let purgedProjects = 0;
   if (projects.length) {
+    // v1.67.1: form cover images leave the disk only once the rows are gone (after the commit).
+    const covers: string[] = [];
     purgedProjects = await withTransaction(async (connection) => {
+      covers.length = 0;
       let count = 0;
-      for (const id of projects) count += await purgeProject(id, connection);
+      for (const id of projects) count += await purgeProject(id, connection, covers);
       await recordAudit({ actorUserId: null, action: "WORK_PROJECTS_PURGED", entityType: "RETENTION", entityId: "projects", metadata: { olderThanDays: PURGE_DAYS, count, projectIds: projects } }, connection);
       return count;
     });
+    files = [...files, ...covers];
   }
   // v1.64.0 (D-371, BR-CF-004): custom fields deleted more than 30 days ago, with their values.
   const purgedFields = await withTransaction(async (connection) => {

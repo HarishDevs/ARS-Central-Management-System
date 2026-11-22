@@ -214,6 +214,41 @@ describe("purge after 30 days in Deleted (D-368)", () => {
     expect(await count("SELECT COUNT(*) AS n FROM audit_logs WHERE action = 'WORK_PROJECTS_PURGED' AND JSON_CONTAINS(JSON_EXTRACT(metadata_json, '$.projectIds'), CAST(? AS JSON))", [String(doomed)])).toBe(1);
   });
 
+  // v1.67.1 (D-379): before this fix a project with an intake form (D-374) or a
+  // dashboard (D-375), or a deleted task made from a form, stopped the whole batch.
+  it("removes an old deleted project with its intake forms, submissions, dashboard and capacity; a form-made task stays, a deleted one goes", async () => {
+    const formProject = await project(`Forms ${tag}`, "ORGANISATION");
+    const madeKept = await task(`From form kept ${tag}`, formProject);
+    const madeGone = await task(`From form gone ${tag}`, formProject);
+    const [form] = await db().query<import("mysql2/promise").ResultSetHeader>(
+      "INSERT INTO project_forms (project_id, share_token, name, draft_json, settings_json, created_by, cover_path, cover_type) VALUES (?, ?, ?, '{}', '{}', ?, ?, 'image/png')",
+      [formProject, `tok-${tag}-${formProject}`.slice(0, 43), `Intake ${tag}`, owner, `purge-test/${tag}-cover.png`],
+    );
+    const formId = form.insertId;
+    const [version] = await db().query<import("mysql2/promise").ResultSetHeader>("INSERT INTO project_form_versions (form_id, version_no, snapshot_json, published_by) VALUES (?, 1, '{}', ?)", [formId, owner]);
+    await db().query("UPDATE project_forms SET current_version_id = ? WHERE id = ?", [version.insertId, formId]);
+    for (const [taskRef, key] of [[madeKept, "k1"], [madeGone, "k2"]] as const) {
+      await db().query("INSERT INTO project_form_submissions (form_id, version_id, submitter_id, submission_key, answers_json, task_id) VALUES (?, ?, ?, ?, '{}', ?)", [formId, version.insertId, member, `${tag}-${key}`, taskRef]);
+      await db().query("UPDATE tasks SET source_form_id = ? WHERE id = ?", [formId, taskRef]);
+    }
+    await db().query("INSERT INTO project_dashboard_widgets (project_id, kind, title, body) VALUES (?, 'TEXT', 'Notes', 'x')", [formProject]);
+    await db().query("INSERT INTO project_capacity (project_id, user_id, metric, per_day, updated_by) VALUES (?, NULL, 'count', 5, ?)", [formProject, owner]);
+    // One form-made task is deleted long ago (its submission must not block it); the project too.
+    expect((await work.deleteTask(madeGone, who(owner))).ok).toBe(true);
+    await db().query("UPDATE tasks SET deleted_at = DATE_SUB(UTC_TIMESTAMP(), INTERVAL 40 DAY) WHERE id = ?", [madeGone]);
+    expect((await work.setProjectLifecycle(formProject, "DELETE", who(owner))).ok).toBe(true);
+    await db().query("UPDATE projects SET deleted_at = DATE_SUB(UTC_TIMESTAMP(), INTERVAL 31 DAY) WHERE id = ?", [formProject]);
+
+    const result = await runWorkPurge({ force: true });
+    expect(result.purgedProjects).toBeGreaterThanOrEqual(1);
+    expect(await count("SELECT COUNT(*) AS n FROM projects WHERE id = ?", [formProject])).toBe(0);
+    expect(await count("SELECT COUNT(*) AS n FROM tasks WHERE id = ?", [madeGone])).toBe(0);
+    for (const table of ["project_forms", "project_dashboard_widgets", "project_capacity"]) expect(await count(`SELECT COUNT(*) AS n FROM ${table} WHERE project_id = ?`, [formProject])).toBe(0);
+    expect(await count("SELECT COUNT(*) AS n FROM project_form_versions WHERE form_id = ?", [formId])).toBe(0);
+    expect(await count("SELECT COUNT(*) AS n FROM project_form_submissions WHERE form_id = ?", [formId])).toBe(0);
+    expect(await count("SELECT COUNT(*) AS n FROM tasks WHERE id = ? AND deleted_at IS NULL AND source_form_id IS NULL", [madeKept])).toBe(1);
+  });
+
   it("a living (or recently deleted) task's history still can't be deleted", async () => {
     const living = await task(`History ${tag}`, openProject);
     await expect(db().query("DELETE FROM task_events WHERE task_id = ?", [living])).rejects.toThrow(/append-only/);

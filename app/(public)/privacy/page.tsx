@@ -168,7 +168,7 @@ export default function PrivacyPage() {
           <li>
             <strong>Work records</strong> are kept as ARS&apos;s business records, following ARS&apos;s retention rules. Accounts are switched off rather than deleted, to keep the history of decisions
             intact. Records under a legal hold are kept until the hold is released. <strong>Deleted tasks and projects</strong> stay in Deleted for 30 days (they can be restored); after that they are removed
-            for good with their comments, reactions, files, fields and history, unless IT has turned this off. A deleted custom field can be restored for 30 days; after that it is removed for good with its values. A ticket&apos;s or meeting&apos;s task and the tasks of a request under a legal hold are never removed this way.
+            for good with their comments, reactions, files, fields and history (a project also with its intake forms, the answers submitted through them, its dashboards and capacity settings), unless IT has turned this off. A deleted custom field can be restored for 30 days; after that it is removed for good with its values. A ticket&apos;s or meeting&apos;s task and the tasks of a request under a legal hold are never removed this way.
           </li>
           <li>
             <strong>AI conversations</strong> are removed after the period IT sets (unless a legal hold applies). <strong>Backups</strong> are kept for a limited number of days, then deleted.
