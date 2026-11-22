@@ -154,3 +154,79 @@ export function selectForDeletion(files: readonly DriveFile[], keep: number): Dr
     return backup !== undefined && !kept.has(backup);
   });
 }
+
+// ---------- D-408 (v1.81.0, BK-1): backup packages, in pieces ----------
+// Packages can be gigabytes, so they go up and down in pieces that fit in one
+// request each, and a copy carries on across requests (the resumable
+// session's address and the offset are kept by the run).
+export const ARS_PACKAGE_PROPERTY = "arsPackage";
+export const DRIVE_PIECE = 8 * 1024 * 1024; // a multiple of 256 KiB, as Drive requires
+
+export async function startResumableUpload(token: string, folderId: string, name: string, size: number, deps: DriveDeps): Promise<string> {
+  const start = await deps.fetch(`${DRIVE_UPLOAD}/files?uploadType=resumable&supportsAllDrives=true&fields=id`, {
+    method: "POST",
+    headers: { authorization: `Bearer ${token}`, "content-type": "application/json; charset=UTF-8", "x-upload-content-type": "application/octet-stream", "x-upload-content-length": String(size) },
+    body: JSON.stringify({ name, parents: [folderId], mimeType: "application/octet-stream", appProperties: { [ARS_BACKUP_PROPERTY]: "1", [ARS_PACKAGE_PROPERTY]: "1" } }),
+    signal: AbortSignal.timeout(30_000),
+  });
+  if (!start.ok) throw await failure(start, `Drive refused the upload of ${name}`);
+  const location = start.headers.get("location");
+  if (!location) throw new Error("Drive gave no upload address.");
+  return location;
+}
+
+// One piece. Returns the next offset Drive has, or the new file's id when done.
+export async function uploadPiece(location: string, piece: Buffer, start: number, total: number, deps: DriveDeps): Promise<{ next: number; id: string | null }> {
+  const end = start + piece.length - 1;
+  const response = await deps.fetch(location, {
+    method: "PUT",
+    headers: { "content-type": "application/octet-stream", "content-range": piece.length ? `bytes ${start}-${end}/${total}` : `bytes */${total}` },
+    body: new Uint8Array(piece),
+    signal: AbortSignal.timeout(300_000),
+  });
+  if (response.status === 308) {
+    const range = /bytes=0-(\d+)/.exec(response.headers.get("range") ?? "");
+    return { next: range ? Number(range[1]) + 1 : 0, id: null };
+  }
+  if (!response.ok) throw await failure(response, "Drive refused a piece of the upload");
+  const created = (await response.json().catch(() => ({}))) as { id?: string };
+  return { next: total, id: created.id ?? "" };
+}
+
+export interface DrivePackage {
+  id: string;
+  name: string;
+  size: number;
+  createdTime: string;
+}
+
+export async function listPackageFiles(token: string, folderId: string, deps: DriveDeps): Promise<DrivePackage[]> {
+  const files: DrivePackage[] = [];
+  let pageToken: string | undefined;
+  do {
+    const q = `'${folderId.replace(/['\\]/g, "")}' in parents and appProperties has { key='${ARS_PACKAGE_PROPERTY}' and value='1' } and trashed=false`;
+    const params = new URLSearchParams({ q, fields: "nextPageToken,files(id,name,size,createdTime)", pageSize: "1000", orderBy: "createdTime desc", supportsAllDrives: "true", includeItemsFromAllDrives: "true" });
+    if (pageToken) params.set("pageToken", pageToken);
+    const response = await deps.fetch(`${DRIVE_API}/files?${params.toString()}`, { headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(30_000) });
+    if (!response.ok) throw await failure(response, "Couldn't list the Drive folder");
+    const body = (await response.json()) as { files?: { id: string; name: string; size?: string; createdTime?: string }[]; nextPageToken?: string };
+    files.push(...(body.files ?? []).map((file) => ({ id: file.id, name: file.name, size: Number(file.size ?? 0), createdTime: file.createdTime ?? "" })));
+    pageToken = body.nextPageToken;
+  } while (pageToken);
+  return files;
+}
+
+export async function downloadRange(token: string, fileId: string, start: number, end: number, deps: DriveDeps): Promise<Buffer> {
+  const response = await deps.fetch(`${DRIVE_API}/files/${encodeURIComponent(fileId)}?alt=media&supportsAllDrives=true`, {
+    headers: { authorization: `Bearer ${token}`, range: `bytes=${start}-${end}` },
+    signal: AbortSignal.timeout(300_000),
+  });
+  if (!response.ok) throw await failure(response, "Couldn't download from Drive");
+  return Buffer.from(await response.arrayBuffer());
+}
+
+// Which packages to trash so only the newest `keep` scheduled ones stay.
+export function selectPackagesForDeletion(files: readonly DrivePackage[], keep: number): DrivePackage[] {
+  const scheduled = files.filter((file) => /^ars-scheduled-\d{8}-\d{6}(-[a-z0-9]+)?\.arsbak$/.test(file.name)).sort((a, b) => (a.name < b.name ? 1 : -1));
+  return scheduled.slice(Math.max(1, Math.floor(keep)));
+}

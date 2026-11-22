@@ -33,6 +33,8 @@ export default async function SuperAdminLayout({ children }: { children: React.R
         { href: "/superadmin/demo", label: "Demo data" },
         { href: "/superadmin/automation", label: "Automation" },
         { href: "/superadmin/retention", label: "Retention & legal holds" },
+        // v1.81.0 (D-408, BK-1): the Backup, restore & migrate centre.
+        { href: "/superadmin/backup", label: "Backup, restore & migrate" },
         { href: "/superadmin/deliveries", label: "Message deliveries" },
         { href: "/superadmin/audit", label: "Audit log" },
         { href: "/superadmin/logins", label: "Sign-in history" },

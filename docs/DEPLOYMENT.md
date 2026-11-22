@@ -211,6 +211,14 @@ Stops anyone reaching the GoDaddy server directly, around Cloudflare (and faking
 1. https://approval.arssteels.net → **Continue with Google** → **itsupport@arsenergy.co.in** (D-082). The seed created this Super Admin, User ID `itadmin`. `itadmin@arssteels.co.in` can't be used: it's only an alias, and Google reports the main address.
 2. You land on **My approvals**. Your name at the top right opens a menu whose **Switch space** section shows Admin and Super Admin.
 
+### G0z. Backup, restore & migrate centre (v1.81.0)
+1. Publish v1.81.0. The migration `202611241100_backup_centre.sql` runs on start (no triggers, nothing optional): it adds `backup_runs` and `backup_uploads`.
+2. Super Admin → Providers & security → Feature switches → **Backup, restore & migrate centre** → **On** (only the Super Admin sees it in any case).
+3. Super Admin → **Backup, restore & migrate** → Make a backup → Everything → a passphrase you store in your password manager → keep on the server and download. Check it once: Restore… → Check package (nothing changes).
+4. Optional: Providers & security → Backups → **Scheduled full package** → Daily, **Scheduled packages to keep** (default 7), **Also copy each scheduled package to the Google Drive folder**. Needs `BACKUP_ENCRYPTION_KEY` (already set for the daily backup, D-246). Mind Private Storage space: each package holds every attachment.
+5. No new secret or cron entry (the existing job runner does the scheduled work). Packages live in `/private/backups/packages`.
+6. **Never use Database Manager → Import** to restore or move data: it deletes every table first. Use the centre (Part P4).
+
 ### G0y. Motion, loading and keyboard flow (v1.80.0)
 1. Publish v1.80.0. **No migration.**
 2. A new feature switch, **Page transitions** (`features.page_transitions`), starts **Off**: pages change as before. To try it: Super Admin → Settings → Feature switches → Page transitions → **IT team only** (then **On** for everyone). Off again at any time, with nothing to undo.
@@ -661,6 +669,14 @@ The automated version of this drill runs in every CI build (`tests/integration/b
 3. GoDaddy → the app → change the `DB_…` secrets to the restored database → **Publish**.
 4. Copy `BACKUP_DIR/attachments/*` back into `UPLOAD_DIR` (File Manager), keeping the folder structure.
 5. Anything done after the backup's time must be redone; the audit log of the old database (if it still exists) shows what.
+
+### P4. The Backup, restore & migrate centre (v1.81.0, D-408)
+The preferred way from v1.81.0: Super Admin → **Backup, restore & migrate**.
+- **Full backup:** Make a backup → Everything (database, every attachment, the server secrets) → passphrase → download it and keep it off GoDaddy. Scheduled packages: Providers & security → Backups.
+- **Restore on the same server:** Restore… → Check package → choose what → type the database's name → Restore now. A safety snapshot comes first; a failure undoes itself.
+- **Move to a VPS (or back to GoDaddy):** on the new server install the same version, `npm ci && npm run build && npm start` with an `.env` holding at least `DB_*`, `SESSION_SECRET`, `ENCRYPTION_KEY` (its own) and `APP_BASE_URL`; sign in as the Super Admin (the seed makes `itadmin`), switch the centre on, **Upload a package** → Restore… → Everything. Then **Show the server secrets** and copy the ones marked Different or Not set (**Copy as .env**), keep that server's own `DB_*` and `ENCRYPTION_KEY`, and restart. On GoDaddy: the same, with Secrets → Publish.
+- **Without the app (command line or start-up):** `node scripts/database/restore.js <package.arsbak> --confirm-database=<DB_NAME> [--mode=full|database|files]` asks for the passphrase (or reads `RESTORE_PASSPHRASE`). On GoDaddy at start-up: put the package in the app folder and set the secrets `RESTORE_CONFIRM` = the database name, `RESTORE_FILE` = its path, `RESTORE_PASSPHRASE` (or `RESTORE_BACKUP_KEY` for a scheduled package / safety snapshot), optional `RESTORE_MODE`; remove them after the log says `[restore-on-start] restored`.
+- **Never** Database Manager → Import (it drops every table first).
 
 ---
 

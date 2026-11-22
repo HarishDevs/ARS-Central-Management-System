@@ -26,6 +26,7 @@ export const metadata: Metadata = {
 // request's background work step may read that request.
 // v1.46.0 (D-277, D-278): the encrypted backup copy may go to an ARS Google
 // Drive folder; security records are deleted after 90 days.
+// v1.81.0 (D-408): full encrypted backups with every file and the server keys, restore and moves (Super Admin).
 const PRIVACY_EFFECTIVE = "23 November 2026";
 
 export default function PrivacyPage() {
@@ -166,6 +167,13 @@ export default function PrivacyPage() {
           The app is served only over HTTPS. Access is checked on the server for every page and action. Secrets and Google tokens are stored encrypted. Changes and sensitive actions are recorded in an
           audit log that cannot be edited. Daily backups carry a checksum, can be encrypted (AES-256-GCM), and are encrypted before any copy leaves the server.
         </p>
+        <p>
+          <strong>Full backups and moving the system (Super Admin only).</strong> The Super Admin can put the whole system in one backup file: every record, every attached file and the
+          server&apos;s own keys and passwords (so the system can be rebuilt on another ARS server). The file is encrypted end to end (AES-256-GCM, with a key made from a passphrase the Super Admin
+          types; the passphrase is never stored) and each part carries a checksum. It is kept in the server&apos;s private storage, downloaded by the Super Admin, or copied to the ARS Google Drive
+          folder; scheduled copies use a separate server key. Before any restore a safety copy of the system as it is is made the same way. Every download, restore and display of the keys is
+          recorded in the audit log and told to the Super Admin by email and WhatsApp. A restore puts back the records as they were at the backup&apos;s time and signs everyone out.
+        </p>
 
         <h2>Keeping and deleting information</h2>
         <ul>
@@ -180,7 +188,7 @@ export default function PrivacyPage() {
             for good with their comments, reactions, files, fields and history (a project also with its intake forms, the answers submitted through them, its dashboards and capacity settings, and its place in every portfolio). Deleted portfolios are kept for 30 days, then removed for good with their members, columns and values, and status updates (the projects in them are never touched), unless IT has turned this off. A deleted custom field can be restored for 30 days; after that it is removed for good with its values. A ticket&apos;s or meeting&apos;s task and the tasks of a request under a legal hold are never removed this way.
           </li>
           <li>
-            <strong>AI conversations</strong> are removed after the period IT sets (unless a legal hold applies). <strong>Backups</strong> are kept for a limited number of days, then deleted.
+            <strong>AI conversations</strong> are removed after the period IT sets (unless a legal hold applies). <strong>Backups</strong> are kept for a limited number of days, then deleted. Full backup files stay in the server&apos;s private storage until the Super Admin deletes them (scheduled ones: the newest few the Super Admin chooses; a backup made only to download: until downloaded, at most 24 hours).
           </li>
           <li>
             <strong>Security records</strong> (sign-in attempts, WhatsApp code records, ended sessions and used security or set-password links) are deleted automatically after 90 days, unless a

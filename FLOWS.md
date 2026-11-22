@@ -2682,6 +2682,34 @@ flowchart TD
   M --> S[seed.js] --> N[next start]
 ```
 
+## F-OPS-BACKUP-CENTRE: Backup, restore & migrate (v1.81.0, D-408)
+```mermaid
+flowchart TD
+  A[Super Admin → Backup, restore & migrate] --> B{features.backup_centre and SUPER_ADMIN?}
+  B -- no --> Z[404 / switched-off notice]
+  B -- yes --> C{what}
+  C -- Make a backup --> D[passphrase ≥12, Everything or Database only, where]
+  D --> E[run BACKUP: steps of ~20 s: head, secrets, tables, triggers, files, manifest]
+  E --> F[packages/ars-full-….arsbak + .sha256 + .json]
+  F --> G{download / keep / Drive}
+  C -- Upload or From Drive --> U[pieces → packages/ars-upload- or ars-drive-…]
+  U --> R
+  F --> R[Restore… → passphrase → Check package: read all parts, compare checksums, summary + warnings]
+  R --> S[mode: everything / database / files / chosen tables + typed DB name]
+  S --> T[active_slot RESTORE, maintenance notice, audit + alert]
+  T --> SS[safety snapshot ars-safety-…]
+  SS --> L[load as _rs_ tables + staged files; counts = manifest]
+  L -- error --> X1[drop _rs_ and staged files: nothing changed]
+  L --> SW[one RENAME: live → _old_, _rs_ → live; counts again; re-key; files in]
+  SW -- error --> X2[rename back, files back: ROLLED_BACK]
+  SW --> FN[drop _old_, add keys, checks, triggers; clear sessions]
+  FN -- error --> X3[restore the safety snapshot: ROLLED_BACK]
+  FN --> MG[migrate.js + seed.js] --> DONE[DONE: alert, everyone signs in again, Show server secrets]
+  MG -- error --> X3
+  J[job runner backupCentre] --> J1[scheduled package with BACKUP_ENCRYPTION_KEY, keep N, Drive]
+  J --> J2[stop runs left 30 min before any change; finish restores past the switch]
+```
+
 ## F-HOME-OVERVIEWS: The three Home overviews and their widgets (v1.79.0, D-406)
 ```mermaid
 flowchart TD

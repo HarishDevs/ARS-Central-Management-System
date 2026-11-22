@@ -19,7 +19,7 @@ export default function TermsPage() {
     <PublicPage>
       <Prose>
         <h1>Terms of use</h1>
-        <p className="text-label text-ink-muted">Effective 22 November 2026 · approved by the head of IT, 2 November 2026</p>
+        <p className="text-label text-ink-muted">Effective 23 November 2026 · approved by the head of IT, 2 November 2026</p>
         <p>
           ARS CMS (approval.arssteels.net) is provided by {COMPANY} (&ldquo;ARS&rdquo;) for its employees to carry out company work. By signing in you agree to these terms and to ARS&apos;s
           policies that apply to company systems.
@@ -39,6 +39,12 @@ export default function TermsPage() {
             does it. Only the Super Admin removes the IT Admin role from another IT Admin.
           </li>
           <li>Don&apos;t try to access records you aren&apos;t given, get around security, or disrupt the service.</li>
+          <li>
+            Backups and moving the system (the Super Admin only): a full backup holds every record, file and server key, so treat the file and its passphrase like the keys to the whole system.
+            Choose a strong passphrase, keep it apart from the file (ARS can&apos;t recover a lost one), keep downloaded copies only on ARS-controlled storage, and delete copies you no longer need.
+            Restore only after checking the package, and only when the restore is genuinely needed: it puts back the records as they were at the backup&apos;s time for everyone and signs everyone
+            out. Never load data with the hosting provider&apos;s database import tool, which deletes every table first.
+          </li>
           <li>Tasks, projects, comments, mentions and notices are work records: keep them to work, and mention or add people only where they need to know.</li>
           <li>Deleting a task or project is undone with Undo or restored from Deleted within 30 days. After 30 days it is removed for good and can&apos;t be brought back, so restore anything you still need in time.</li>
           <li>Reactions on comments are seen by everyone who can see the comment: use them as you would any work message. Your stars and sidebar order are yours alone.</li>

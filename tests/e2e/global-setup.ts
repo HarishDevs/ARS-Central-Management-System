@@ -44,6 +44,8 @@ export default async function globalSetup(): Promise<void> {
     await conn.query("INSERT INTO system_settings (setting_key, setting_group, value_type, encrypted, value) VALUES ('features.pm_portfolios', 'FEATURES', 'STRING', FALSE, 'ON') ON DUPLICATE KEY UPDATE value = 'ON'");
     // v1.70.0 (D-383): the PM phase E switch (templates and extras), likewise ON for the e2e run.
     await conn.query("INSERT INTO system_settings (setting_key, setting_group, value_type, encrypted, value) VALUES ('features.pm_extras', 'FEATURES', 'STRING', FALSE, 'ON') ON DUPLICATE KEY UPDATE value = 'ON'");
+    // v1.81.0 (D-408): the Backup, restore & migrate centre switch, likewise ON for the e2e run.
+    await conn.query("INSERT INTO system_settings (setting_key, setting_group, value_type, encrypted, value) VALUES ('features.backup_centre', 'FEATURES', 'STRING', FALSE, 'ON') ON DUPLICATE KEY UPDATE value = 'ON'");
   } finally {
     await conn.end();
   }

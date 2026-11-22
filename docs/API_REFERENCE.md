@@ -439,3 +439,14 @@ Then the rule's steps run on that task, with the rule owner's rights.
 **Answers:** `201` created / `200` updated: `{"success": true, "data": {"taskId", "taskNo", "created", "run": "SUCCEEDED" | "FAILED" | "SKIPPED" | "ALREADY_RECEIVED", "error"}}`; `400` not a JSON object or a bad field; `401` signature or token missing or wrong; `404` not found (or no task with that number / ID); `409` rule switched off or paused; `413` body too large; `422` the task couldn't be created or changed (the reason); `429` more than 60 calls a minute for the rule (or the app-wide webhook limit). Every call is logged on the rule (accepted bodies kept 30 days).
 
 Example: `curl -X POST "$URL" -H "content-type: application/json" -H "authorization: Bearer $SECRET" -d '{"title":"New order 4411","dueDate":"2026-12-01"}'`
+
+
+## Backup, restore & migrate (v1.81.0, D-408)
+Super Admin only (a plain `404` for anyone else, and while `features.backup_centre` is OFF). Same-site requests only. Answers use the usual envelope; nothing returned or logged holds a passphrase or key, except the secrets call below, which returns the package's server secrets to the Super Admin's screen.
+- `GET /api/superadmin/backup-centre/runs`: packages on the server and the latest 25 runs.
+- `POST /api/superadmin/backup-centre/runs` with `{action: "backup", include: "full"|"database", keepOnServer, copyToDrive, passphrase}`, `{action: "verify", name, passphrase}`, `{action: "restore", verifyRunId, mode: "full"|"database"|"files"|"tables", tables, confirm: <DB_NAME>, acceptWarnings, passphrase?}`, `{action: "drive-copy", name}` or `{action: "drive-fetch", fileId, name, size}`: starts a run, does its first step, returns `{run, token}`.
+- `GET|POST|DELETE /api/superadmin/backup-centre/runs/{id}`: the run; one more step (`{passphrase?}`; header `x-run-token` lets the person who started a restore carry on after the switch signed everyone out); stop it (only before anything changed). `PASSPHRASE_NEEDED` (400) means type the passphrase again.
+- `GET /api/superadmin/backup-centre/packages/{name}`: download (streamed; audited and alerted). `DELETE` removes it.
+- `POST /api/superadmin/backup-centre/packages/{name}/secrets` `{passphrase}`: `{env, here}` (audited and alerted).
+- `POST /api/superadmin/backup-centre/uploads` `{fileName, size}` → `{id, pieceSize}`; `PUT /api/superadmin/backup-centre/uploads/{id}?offset=N` with a piece (at most 8 MiB) → `{received, size, packageName}` (a piece that doesn't start at `received` isn't written: carry on from there); `DELETE` cancels.
+- `GET /api/superadmin/backup-centre/drive`: the packages in the Google Drive backup folder.

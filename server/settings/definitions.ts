@@ -32,6 +32,10 @@ export const SETTING_DEFINITIONS: readonly SettingDefinition[] = [
   { key: "backup.s3_bucket", group: "BACKUP", label: "Bucket", valueType: "STRING", encrypted: false, schema: z.string().trim().regex(/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/, "Use the bucket's name (lower-case letters, numbers, dots and hyphens).") },
   { key: "backup.s3_access_key_id", group: "BACKUP", label: "Access key ID (a key that may only write to this bucket)", valueType: "STRING", encrypted: false, schema: z.string().trim().min(1).max(200) },
   { key: "backup.s3_secret_access_key", group: "BACKUP", label: "Secret access key", valueType: "STRING", encrypted: true, schema: z.string().trim().min(1).max(200) },
+  // v1.81.0 (D-408): scheduled full packages (database + attachments + secrets), encrypted with BACKUP_ENCRYPTION_KEY (no person types a passphrase at night).
+  { key: "backup.package_schedule", group: "BACKUP", label: "Scheduled full package (database, every attachment and the server secrets; needs BACKUP_ENCRYPTION_KEY)", valueType: "STRING", encrypted: false, schema: z.enum(["OFF", "DAILY", "WEEKLY"]), defaultValue: "OFF" },
+  { key: "backup.package_keep", group: "BACKUP", label: "Scheduled packages to keep on the server (older ones are deleted)", valueType: "NUMBER", encrypted: false, schema: z.coerce.number().int().min(1).max(60), defaultValue: "7" },
+  { key: "backup.package_drive", group: "BACKUP", label: "Also copy each scheduled package to the Google Drive folder (set up under Google Drive backup)", valueType: "STRING", encrypted: false, schema: z.enum(["ON", "OFF"]), defaultValue: "OFF" },
   // D-252: phone and desktop notifications (Web Push with VAPID). The keys are made by
   // "Generate keys" on this page; the private key is stored encrypted and never leaves the server.
   // DR-08 (owner, 2 Nov 2026): the encrypted daily backup copied to an ARS Google Drive folder by a service account.
@@ -75,6 +79,8 @@ export const SETTING_DEFINITIONS: readonly SettingDefinition[] = [
   { key: "features.pm_extras", group: "FEATURES", label: "Projects E, templates and extras: complete templates with a gallery, duplicate with choices, import and export (CSV, Excel, JSON), calendar feeds (phase E)", valueType: "STRING", encrypted: false, schema: z.enum(["ON", "OFF", "IT_ONLY"]), defaultValue: "OFF" },
   // v1.80.0 (D-407, motion review point 4): page transitions. Off until IT releases it; with it off pages change exactly as before.
   { key: "features.page_transitions", group: "FEATURES", label: "Page transitions: the main area cross-fades when the page changes, a request or ticket's title moves into the heading when opened from a list, and focus goes to the new heading (browsers with view transitions; never with Reduce motion)", valueType: "STRING", encrypted: false, schema: z.enum(["ON", "OFF", "IT_ONLY"]), defaultValue: "OFF" },
+  // v1.81.0 (D-408, BK-1): the Backup, restore & migrate centre (Super Admin only, whatever the switch). Off until the Super Admin switches it on.
+  { key: "features.backup_centre", group: "FEATURES", label: "Backup, restore & migrate centre (Super Admin): full encrypted packages with every attachment and the server secrets, restore with a dry run and a safety snapshot, and moving the system to another server", valueType: "STRING", encrypted: false, schema: z.enum(["ON", "OFF", "IT_ONLY"]), defaultValue: "OFF" },
   // Retention (FN10, D-126): 0 = not set, keep for ever. Setting a value only
   // changes the dry run; nothing is archived or deleted automatically.
   { key: "retention.requests_years", group: "RETENTION", label: "Keep finished requests for (years; 0 = keep for ever)", valueType: "NUMBER", encrypted: false, schema: z.coerce.number().int().min(0).max(50), defaultValue: "0" },

@@ -118,3 +118,13 @@ One migration, `202611021000_unify_condition_rules.sql`, applied on start. Unlik
 - **Rolling back to v1.45.0:** v1.45.0 can't read the new shape. Redeploy `v1.45.0`, then run the rollback statements in the header of the migration file (three `UPDATE … JOIN condition_rules_backup` and one `DELETE FROM schema_migrations`). Rules saved after the migration are lost by this rollback.
 - **Rolling forward again:** publishing v1.46.0 runs the migration again; it backs up only rows not already in the backup table and converts the older rules.
 - Drop `condition_rules_backup` once the release has settled.
+
+
+## 7. The Backup, restore & migrate centre (v1.81.0, D-408)
+| What | How | Where |
+|---|---|---|
+| Full package (`.arsbak`) | Super Admin → Backup, restore & migrate → Make a backup: database, every attachment, server secrets; AES-256-GCM with a passphrase (scrypt N=2^17); per-part checksums | `<backup folder>/packages`, a download, Google Drive |
+| Scheduled package | Job step `backupCentre` (daily or weekly), with `BACKUP_ENCRYPTION_KEY` | Same, newest `backup.package_keep` kept |
+| Safety snapshot | Before every restore, automatically | Same list (`ars-safety-…`) |
+
+Restore: Check package (dry run) → mode → typed database name → snapshot → load beside the live tables (`_rs_*`) → one atomic RENAME (live tables kept as `_old_*`) → row counts checked → encrypted settings re-keyed → old tables dropped, links, checks and triggers added back → migrations. A failure before the old tables are dropped renames back; after, the safety snapshot is restored. Every session ends. Rolling back v1.81.0: the code to v1.80.x, then the two `DROP TABLE` lines in the migration's header; packages stay readable by v1.81.0 or later. **Never** use GoDaddy Database Manager → Import for any of this.

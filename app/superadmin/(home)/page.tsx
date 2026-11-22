@@ -9,6 +9,7 @@ import { listRawSettings } from "@/lib/db/repositories/settings.repository";
 import { backupStatus } from "@/server/ops/backup";
 import { formatIndiaTime } from "@/server/notifications/security-messages";
 import { BackupNowButton } from "@/features/superadmin/BackupNowButton";
+import { ImportTrapNotice } from "@/features/superadmin/backup/ImportTrapNotice";
 import { checkStorage, STORAGE_PROBLEM_TEXT } from "@/server/attachments/storage";
 import { loadTemplateBoard } from "@/server/notifications/template-registry";
 import { templatesNeedingAttention } from "@/server/notifications/template-reminder";
@@ -139,6 +140,15 @@ export default async function SuperAdminHome() {
               : "No backup yet. The job runner makes one a day once the cron job is set up, or press Back up now."}
           </p>
           <BackupNowButton />
+          {/* D-408: the full backup (attachments and secrets too) and restore live in the centre. */}
+          <p className="text-label text-ink-muted">
+            For a full encrypted backup with every attachment and the server secrets, a restore with a safety snapshot, or a move to another server, open{" "}
+            <Link className="link" href="/superadmin/backup">
+              Backup, restore &amp; migrate
+            </Link>
+            .
+          </p>
+          <ImportTrapNotice withLink />
         </div>
       </section>
     </>

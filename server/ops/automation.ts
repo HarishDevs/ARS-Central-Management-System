@@ -171,6 +171,19 @@ export const AUTOMATIONS: readonly Automation[] = [
     recovery: "Check Super Admin → Settings → Google Drive backup (Test), then Run now on Automation.",
     owner: "Super Admin",
   },
+  // v1.81.0 (D-408, BK-1): the Backup, restore & migrate centre's unattended work.
+  {
+    key: "backupCentre",
+    name: "Backup centre: scheduled packages and left runs",
+    what: "Makes the scheduled full package (database, every attachment and the server secrets, encrypted with BACKUP_ENCRYPTION_KEY) when due, copies it to Google Drive if asked, carries on copies and the last stages of a restore nobody is watching, stops runs a person left for 30 minutes (safely: nothing changed), and keeps only the newest packages.",
+    trigger: "Every job run; the package itself daily or weekly as set in Super Admin → Backup, restore & migrate.",
+    everyMinutes: 5,
+    retry: "Each run carries on where the last one stopped (work is saved in steps).",
+    idempotency: "One scheduled package per day/week; a step holds a lease, so two runners never work on the same run; a half-made package is never listed.",
+    onFailure: "The run is marked Failed in Recent activity (a half-made package is removed; a restore is undone).",
+    recovery: "Open Super Admin → Backup, restore & migrate, read the run's message, then start it again.",
+    owner: "Super Admin",
+  },
   {
     key: "reports",
     name: "Scheduled reports",
@@ -401,6 +414,10 @@ const STEPS: Record<string, () => Promise<StepResult>> = {
   delegations: () => auditDelegationDates(),
   backup: () => runDailyBackup(),
   driveBackup: () => runDriveBackupStep(),
+  backupCentre: async () => {
+    const { runBackupCentreJob } = await import("@/server/ops/backup-centre/service");
+    return { ...(await runBackupCentreJob()) };
+  },
   securityRetention: () =>
     runSecurityRetentionWith({
       db: getDbPool(),

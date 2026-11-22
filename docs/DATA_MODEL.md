@@ -1189,6 +1189,13 @@ Setting: `features.pm_extras` (ON / OFF / IT_ONLY, default OFF). Imports and exp
 
 `work_favourites.object_type` adds PORTFOLIO. Setting: `features.pm_portfolios` (ON / OFF / IT_ONLY, default OFF). Figures (task progress, counts, charts) are not stored: worked out per viewer from `task_projects`/`tasks` over the projects they can see, each task once.
 
+## Backup centre (v1.81.0, D-408; migration 202611241100_backup_centre.sql)
+- `backup_runs`: one row per backup, check, restore, safety snapshot or Google Drive copy. `kind` (BACKUP | VERIFY | RESTORE | DRIVE_COPY | DRIVE_FETCH), `trigger_type` (MANUAL | SCHEDULED | SAFETY), `status` (RUNNING | DONE | FAILED | CANCELLED | ROLLED_BACK), `phase`, `mode`, `package_name`, `key_kind` (PASSPHRASE | SERVER_KEY), `options_json` (choices), `state_json` (step state: positions, counts and names only), `summary_json` (what a check or restore found), progress, `message`, `error_text`, `token_hash` (sha256 of the browser's run token; cleared when the run ends), `lease_until` (a step is working), `active_slot` (UNIQUE; 'RESTORE' while a restore runs, so only one at a time), `parent_run_id`, `created_by` (users.id, no foreign key: users may be replaced by a restore). Never a passphrase, key or secret.
+- `backup_uploads`: a package arriving from the PC in pieces: `file_name`, `stored_name`, `size_expected`, `size_received`, `status` (RECEIVING | DONE | CANCELLED), `package_name`.
+- Neither table (nor `ops_restores`, `schema_migration_progress`) is ever in a backup or replaced by a restore. A restore loads tables as `_rs_<name>` and keeps the replaced ones as `_old_<name>` until it finishes (both gone afterwards).
+- Settings: `features.backup_centre` (ON / OFF / IT_ONLY, default OFF; Super Admin only in any case), `backup.package_schedule` (OFF / DAILY / WEEKLY, default OFF), `backup.package_keep` (default 7), `backup.package_drive` (ON / OFF, default OFF).
+- Files (not in the database): `<backup folder>/packages/ars-<kind>-YYYYMMDD-HHMMSS[-id].arsbak` with `.sha256` and `.json` (summary, no secrets) beside it. Format: `scripts/database/arsbak.js`.
+
 ## Page transitions switch (v1.80.0, D-407; no migration)
 Setting: `features.page_transitions` (ON / OFF / IT_ONLY, default OFF) in `system_settings` (group FEATURES). Nothing else is stored on the server. In the browser tab's own session storage only: `ars.place:<path>` (a list's scroll height and the link opened from it, read back for 30 minutes on Back) and `ars.flow.queue` (the request last opened from Waiting for me, for "Next waiting for you").
 

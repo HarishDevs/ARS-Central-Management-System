@@ -1,5 +1,18 @@
 # Release notes
 
+## v1.81.0 (23 Nov 2026): Backup, restore & migrate centre (part 1)
+Migration `202611241100_backup_centre.sql` (runs on start; no triggers). A new Super Admin switch, **Backup, restore & migrate centre** (`features.backup_centre`, default **Off**); only the Super Admin can use it whatever the switch says (D-408, BK-1, owner brief `docs/ops/BACKUP-CENTRE-BRIEF.md`):
+- **One encrypted file for the whole system (.arsbak):** every table and row, every attachment and the server secrets (ENCRYPTION_KEY, SESSION_SECRET, database, Firebase and other keys), with a summary and a checksum for every part. Encrypted end to end with AES-256-GCM using a key made from a **passphrase you type** (at least 12 characters; never stored, never sent anywhere but this server). Made in steps of about 20 seconds, so a big system never hits a time limit.
+- **Make a backup:** Everything or Database only; keep it on the server (Private Storage), download it when ready, copy it to the Google Drive backup folder.
+- **Scheduled packages** (daily or weekly, keep the newest N, optionally to Drive), encrypted with the server's `BACKUP_ENCRYPTION_KEY` because nobody types a passphrase at night. Set in Providers & security → Backups. The daily database backup carries on as before.
+- **Restore** a package from the server list, an **upload** (in pieces, resumable, no size limit) or **Google Drive**: first **Check package** (passphrase, every part's checksum, version, sizes; nothing changes), then choose **Everything**, **Database only**, **Attachments only** or **Chosen tables**, and type the database's name. A **safety snapshot** of the system as it is comes first. The backup is loaded beside the live data and switched in at once; if anything fails the live data is switched straight back (or the snapshot is restored). An older backup is brought up to date by the migrations. Encrypted settings are re-keyed to this server's ENCRYPTION_KEY. Everyone signs in again afterwards. A maintenance notice shows for everyone while it runs.
+- **After the restore** of a full package: **Show the server secrets** in it (passphrase again), marked Same / Different / Not set here, with **Copy as .env** for a VPS.
+- **Move to another server** (GoDaddy ↔ VPS) with the package: make Everything here, upload and restore there, set the secrets shown. App-to-app sending with a pairing code, direct database-to-database copy, S3 and restore from a link follow in v1.82.0.
+- **Told and recorded:** every download, restore (start, finish, undo), upload and showing of secrets is in the audit log and goes to every Super Admin by email and WhatsApp.
+- **GoDaddy Import trap:** Overview → Backups and the centre warn that Database Manager → Import deletes every table first, and point to the centre.
+- `restore.js` and `restore-on-start.js` read the new package too (`RESTORE_PASSPHRASE`, optional `RESTORE_MODE`).
+- **Owner steps:** publish v1.81.0 (the migration runs by itself). Super Admin → Providers & security → Feature switches → **Backup, restore & migrate centre** → On. Make a first full backup with a passphrase you keep in your password manager, and download it. Optional: Backups → Scheduled full package → Daily (needs `BACKUP_ENCRYPTION_KEY`).
+
 ## v1.80.0 (23 Nov 2026): Smoother to use: motion, loading and keyboard flow
 No migration. One new Super Admin switch, **Page transitions** (`features.page_transitions`, default **Off**). The owner-approved interaction, motion and loading review (D-407):
 - **Dialogs and drawers** open and close with a short fade (dialogs grow slightly, drawers slide in); the background fades with them. Escape, × and a click outside close them as before; focus goes back to the button that opened them.

@@ -1,4 +1,4 @@
-import { Briefcase, Ticket, TicketPlus, Tags, LayoutDashboard as TicketBoard, Columns3 as CoordinatorBoard, AlarmClock, FolderPlus, BookOpenCheck, ChartNoAxesCombined, Sheet, Cloud, AlertTriangle, Plug, CheckCheck, ChartLine, Archive, FileBarChart, BarChart3, Bot, BellRing, Building2, CalendarDays, ClipboardCheck, FileClock, FilePlus2, FileSearch, FileText, Gauge, HelpCircle, History, CalendarOff, Home, Inbox, KeyRound, LayoutDashboard, ListChecks, MessageSquareText, Scale, Send, Settings, ShieldCheck, Upload, User, UserCog, Users, UsersRound, ListTodo, ClipboardList, Megaphone, MailPlus, Network, Newspaper, Sparkles, MessagesSquare, Database, FileChartColumn, Folder, Files, RefreshCw, Layers, FilePenLine, FileCheck2, CalendarClock, CalendarPlus, CalendarCog, type LucideIcon, Undo2 } from "lucide-react";
+import { Briefcase, Ticket, TicketPlus, Tags, LayoutDashboard as TicketBoard, Columns3 as CoordinatorBoard, AlarmClock, FolderPlus, BookOpenCheck, ChartNoAxesCombined, Sheet, Cloud, AlertTriangle, Plug, CheckCheck, ChartLine, Archive, FileBarChart, BarChart3, Bot, BellRing, Building2, CalendarDays, ClipboardCheck, FileClock, FilePlus2, FileSearch, FileText, Gauge, HelpCircle, History, CalendarOff, Home, Inbox, KeyRound, LayoutDashboard, ListChecks, MessageSquareText, Scale, Send, Settings, ShieldCheck, Upload, User, UserCog, Users, UsersRound, ListTodo, ClipboardList, Megaphone, MailPlus, Network, Newspaper, Sparkles, MessagesSquare, Database, DatabaseBackup, FileChartColumn, Folder, Files, RefreshCw, Layers, FilePenLine, FileCheck2, CalendarClock, CalendarPlus, CalendarCog, type LucideIcon, Undo2 } from "lucide-react";
 
 // UI-04: one icon per navigation entry. The label always stays beside it.
 const ICONS: Record<string, LucideIcon> = {
@@ -96,6 +96,7 @@ const ICONS: Record<string, LucideIcon> = {
   "/superadmin/deliveries": BellRing,
   "/superadmin/automation": Bot,
   "/superadmin/retention": Archive,
+  "/superadmin/backup": DatabaseBackup,
   "/superadmin/audit": History,
   "/superadmin/logins": KeyRound,
 };

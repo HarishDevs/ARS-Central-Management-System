@@ -28,7 +28,7 @@ export async function loadDriveBackupConfig(): Promise<DriveBackupConfig | null>
   return loadDriveSettings();
 }
 
-async function loadDriveSettings(): Promise<DriveBackupConfig> {
+export async function loadDriveSettings(): Promise<DriveBackupConfig> {
   const [json, folderId, keep] = await Promise.all([getSettingValue("backup.gdrive_service_account_json"), getSettingValue("backup.gdrive_folder_id"), getSettingValue("backup.gdrive_keep")]);
   if (!json || !folderId) throw new Error("Google Drive backup isn't fully set up (the service-account key and the folder id are both needed).");
   return { key: parseServiceAccountKey(json), folderId, keep: Math.min(Math.max(Number(keep) || 14, 1), 90) };
