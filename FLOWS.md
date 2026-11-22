@@ -1889,6 +1889,61 @@ The application audit (`application-audit/`) found these gaps between flows and 
 - **F-59 Bulk import:** the import doesn't apply the rule that only the Super Admin changes another IT Admin's contact details (AUD-01). Fix planned: V181-A2.
 - **F-121 Page access:** an action posted from an address that is no configured page isn't restricted (AUD-14). Fix planned: V181-A7.
 
+## F-PM-FILES: The project's Files tab (v1.71.0, D-384; "pm_extras")
+```mermaid
+flowchart TD
+  A[+ Add tab → Files] --> B{pm_extras on? sees the project?}
+  B -- no --> X[Not offered / Not found]
+  B -- yes --> C[record_files of the project's tasks and subtasks the person may see visibleTaskClause, deleted tasks left out; Form submission when uploaded by the submitter with the submission; files of messages not deleted]
+  C --> D[Gallery or List; filter type / task / added by / India day; search; sort]
+  D --> E[Preview image · Open PDF inline · Download · Go to task opens the pane · Go to message]
+  E --> F[/api/files/id: TASK → the task's rule; PROJECT_MESSAGE → sees the project and the message not deleted; else 404 + audit]
+```
+
+## F-PM-MESSAGES: Project messages (v1.71.0, D-384; "pm_extras")
+```mermaid
+flowchart TD
+  A[Messages tab → Send a message to the project] --> B{commenter, editor or owner? project not archived?}
+  B -- no --> X[Refused; viewers read only]
+  B -- yes --> C[Subject 1-150, body 1-10,000 app formatting text, ≤ 10 files checked like task files; 20 a minute]
+  C --> D[Insert thread + files + audit in one transaction]
+  D --> E[Notices WORK_PROJECT_MESSAGE: members who can see the project; @mentioned who can see it; others mentioned: the sender is told they weren't]
+  R[Reply on a thread] --> R1{thread exists, not deleted, is a thread not a reply?}
+  R1 -- yes --> R2[Insert reply; thread last_activity; notices to the thread's people + mentions]
+  ED[Edit / Delete] --> ED1{writer or IT?}
+  ED1 -- yes --> ED2[Old subject + body saved to project_message_versions, then changed or marked deleted; files of a deleted message no longer served]
+  ED2 --> SE[Show edits: anyone who sees the project]
+  RE[Reaction] --> RE1{commenter+?} -- yes --> RE2[Toggle one of six]
+```
+
+## F-PM-PAGE: The project's page (v1.71.0, D-384; "pm_extras")
+```mermaid
+flowchart TD
+  A[Page tab] --> B[Everyone who sees the project reads: title, formatted page, linked tasks they may see, how many they can't, version history]
+  B --> E{Edit: owner or editor?}
+  E -- yes --> F[Title ≤ 150, page ≤ 100,000; Link a task inserts a link to one of the project's tasks]
+  F --> S[Save with the version it started from]
+  S --> S1{newer version saved in between?}
+  S1 -- yes --> X[Refused: copy, reload, add again]
+  S1 -- no, same text --> N[No change]
+  S1 -- no --> W[row_version + 1; version row; keep the newest 50; audit; people newly @mentioned who see the project are told]
+  V[Version history → Restore N] --> W2[The text of N saved as a new version restored_from N]
+```
+
+## F-PM-TIME: Time tracking on a task (v1.71.0, D-384; "pm_extras")
+```mermaid
+flowchart TD
+  A[Task → Time section] --> B{pm_extras on? sees the task?}
+  B -- yes --> C[Entries, totals per person, estimate and progress]
+  C --> L{may work on it? assignee, creator, project editor/owner, IT}
+  L -- yes --> L1[Log time: day today or ≤ 1 year back, 1 min-24 h, note ≤ 500 → entry MANUAL + task history + audit]
+  L -- yes --> L2[Start timer: one running per person and task] --> L3[Stop: minutes = elapsed, 1..1440, India day of the start]
+  C --> M{change / delete an entry: its person, IT, or owner/editor of a project the task is in?}
+  M -- yes --> M1[Change day / duration / note or delete; others' entries in the task history; audit with before/after]
+  C --> P{plans the task?} -- yes --> P1[Estimate in minutes, empty clears]
+  C --> R[Roll-ups: Overview time logged vs estimates; CSV /api/work/projects/id/time; Dashboard time entries = timer runs + entries; Workload Estimated time]
+```
+
 ## F-PM-TEMPLATES: Complete templates, gallery, duplicate (v1.70.0, D-383; "pm_extras")
 ```mermaid
 flowchart TD

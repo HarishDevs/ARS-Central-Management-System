@@ -4,6 +4,7 @@ import { findRecordFile, readRecordFile } from "@/server/modules/files";
 import { loadTaskFor } from "@/server/modules/tasks";
 import { loadInfoFor } from "@/server/modules/information";
 import { loadTicketFor } from "@/server/tickets/service";
+import { messageFileVisible } from "@/server/work/collab";
 import { ticketIdForTask } from "@/lib/db/repositories/tickets.repository";
 import { recordAudit } from "@/lib/db/repositories/audit.repository";
 import { downloadHeaders, inlineHeaders, previewKind } from "@/server/attachments/files";
@@ -27,6 +28,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     // (the assignee's supporting documents) may also be opened by those who see the ticket.
     let allowed: unknown = null;
     if (file.entityType === "TICKET") allowed = await loadTicketFor(file.entityId, viewer);
+    // v1.71.0 (D-384): a project message's file: anyone who sees the project (the message not deleted).
+    else if (file.entityType === "PROJECT_MESSAGE") allowed = (await messageFileVisible(file.entityId, { id: session.user.id, name: session.user.name, roles: session.user.roles, modules: session.user.modules })) || null;
     else if (file.entityType === "TASK") {
       allowed = await loadTaskFor(file.entityId, viewer);
       if (!allowed) {

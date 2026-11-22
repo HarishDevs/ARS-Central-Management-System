@@ -3,7 +3,7 @@
 import { Heart, Maximize2, MoreHorizontal, Trash2, Link2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { likeAction, paneWidthAction } from "@/app/users/work/actions";
 import { inside } from "@/features/ui/inside";
 import { useToast } from "@/features/ui/Toast";
@@ -114,6 +114,10 @@ export function PaneMoreMenu({ taskId, title, canDelete, closeHref, automations 
   const router = useRouter();
   const { remove, pending } = useDeleteWithUndo();
   const [confirming, setConfirming] = useState(false);
+  const summary = useRef<HTMLElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+  const [place, setPlace] = useState<React.CSSProperties>({});
   useEffect(() => {
     const close = (event: MouseEvent) => {
       if (box.current?.open && !inside(event, box.current)) box.current.open = false;
@@ -121,13 +125,51 @@ export function PaneMoreMenu({ taskId, title, canDelete, closeHref, automations 
     document.addEventListener("mousedown", close);
     return () => document.removeEventListener("mousedown", close);
   }, []);
+  // v1.71.0 (D-384): the pane's action bar wraps on a narrow pane, which put
+  // ⋯ at the pane's left edge; the menu (right-aligned to it) then ran out of
+  // the pane, was clipped by the pane's scrolling body, and the view behind
+  // took the clicks. The menu is now placed against the window (position:
+  // fixed escapes the clipping), right-aligned to ⋯ but kept inside the pane
+  // and the screen, and above ⋯ when there is no room below.
+  useLayoutEffect(() => {
+    if (!open) return;
+    const measure = () => {
+      const button = summary.current?.getBoundingClientRect();
+      const element = panel.current;
+      if (!button || !element) return;
+      const host = box.current?.closest("[data-task-pane]")?.getBoundingClientRect();
+      const width = element.offsetWidth;
+      const minLeft = Math.max(8, (host?.left ?? 0) + 8);
+      const maxLeft = Math.max(minLeft, Math.min(window.innerWidth, host?.right ?? window.innerWidth) - width - 8);
+      const left = Math.min(Math.max(button.right - width, minLeft), maxLeft);
+      const below = window.innerHeight - button.bottom - 8;
+      const up = below < Math.min(element.scrollHeight, 240) && button.top - 8 > below;
+      setPlace({ position: "fixed", left, right: "auto", marginTop: 0, maxHeight: Math.max(120, (up ? button.top - 8 : below) - 4), ...(up ? { top: "auto", bottom: window.innerHeight - button.top + 4 } : { top: button.bottom + 4, bottom: "auto" }) });
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    window.addEventListener("scroll", measure, true);
+    return () => {
+      window.removeEventListener("resize", measure);
+      window.removeEventListener("scroll", measure, true);
+    };
+  }, [open, confirming]);
   const path = `/users/tasks/${taskId}`;
   return (
-    <details ref={box} className="relative" data-testid="pane-more" onToggle={(event) => !(event.currentTarget as HTMLDetailsElement).open && setConfirming(false)}>
-      <summary aria-label="More actions for this task" title="More actions" className="grid h-8 w-8 cursor-pointer list-none place-items-center rounded-md text-ink-muted hover:bg-surface-muted hover:text-ink [&::-webkit-details-marker]:hidden">
+    <details
+      ref={box}
+      className="relative"
+      data-testid="pane-more"
+      onToggle={(event) => {
+        const isOpen = (event.currentTarget as HTMLDetailsElement).open;
+        setOpen(isOpen);
+        if (!isOpen) setConfirming(false);
+      }}
+    >
+      <summary ref={summary} aria-label="More actions for this task" title="More actions" className="grid h-8 w-8 cursor-pointer list-none place-items-center rounded-md text-ink-muted hover:bg-surface-muted hover:text-ink [&::-webkit-details-marker]:hidden">
         <MoreHorizontal aria-hidden="true" className="h-5 w-5" />
       </summary>
-      <div className="absolute right-0 z-popover mt-1 w-56 rounded-lg border border-line bg-raised p-1 text-label shadow-overlay" role="group" aria-label="More actions">
+      <div ref={panel} style={place} className="absolute right-0 z-popover mt-1 w-56 overflow-y-auto rounded-lg border border-line bg-raised p-1 text-label shadow-overlay" role="group" aria-label="More actions" data-testid="pane-more-panel">
         <button
           type="button"
           className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-surface-muted"

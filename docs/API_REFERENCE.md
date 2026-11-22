@@ -404,6 +404,12 @@ A person's calendar feed (iCalendar, RFC 5545) for calendar apps. Public (no ses
 - **Errors:** `404` (plain text) for an unknown, stopped or no-longer-allowed address; `429` more than 30 requests a minute for one address.
 - Read-only: there is no way to change anything through it.
 
+## GET /api/work/projects/{id}/time (v1.71.0, D-384)
+
+Signed in (users area, Tasks, Projects module, **Projects E** switch). Anyone who sees the project. A CSV (with a BOM; formula-looking cells prefixed with ') of the time entries on the project's tasks and subtasks that the person may see, stopped entries only: Date (India day), Person, Task ID, Task, Section, Hours (2 decimals), Minutes, Note, How (By hand / Timer), Logged on. Ordered by day and person; at most 20,000 rows. `404` not found or switched off, `429` more than 10 downloads a minute (shared with the export). Audited (`PROJECT_TIME_EXPORTED`).
+
+**`/api/files/{id}` (v1.71.0):** a file on a project message (`record_files.entity_type` PROJECT_MESSAGE) opens for anyone who sees the message's project while the message (and its conversation) is not deleted; otherwise `404` (audited `RECORD_FILE_ACCESS_DENIED`).
+
 ## GET /api/work/projects/{id}/export?format=csv|xlsx|json (v1.70.0, D-383)
 
 Signed in (users area, Tasks, Projects module, **Projects E** switch). `csv` and `xlsx`: anyone who sees the project; the List's columns (Task ID, Name, Section, Assignee, Assignee email, Due date, Start date, Priority, Status, Completed on, Parent task, Tags, Description) and every custom field as shown, for tasks and subtasks the person may see (CSV with a BOM; cells that start with = + - @ are prefixed with ' so spreadsheets don't run them). `json`: owners and editors; the full structure in the template shape (`version: 2`, see DATA_MODEL). `404` not found, `403` not allowed, `429` more than 10 downloads a minute. Audited (`PROJECT_EXPORTED`).

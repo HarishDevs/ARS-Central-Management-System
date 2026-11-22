@@ -45,6 +45,12 @@ import { loadDashboard, loadWorkload, reportingOn } from "@/server/work/reportin
 import { readLegacyTemplate } from "@/server/work/template-rules";
 import { extrasOn, templateFor } from "@/server/work/templates";
 import { TemplatePreview } from "@/features/work/extras/TemplatePreview";
+import { FilesTab } from "@/features/work/extras/FilesTab";
+import { MessagesTab } from "@/features/work/extras/MessagesTab";
+import { PageTab } from "@/features/work/extras/PageTab";
+import { loadMessages, loadPage, loadProjectFiles, mentionPeople } from "@/server/work/collab";
+import { projectTime } from "@/server/work/time-tracking";
+import { formatMinutes } from "@/server/work/collab-rules";
 
 export const metadata: Metadata = { title: "Project" };
 export const dynamic = "force-dynamic";
@@ -59,7 +65,8 @@ const VIEWS = [
 ] as const;
 // v1.65.0 (D-373): a Gantt tab (from the tab catalogue, with "pm_planning" on).
 // v1.67.0 (D-375): Dashboard and Workload tabs (with "pm_reporting" on).
-type ViewKey = (typeof VIEWS)[number]["key"] | "gantt" | "dashboard" | "workload";
+// v1.71.0 (D-384): Files, Messages and Page tabs (with "pm_extras" on).
+type ViewKey = (typeof VIEWS)[number]["key"] | "gantt" | "dashboard" | "workload" | "files" | "messages" | "page";
 
 // D-215: one project. Only people with a role on it (members, its department
 // or everyone, by its privacy) can open it; anyone else gets "not found".
@@ -80,6 +87,7 @@ export default async function ProjectPage({
     wfrom?: string;
     wunit?: string;
     wmetric?: string;
+    thread?: string;
   }>;
 }) {
   const { user, viewer } = await workPage();
@@ -176,6 +184,15 @@ export default async function ProjectPage({
   const actor = { id: user.id, name: user.name, roles: user.roles, modules: user.modules };
   const dashboard = reporting && view === "dashboard" ? await loadDashboard(project.id, actor) : null;
   const workload = reporting && view === "workload" ? await loadWorkload(project.id, actor, { from: query.wfrom, unit: query.wunit, metric: query.wmetric }) : null;
+  // v1.71.0 (D-384): the Files, Messages and Page tabs, and the project's time totals (Overview).
+  const extras = await extrasOn(user);
+  const [projectFiles, messages, page, mentionList, timeTotals] = await Promise.all([
+    extras && view === "files" ? loadProjectFiles(project.id, actor) : Promise.resolve(null),
+    extras && view === "messages" ? loadMessages(project.id, actor) : Promise.resolve(null),
+    extras && view === "page" ? loadPage(project.id, actor) : Promise.resolve(null),
+    extras && (view === "messages" || view === "page") ? mentionPeople() : Promise.resolve([]),
+    extras && view === "overview" ? projectTime(project.id, actor) : Promise.resolve(null),
+  ]);
   // D-220: the project's saved tabs (List views with their filters, sort and groups).
   const savedTabs = pmOn ? [] : await listWorkViews("PROJECT", project.id);
   const currentTab = savedTabs.find((item) => String(item.id) === query.tab) ?? null;
@@ -236,7 +253,7 @@ export default async function ProjectPage({
       )}
       {project.archivedAt && <p className="mb-4 rounded-md bg-surface-muted px-3 py-2 text-label">This project is archived. Its tasks still work; it is hidden from the project list.</p>}
       <LiveRefresh />
-      {pmOn && <ViewTabs projectId={project.id} base={base} strip={strip} activeKey={activeTab?.key ?? null} canEdit={can.edit} planning={planning} reporting={reporting} />}
+      {pmOn && <ViewTabs projectId={project.id} base={base} strip={strip} activeKey={activeTab?.key ?? null} canEdit={can.edit} planning={planning} reporting={reporting} extras={extras} />}
       {!pmOn && (
       <nav aria-label="Project views" className="mb-3 flex flex-wrap gap-1 border-b border-line" data-testid="view-tabs">
         {VIEWS.map((item) => (
@@ -377,6 +394,21 @@ export default async function ProjectPage({
         {workload?.ok && <Workload projectId={project.id} data={workload.value} />}
         {(view === "dashboard" || view === "workload") && !reporting && <p className="card px-5 py-8 text-center text-ink-muted">The {view === "dashboard" ? "Dashboard" : "Workload"} view isn&apos;t switched on yet.</p>}
         {view === "gantt" && !planning && <p className="card px-5 py-8 text-center text-ink-muted">The Gantt view isn&apos;t switched on yet.</p>}
+        {(view === "files" || view === "messages" || view === "page") && !extras && <p className="card px-5 py-8 text-center text-ink-muted">This view isn&apos;t switched on yet.</p>}
+        {projectFiles?.ok && <FilesTab files={projectFiles.value} taskHref={`${links.open(0).replace(/task=0$/, "task=")}`} messagesHref={`${base}?view=messages&thread=`} />}
+        {messages?.ok && (
+          <MessagesTab
+            key={activeTab?.key ?? "messages"}
+            projectId={project.id}
+            projectName={project.name}
+            threads={messages.value.threads}
+            replies={messages.value.replies}
+            canWrite={messages.value.canWrite && !project.archivedAt}
+            people={mentionList}
+            openThread={/^\d{1,10}$/.test(query.thread ?? "") ? Number(query.thread) : null}
+          />
+        )}
+        {page?.ok && <PageTab key={activeTab?.key ?? "page"} projectId={project.id} page={page.value} people={mentionList} tasks={tasks.map((task) => ({ id: task.id, taskNo: task.taskNo, title: task.title }))} taskHref={`${links.open(0).replace(/task=0$/, "task=")}`} />}
         {view === "timeline" && !planning && (
           <Timeline
             hrefFor={links.open}
@@ -412,7 +444,16 @@ export default async function ProjectPage({
                   <Fact label="Owner" value={project.ownerName} />
                   <Fact label="Starts" value={project.startOn ?? "—"} />
                   <Fact label="Due" value={project.dueOn ?? "—"} />
+                  {timeTotals && <Fact label="Time logged" value={`${formatMinutes(timeTotals.logged)}${timeTotals.estimate ? ` of ${formatMinutes(timeTotals.estimate)} estimated` : ""}`} />}
                 </dl>
+                {timeTotals && (
+                  <p className="text-caption text-ink-muted" data-testid="project-time">
+                    Time on the tasks you can see{timeTotals.tasksWithEstimate ? ` (${timeTotals.tasksWithEstimate} with an estimate)` : ""}.{" "}
+                    <a href={`/api/work/projects/${project.id}/time`} className="link" download>
+                      Download time entries (CSV)
+                    </a>
+                  </p>
+                )}
                 <div>
                   <h3 className="text-label font-semibold">Milestones</h3>
                   <ul className="mt-1 space-y-1 text-label">

@@ -120,7 +120,8 @@ export async function purgeTasks(ids: readonly number[], db: Queryable): Promise
   await db.query("DELETE FROM record_files WHERE entity_type = 'TASK' AND entity_id IN (?)", [ids]);
   await db.query("DELETE FROM work_likes WHERE target_type = 'TASK' AND target_id IN (?)", [ids]);
   await db.query("DELETE FROM task_dependencies WHERE blocker_task_id IN (?) OR blocked_task_id IN (?)", [ids, ids]);
-  for (const table of ["task_tags", "task_followers", "task_field_values", "task_field_timer_runs", "task_item_reminders", "my_task_placements", "task_projects", "task_events"]) {
+  // v1.71.0 (D-384): time entries logged on the task go with it.
+  for (const table of ["task_tags", "task_followers", "task_field_values", "task_field_timer_runs", "task_time_entries", "task_item_reminders", "my_task_placements", "task_projects", "task_events"]) {
     await db.query(`DELETE FROM ${table} WHERE task_id IN (?)`, [ids]);
   }
   await db.query("DELETE FROM notification_rule_sends WHERE record_kind = 'TASK' AND record_id IN (?)", [ids]);
@@ -183,6 +184,21 @@ export async function purgeProject(projectId: number, db: Queryable, files: stri
   await db.query("DELETE FROM work_views WHERE scope = 'PROJECT' AND scope_id = ?", [projectId]);
   // v1.70.0 (D-383): calendar addresses for the project stop with it.
   await db.query("DELETE FROM calendar_feeds WHERE project_id = ?", [projectId]);
+  // v1.71.0 (D-384): the project's messages (replies first) with their files,
+  // reactions and earlier versions, and its page with its versions.
+  const [messages] = await db.query<Row[]>("SELECT id FROM project_messages WHERE project_id = ?", [projectId]);
+  if (messages.length) {
+    const messageIds = messages.map((row) => num(row.id));
+    const [messageFiles] = await db.query<Row[]>("SELECT stored_path FROM record_files WHERE entity_type = 'PROJECT_MESSAGE' AND entity_id IN (?)", [messageIds]);
+    for (const row of messageFiles) files.push(String(row.stored_path));
+    await db.query("DELETE FROM record_files WHERE entity_type = 'PROJECT_MESSAGE' AND entity_id IN (?)", [messageIds]);
+    await db.query("DELETE FROM project_message_reactions WHERE message_id IN (?)", [messageIds]);
+    await db.query("DELETE FROM project_message_versions WHERE message_id IN (?)", [messageIds]);
+    await db.query("DELETE FROM project_messages WHERE project_id = ? AND parent_id IS NOT NULL", [projectId]);
+    await db.query("DELETE FROM project_messages WHERE project_id = ?", [projectId]);
+  }
+  await db.query("DELETE FROM project_page_versions WHERE project_id = ?", [projectId]);
+  await db.query("DELETE FROM project_pages WHERE project_id = ?", [projectId]);
   await db.query("DELETE FROM work_favourites WHERE object_type = 'PROJECT' AND object_id = ?", [projectId]);
   const [result] = await db.query<ResultSetHeader>("DELETE FROM projects WHERE id = ? AND deleted_at IS NOT NULL", [projectId]);
   return result.affectedRows;

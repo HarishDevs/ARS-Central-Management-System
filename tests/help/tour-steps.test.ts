@@ -82,6 +82,14 @@ describe("onboarding tour steps", () => {
     expect(points).toContain("Calendar feed");
   });
 
+  it("the Projects step mentions the Files, Messages and Page tabs and time on tasks (v1.71.0, D-384)", () => {
+    const points = TOUR_STEPS.find((step) => step.id === "projects")?.points.join(" ") ?? "";
+    expect(points).toContain("Files tab");
+    expect(points).toContain("Messages tab");
+    expect(points).toContain("Page tab");
+    expect(points).toContain("Time section");
+  });
+
   it("Home mentions Customise and the private notepad, and My Tasks its own tabs (v1.63.0, D-369)", () => {
     const home = TOUR_STEPS.find((step) => step.id === "overview")?.points.join(" ") ?? "";
     expect(home).toContain("Customise");

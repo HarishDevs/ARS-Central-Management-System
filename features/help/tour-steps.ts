@@ -157,6 +157,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
       "Add automations (settings → Automations): when something happens to a task, a rule moves it, changes fields, comments or tells people for you; check its Run log.",
       "Portfolios group projects so you can follow their status and task progress together (List, Timeline, Progress, Dashboard); you only ever see the projects you already have access to.",
       "Save a project as a template (Project templates lists yours and the organisation's), Duplicate it with what to copy, import tasks from Excel or CSV, and add your tasks to your own calendar with a Calendar feed.",
+      "Add a Files tab (every file on the project's tasks and messages), a Messages tab (conversations with everyone on the project) and a Page tab (the project's brief, with its version history); log time on a task in its Time section.",
     ],
     path: "/users/work/projects",
     target: HEADER,

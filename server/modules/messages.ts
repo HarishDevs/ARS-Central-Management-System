@@ -59,6 +59,16 @@ export const projectMessages = {
   // v1.65.0 (D-373): the weekly "time for a status update" reminder to the project's owner.
   reminder: (project: ProjectInfo, to: number) =>
     message("WORK_PROJECT_STATUS", to, `Status update due: ${project.name}`, `It's Friday: post this week's status update on "${project.name}".`, `${projectPath(project)}?view=overview`, null),
+  // v1.71.0 (D-384): project messages (a new conversation to the members; a
+  // reply to the conversation's people; an @mention) and @mentions on the page.
+  posted: (project: ProjectInfo, to: number, by: string, subject: string, threadId: number) =>
+    message("WORK_PROJECT_MESSAGE", to, `${project.name}: ${subject}`, `${by} sent a message to the project "${project.name}": ${subject}`, `${projectPath(project)}?view=messages&thread=${threadId}`, null),
+  reply: (project: ProjectInfo, to: number, by: string, subject: string, threadId: number) =>
+    message("WORK_PROJECT_MESSAGE", to, `Reply in ${project.name}: ${subject}`, `${by} replied to "${subject}" in the project "${project.name}".`, `${projectPath(project)}?view=messages&thread=${threadId}`, null),
+  mentioned: (project: ProjectInfo, to: number, by: string, subject: string, threadId: number) =>
+    message("WORK_PROJECT_MESSAGE", to, `${by} mentioned you in ${project.name}`, `${by} mentioned you in the message "${subject}" in the project "${project.name}".`, `${projectPath(project)}?view=messages&thread=${threadId}`, null),
+  pageMention: (project: ProjectInfo, to: number, by: string) =>
+    message("WORK_PROJECT_MESSAGE", to, `${by} mentioned you on a project page`, `${by} mentioned you on the page of the project "${project.name}".`, `${projectPath(project)}?view=page`, null),
 };
 
 // v1.66.0 (D-374): project intake forms. The project's people hear of a new

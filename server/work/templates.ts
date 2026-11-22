@@ -386,7 +386,7 @@ export async function instantiate(template: TemplateV2, input: MakeInput, actor:
     let position = 1024;
     let tabs = 0;
     for (const tab of template.tabs) {
-      if (!allowedView("PROJECT", tab.type, switches.planning, switches.reporting)) continue;
+      if (!allowedView("PROJECT", tab.type, switches.planning, switches.reporting, true)) continue;
       const inserted = await repo.insertProjectTab(projectId, { type: tab.type, name: tab.name, config: remapRefs(tab.config, maps) ?? {}, position, isDefault: tab.isDefault }, actor.id, connection);
       if (inserted !== "DUPLICATE") {
         tabs += 1;

@@ -35,7 +35,7 @@ type Editing = { kind: "chart"; draft: ChartDraft } | { kind: "text"; draft: { i
 
 const spanOf = (widget: DashboardWidget) => (widget.kind === "CHART" && widget.config?.style === "number" && widget.size === "HALF" ? "col-span-1" : widget.size === "FULL" ? "sm:col-span-2 lg:col-span-4" : "sm:col-span-2");
 
-export function Dashboard({ projectId, widgets, fields, sections, people, canEdit, max }: { projectId: number; widgets: DashboardWidget[]; fields: FieldInfo[]; sections: { id: number; name: string }[]; people: { id: number; name: string }[]; canEdit: boolean; max: number }) {
+export function Dashboard({ projectId, widgets, fields, sections, people, canEdit, max, loggedTime = false }: { projectId: number; widgets: DashboardWidget[]; fields: FieldInfo[]; sections: { id: number; name: string }[]; people: { id: number; name: string }[]; canEdit: boolean; max: number; loggedTime?: boolean }) {
   const { call, pending } = useWorkCall();
   const [order, setOrder] = useState(widgets.map((widget) => widget.id));
   const [editing, setEditing] = useState<Editing>(null);
@@ -48,7 +48,7 @@ export function Dashboard({ projectId, widgets, fields, sections, people, canEdi
   useEffect(() => setOrder(widgets.map((widget) => widget.id)), [orderKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const byId = new Map(widgets.map((widget) => [widget.id, widget]));
   const list = order.map((id) => byId.get(id)).filter((widget): widget is DashboardWidget => Boolean(widget));
-  const context: BuilderContext = { projectId, fields, sections, people };
+  const context: BuilderContext = { projectId, fields, sections, people, loggedTime };
   const announce = (text: string) => {
     setLive("");
     setTimeout(() => setLive(text), 50);

@@ -1091,6 +1091,22 @@ Times are stored in UTC (`DATETIME`, set by `CURRENT_TIMESTAMP` or the app). Ind
 - `meeting_open_points` (text, owner, review date, OPEN/CLOSED with note, `carried_from_id`) and `meeting_events` (history, reminders).
 - `tasks.meeting_id`: the meeting an action-item task came from (FK, indexed).
 
+## Files, Messages, Page and time tracking (v1.71.0, D-384; migration 202611222000_pm_e_collab.sql)
+
+| Table / column | Key columns | Notes |
+|---|---|---|
+| `project_messages` | `id`, `project_id` → projects, `parent_id` → project_messages (a reply: its thread; one level), `author_id` → users, `subject` (threads, ≤ 150), `body` TEXT (the app's formatting text, never HTML; ≤ 10,000), `created_at`, `last_activity` (threads: the newest reply), `edited_at/by`, `deleted_at/by` | A deleted message keeps its row and reads "deleted"; its files are no longer served. |
+| `project_message_versions` | `message_id` → project_messages, `subject`, `body` (before the change), `change_kind` EDIT/DELETE, `changed_by`, `changed_at` | The D-365 pattern ("Show edits"), its own table so the 30-day purge can remove it with the project (comment_versions has an optional no-delete trigger). |
+| `project_message_reactions` | PK (`message_id`, `user_id`, `reaction`) | The six reactions of comments. |
+| `project_pages` | PK `project_id` → projects, `title` (≤ 150), `body` MEDIUMTEXT (≤ 100,000), `row_version`, `updated_by`, `updated_at` | One page per project. A save names the version it started from; a newer one in between is refused. |
+| `project_page_versions` | `project_id`, `version_no` (UNIQUE with the project), `title`, `body`, `restored_from`, `saved_by`, `saved_at` | Every save; only the newest 50 are kept. A restore is a new version. |
+| `task_time_entries` | `id`, `task_id` → tasks, `user_id` → users (whose time), `work_day` DATE (India), `minutes` (NULL while a timer runs; ≤ 1,440), `note` (≤ 500), `source` MANUAL/TIMER, `started_at` (TIMER), `running` (generated; UNIQUE with task and person: one running timer each), `created_by`, `edited_at/by` | Deleted rows go (audited with what they were). The Dashboard's "time entries" source adds them to the timer-field runs. |
+| `tasks.time_estimate_minutes` | INT, NULL | The task's estimate (Workload "Estimated time"). |
+| `work_views.view_type` | + FILES, MESSAGES, PAGE | Project tabs. |
+| `record_files.entity_type` | + PROJECT_MESSAGE | Files on project messages (same storage and checks as task files). |
+
+Notices: `WORK_PROJECT_MESSAGE` (a new conversation to the members; a reply to the conversation's people; @mentions in messages and on the page, only people who can see the project). Audit actions: `PROJECT_MESSAGE_POSTED/REPLIED/EDITED/DELETED`, `PROJECT_PAGE_SAVED/RESTORED`, `TIME_LOGGED`, `TIME_TIMER_STARTED/STOPPED`, `TIME_ENTRY_CHANGED/DELETED` (with before/after and whether it was someone else's), `TIME_ESTIMATE_SET`, `PROJECT_TIME_EXPORTED`. The 30-day purge removes a purged project's messages (with their files, versions and reactions), page and page versions, and a purged task's time entries.
+
 ## Templates, import/export and calendar feeds (v1.70.0, D-383; migration 202611221900_pm_e_extras.sql)
 
 | Table / column | Key columns | Notes |

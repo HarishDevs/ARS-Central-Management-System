@@ -8,9 +8,10 @@ import { fieldFilterSchema } from "@/server/work/custom-fields";
 // columns) and one tab is the project's default. Pure and unit-tested; the
 // repository stores the rows, the actions check permissions, ViewTabs draws it.
 // v1.67.0 (D-375): DASHBOARD and WORKLOAD tabs ("pm_reporting").
-export const TAB_VIEWS = ["OVERVIEW", "LIST", "BOARD", "TIMELINE", "CALENDAR", "GANTT", "DASHBOARD", "WORKLOAD"] as const;
+// v1.71.0 (D-384): FILES, MESSAGES and PAGE tabs ("pm_extras").
+export const TAB_VIEWS = ["OVERVIEW", "LIST", "BOARD", "TIMELINE", "CALENDAR", "GANTT", "DASHBOARD", "WORKLOAD", "FILES", "MESSAGES", "PAGE"] as const;
 export type TabView = (typeof TAB_VIEWS)[number];
-export const TAB_VIEW_LABEL: Record<TabView, string> = { OVERVIEW: "Overview", LIST: "List", BOARD: "Board", TIMELINE: "Timeline", CALENDAR: "Calendar", GANTT: "Gantt", DASHBOARD: "Dashboard", WORKLOAD: "Workload" };
+export const TAB_VIEW_LABEL: Record<TabView, string> = { OVERVIEW: "Overview", LIST: "List", BOARD: "Board", TIMELINE: "Timeline", CALENDAR: "Calendar", GANTT: "Gantt", DASHBOARD: "Dashboard", WORKLOAD: "Workload", FILES: "Files", MESSAGES: "Messages", PAGE: "Page" };
 
 // The "Add tab" catalogue. Views not built yet are listed but hidden
 // (`available: false`), so the catalogue grows without changing its shape.
@@ -21,6 +22,7 @@ export interface CatalogueEntry {
   available: boolean;
   planning?: boolean; // v1.65.0 (D-373): only with the "pm_planning" switch on
   reporting?: boolean; // v1.67.0 (D-375): only with the "pm_reporting" switch on
+  extras?: boolean; // v1.71.0 (D-384): only with the "pm_extras" switch on
 }
 export const VIEW_CATALOGUE: readonly CatalogueEntry[] = [
   { type: "LIST", label: "List", description: "Tasks in rows, with sections, filters, sort and groups.", available: true },
@@ -31,19 +33,20 @@ export const VIEW_CATALOGUE: readonly CatalogueEntry[] = [
   { type: "GANTT", label: "Gantt", description: "Tasks, their dates and dependencies on a schedule.", available: true, planning: true },
   { type: "DASHBOARD", label: "Dashboard", description: "Charts and numbers about the project's tasks.", available: true, reporting: true },
   { type: "WORKLOAD", label: "Workload", description: "Who has how much work, by day or week, against capacity.", available: true, reporting: true },
-  { type: "FILES", label: "Files", description: "Every file attached to the project's tasks.", available: false },
-  { type: "MESSAGES", label: "Messages", description: "Conversations with the project's members.", available: false },
-  { type: "NOTE", label: "Note", description: "A page of notes for the project.", available: false },
+  { type: "FILES", label: "Files", description: "Every file on the project's tasks, form submissions and messages.", available: true, extras: true },
+  { type: "MESSAGES", label: "Messages", description: "Conversations with the project's members.", available: true, extras: true },
+  { type: "PAGE", label: "Page", description: "The project's brief: one page everyone can read.", available: true, extras: true },
 ];
 // v1.63.0 (D-369, PM-A13): My Tasks has its own strip, per person, with the
 // three views My Tasks draws (List, Board, Calendar).
 export type TabScope = "PROJECT" | "MY_TASKS";
 export const MY_TASKS_VIEWS: readonly TabView[] = ["LIST", "BOARD", "CALENDAR"];
-export const addableViews = (scope: TabScope = "PROJECT", planning = false, reporting = false): CatalogueEntry[] =>
-  VIEW_CATALOGUE.filter((entry) => entry.available && (planning || !entry.planning) && (reporting || !entry.reporting) && (scope === "PROJECT" || (MY_TASKS_VIEWS as readonly string[]).includes(entry.type)));
+export const addableViews = (scope: TabScope = "PROJECT", planning = false, reporting = false, extras = false): CatalogueEntry[] =>
+  VIEW_CATALOGUE.filter((entry) => entry.available && (planning || !entry.planning) && (reporting || !entry.reporting) && (extras || !entry.extras) && (scope === "PROJECT" || (MY_TASKS_VIEWS as readonly string[]).includes(entry.type)));
 export const REPORTING_VIEWS: readonly TabView[] = ["DASHBOARD", "WORKLOAD"];
-export const allowedView = (scope: TabScope, type: unknown, planning = false, reporting = false): type is TabView =>
-  isTabView(type) && (planning || type !== "GANTT") && (reporting || !REPORTING_VIEWS.includes(type)) && (scope === "PROJECT" || MY_TASKS_VIEWS.includes(type));
+export const EXTRAS_VIEWS: readonly TabView[] = ["FILES", "MESSAGES", "PAGE"];
+export const allowedView = (scope: TabScope, type: unknown, planning = false, reporting = false, extras = false): type is TabView =>
+  isTabView(type) && (planning || type !== "GANTT") && (reporting || !REPORTING_VIEWS.includes(type)) && (extras || !EXTRAS_VIEWS.includes(type)) && (scope === "PROJECT" || MY_TASKS_VIEWS.includes(type));
 export const isTabView = (value: unknown): value is TabView => typeof value === "string" && (TAB_VIEWS as readonly string[]).includes(value);
 
 export const MAX_PROJECT_TABS = 50;

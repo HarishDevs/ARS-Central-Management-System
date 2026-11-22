@@ -257,15 +257,29 @@ function baseSql(spec: FigureSpec): { from: Sql; where: Sql } {
   }
   if (spec.config.source === "time") {
     const one = spec.config.timerFieldId;
+    // v1.71.0 (D-384): "every timer field" also counts the time entries
+    // logged on the tasks (by hand or Start/Stop; D-384 time tracking). One
+    // row per entry: ids kept apart (runs even, entries odd), a logged
+    // entry's start is its India day at midnight, so day buckets match.
+    const entries = one
+      ? ""
+      : `UNION ALL
+          SELECT te.id * 2 + 1 AS id, te.task_id, te.user_id, DATE_SUB(TIMESTAMP(te.work_day), INTERVAL 330 MINUTE) AS started_at, te.minutes / 60 AS hours
+          FROM task_time_entries te WHERE te.minutes IS NOT NULL`;
     return {
       from: {
-        text: `FROM task_field_timer_runs r
+        text: `FROM (
+            SELECT fr.id * 2 AS id, fr.task_id, fr.user_id, fr.started_at, TIMESTAMPDIFF(SECOND, fr.started_at, fr.stopped_at) / 3600 AS hours
+            FROM task_field_timer_runs fr
+            JOIN project_field_links rl ON rl.field_id = fr.field_id AND rl.project_id = ? AND rl.removed_at IS NULL
+            WHERE fr.stopped_at IS NOT NULL${one ? " AND fr.field_id = ?" : ""}
+            ${entries}
+          ) r
           JOIN task_projects tp ON tp.task_id = r.task_id AND tp.project_id = ?
-          JOIN project_field_links rl ON rl.field_id = r.field_id AND rl.project_id = tp.project_id AND rl.removed_at IS NULL
           JOIN tasks t ON t.id = r.task_id JOIN users a ON a.id = t.assignee_id`,
-        params: [spec.projectId],
+        params: [spec.projectId, ...(one ? [one] : []), spec.projectId],
       },
-      where: { text: `WHERE r.stopped_at IS NOT NULL${one ? " AND r.field_id = ?" : ""} AND ${where.join(" AND ")}`, params: [...(one ? [one] : []), ...params] },
+      where: { text: `WHERE ${where.join(" AND ")}`, params },
     };
   }
   return {
@@ -281,7 +295,7 @@ function metricSql(spec: FigureSpec): { values: string[]; joins: Sql[] } {
   const joins: Sql[] = [];
   spec.config.metrics.forEach((metric, index) => {
     if (metric.measure === "count") values.push("NULL");
-    else if (spec.config.source === "time") values.push("TIMESTAMPDIFF(SECOND, r.started_at, r.stopped_at) / 3600");
+    else if (spec.config.source === "time") values.push("r.hours");
     else {
       const field = spec.fields.get(metric.fieldId ?? 0);
       if (!field || field.type === "FORMULA") values.push("NULL"); // formulas: worked out in code
@@ -377,19 +391,22 @@ export interface WorkloadTask {
   effort: number | null; // the effort field's value (a timer's hours)
 }
 // The project's open, visible tasks with a due date that touch [from, to].
-export async function workloadTasks(projectId: number, viewer: WorkViewer, from: string, to: string, effortFieldId: number | null, effortIsTimer: boolean, connection: Queryable = db()): Promise<WorkloadTask[]> {
+// v1.71.0 (D-384): effortFieldId "estimate" = the task's time estimate (hours).
+export async function workloadTasks(projectId: number, viewer: WorkViewer, from: string, to: string, effortFieldId: number | "estimate" | null, effortIsTimer: boolean, connection: Queryable = db()): Promise<WorkloadTask[]> {
   const visible = visibleTaskClause(viewer);
+  const estimate = effortFieldId === "estimate";
+  const fieldId = estimate ? null : effortFieldId;
   const [rows] = await connection.query<Row[]>(
     `SELECT t.id, t.task_no, t.title, t.assignee_id, a.name AS assignee_name, t.status,
        DATE_FORMAT(t.starts_on, '%Y-%m-%d') AS start_day, DATE_FORMAT(${istDay("t.due_at")}, '%Y-%m-%d') AS due_day,
-       ${effortFieldId ? (effortIsTimer ? "ev.number_value / 3600" : "ev.number_value") : "NULL"} AS effort
+       ${estimate ? "t.time_estimate_minutes / 60" : fieldId ? (effortIsTimer ? "ev.number_value / 3600" : "ev.number_value") : "NULL"} AS effort
      FROM task_projects tp JOIN tasks t ON t.id = tp.task_id JOIN users a ON a.id = t.assignee_id
-     ${effortFieldId ? "LEFT JOIN task_field_values ev ON ev.task_id = t.id AND ev.field_id = ?" : ""}
+     ${fieldId ? "LEFT JOIN task_field_values ev ON ev.task_id = t.id AND ev.field_id = ?" : ""}
      WHERE tp.project_id = ? AND t.deleted_at IS NULL AND t.status IN ('OPEN', 'IN_PROGRESS', 'BLOCKED') AND t.due_at IS NOT NULL
        AND ${istDay("t.due_at")} >= ? AND COALESCE(LEAST(t.starts_on, ${istDay("t.due_at")}), ${istDay("t.due_at")}) <= ?
        AND ${visible.sql}
      ORDER BY t.due_at, t.id LIMIT 3000`,
-    [...(effortFieldId ? [effortFieldId] : []), projectId, from, to, ...visible.params],
+    [...(fieldId ? [fieldId] : []), projectId, from, to, ...visible.params],
   );
   return rows.map((row) => ({
     id: num(row.id),

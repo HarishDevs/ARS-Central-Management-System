@@ -10,6 +10,7 @@ import { ConfirmButton } from "@/features/ui/ConfirmButton";
 import { RichEditor } from "@/features/ui/RichEditor";
 import { RichText } from "@/features/work/RichText";
 import { ShowEdits } from "@/features/comments/EditableComment";
+import type { ActionResult } from "@/lib/http/action-result";
 
 // A person to mention: the picker shows "Name - code" (label) with the
 // department; the comment keeps the plain name.
@@ -251,9 +252,14 @@ function ReplyBox({ taskId, parentId, people }: { taskId: number; parentId: numb
 // toggle (aria-pressed) whose name says the reaction, how many and whether
 // you gave it; "Add reaction" opens the six choices.
 function Reactions({ commentId, reactions }: { commentId: number; reactions: ReactionCount[] }) {
+  return <ReactionBar reactions={reactions} act={(key) => reactionAction(commentId, key)} />;
+}
+
+// v1.71.0 (D-384): the same pills for project messages (`act` sends the toggle).
+export function ReactionBar({ reactions, act }: { reactions: ReactionCount[]; act: (key: string) => Promise<ActionResult> }) {
   const { call, pending } = useWorkCall();
   const [picking, setPicking] = useState(false);
-  const toggle = (key: string) => void call(() => reactionAction(commentId, key), { success: false }).then(() => setPicking(false));
+  const toggle = (key: string) => void call(() => act(key), { success: false }).then(() => setPicking(false));
   return (
     <span className="inline-flex flex-wrap items-center gap-1" data-testid="reactions">
       {reactions.map((item) => {

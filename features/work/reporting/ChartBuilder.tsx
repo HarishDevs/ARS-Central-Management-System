@@ -49,6 +49,7 @@ export interface BuilderContext {
   fields: FieldInfo[];
   sections: { id: number; name: string }[];
   people: { id: number; name: string }[];
+  loggedTime?: boolean; // v1.71.0 (D-384): time logged on tasks (Time section) is a source too
 }
 export interface ChartDraft {
   id: number | null;
@@ -219,15 +220,15 @@ export function ChartBuilder({ open, context, draft, onClose }: { open: boolean;
               <input type="radio" name="source" checked={!time} onChange={() => update({ source: "tasks", timerFieldId: null })} /> Tasks
             </label>
             <label className="inline-flex items-center gap-2">
-              <input type="radio" name="source" checked={time} disabled={!timers.length || TIME_STYLES.includes(style)} onChange={() => update({ source: "time", metrics: [{ measure: "sum", fieldId: null }] })} /> Time entries
+              <input type="radio" name="source" checked={time} disabled={(!timers.length && !context.loggedTime) || TIME_STYLES.includes(style)} onChange={() => update({ source: "time", metrics: [{ measure: "sum", fieldId: null }] })} /> Time entries
             </label>
           </div>
-          {!timers.length && <p className="text-caption text-ink-muted">Time entries come from timer fields. Add a timer field to the project to chart them.</p>}
+          {!timers.length && !context.loggedTime && <p className="text-caption text-ink-muted">Time entries come from timer fields. Add a timer field to the project to chart them.</p>}
           {time && (
             <label className="block text-caption text-ink-muted">
               Timer field
               <select className={inputClass} value={config.timerFieldId ?? ""} onChange={(event) => update({ timerFieldId: event.target.value ? Number(event.target.value) : null })}>
-                <option value="">Every timer field</option>
+                <option value="">{context.loggedTime ? "All logged time (every timer field and the tasks' Time sections)" : "Every timer field"}</option>
                 {timers.map((field) => (
                   <option key={field.id} value={field.id}>
                     {field.name}

@@ -534,6 +534,8 @@ export const DEFAULT_CAPACITY = { count: 5, effort: 8 }; // tasks a day; hours (
 export const CAPACITY_MAX = 10000;
 export const capacitySchema = z.number().finite().min(0).max(CAPACITY_MAX);
 export const metricKey = (fieldId: number | null) => (fieldId ? `f${fieldId}` : "count");
+// v1.71.0 (D-384): Workload by the tasks' time estimates (hours), with "pm_extras" on.
+export const ESTIMATE_METRIC = "estimate";
 export const parseMetricKey = (value: unknown): number | null | undefined => (value === "count" || value === undefined || value === null || value === "" ? null : typeof value === "string" && /^f\d{1,10}$/.test(value) ? Number(value.slice(1)) : undefined);
 
 export interface WorkloadColumn {

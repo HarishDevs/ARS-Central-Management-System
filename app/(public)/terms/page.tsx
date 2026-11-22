@@ -66,6 +66,10 @@ export default function TermsPage() {
             Templates, copies, import and export: a template or copy can give tasks to other people, who are told; give work only to people who should do it. An organisation template is chosen by IT. Import only files you are allowed to put in the app, and keep exported files as carefully as the app keeps the data.
             Calendar addresses are personal: anyone who has yours can read the task names and dates in it, so don&apos;t share or post it; stop it (or make a new one) if it may have been seen by someone else.
           </li>
+          <li>
+            Project messages and pages are read by everyone on the project: write them as you would a work email, attach only files you may share with all of them, and @mention only people who should be told. Edits and deletions keep every earlier version, and a page keeps its last 50 versions.
+            Log time honestly against the task it was spent on; the project&apos;s owners and editors (and IT) can correct anyone&apos;s entries, and every change is recorded.
+          </li>
           <li>The private notepad on Home is for your work notes. Only you see it in the app, but it is stored with your other records: don&apos;t keep passwords or other people&apos;s personal details in it.</li>
           <li>You can edit or delete your own comments, and IT can edit or delete any comment. Every earlier version is kept and shown to the people who can see the comment, so edit to correct, not to rewrite what was agreed.</li>
           <li>

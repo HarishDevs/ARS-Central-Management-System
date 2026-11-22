@@ -34,6 +34,8 @@ import { initials } from "@/features/ui/Display";
 import { TaskActivity } from "@/features/work/TaskActivity";
 import { RunAutomationButtons } from "@/features/work/automations/RunAutomationButtons";
 import { manualRulesFor } from "@/server/work/automations";
+import { loadTaskTime } from "@/server/work/time-tracking";
+import { TimeSection } from "@/features/work/extras/TimeSection";
 import { loadTicketFor } from "@/server/tickets/service";
 import { listTicketComments, listTicketEvents } from "@/lib/db/repositories/tickets.repository";
 import { TICKET_EVENT_TEXT } from "@/features/tickets/event-text";
@@ -139,6 +141,8 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
 
   // v1.68.0 (D-380): "Run by hand" automations of the task's projects (owners and editors).
   const manualRules = task.deletedAt ? [] : await manualRulesFor(task.id, { id: user.id, name: user.name, roles: user.roles, modules: user.modules }).catch(() => []);
+  // v1.71.0 (D-384): the Time section (with "pm_extras" on; null otherwise).
+  const timeData = await loadTaskTime(task.id, { id: user.id, name: user.name, roles: user.roles, modules: user.modules }).catch(() => null);
   const actionsCard = (
     <>
           <section className="card space-y-3 px-5 py-4">
@@ -388,6 +392,7 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
             </p>
           )}
           <TaskWorkPanel data={panel} />
+          {timeData && <TimeSection data={timeData} />}
           {/* v1.52.1 (owner, Asana): Comments and All activity as two tabs. */}
           <TaskActivity
             comments={

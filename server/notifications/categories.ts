@@ -36,6 +36,8 @@ export const TASK_EVENTS: readonly string[] = [
   "WORK_PORTFOLIO_MEMBER",
   "WORK_PORTFOLIO_STATUS",
   "WORK_PORTFOLIO_ALERT",
+  // v1.71.0 (D-384): project messages and @mentions on a project page.
+  "WORK_PROJECT_MESSAGE",
 ];
 // v1.51.0 (D-300), v1.51.1 (owner): Meeting Management, its own Inbox category.
 export const MEETING_EVENTS: readonly string[] = ["MEETING_INVITED", "MEETING_UPDATED", "MEETING_CANCELLED", "MEETING_APPROVAL", "MEETING_DECIDED", "MEETING_PUBLISHED", "MEETING_REMINDER", "MEETING_ACTION"];

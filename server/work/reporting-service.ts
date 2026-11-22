@@ -8,6 +8,7 @@ import * as reports from "@/lib/db/repositories/reporting.repository";
 import type { FieldRecord } from "@/lib/db/repositories/fields.repository";
 import type { TaskActor } from "@/server/modules/tasks";
 import { featureOn } from "@/server/settings/features";
+import { ESTIMATE_METRIC } from "@/server/work/reporting";
 import { projectAbilities } from "@/server/work/access";
 import { matchFieldFilter, type FieldFilter } from "@/server/work/custom-fields";
 import { cellsFor } from "@/server/work/fields-service";
@@ -245,6 +246,7 @@ export interface DashboardView {
   people: { id: number; name: string }[];
   canEdit: boolean;
   max: number;
+  loggedTime?: boolean; // v1.71.0 (D-384): time entries logged on tasks count too ("pm_extras")
 }
 // Writes the 8 default widgets the first time a dashboard is opened.
 async function ensureDefaults(projectId: number): Promise<void> {
@@ -272,7 +274,7 @@ export async function loadDashboard(projectId: number, actor: TaskActor, now = n
     }
     views.push({ id: widget.id, kind: widget.kind, title: widget.title, size: widget.size, body: widget.body, config: widget.config, filters: widget.config ? filterCount(widget.config.filters) : 0, data, error, rowVersion: widget.rowVersion });
   }
-  return { ok: true, value: { widgets: views, fields: defs.map(fieldInfo), sections: sections.map((section) => ({ id: section.id, name: section.name })), people, canEdit: found.edit, max: MAX_WIDGETS } };
+  return { ok: true, value: { widgets: views, fields: defs.map(fieldInfo), sections: sections.map((section) => ({ id: section.id, name: section.name })), people, canEdit: found.edit, max: MAX_WIDGETS, loggedTime: await featureOn("pm_extras", actor).catch(() => false) } };
 }
 
 // The builder's live preview (anyone who sees the project; nothing is stored).
@@ -409,14 +411,17 @@ export async function loadWorkload(projectId: number, actor: TaskActor, query: {
   const defs = await fieldsRepo.listFieldDefs(projectId);
   const effortFields = defs.filter((field) => field.type === "NUMBER" || field.type === "TIMER");
   const wanted = parseMetricKey(query.metric);
-  const effort = wanted ? (effortFields.find((field) => field.id === wanted) ?? null) : null;
-  const metric = metricKey(effort?.id ?? null);
+  // v1.71.0 (D-384): "Estimated time" (the tasks' time estimates, hours) with "pm_extras" on.
+  const extras = await featureOn("pm_extras", actor).catch(() => false);
+  const byEstimate = extras && query.metric === ESTIMATE_METRIC;
+  const effort = wanted && !byEstimate ? (effortFields.find((field) => field.id === wanted) ?? null) : null;
+  const metric = byEstimate ? ESTIMATE_METRIC : metricKey(effort?.id ?? null);
   const [calendar, holidayNames] = await Promise.all([workCalendar(getDbPool()), calendarHolidays(undefined, null)]);
   const columns = workloadColumns(from, unit, calendar, holidayNames);
   const first = columns[0]!.days[0]!;
   const last = columns.at(-1)!.days.at(-1)!;
-  const [tasks, members, capacity] = await Promise.all([reports.workloadTasks(projectId, found.viewer, first, last, effort?.id ?? null, effort?.type === "TIMER"), reports.projectPeople(projectId), reports.capacityRows(projectId)]);
-  const kind = effort ? "effort" : "count";
+  const [tasks, members, capacity] = await Promise.all([reports.workloadTasks(projectId, found.viewer, first, last, byEstimate ? "estimate" : (effort?.id ?? null), effort?.type === "TIMER"), reports.projectPeople(projectId), reports.capacityRows(projectId)]);
+  const kind = effort || byEstimate ? "effort" : "count";
   const loads = tasks.map((task) => ({ id: task.id, assigneeId: task.assigneeId, load: spreadLoad({ start: task.start, due: task.due, effort: task.effort ?? 0 }, calendar, kind) }));
   // The project's assignees in the window and its members (so work can go to someone with none yet).
   const names = new Map<number, string>(members.map((member) => [member.id, member.name]));
@@ -446,9 +451,9 @@ export async function loadWorkload(projectId: number, actor: TaskActor, query: {
       from: columns[0]!.key,
       unit,
       metric,
-      metricLabel: effort ? effort.name : "Task count",
-      metricKind: effort ? (effort.type === "TIMER" ? "hours" : "number") : "count",
-      metrics: [{ key: "count", label: "Task count" }, ...effortFields.map((field) => ({ key: metricKey(field.id), label: field.type === "TIMER" ? `${field.name} (hours)` : field.name }))],
+      metricLabel: byEstimate ? "Estimated time" : effort ? effort.name : "Task count",
+      metricKind: byEstimate ? "hours" : effort ? (effort.type === "TIMER" ? "hours" : "number") : "count",
+      metrics: [{ key: "count", label: "Task count" }, ...(extras ? [{ key: ESTIMATE_METRIC, label: "Estimated time (hours)" }] : []), ...effortFields.map((field) => ({ key: metricKey(field.id), label: field.type === "TIMER" ? `${field.name} (hours)` : field.name }))],
       columns,
       people,
       totals,
@@ -467,8 +472,10 @@ export async function saveCapacity(projectId: number, input: { userId: number | 
   const found = await access(projectId, actor);
   if (!found) return fail(NOT_FOUND);
   if (!found.edit) return fail("Only the project's owners and editors set capacity.");
-  const fieldId = parseMetricKey(input.metric);
+  const byEstimate = input.metric === ESTIMATE_METRIC && (await featureOn("pm_extras", actor).catch(() => false));
+  const fieldId = byEstimate ? null : parseMetricKey(input.metric);
   if (fieldId === undefined) return fail("That metric isn't valid.");
+  const key = byEstimate ? ESTIMATE_METRIC : metricKey(fieldId);
   if (fieldId !== null) {
     const field = (await fieldsRepo.listFieldDefs(projectId)).find((item) => item.id === fieldId);
     if (!field || (field.type !== "NUMBER" && field.type !== "TIMER")) return fail("That metric isn't valid.");
@@ -478,7 +485,7 @@ export async function saveCapacity(projectId: number, input: { userId: number | 
     const names = await reports.peopleNames([input.userId]);
     if (!names.size) return fail(NOT_FOUND);
   }
-  await withTransaction((connection) => reports.saveCapacity(projectId, input.userId, metricKey(fieldId), input.perDay === null ? null : round(input.perDay), actor.id, connection));
-  await recordAudit({ actorUserId: actor.id, action: "WORK_CAPACITY_SET", entityType: "PROJECT", entityId: projectId, ipAddress: actor.ipAddress ?? null, sessionId: actor.sessionId ?? null, metadata: { userId: input.userId, metric: metricKey(fieldId), perDay: input.perDay } });
+  await withTransaction((connection) => reports.saveCapacity(projectId, input.userId, key, input.perDay === null ? null : round(input.perDay), actor.id, connection));
+  await recordAudit({ actorUserId: actor.id, action: "WORK_CAPACITY_SET", entityType: "PROJECT", entityId: projectId, ipAddress: actor.ipAddress ?? null, sessionId: actor.sessionId ?? null, metadata: { userId: input.userId, metric: key, perDay: input.perDay } });
   return { ok: true, value: undefined, message: input.perDay === null ? "Back to the project's capacity." : "Capacity saved." };
 }
