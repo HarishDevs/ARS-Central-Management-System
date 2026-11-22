@@ -10,7 +10,8 @@ const { splitStatements } = require("../../scripts/database/migrate.js") as { sp
 // 202611211000_comment_edits.sql did. Every trigger statement since v1.9.0
 // (when "-- @optional" arrived) must be optional.
 const DIR = path.join(__dirname, "..", "..", "database", "migrations");
-const SINCE = "202610160900"; // v1.9.0; older files are already applied everywhere
+// v1.76.1: every file — a fresh database (after a loss) runs them all, including the oldest.
+const SINCE = "0";
 
 describe("migration trigger statements", () => {
   it("are all marked -- @optional, so a hosted database without SUPER still starts the app", () => {

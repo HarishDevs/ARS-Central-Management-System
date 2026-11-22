@@ -133,6 +133,7 @@ CREATE TABLE approval_events (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- The timeline is history: like audit_logs, nobody can edit or delete it (G-04).
+-- @optional
 -- @begin
 CREATE TRIGGER trg_approval_events_no_update BEFORE UPDATE ON approval_events
 FOR EACH ROW
@@ -141,6 +142,7 @@ BEGIN
 END;
 -- @end
 
+-- @optional
 -- @begin
 CREATE TRIGGER trg_approval_events_no_delete BEFORE DELETE ON approval_events
 FOR EACH ROW

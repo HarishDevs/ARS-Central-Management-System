@@ -1,5 +1,10 @@
 # Release notes
 
+## v1.76.1 (22 Nov 2026): Fix: the app could not start on an empty database
+- After the live database's tables were deleted (22 Nov 2026), the app (preview and live) could no longer start: on an empty database `npm start` runs every migration, and the three oldest (September/October 2026) created triggers that GoDaddy's MySQL refuses. Those trigger blocks are now optional, like every other trigger since v1.9.0, so a fresh or emptied database is rebuilt and the app starts. Databases that already ran them are not affected.
+- The guard test now checks every migration, not only those since v1.9.0.
+- **Owner steps:** Update Preview → Restart Preview App (it now starts and rebuilds an empty schema) → Database Manager → Import the backup `.sql` → Publish to Live → run `database/optional/v1600_comment_triggers.sql` and `database/optional/v190_append_only_triggers.sql` once in the Database Manager.
+
 ## v1.76.0 (23 Nov 2026): Task Summary for daily use: all your tasks in a tab, your own sections with rules, and CSV
 Comes with the Projects phase A switch. Migration `202611231000_task_summary_r1.sql` (runs on start).
 - **Show ▾ on each tab:** a Task Summary tab shows the *Summary window* (as before: overdue, due today, the next 7 days and completed today) or *All my open tasks* (every open task given to you, with a **Due later** section). Set up tabs like "Pending Today", "Overdue", "Pending Tasks" (All my open tasks) and "Assigner" (grouped by Created by).

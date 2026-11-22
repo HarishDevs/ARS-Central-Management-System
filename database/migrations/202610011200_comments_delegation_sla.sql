@@ -13,6 +13,7 @@ CREATE TABLE request_comments (
   INDEX idx_request_comments_request (request_id, id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- @optional
 -- @begin
 CREATE TRIGGER trg_request_comments_no_update BEFORE UPDATE ON request_comments
 FOR EACH ROW
@@ -21,6 +22,7 @@ BEGIN
 END;
 -- @end
 
+-- @optional
 -- @begin
 CREATE TRIGGER trg_request_comments_no_delete BEFORE DELETE ON request_comments
 FOR EACH ROW

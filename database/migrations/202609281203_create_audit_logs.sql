@@ -24,6 +24,7 @@ CREATE TABLE audit_logs (
   INDEX idx_audit_logs_action (action, occurred_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- @optional
 -- @begin
 CREATE TRIGGER trg_audit_logs_no_update BEFORE UPDATE ON audit_logs
 FOR EACH ROW
@@ -32,6 +33,7 @@ BEGIN
 END
 -- @end
 
+-- @optional
 -- @begin
 CREATE TRIGGER trg_audit_logs_no_delete BEFORE DELETE ON audit_logs
 FOR EACH ROW
