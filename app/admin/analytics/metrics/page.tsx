@@ -3,7 +3,7 @@ import { requireArea } from "@/server/authorization/guards";
 import { MetricsScreen } from "@/features/analytics/MetricsScreen";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
-export const metadata: Metadata = { title: "Metric dictionary (Admin)" };
+export const metadata: Metadata = { title: "How the numbers are worked out (Admin)" };
 
 export const dynamic = "force-dynamic";
 

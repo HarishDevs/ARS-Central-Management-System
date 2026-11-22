@@ -84,7 +84,18 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
       {/* v1.58.0 (D-354): saved views (private) of this list: tab, status, search, group, sort. */}
       <ListViews userId={user.id} target="list_my_tickets" path="/users/tickets" query={{ view, state, ...(group ? { group } : {}), ...(q ? { q } : {}), ...sortKeep }} />
       {items.length === 0 ? (
-        <EmptyState title="No tickets here" body={view === "mine" ? "Tickets you raise appear here." : "Tickets assigned to you appear here."} />
+        <EmptyState
+          title="No tickets here"
+          body={view === "mine" ? "Tickets you raise appear here." : "Tickets assigned to you appear here."}
+          // v1.72.1 (D-395, QA F-15): the main action inside the empty state too.
+          action={
+            view === "mine" ? (
+              <Link href="/users/tickets/new" className="btn-secondary btn-compact">
+                Raise your first ticket
+              </Link>
+            ) : undefined
+          }
+        />
       ) : (
         <TicketTable items={items} caption={VIEWS[view]} withTask={view === "assigned"} group={group} sort={{ state: sort, path: "/users/tickets", query: { view, state, ...(group ? { group } : {}), ...(q ? { q } : {}) } }} />
       )}

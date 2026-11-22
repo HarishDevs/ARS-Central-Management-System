@@ -30,7 +30,7 @@ const PATH = "/superadmin/automation";
 const TARGET = "list_super_automation";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
-export const metadata: Metadata = { title: "Automation & jobs" };
+export const metadata: Metadata = { title: "Automation" };
 
 export const dynamic = "force-dynamic";
 

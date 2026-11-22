@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { EmptyState } from "@/features/ui/Display";
 import { requireArea } from "@/server/authorization/guards";
 import { PageHeader } from "@/features/shell/PageHeader";
 import { ProfileTabs } from "@/features/shell/ProfileTabs";
@@ -41,7 +41,8 @@ export default async function ProfilePage() {
     getUserSetting(user.id, WORKSPACE_VIEW_SETTING).catch(() => null),
     getUserSetting(user.id, TEXT_SIZE_SETTING).catch(() => null),
   ]);
-  if (!profile) notFound();
+  // v1.72.1 (D-395, QA F-09): no notFound() under a loading.tsx (V6-D06): a plain message instead.
+  if (!profile) return <EmptyState title="Your profile could not be loaded" body="Please refresh the page. If it keeps happening, tell IT." />;
   const person = (id: number | null, name: string | null, extra?: string | null) =>
     name ? (
       id ? (

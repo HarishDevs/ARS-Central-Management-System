@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Lock } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Badge } from "@/features/ui/Display";
+import { Badge, Breadcrumbs } from "@/features/ui/Display";
 import { LiveRefresh } from "@/features/work/useLiveRefresh";
 import { PortfolioHeader } from "@/features/work/portfolios/PortfolioHeader";
 import { PortfolioList } from "@/features/work/portfolios/PortfolioList";
@@ -55,6 +55,8 @@ export default async function PortfolioPage({ params, searchParams }: { params: 
   const initialStatus = (STATUS_KINDS as readonly string[]).includes(query.status ?? "") ? query.status : undefined;
   return (
     <>
+      {/* v1.72.1 (D-395, QA F-06): a way back to the list. */}
+      <Breadcrumbs items={[{ href: "/users/work/portfolios", label: "Portfolios" }, { label: portfolio.name }]} />
       <PortfolioHeader
         portfolio={{
           id: portfolio.id,

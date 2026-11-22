@@ -1,6 +1,6 @@
+import { requireFeature } from "@/server/settings/feature-guard";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { featureOn } from "@/server/settings/features";
 import { requireArea } from "@/server/authorization/guards";
 import { PageHeader } from "@/features/shell/PageHeader";
 import { Breadcrumbs } from "@/features/ui/Display";
@@ -26,7 +26,8 @@ const DRILL_SORTS = ["request", "type", "raiser", "status", "raised", "closed"] 
 // the number agree. Scope is checked again on the server.
 export async function AnalyticsListScreen({ searchParams, base }: { searchParams: Record<string, string | undefined>; base: AnalyticsBase }) {
   const { user } = await requireArea("users");
-  if (!(await featureOn("analytics", user))) notFound();
+  // v1.72.1 (D-395): a switched-off feature says so (not a 404).
+  await requireFeature("analytics", user);
   const query = searchParams;
   const kind = (query.kind && query.kind in DRILL_LABEL ? query.kind : null) as DrillKind | null;
   if (!kind) notFound();

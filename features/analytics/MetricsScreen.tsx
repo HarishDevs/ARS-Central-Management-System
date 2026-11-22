@@ -1,6 +1,5 @@
+import { requireFeature } from "@/server/settings/feature-guard";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { featureOn } from "@/server/settings/features";
 import { requireArea } from "@/server/authorization/guards";
 import type { AnalyticsBase } from "@/features/analytics/AnalyticsScreen";
 import { PageHeader } from "@/features/shell/PageHeader";
@@ -10,7 +9,8 @@ import { AGING_BUCKETS, APPROACHING_SHARE } from "@/server/analytics/semantics";
 // The metric dictionary in the app (Addendum A): what each number means.
 export async function MetricsScreen({ base }: { base: AnalyticsBase }) {
   const { user } = await requireArea("users");
-  if (!(await featureOn("analytics", user))) notFound();
+  // v1.72.1 (D-395): a switched-off feature says so (not a 404).
+  await requireFeature("analytics", user);
   return (
     <>
       <PageHeader title="How the numbers are worked out" description="Every figure on Analytics and in reports follows these definitions. Times are India time; deleted requests are never counted.">

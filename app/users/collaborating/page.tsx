@@ -8,7 +8,7 @@ import { listExtras } from "@/server/requests/list-extras";
 import { UsersRound } from "lucide-react";
 import { baseTotal, listChoices, listRequests, tabCounts } from "@/lib/db/repositories/request-lists.repository";
 // v1.58.0 (D-354, owner: saved views are "Only mine"): only the person's own views show and set the default.
-import { myListViews } from "@/server/lists/views";
+import { myListViews, openedPlainly } from "@/server/lists/views";
 import { parseListFilters } from "@/server/requests/list-filters";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
@@ -23,7 +23,8 @@ export default async function CollaboratingPage({ searchParams }: { searchParams
   const params = await searchParams;
   const views = await myListViews(user.id, "collaborating");
   // Opening it with no filters uses your default view, if you have one.
-  const defaultView = Object.keys(params).length === 0 ? views.find((view) => view.isDefault && Object.keys(view.query).length > 0) : undefined;
+  // v1.72.1 (D-395): not after Clear on this list (openedPlainly).
+  const defaultView = (await openedPlainly("/users/collaborating", params)) ? views.find((view) => view.isDefault && Object.keys(view.query).length > 0) : undefined;
   if (defaultView) redirect(`/users/collaborating?${new URLSearchParams(defaultView.query).toString()}`);
   const filters = parseListFilters(params, "COLLAB");
   const [result, counts, choices, mineTotal, sharedTotal] = await Promise.all([listRequests("COLLAB", user.id, filters), tabCounts("COLLAB", user.id, filters), listChoices("COLLAB", user.id), baseTotal("MINE", user.id), baseTotal("COLLAB", user.id)]);

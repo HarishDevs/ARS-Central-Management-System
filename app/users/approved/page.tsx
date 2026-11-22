@@ -7,7 +7,7 @@ import { listExtras } from "@/server/requests/list-extras";
 import { BadgeCheck } from "lucide-react";
 import { listChoices, listRequests, tabCounts } from "@/lib/db/repositories/request-lists.repository";
 // v1.58.0 (D-354, owner: saved views are "Only mine"): only the person's own views show and set the default.
-import { myListViews } from "@/server/lists/views";
+import { myListViews, openedPlainly } from "@/server/lists/views";
 import { parseListFilters } from "@/server/requests/list-filters";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
@@ -21,7 +21,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
   const params = await searchParams;
   const views = await myListViews(user.id, VIEW_TARGET.APPROVED_MINE);
   // Opening it with no filters uses your default view, if you have one.
-  const defaultView = Object.keys(params).length === 0 ? views.find((view) => view.isDefault && Object.keys(view.query).length > 0) : undefined;
+  // v1.72.1 (D-395): not after Clear on this list (openedPlainly).
+  const defaultView = (await openedPlainly("/users/approved", params)) ? views.find((view) => view.isDefault && Object.keys(view.query).length > 0) : undefined;
   if (defaultView) redirect(`/users/approved?${new URLSearchParams(defaultView.query).toString()}`);
   const filters = parseListFilters(params, "APPROVED_MINE");
   const [result, counts, choices] = await Promise.all([listRequests("APPROVED_MINE", user.id, filters), tabCounts("APPROVED_MINE", user.id, filters), listChoices("APPROVED_MINE", user.id)]);

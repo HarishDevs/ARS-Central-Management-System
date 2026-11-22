@@ -137,7 +137,7 @@ export function ClassicBar({ modules }: { modules: ClassicModule[] }) {
   const overview = pathname === GATEWAY && search.get("view") === "overview";
   const atGateway = pathname === GATEWAY && !overview;
   const owner = useNavOwner(pathname); // v1.49.5: a request lights its list
-  const located = locate(modules, owner);
+  const located = locate(modules, owner, search);
   const entry = overview ? (modules.find((item) => item.key === "overview") ?? null) : located.entry;
   const page = overview ? null : located.page;
   const up = !entry ? null : page && entry.pages.length > 1 ? entry.href : GATEWAY;

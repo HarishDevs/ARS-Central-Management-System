@@ -8,7 +8,7 @@ import { loadUserFormOptions } from "@/features/admin/user-options";
 import { requireArea } from "@/server/authorization/guards";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
-export const metadata: Metadata = { title: "New user" };
+export const metadata: Metadata = { title: "Add user" };
 
 export default async function NewUserPage() {
   const { user } = await requireArea("admin");

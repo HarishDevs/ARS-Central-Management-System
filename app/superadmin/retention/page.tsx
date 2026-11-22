@@ -22,7 +22,7 @@ const PATH = "/superadmin/retention";
 const TARGET = "list_super_retention";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
-export const metadata: Metadata = { title: "Data retention" };
+export const metadata: Metadata = { title: "Retention & legal holds" };
 
 export const dynamic = "force-dynamic";
 

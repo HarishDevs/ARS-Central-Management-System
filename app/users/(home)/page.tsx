@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { formDueDays } from "@/server/approvals/form-due";
 import { Suspense } from "react";
+import { redirect } from "next/navigation";
+import { legacyTaskHref } from "@/features/shell/nav-routes";
 import Link from "next/link";
 import { requireArea } from "@/server/authorization/guards";
 import { PageHeader } from "@/features/shell/PageHeader";
@@ -125,6 +127,10 @@ export default async function UsersHome({ searchParams }: { searchParams: Promis
     ) : null;
     return <ModulesHome name={displayName(user.name)} user={user} tasks={tasks} />;
   }
+  // v1.72.1 (D-395, QA F-05): an old link to one task (/users?task=N) opens the
+  // task itself; Task Management on Home doesn't show a single task.
+  const oldTask = tasksOn ? legacyTaskHref(query.task) : null;
+  if (oldTask) redirect(oldTask);
   // A task link (a task, or a tab of the task lists) opens Task Management.
   const asked = query.home === "tasks" || query.home === "approvals" ? query.home : query.task || query.tab || query.given ? "tasks" : null;
   // v1.51.1 (owner): Meetings is the third choice, for people with the Meeting module and its pages.

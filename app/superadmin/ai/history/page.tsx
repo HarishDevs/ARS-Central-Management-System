@@ -10,6 +10,8 @@ import { FoldScope, FoldTbody } from "@/features/ui/GroupFold";
 import { ListViews } from "@/features/lists/ListViews";
 import { groupMenu, sortHeads } from "@/features/superadmin/sort-heads";
 import { applyDefaultListView } from "@/server/lists/views";
+import { LatestNote } from "@/features/ui/LatestNote";
+import { latestLimit } from "@/features/shell/nav-routes";
 import { parseColumnSort, sortRows } from "@/server/lists/sorting";
 import { groupRows, pickGroup } from "@/server/lists/group-rows";
 import { AI_HISTORY_COLUMNS, AI_HISTORY_GROUP_LABEL, AI_HISTORY_GROUPS, aiHistoryBucket, type AiHistoryColumn } from "@/server/lists/superadmin-lists";
@@ -30,7 +32,9 @@ export default async function AiActivityHistoryPage({ searchParams }: { searchPa
   const query = await searchParams;
   // v1.58.0 (D-354, owner): the person's default saved view when nothing is chosen.
   await applyDefaultListView(user.id, TARGET, PATH, query);
-  const latest = await listAllConversations(200);
+  // v1.72.1 (D-395, QA F-07): the latest 200, and "Show 200 more" up to 1,000.
+  const limit = latestLimit(query.limit, 200, 1000);
+  const latest = await listAllConversations(limit);
   const chatLabel = (mode: string) => MODE_LABEL[mode as ChatMode] ?? "Earlier version";
   // v1.58.0 (D-354, owner: "sorting in all the tables ... in all columns"): the latest 200, sorted by any column.
   const sort = parseColumnSort(query, AI_HISTORY_COLUMNS);
@@ -87,6 +91,7 @@ export default async function AiActivityHistoryPage({ searchParams }: { searchPa
               </table>
             </div>
           </FoldScope>
+          <LatestNote shown={latest.length} limit={limit} step={200} max={1000} path={PATH} query={query} what="conversations" />
         </>
       )}
     </>

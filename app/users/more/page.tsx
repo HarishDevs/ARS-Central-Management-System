@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { projectTemplatesHref } from "@/features/shell/nav-routes";
 import {
   BarChart3,
+  Briefcase,
+  Columns3,
+  Ticket,
   Bell,
   BellRing,
   Eye,
@@ -71,7 +75,11 @@ export default async function MorePage() {
       entries: pick([
         has("/users/information") && { href: "/users/information", label: "Information", icon: Newspaper, hint: "Received, sent by me, new" },
         has("/users/meetings") && { href: "/users/meetings", label: "Meetings", icon: CalendarClock, hint: "Schedule, MOM, follow-ups" },
+        // v1.72.1 (D-395): Tickets and Portfolios were missing on phones (only with the module, switch and page access).
+        has("/users/tickets") && { href: "/users/tickets", label: "Tickets", icon: Ticket, hint: "Raise a ticket, my tickets" },
+        has("/users/tickets/board") && { href: "/users/tickets/board", label: "Coordinator board", icon: Columns3 },
         has("/users/work/projects") && { href: "/users/work/projects", label: "Projects", icon: FolderKanban },
+        has("/users/work/portfolios") && { href: "/users/work/portfolios", label: "Portfolios", icon: Briefcase },
         has("/users/work/periodic") && { href: "/users/work/periodic", label: "Periodic tasks", icon: RefreshCw },
         has("/users/calendar") && { href: "/users/calendar", label: "Calendar", icon: CalendarDays },
       ]),
@@ -88,7 +96,8 @@ export default async function MorePage() {
       entries: pick([
         open("/users/search") && { href: "/users/search", label: "Search", icon: Search },
         has("/users/new") && { href: "/users/new", label: "Approval templates", icon: FileStack },
-        has("/users/work/projects") && { href: "/users/work/projects?show=templates", label: "Project templates", icon: Layers },
+        // v1.72.1 (D-395): one "Project templates" destination (the gallery when "pm_extras" is on).
+        has("/users/work/projects") && { href: projectTemplatesHref(has("/users/work/templates")), label: "Project templates", icon: Layers },
         has("/users/information/sent") && { href: "/users/information/sent", label: "Information sent by me", icon: Send },
       ]),
     },

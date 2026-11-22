@@ -17,6 +17,8 @@ import { FoldScope } from "@/features/ui/GroupFold";
 import { SortHead } from "@/features/admin/SortHead";
 import { GroupedRows } from "@/features/admin/GroupedRows";
 import { applyDefaultListView } from "@/server/lists/views";
+import { LatestNote } from "@/features/ui/LatestNote";
+import { latestLimit } from "@/features/shell/nav-routes";
 import { parseColumnSort, sortRows } from "@/server/lists/sorting";
 import { departmentBucket, groupRows, pickGroup } from "@/server/lists/group-rows";
 import { groupMenu, monthBucket } from "@/server/admin/lists";
@@ -136,7 +138,9 @@ async function SendTab() {
 }
 
 async function HistoryTab({ query }: { query: Query }) {
-  const loaded = await listBroadcasts(100);
+  // v1.72.1 (D-395, QA F-07): the latest 100, and "Show 100 more" up to 1,000.
+  const limit = latestLimit(query.limit, 100, 1000);
+  const loaded = await listBroadcasts(limit);
   if (!loaded.length) return <p className="card px-5 py-4 text-label text-ink-muted">Nothing sent yet.</p>;
   const sort = parseColumnSort(query, HISTORY_COLUMNS);
   const group = pickGroup(query.group, HISTORY_GROUPS.map((choice) => choice.key));
@@ -202,12 +206,15 @@ async function HistoryTab({ query }: { query: Query }) {
         />
       </table>
     </div>
+    <LatestNote shown={loaded.length} limit={limit} step={100} max={1000} path={PATH} query={query} what="notifications" />
     </FoldScope>
   );
 }
 
 async function DevicesTab({ query }: { query: Query }) {
-  const loaded = await listAllDevices(300);
+  // v1.72.1 (D-395, QA F-07): the latest 300, and "Show 300 more" up to 3,000.
+  const limit = latestLimit(query.limit, 300, 3000);
+  const loaded = await listAllDevices(limit);
   if (!loaded.length) return <p className="card px-5 py-4 text-label text-ink-muted">No device registered yet. People turn notifications on in Profile → App & devices.</p>;
   const deviceText = (row: (typeof loaded)[number]) => `${[row.browser, row.operatingSystem].filter(Boolean).join(" on ") || "A browser"} · ${row.deviceType.toLowerCase()}${row.installed ? " · app" : ""}`;
   const sort = parseColumnSort(query, DEVICE_COLUMNS);
@@ -262,6 +269,7 @@ async function DevicesTab({ query }: { query: Query }) {
         />
       </table>
     </div>
+    <LatestNote shown={loaded.length} limit={limit} step={300} max={3000} path={PATH} query={query} what="devices" />
     </FoldScope>
   );
 }

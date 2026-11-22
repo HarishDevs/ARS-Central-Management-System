@@ -19,7 +19,7 @@ import { formatIndiaTime } from "@/server/notifications/security-messages";
 import { templatesNeedingAttention } from "@/server/notifications/template-reminder";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
-export const metadata: Metadata = { title: "Message templates" };
+export const metadata: Metadata = { title: "WhatsApp templates" };
 
 // WhatsApp template creator (S7, D-076, F-42b): every WhatsApp message the
 // app sends, its live version, and the newest version in the works.

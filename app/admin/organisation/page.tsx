@@ -9,7 +9,7 @@ import { listApproverOptions } from "@/lib/db/repositories/approvers.repository"
 import { personLabel } from "@/lib/people/label";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
-export const metadata: Metadata = { title: "Departments & designations" };
+export const metadata: Metadata = { title: "Departments" };
 
 // P1-01 / S2-03a. The HOD set here is who "requester's department HOD" and
 // "department HOD" resolve to in workflows.

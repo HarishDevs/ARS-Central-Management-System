@@ -102,8 +102,10 @@ test("save as template, then a new project from it", async ({ page, context }) =
   await expect(page.getByRole("heading", { level: 1, name: `E2E close template ${stamp}` })).toBeVisible();
   await expect(page.getByTestId("template-tasks")).toContainText(`Reconcile bank ${stamp}`);
 
+  // v1.72.1 (D-395): with the gallery on ("pm_extras" in the e2e seed), the old Templates tab opens it.
   await page.goto("/users/work/projects?show=templates");
-  await expect(page.getByTestId("template-list")).toContainText(`E2E close template ${stamp}`);
+  await expect(page).toHaveURL(/\/users\/work\/templates$/);
+  await expect(page.getByTestId("template-gallery")).toContainText(`E2E close template ${stamp}`);
   // D-220: New project → Use a template (step by step).
   await page.goto("/users/work/projects/new");
   await page.getByRole("button", { name: /Use a template/ }).click();

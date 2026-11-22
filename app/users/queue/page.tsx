@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { formDueDays } from "@/server/approvals/form-due";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { Hourglass, X } from "lucide-react";
 import { requireArea } from "@/server/authorization/guards";
 import { PageHeader } from "@/features/shell/PageHeader";
@@ -13,7 +12,7 @@ import { PendingLink } from "@/features/ui/PendingLink";
 import { QueueKeyboard } from "@/features/requests/QueueKeyboard";
 import { countPendingTasksFor, listPendingTasksFor, listSentBackFor, queueChoicesFor, queueTypesFor } from "@/lib/db/repositories/approvals.repository";
 // v1.58.0 (D-354, owner: saved views are "Only mine"): only the person's own views show and set the default.
-import { myListViews } from "@/server/lists/views";
+import { applyDefaultListView, myListViews } from "@/server/lists/views";
 import { SavedViews, SaveViewForm } from "@/features/analytics/ReportForms";
 import { ListToolbar } from "@/features/ui/ListToolbar";
 import { NoResults } from "@/features/ui/Display";
@@ -32,10 +31,8 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
   const { user } = await requireArea("users");
   const params = await searchParams;
   // D-234 (Default effect): no filters in the address → your default view, as on the other lists.
-  if (Object.keys(params).length === 0) {
-    const preferred = (await myListViews(user.id, "queue")).find((view) => view.isDefault && Object.keys(view.query).length > 0);
-    if (preferred) redirect(`/users/queue?${new URLSearchParams(preferred.query).toString()}`);
-  }
+  // v1.72.1 (D-395): not when the person pressed Clear on this list (the shared check).
+  await applyDefaultListView(user.id, "queue", "/users/queue", params);
   const filter = parseQueueFilter(params);
   const PAGE_SIZE = filter.size ?? 25;
   const [total, everything, types, choices, views, sentBack] = await Promise.all([

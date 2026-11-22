@@ -14,6 +14,7 @@ import { cleanQuery, runReport } from "@/server/reports/run";
 import { PERIOD_LABEL, type PeriodKey } from "@/server/analytics/periods";
 import { dashboardChoices } from "@/lib/db/repositories/dashboards.repository";
 import { listViews } from "@/lib/db/repositories/analytics-views.repository";
+import { openedPlainly } from "@/server/lists/views";
 import type { Cell, Column } from "@/server/reports/catalogue";
 import { formatIndiaTime } from "@/server/notifications/security-messages";
 import { personLabel } from "@/lib/people/label";
@@ -50,7 +51,8 @@ export default async function ReportPage({ params, searchParams }: { params: Pro
   const choices = await dashboardChoices();
   const views = await listViews(user.id, key);
   // B07: opening a report with no filters uses your default view for it.
-  const defaultView = Object.keys(raw).length === 0 ? views.find((view) => view.isDefault && Object.keys(view.query).length > 0) : undefined;
+  // v1.72.1 (D-395): not after Clear on this report (openedPlainly).
+  const defaultView = (await openedPlainly(`/admin/reports/${key}`, raw)) ? views.find((view) => view.isDefault && Object.keys(view.query).length > 0) : undefined;
   if (defaultView) redirect(`/admin/reports/${key}?${new URLSearchParams(defaultView.query).toString()}`);
   const people = scheduling ? (await listActiveUserOptions()).filter((person) => person.id !== user.id).map((person) => ({ id: person.id, label: personLabel(person), detail: person.departmentName ?? undefined })) : [];
   const effective: Record<string, string> = { ...(query as Record<string, string>), scope: scope.kind, period: filter.period.key };

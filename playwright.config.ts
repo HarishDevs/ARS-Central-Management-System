@@ -23,7 +23,7 @@ export const E2E_ENV = {
   HEALTH_SECRET: "e2e-health-secret-only-for-tests-0123",
   UPLOAD_DIR: path.join(os.tmpdir(), "ars-approvals-e2e-uploads"),
   // D-172: Pic bot talks to a local mock provider in tests (tests/e2e/mock-provider.ts).
-  AI_CLAUDE_BASE_URL: "http://127.0.0.1:4011",
+  AI_CLAUDE_BASE_URL: `http://127.0.0.1:${process.env.E2E_MOCK_PORT ?? 4011}`,
 };
 
 export default defineConfig({

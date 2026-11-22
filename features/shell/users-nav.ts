@@ -31,7 +31,8 @@ export async function usersNav(user: { id: number; roles: readonly string[] }): 
           // D-206 (owner): New task first. D-215: My tasks opens My Tasks (its
           // sections, board and calendar; the filtered table is one click
           // away), then the owner's order, then projects, home and search.
-          { href: "/users/tasks/new", label: "New task", section: "Tasks" },
+          // v1.72.1 (D-395, QA F-12): the link redirects to the Create task window on My Tasks; lit there.
+          { href: "/users/tasks/new", label: "New task", section: "Tasks", activeOn: "/users/work/my-tasks?create=task" },
           { href: "/users/work/my-tasks", label: "Task Summary", section: "Tasks" },
           { href: "/users/tasks", label: "Assigned to me", section: "Tasks" },
           { href: "/users/tasks/assigned", label: "Assigned by me", section: "Tasks" },

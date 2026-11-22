@@ -53,7 +53,7 @@ The phone screens follow the familiar Asana app layout: a big title with **…**
 - **Inbox:** grouped by day (Today, Yesterday, then dates); each card shows its kind, title, message (**See more** for a long one) and time, with bookmark and archive. **Choose view:** **All activity**, **Bookmarks**, **Archived**. **Manage view:** filters (Approvals, Tasks, Information, System, @Mentioned), read status (unread only) and sort (newest). **…** has notification settings.
 - **Search** (the magnifier at the top): one box that searches **Requests** or **Tasks**, **Projects**, then quick filters (requests I raised, I approve, in progress, approved) and shortcuts (tasks I've created, recently completed, assigned to others, overdue, I follow).
 - **Your picture:** until you upload a photo (Profile → Upload a photo), it is the ARS CMS round icon: blue for approvers (designation ticked Approver), white for everyone else.
-- **More:** your photo, name and email; **Out of office** (says if it is on) and **Notifications**; then Work, Intelligence, Tools, Settings (profile, notifications, push notifications, colour mode, sign-in & devices), Support (Help centre, terms, privacy), the Admin spaces you have, **Sign out** (it asks first) and the app version.
+- **More:** your photo, name and email; **Out of office** (says if it is on) and **Notifications**; then Work (Information, Meetings, **Tickets** and the coordinator board if you have Ticketing, Projects, **Portfolios** when they are switched on, Periodic tasks, Calendar), Intelligence, Tools, Settings (profile, notifications, push notifications, colour mode, sign-in & devices), Support (Help centre, terms, privacy), the Admin spaces you have, **Sign out** (it asks first) and the app version.
 - **While a page loads** you see the shape of that screen (grey blocks where its rows and cards will be) instead of the old page.
 - **The bell** opens your latest notifications across the screen, under the top bar.
 
@@ -73,7 +73,14 @@ ARS CMS can be installed like an app: it opens in its own window from your home 
 - If you chose **Block** by mistake, the page shows how to allow notifications again in your browser.
 
 ### Search
-The search bar in the middle of the top bar finds requests, tasks, projects, people, information and pages. It keeps your recent and saved searches; **Filters** opens the full search. A request number works without dashes or zeros (e.g. "pur 2026 123"). **Ctrl+K** jumps to any page.
+The search bar in the middle of the top bar finds requests, tasks, projects, people, information, **tickets and meetings** (those you can see on their lists; v1.72.1) and pages. It keeps your recent and saved searches; **Filters** opens the full search. A request number works without dashes or zeros (e.g. "pur 2026 123"). **Ctrl+K** jumps to any page.
+
+### Finding your way (v1.72.1)
+- **Default views and Clear:** a list you saved a default view for opens with it. Pressing **Clear** or **Reset filters** on that list shows everything; the default view comes back the next time you open the list from elsewhere.
+- **Switched off:** if IT has switched a part of the app off (Tasks, Information, Analytics, AI Assistant, Portfolios or Project templates), its pages say "… is switched off" with **Go to Home**, instead of "page not found". Your data in it is kept.
+- **The way back:** a project, template or portfolio shows **Projects ›** or **Portfolios ›** above its name; a colleague's profile card has **← Back** (to the page you came from, or Home).
+- **Long lists:** a list that shows only the latest entries says so (e.g. "Showing the latest 200 conversations") with **Show more**. On a phone, the Approvals lists link to the full list when there are more.
+- **Old links:** an old link to a task in Task home opens the task itself. **Project templates** always opens the same place (the template gallery when IT has it on).
 
 ### Home
 Approvers open on **Approvals**, everyone else on **Task Management**; switch at the top.

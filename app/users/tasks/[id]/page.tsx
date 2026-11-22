@@ -1,7 +1,7 @@
+import { requireFeature } from "@/server/settings/feature-guard";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { requireArea } from "@/server/authorization/guards";
-import { featureOn } from "@/server/settings/features";
 import { TaskDetail } from "@/features/work/TaskDetail";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
@@ -14,7 +14,8 @@ export const dynamic = "force-dynamic";
 // page's content is TaskDetail, shared with the popup opened from lists.
 export default async function TaskPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ created?: string; project?: string }> }) {
   const { user } = await requireArea("users");
-  if (!(await featureOn("tasks", user))) notFound();
+  // v1.72.1 (D-395): a switched-off feature says so (not a 404).
+  await requireFeature("tasks", user);
   const { id } = await params;
   if (!/^\d{1,10}$/.test(id)) notFound();
   return <TaskDetail taskId={Number(id)} user={user} query={await searchParams} />;

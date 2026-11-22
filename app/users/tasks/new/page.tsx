@@ -1,7 +1,7 @@
+import { requireFeature } from "@/server/settings/feature-guard";
 import type { Metadata } from "next";
 import { SquarePen } from "lucide-react";
-import { featureOn } from "@/server/settings/features";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { requireArea } from "@/server/authorization/guards";
 import { EmptyState, PageHeader } from "@/features/shell/PageHeader";
@@ -25,7 +25,8 @@ export const dynamic = "force-dynamic";
 // create), then the type's form. The server checks everything again.
 export default async function NewTaskPage({ searchParams }: { searchParams: Promise<{ type?: string; related?: string }> }) {
   const { user } = await requireArea("users");
-  if (!(await featureOn("tasks", user))) notFound();
+  // v1.72.1 (D-395): a switched-off feature says so (not a 404).
+  await requireFeature("tasks", user);
   const query = await searchParams;
   // v1.48.2 (owner: "drop this task-from-templates part"): New task opens the
   // Create task window (My Tasks with ?create=task); a type's own form is

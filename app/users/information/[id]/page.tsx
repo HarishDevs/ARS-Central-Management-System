@@ -1,6 +1,6 @@
+import { requireFeature } from "@/server/settings/feature-guard";
 import { TaskPriorityPill } from "@/features/ui/ChoicePill";
 import type { Metadata } from "next";
-import { featureOn } from "@/server/settings/features";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireArea } from "@/server/authorization/guards";
@@ -38,7 +38,8 @@ const EVENT_TEXT: Record<string, string> = { CREATED: "Draft started", DRAFT_SAV
 // acknowledged). Anyone else gets "not found".
 export default async function InformationPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ published?: string; saved?: string; sortBy?: string; dir?: string }> }) {
   const { user } = await requireArea("users");
-  if (!(await featureOn("information", user))) notFound();
+  // v1.72.1 (D-395): a switched-off feature says so (not a 404).
+  await requireFeature("information", user);
   const { id } = await params;
   if (!/^\d{1,10}$/.test(id)) notFound();
   const loaded = await loadInfoFor(Number(id), user);

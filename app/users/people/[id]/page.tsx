@@ -7,6 +7,7 @@ import { Email, SafeText } from "@/features/ui/SafeText";
 import { personProfile } from "@/lib/db/repositories/profile.repository";
 import { photoUrl } from "@/server/profile/photo";
 import { RichText } from "@/features/work/RichText";
+import { BackLink } from "@/features/ui/BackLink";
 
 export const metadata: Metadata = { title: "Profile" };
 
@@ -21,6 +22,9 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
   if (!profile || !profile.active) notFound();
   const mine = profile.id === user.id;
   return (
+    <>
+    {/* v1.72.1 (D-395, QA F-13): a way back (the card is reached from many pages). */}
+    <BackLink fallback="/users" />
     <section className="card max-w-4xl px-6 py-6" data-testid="person-card">
       <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
         <Avatar name={profile.name} src={photoUrl(profile.id, profile.photoUpdatedAt)} size="xl" approver={profile.isApprover} />
@@ -82,5 +86,6 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
         </div>
       </div>
     </section>
+    </>
   );
 }

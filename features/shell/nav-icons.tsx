@@ -30,6 +30,7 @@ const ICONS: Record<string, LucideIcon> = {
   "/users/inbox": Inbox,
   "/users/work/projects/new": FolderPlus,
   "/users/work/projects?show=templates": Layers,
+  "/users/work/templates": Layers, // v1.70.0 gallery (v1.72.1: had no icon)
   "/users/work/portfolios": Briefcase, // v1.69.0 (D-382)
   "/users/information": FileText,
   "/users/information/sent": Send,
@@ -70,7 +71,7 @@ const ICONS: Record<string, LucideIcon> = {
   "/admin/dashboards": Gauge,
   "/admin/analytics": ChartLine,
   "/admin/workload": ClipboardCheck,
-  "/admin/reassign": Send,
+  "/admin/workload/reassign": Send, // v1.72.1 (D-395): was the old /admin/reassign address
   "/admin/groups": Users,
   "/admin/doa": Scale,
   "/admin/budgets": Building2,

@@ -5,10 +5,13 @@
 // like Tally's highlighted letters. Pure: used by the server and the browser.
 import type { NavItem } from "@/features/shell/SideNav";
 
+import { queryHrefMatches } from "@/features/shell/nav-routes";
+
 export interface ClassicPage {
   href: string;
   label: string;
   count?: number;
+  activeOn?: string; // v1.72.1 (D-395): lit on this address (with its query) too
 }
 
 export interface ClassicModule {
@@ -59,7 +62,7 @@ export function classicModules(items: readonly NavItem[]): ClassicModule[] {
       continue;
     }
     const existing = modules.find((entry) => entry.key === section.key);
-    const page = { href: item.href, label: item.label, ...(item.count !== undefined ? { count: item.count } : {}) };
+    const page = { href: item.href, label: item.label, ...(item.count !== undefined ? { count: item.count } : {}), ...(item.activeOn ? { activeOn: item.activeOn } : {}) };
     if (existing) existing.pages.push(page);
     else modules.push({ key: section.key, label: section.label, hotkey: "", href: `${MENU_BASE}/${section.key}`, pages: [page] });
   }
@@ -78,7 +81,9 @@ const within = (pathname: string, href: string) => {
 };
 
 // The module and page the person is on (the longest matching page wins).
-export function locate(modules: readonly ClassicModule[], pathname: string): { entry: ClassicModule | null; page: ClassicPage | null } {
+export function locate(modules: readonly ClassicModule[], pathname: string, search: { get(key: string): string | null } | null = null): { entry: ClassicModule | null; page: ClassicPage | null } {
+  // v1.72.1 (D-395, QA F-12): a page whose address has a query (New task → My Tasks ?create=task) wins on that address.
+  for (const entry of modules) for (const page of entry.pages) if (queryHrefMatches(page.activeOn ?? page.href, pathname, search)) return { entry, page };
   if (pathname.startsWith(`${MENU_BASE}/`)) {
     const key = pathname.slice(MENU_BASE.length + 1).split("/")[0];
     return { entry: modules.find((entry) => entry.key === key) ?? null, page: null };

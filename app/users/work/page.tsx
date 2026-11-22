@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { workPage } from "@/server/work/page-context";
+import { legacyTaskHref } from "@/features/shell/nav-routes";
 
 export const dynamic = "force-dynamic";
 
@@ -8,6 +9,9 @@ export const dynamic = "force-dynamic";
 export default async function WorkHome({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   await workPage();
   const params = await searchParams;
+  // v1.72.1 (D-395, QA F-05): an old link to one task opens that task (Home's view may not show it).
+  const task = legacyTaskHref(params.task);
+  if (task) redirect(task);
   const keep = Object.entries(params).filter((entry): entry is [string, string] => typeof entry[1] === "string" && ["tab", "given", "task"].includes(entry[0]));
   // D-264: Home's Task Management view.
   redirect(`/users?${new URLSearchParams([["home", "tasks"], ...keep])}`);

@@ -1,11 +1,12 @@
+import { requireFeature } from "@/server/settings/feature-guard";
 import Link from "next/link";
 import { ListToolbar } from "@/features/ui/ListToolbar";
 import { PhoneFold } from "@/features/analytics/PhoneFold";
 import { isMobileLayout } from "@/server/ui/layout-mode";
 import { BarChart3 } from "lucide-react";
 import { FitPages } from "@/features/analytics/FitPages";
-import { notFound, redirect } from "next/navigation";
-import { canExport, featureOn } from "@/server/settings/features";
+import { redirect } from "next/navigation";
+import { canExport } from "@/server/settings/features";
 import { BoardPicker, CenterScreen } from "@/features/analytics/CenterScreen";
 import { boardsFor, parseBoard, soonBoards } from "@/server/analytics/center";
 import { hasModule } from "@/server/modules/modules";
@@ -25,6 +26,7 @@ import { findStuckRequests } from "@/server/ops/stuck";
 import { ErrorState } from "@/features/ui/States";
 import { formatIndiaTime } from "@/server/notifications/security-messages";
 import { listViews } from "@/lib/db/repositories/analytics-views.repository";
+import { openedPlainly } from "@/server/lists/views";
 import { SavedViews, SaveViewForm } from "@/features/analytics/ReportForms";
 import { readFilter, SLA_FILTER_LABEL, STATUS_FILTER_LABEL, withParams } from "@/server/analytics/query";
 import { guardAnalyticsRate } from "@/server/analytics/rate";
@@ -39,13 +41,15 @@ export type AnalyticsBase = "/users/analytics" | "/admin/analytics";
 // number with a list behind it opens that list with the same filters.
 export async function AnalyticsScreen({ searchParams, base }: { searchParams: Record<string, string | undefined>; base: AnalyticsBase }) {
   const { user } = await requireArea("users");
-  if (!(await featureOn("analytics", user))) notFound();
+  // v1.72.1 (D-395): a switched-off feature says so (not a 404).
+  await requireFeature("analytics", user);
   const viewer = { id: user.id, roles: user.roles };
   const isAdmin = user.roles.includes("IT_ADMIN") || user.roles.includes("SUPER_ADMIN");
   const query = searchParams;
   const views = await listViews(user.id, "DASHBOARD");
   // B07: no filters in the address → your default view, if you have one.
-  const defaultView = Object.keys(query).length === 0 ? views.find((view) => view.isDefault && Object.keys(view.query).length > 0) : undefined;
+  // v1.72.1 (D-395): not after Clear on this page (openedPlainly).
+  const defaultView = (await openedPlainly(base, query)) ? views.find((view) => view.isDefault && Object.keys(view.query).length > 0) : undefined;
   if (defaultView) redirect(`${base}?${new URLSearchParams(defaultView.query).toString()}`);
   // C04: analytics is query-heavy; a burst of reloads is slowed down.
   const limited = await guardAnalyticsRate(user.id);

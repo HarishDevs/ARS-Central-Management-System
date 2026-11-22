@@ -20,6 +20,7 @@ export const metadata: Metadata = {
 // photos, tasks and projects, notification choices, the weekly HOD email and
 // encrypted off-site backups. D-250 to D-252 (v1.41.0): the installed app,
 // phone and desktop notifications (push) and the daily session. v1.43.0: the
+// v1.72.1 (D-395): the tab.s session storage of the last page (Back links).
 // layout cookie of the phone layout (v1.45.0: and the Compact mode cookie). v1.44.0 (D-273): people given a task by a
 // request's background work step may read that request.
 // v1.46.0 (D-277, D-278): the encrypted backup copy may go to an ARS Google
@@ -136,6 +137,10 @@ export default function PrivacyPage() {
         <p>
           When you resize a column, the browser keeps the widths you chose (numbers only, per page and table) in its own storage on that device, so the table opens the same way next time. They
           never leave the device, hold nothing about you or your records, and go when you clear the browser&apos;s site data.
+        </p>
+        <p>
+          So that a Back link can return you to the page you came from, each browser tab also remembers the address of the last page of ARS CMS you opened in it (the tab&apos;s own session
+          storage). It never leaves the device and goes when you close the tab.
         </p>
 
         <h2>How information is shared</h2>

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { LayoutTemplate } from "lucide-react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { switchedOffHref } from "@/features/shell/switched-off";
 import { PageHeader } from "@/features/shell/PageHeader";
 import { TemplateGallery } from "@/features/work/extras/TemplateGallery";
 import { workPage } from "@/server/work/page-context";
@@ -18,7 +19,8 @@ export default async function TemplatesPage({ searchParams }: { searchParams: Pr
   const { user, viewer } = await workPage();
   if (viewer.projects === false) notFound();
   const items = await gallery({ id: user.id, name: user.name, roles: user.roles, modules: user.modules, sessionId: "", ipAddress: null });
-  if (!items) notFound();
+  // v1.72.1 (D-395): the "pm_extras" switch off → the "switched off" screen.
+  if (!items) redirect(switchedOffHref("pm_extras"));
   const params = await searchParams;
   const show = params.show === "organisation" || params.show === "shared" ? params.show : "mine";
   return (

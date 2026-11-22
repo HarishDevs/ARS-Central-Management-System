@@ -4,7 +4,8 @@ import Link, { useLinkStatus } from "next/link";
 import { useEffect, useId, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { Spinner } from "@/features/ui/Spinner";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { queryHrefMatches } from "@/features/shell/nav-routes";
 import { NavIcon, SectionIcon } from "@/features/shell/nav-icons";
 import { ChatList, type ChatSummary } from "@/features/shell/ChatList";
 import { useNavOwner } from "@/features/shell/nav-owner";
@@ -16,6 +17,7 @@ export interface NavItem {
   count?: number; // e.g. how many approvals are waiting (from the server)
   section?: string; // v1.9.0: the module group this entry belongs to (My Approvals, Tasks, Information…)
   chats?: boolean; // D-180: the group shows the person's AI chats (with a search) instead of links
+  activeOn?: string; // v1.72.1 (D-395): the address (with its query) this entry is lit on, when its link redirects there
 }
 
 // D-221 (owner): the look of the Tasks bar (Asana): 32px rows, a soft highlight, small
@@ -53,7 +55,10 @@ export function SideNav({ items, collapsible = false, chats = [] }: { items: Nav
   // Only the most specific entry is highlighted (My tasks vs Assigned by me
   // under /users/tasks/assigned).
   const matches = (href: string) => !href.includes("?") && (pathname === href || (href.split("/").length > 2 && pathname.startsWith(`${href}/`)));
-  const best = items.filter((item) => matches(item.href)).sort((a, b) => b.href.length - a.href.length)[0]?.href;
+  // v1.72.1 (D-395, QA F-12): an entry whose address has a query (Templates, or New task's
+  // My Tasks with ?create=task) wins when the address has the same values.
+  const search = useSearchParams();
+  const best = items.find((item) => queryHrefMatches(item.activeOn ?? item.href, pathname, search))?.href ?? items.filter((item) => matches(item.href)).sort((a, b) => b.href.length - a.href.length)[0]?.href;
   // "also" pages count only when no entry names the page itself (My Tasks
   // stays lit on a task, not on Task with a type).
   const isActive = (item: NavItem) => item.href === best || (!best?.startsWith("/users/tasks") && (item.also ?? []).some((path) => pathname === path || pathname.startsWith(`${path}/`)));

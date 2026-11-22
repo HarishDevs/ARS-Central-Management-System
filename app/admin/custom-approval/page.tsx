@@ -9,7 +9,7 @@ import { formatIndiaTime } from "@/server/notifications/security-messages";
 import { personLabel } from "@/lib/people/label";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
-export const metadata: Metadata = { title: "Custom approval set-up" };
+export const metadata: Metadata = { title: "Custom approval" };
 
 export const dynamic = "force-dynamic";
 

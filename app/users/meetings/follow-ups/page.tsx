@@ -14,6 +14,8 @@ import { FoldScope, FoldTbody } from "@/features/ui/GroupFold";
 import { SortTh } from "@/features/ui/SortTh";
 import { ListViews } from "@/features/lists/ListViews";
 import { applyDefaultListView } from "@/server/lists/views";
+import { LatestNote } from "@/features/ui/LatestNote";
+import { latestLimit } from "@/features/shell/nav-routes";
 import { nextDir, parseColumnSort, sortRows } from "@/server/lists/sorting";
 import { departmentBucket, dueBucket, groupRows, indiaDayOf, pickGroup } from "@/server/lists/group-rows";
 
@@ -63,7 +65,10 @@ export default async function FollowUpsPage({ searchParams }: { searchParams: Pr
   };
   const groupHref = (value: FollowGroup | null) => fuHref({ group: value });
   const scope = await scopeFor(user);
-  const [rows, openPoints] = await Promise.all([listFollowUps(scope, { ownerOnly: view === "mine" ? user.id : null, q, limit: 500 }), listOpenPointRegister(scope, 300)]);
+  // v1.72.1 (D-395, QA F-07): the latest 500 actions (and 300 open points) say so, with "Show more".
+  const limit = latestLimit(query.limit, 500, 2500);
+  const pointLimit = latestLimit(query.points, 300, 1500);
+  const [rows, openPoints] = await Promise.all([listFollowUps(scope, { ownerOnly: view === "mine" ? user.id : null, q, limit }), listOpenPointRegister(scope, pointLimit)]);
   const now = new Date();
   const withState = rows.map((row) => ({ row, state: actionState({ taskStatus: row.taskStatus, dueAt: row.taskDueAt, confirmedAt: row.confirmedAt }, now) as FollowUpState }));
   const runs = (row: { meetingOwnerId: number; meetingCoordinatorId: number }) => row.meetingOwnerId === user.id || row.meetingCoordinatorId === user.id || isAdminActor(user);
@@ -201,6 +206,7 @@ export default async function FollowUpsPage({ searchParams }: { searchParams: Pr
         </div>
         </FoldScope>
       )}
+      <LatestNote shown={rows.length} limit={limit} step={500} max={2500} path="/users/meetings/follow-ups" query={query} what="action items" />
       <section className="mt-6" aria-labelledby="open-points">
         <h2 id="open-points" className="mb-2 font-semibold">
           Open points ({openPoints.length})
@@ -225,6 +231,7 @@ export default async function FollowUpsPage({ searchParams }: { searchParams: Pr
             ))}
           </ul>
         )}
+        <LatestNote shown={openPoints.length} limit={pointLimit} step={300} max={1500} path="/users/meetings/follow-ups" query={query} what="open points" param="points" />
       </section>
     </>
   );

@@ -10,7 +10,7 @@ import { personLabel } from "@/lib/people/label";
 import { PersonSelect } from "@/features/ui/PersonSelect";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
-export const metadata: Metadata = { title: "Move pending approvals" };
+export const metadata: Metadata = { title: "Move pending tasks" };
 
 // v1.7.0 (A3): bulk reassignment of pending tasks (IT). Narrow the list by
 // who holds the tasks and by approval type, tick, move.

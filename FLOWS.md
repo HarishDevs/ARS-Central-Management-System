@@ -1905,6 +1905,30 @@ flowchart TD
 - The engine refuses it (reassignTask, putOnHold, resume, askForInformation, resolveBlocked ASSIGN/SKIP/TAKE_PATH, decide, changeByApprover), so every screen and bulk action follows. A handover list reports such items as skipped.
 - A handover is also refused to someone who already decided another part of the same level this round (one person, one vote, D-147), so a level can't be left with a task nobody may decide.
 
+## F-NAV-STATES: Lists, state screens and the way back (v1.72.1, D-395)
+```mermaid
+flowchart TD
+  open[Open a list with a bare address] --> came{Came from this same list?<br/>e.g. pressed Clear / Reset filters}
+  came -- yes --> all[Show everything]
+  came -- no --> dv{Default view saved?}
+  dv -- yes --> view[Redirect to the default view]
+  dv -- no --> all
+  page[Open a page of a feature] --> sw{Feature switch on for me?}
+  sw -- no --> off[/users/switched-off?feature=…<br/>"X is switched off" + Go to Home/]
+  sw -- yes --> acc{Page access / module?}
+  acc -- no --> na[/users/no-access/]
+  acc -- yes --> show[The page]
+  ap[/users/approvals?tab=…/] --> dev{Phone?}
+  dev -- yes --> hub[Phone hub, first tab I may see]
+  dev -- no --> list[waiting → queue · mine → requests · approved → approved · drafts → Home drafts<br/>hidden list → the next one I may open]
+  old[/users/work?task=N or /users?task=N/] --> task[/users/tasks/N/]
+```
+- Phones: More → Work lists Tickets (and the Coordinator board for coordinators) and Portfolios when the person has the module, the switch is on and page access allows; the More tab stays lit on tickets and meetings.
+- Detail pages: a project and a portfolio show "Projects ›" / "Portfolios ›" breadcrumbs; a person's card has Back (the browser's back when this tab moved inside the app, else Home).
+- Lists that load only the latest rows (AI history, broadcast notifications and devices, meeting follow-ups and open points, phone approvals) say "Showing the latest N" with "Show N more" (or a link to the full, paged list on phones).
+- Ctrl+K also finds tickets (raised by me, assigned to me, coordinated or seen by category; all for IT) and meetings (the meetings list's own visibility), by number or title.
+- One "Project templates" destination: the gallery when Projects E is on, else the Projects → Templates tab. "New task" is lit on My Tasks' Create task window.
+
 ## F-HUMAN-CHECK-RESUBMIT: The HOD check survives changes (v1.71.2, D-390; extends F-207)
 ```mermaid
 flowchart LR

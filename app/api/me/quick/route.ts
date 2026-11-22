@@ -18,6 +18,8 @@ import { personLabel } from "@/lib/people/label";
 import { listInfo } from "@/lib/db/repositories/info.repository";
 import { infoListSql, parseInfoFilters } from "@/server/modules/info-lists";
 import { indiaToday } from "@/server/modules/information";
+import { isHiddenHref, navAccess } from "@/server/authorization/page-access";
+import { quickMeetings, quickTickets } from "@/server/search/quick-more";
 
 // WS-03/04 command palette data: requests matching the typed text (two or
 // more characters), or the recently viewed ones. Access is the same SQL
@@ -52,7 +54,11 @@ export async function GET(request: NextRequest) {
       }
       information = [...found.values()].slice(0, 6);
     }
-    return Response.json({ kind: q.length >= 2 ? "search" : "recent", items, tasks: work.tasks, projects: work.projects, portfolios, people, information }, { headers: { "Cache-Control": "no-store" } });
+    // v1.72.1 (D-395, QA F-08): tickets and meetings too (their module and page access, then their lists' own visibility).
+    const access = q.length >= 2 ? await navAccess(session.user) : null;
+    const tickets = access && hasModule(session.user, "TICKET") && !isHiddenHref("/users/tickets", access.hidden) ? await quickTickets(session.user, q) : [];
+    const meetings = access && hasModule(session.user, "MEETING") && !isHiddenHref("/users/meetings", access.hidden) ? await quickMeetings(session.user, q) : [];
+    return Response.json({ kind: q.length >= 2 ? "search" : "recent", items, tasks: work.tasks, projects: work.projects, portfolios, people, information, tickets, meetings }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     if ((error as Error)?.name !== "ForbiddenError") logError("quick search failed", error);
     return apiError("NOT_FOUND", "Not found.", 404);

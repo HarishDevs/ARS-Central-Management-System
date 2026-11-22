@@ -1,5 +1,16 @@
 # Release notes
 
+## v1.72.1 (22 Nov 2026): Finding your way: clear lists, switched-off pages, the way back
+Fixes from a review of every page's empty, loading and error states and of moving around the app. No migration. Nothing to switch on.
+- **Clear really clears.** On a list where you saved a default view (Waiting for me, My pending requests, My approved requests, Approved by me, Collaborating, Search, Analytics, a report), **Clear** or **Reset filters** now shows the whole list instead of bringing your default view straight back. Opening the list from elsewhere still opens your default view.
+- **On a phone:** **More → Work** now has **Tickets** (and the Coordinator board for coordinators) and **Portfolios**, for the people who have them. The More tab stays lit on ticket and meeting pages.
+- **"Switched off" instead of "page not found":** when IT switches off Tasks, Information, Analytics, the AI Assistant, Portfolios or Project templates, their pages say so plainly, with **Go to Home**.
+- **The way back:** projects, project templates and portfolios show **Projects ›** / **Portfolios ›** above the name; a colleague's profile card has **← Back**.
+- **Long lists say when they are cut short:** AI activity history, Admin → Notifications (sent and devices) and Meeting follow-ups (actions and open points) say "Showing the latest N" with **Show more**; on a phone the Approvals lists link to the full list when there are more.
+- **Search (Ctrl K) finds tickets and meetings** by number or title: only those you can see on the Tickets and Meetings lists.
+- **Smaller fixes:** `/users/approvals?tab=…` on a computer opens the matching list (or the first one you may open); an old Task home link to a task opens the task; **Project templates** always opens the same place; **New task** is highlighted while its window is open; the Admin menu leaves out Records → Tasks / Information and AI Analytics when they are switched off; empty lists offer their main action (a project, a ticket, a meeting, a task, a request); page titles match their headings; Profile's loading outline no longer covers the Calendar and Devices tabs.
+- **Owner steps:** publish v1.72.1 (no migration).
+
 ## v1.72.0 (22 Nov 2026): Project screens laid out like the reference, with dropdown menus
 The project screens now follow the reference layout and its option lists (owner's request); colours, type and icons stay ARS. No new data, no migration, no new switch: what you see depends on the switches already on.
 - **One kind of dropdown menu everywhere on a project:** every ▾ and ⋯ opens a menu you can use with the keyboard (↓ / ↑, Home / End, a letter jumps to an item, Enter chooses, → opens a sub-menu, Escape closes it and puts you back on the button). Menus open where they are fully visible and are never cut off by a table or the task pane.

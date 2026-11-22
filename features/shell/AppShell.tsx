@@ -31,6 +31,8 @@ import { getSettingValue } from "@/server/settings/values";
 import { buildId } from "@/server/ops/build";
 import { BottomNav } from "@/features/shell/BottomNav";
 import { MobileTabBar } from "@/features/mobile/MobileTabBar";
+import { projectTemplatesHref } from "@/features/shell/nav-routes";
+import { NavMemory } from "@/features/shell/NavMemory";
 import { LayoutSync } from "@/features/mobile/LayoutSync";
 import { layoutMode } from "@/server/ui/layout-mode";
 import { CommandPalette, type PaletteLink, type PaletteSaved } from "@/features/shell/CommandPalette";
@@ -131,6 +133,9 @@ export async function AppShell({ area, user, nav, children }: { area: AppArea; u
     { href: "/users/information", label: "Information inbox", group: "Information" },
     { href: "/users/information/sent", label: "Information sent by me", group: "Information" },
     { href: "/users/information/new", label: "New information", group: "Information" },
+    // v1.72.1 (D-395): the ticket pages (page access and the module decide, below).
+    { href: "/users/tickets", label: "My tickets", group: "Tickets" },
+    { href: "/users/tickets/new", label: "Raise a ticket", group: "Tickets" },
     { href: "/users/meetings", label: "Meetings", group: "Meetings" },
     { href: "/users/meetings/new", label: "Schedule a meeting", group: "Meetings" },
     { href: "/users/meetings/follow-ups", label: "Meeting follow-ups", group: "Meetings" },
@@ -197,7 +202,8 @@ export async function AppShell({ area, user, nav, children }: { area: AppArea; u
     ...[
       { href: "/users/work/projects", label: "All projects" },
       { href: "/users/work/projects/new", label: "New project" },
-      { href: "/users/work/projects?show=templates", label: "Templates" },
+      // v1.72.1 (D-395): one "Project templates" destination (the gallery when "pm_extras" is on).
+      { href: projectTemplatesHref(nav.some((item) => item.href === "/users/work/templates")), label: "Templates" },
       ...(portfoliosOn ? [{ href: "/users/work/portfolios", label: "Portfolios" }] : []),
     ].map((item) => ({ ...item, section: "Projects" })),
   ].filter((item) => visible(item.href));
@@ -336,6 +342,7 @@ export async function AppShell({ area, user, nav, children }: { area: AppArea; u
             <NavigationProgress mobile={mobile} />
           </Suspense>
         )}
+        <NavMemory />
         <UpdateNotice />
         <SessionWatch build={buildId()} />
         {/* Not by itself while IT tries the app as a demo person. */}

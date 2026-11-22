@@ -38,14 +38,29 @@ export async function myListViews(userId: number, target: string): Promise<Analy
 // Opening a list with nothing in the address shows the person's default view.
 // Not when the person is already on this list (e.g. pressed Clear): then the
 // empty address is what they asked for. ?view=none also skips it.
-export async function applyDefaultListView(userId: number, target: string, path: string, query: Record<string, unknown>): Promise<void> {
-  if (Object.values(query).some((value) => value !== undefined && value !== "")) return;
+// v1.72.1 (D-395): the two checks are pure (tests/ui/nav-routes-v1721.test.ts)
+// and every list that opens a default view goes through openedPlainly().
+export const isBareQuery = (query: Record<string, unknown>) => !Object.values(query).some((value) => value !== undefined && value !== "");
+export function sameListReferer(referer: string | null | undefined, path: string): boolean {
+  if (!referer) return false;
   try {
-    const referer = (await headers()).get("referer");
-    if (referer && new URL(referer).pathname === path) return;
+    return new URL(referer).pathname === path;
+  } catch {
+    return false;
+  }
+}
+// Is this a plain opening of the list (so the default view may apply)?
+export async function openedPlainly(path: string, query: Record<string, unknown>): Promise<boolean> {
+  if (!isBareQuery(query)) return false;
+  try {
+    if (sameListReferer((await headers()).get("referer"), path)) return false;
   } catch {
     // no request headers (tests): fall through
   }
+  return true;
+}
+export async function applyDefaultListView(userId: number, target: string, path: string, query: Record<string, unknown>): Promise<void> {
+  if (!(await openedPlainly(path, query))) return;
   const preferred = (await myListViews(userId, target)).find((view) => view.isDefault && Object.keys(view.query).length > 0);
   if (preferred) redirect(`${path}?${new URLSearchParams(preferred.query).toString()}`);
 }

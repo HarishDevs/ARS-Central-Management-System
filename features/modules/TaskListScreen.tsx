@@ -1,6 +1,5 @@
-import { featureOn } from "@/server/settings/features";
+import { requireFeature } from "@/server/settings/feature-guard";
 import { ListChecks } from "lucide-react";
-import { notFound } from "next/navigation";
 import Link from "next/link";
 import { requireArea } from "@/server/authorization/guards";
 import { EmptyState, PageHeader } from "@/features/shell/PageHeader";
@@ -55,7 +54,8 @@ export const PRIORITY_TONE: Record<TaskPriority, Tone> = { LOW: "neutral", NORMA
 
 export async function TaskListScreen({ base, query }: { base: TaskBase; query: Record<string, string | string[] | undefined> }) {
   const { user } = await requireArea("users");
-  if (!(await featureOn("tasks", user))) notFound();
+  // v1.72.1 (D-395): a switched-off feature says so (not a 404).
+  await requireFeature("tasks", user);
   // v1.58.0 (D-353): opening the list with nothing in the address shows the person's default view.
   await applyDefaultListView(user.id, VIEW_TARGET[base], PATH[base], query);
   const filters = parseTaskFilters(query);
@@ -255,7 +255,16 @@ export async function TaskListScreen({ base, query }: { base: TaskBase; query: R
             filters.q || filters.typeId || filters.priorities.length || filters.statuses.length || filters.personId || filters.dueFrom || filters.dueTo || filters.createdFrom || filters.createdTo ? (
               <NoResults what="tasks" query={filters.q} clearSearchHref={`${path}${taskQuery(filters, { q: "" })}`} resetHref={`${path}${taskQuery({ ...filters, q: "", typeId: null, priorities: [], statuses: [], personId: null, dueFrom: null, dueTo: null, createdFrom: null, createdTo: null })}`} />
             ) : (
-              <EmptyState title="No tasks here" body={filters.tab === "open" ? "Nothing open here. Try another tab." : "Nothing in this tab. Try another tab."} />
+              <EmptyState
+                title="No tasks here"
+                body={filters.tab === "open" ? "Nothing open here. Try another tab." : "Nothing in this tab. Try another tab."}
+                // v1.72.1 (D-395, QA F-15): the main action inside the empty state too.
+                action={
+                  <Link href="/users/tasks/new" className="btn-secondary btn-compact">
+                    Start a task
+                  </Link>
+                }
+              />
             )
           ) : (
             // v1.58.0 (D-352): groups start folded; Expand all / Collapse all above them.

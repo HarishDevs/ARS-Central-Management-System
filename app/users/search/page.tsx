@@ -22,6 +22,7 @@ import { isMobileLayout } from "@/server/ui/layout-mode";
 import { isHiddenHref, navAccess } from "@/server/authorization/page-access";
 import { featureOn } from "@/server/settings/features";
 import { MobileSearch } from "@/features/mobile/MobileSearch";
+import { openedPlainly } from "@/server/lists/views";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
 export const metadata: Metadata = { title: "Search" };
@@ -34,9 +35,10 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const params = await searchParams;
   const views = await listSavedViews(user.id);
   // A default view opens when the page is opened plainly.
+  // v1.72.1 (D-395): Clear on this page (same address) shows everything, not the default view again.
   const plain = Object.keys(params).length === 0;
   const defaultView = views.find((view) => view.isDefault);
-  if (plain && defaultView && Object.keys(defaultView.query).length) redirect(`/users/search?${new URLSearchParams({ ...defaultView.query, v: String(defaultView.id) })}`);
+  if (plain && (await openedPlainly("/users/search", params)) && defaultView && Object.keys(defaultView.query).length) redirect(`/users/search?${new URLSearchParams({ ...defaultView.query, v: String(defaultView.id) })}`);
 
   // v1.45.0: a phone opens on the Asana-style search screen.
   if (plain && (await isMobileLayout())) {

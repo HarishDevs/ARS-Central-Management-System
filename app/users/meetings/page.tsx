@@ -163,6 +163,14 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
           <EmptyState
             title={tab === "approve" ? "Nothing to approve" : "No meetings here yet"}
             body={tab === "approve" ? "Meeting points and MOM sent to you as Meeting Owner show here." : "Meetings you are on show here. Schedule one to start."}
+            // v1.72.1 (D-395, QA F-15): the main action inside the empty state too.
+            action={
+              tab === "approve" ? undefined : (
+                <Link href="/users/meetings/new" className="btn-secondary btn-compact">
+                  Schedule a new meeting
+                </Link>
+              )
+            }
           />
         )
       ) : (

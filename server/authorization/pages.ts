@@ -132,6 +132,7 @@ export const OPEN_PATHS: readonly RegExp[] = [
   under("/users/people"), // a person's contact card
   under("/admin/notifications"), // broadcast notifications (not yet a configurable page)
   exact("/users/no-access"), // v1.50.3: the "you don't have access" screen itself
+  exact("/users/switched-off"), // v1.72.1 (D-395): the "switched off" screen itself
   exact("/admin/no-access"),
   // v1.66.0 (D-374): a project form's link: who may submit is the form's own setting (checked on the server).
   under("/users/forms"),

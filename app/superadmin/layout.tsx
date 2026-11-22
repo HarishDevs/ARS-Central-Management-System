@@ -32,7 +32,7 @@ export default async function SuperAdminLayout({ children }: { children: React.R
         { href: "/superadmin/import", label: "Import data" },
         { href: "/superadmin/demo", label: "Demo data" },
         { href: "/superadmin/automation", label: "Automation" },
-        { href: "/superadmin/retention", label: "Retention & holds" },
+        { href: "/superadmin/retention", label: "Retention & legal holds" },
         { href: "/superadmin/deliveries", label: "Message deliveries" },
         { href: "/superadmin/audit", label: "Audit log" },
         { href: "/superadmin/logins", label: "Sign-in history" },

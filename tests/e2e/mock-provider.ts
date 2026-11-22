@@ -7,7 +7,8 @@ import http from "node:http";
 // using the tool result and the name in the app's instructions, so a reply
 // reaching the wrong person would show. GET /stats gives the peak number of
 // calls in flight.
-export const MOCK_PROVIDER_PORT = 4011;
+// v1.72.1: E2E_MOCK_PORT lets a second checkout (a git worktree) run its own copy alongside.
+export const MOCK_PROVIDER_PORT = Number(process.env.E2E_MOCK_PORT ?? 4011);
 let inFlight = 0;
 let peak = 0;
 let calls = 0;

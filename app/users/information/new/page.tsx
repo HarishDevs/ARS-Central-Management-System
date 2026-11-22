@@ -1,6 +1,6 @@
+import { requireFeature } from "@/server/settings/feature-guard";
 import type { Metadata } from "next";
 import { Megaphone } from "lucide-react";
-import { featureOn } from "@/server/settings/features";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireArea } from "@/server/authorization/guards";
@@ -25,7 +25,8 @@ export const dynamic = "force-dynamic";
 // v1.9.0 (D-143): New information (or continue a draft with ?draft=ID).
 export default async function NewInformationPage({ searchParams }: { searchParams: Promise<{ type?: string; draft?: string }> }) {
   const { user } = await requireArea("users");
-  if (!(await featureOn("information", user))) notFound();
+  // v1.72.1 (D-395): a switched-off feature says so (not a 404).
+  await requireFeature("information", user);
   const query = await searchParams;
   const me = await personFacts(user.id);
   let typeId: number;

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, CheckCircle2, FileText, FolderKanban, History, Keyboard, ListFilter, Megaphone, Search, User } from "lucide-react";
+import { ArrowRight, CalendarClock, CheckCircle2, FileText, FolderKanban, History, Keyboard, ListFilter, Megaphone, Search, Ticket, User } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { SHORTCUTS, isTyping } from "@/features/shell/shortcuts";
@@ -19,7 +19,7 @@ export interface PaletteLink {
   label: string;
   group: string;
 }
-type Kind = "request" | "task" | "project" | "person" | "info" | "page" | "recent";
+type Kind = "request" | "task" | "project" | "person" | "info" | "ticket" | "meeting" | "page" | "recent";
 type Option = { key: string; href: string; label: string; detail?: string; group: string; kind: Kind; photo?: string | null; avatar?: string };
 type Chip = "all" | "requests" | "tasks" | "projects" | "people" | "info" | "pages";
 type Quick = {
@@ -30,6 +30,9 @@ type Quick = {
   portfolios?: { id: number; name: string }[]; // v1.69.0 (D-382): under the Projects chip
   people?: { id: number; name: string; label?: string; email: string; detail: string; photo: string | null }[]; // label: "Name - code" (v1.52.1)
   information?: { id: number; infoNo: string; title: string }[];
+  // v1.72.1 (D-395): tickets and meetings the person can see.
+  tickets?: { id: number; ticketNo: string; title: string; status: string }[];
+  meetings?: { id: number; meetingNo: string; title: string; when: string }[];
 };
 type FilterType = "task" | "request" | "project" | "info";
 
@@ -51,8 +54,8 @@ const SAVED: { label: string; href: string; icon: typeof Search }[] = [
   { label: "Waiting for me", href: "/users/queue", icon: History },
 ];
 const RECENTS_KEY = "ars.search.recent";
-const RECORD = /^\/users\/(requests|tasks|work\/projects|information|people)\/(\d+)$/;
-const RECORD_KIND: Record<string, Kind> = { requests: "request", tasks: "task", "work/projects": "project", information: "info", people: "person" };
+const RECORD = /^\/users\/(requests|tasks|work\/projects|information|people|tickets|meetings)\/(\d+)$/;
+const RECORD_KIND: Record<string, Kind> = { requests: "request", tasks: "task", "work/projects": "project", information: "info", people: "person", tickets: "ticket", meetings: "meeting" };
 
 function readRecents(): Option[] {
   try {
@@ -199,6 +202,8 @@ export function CommandPalette({ pages, saved }: { pages: PaletteLink[]; saved?:
       ...(found.portfolios ?? []).map((item) => ({ key: `f:${item.id}`, href: `/users/work/portfolios/${item.id}`, label: item.name, detail: "Portfolio", group: "Portfolios", kind: "project" as const })),
       ...(found.people ?? []).map((item) => ({ key: `u:${item.id}`, href: `/users/people/${item.id}`, label: item.label ?? item.name, detail: item.detail || item.email, group: "People", kind: "person" as const, photo: item.photo, avatar: item.name })),
       ...(found.information ?? []).map((item) => ({ key: `i:${item.id}`, href: `/users/information/${item.id}`, label: `${item.infoNo}: ${item.title}`, group: "Information", kind: "info" as const })),
+      ...(found.tickets ?? []).map((item) => ({ key: `k:${item.id}`, href: `/users/tickets/${item.id}`, label: `${item.ticketNo}: ${item.title}`, detail: item.status, group: "Tickets", kind: "ticket" as const })),
+      ...(found.meetings ?? []).map((item) => ({ key: `m:${item.id}`, href: `/users/meetings/${item.id}`, label: `${item.meetingNo}: ${item.title}`, detail: item.when, group: "Meetings", kind: "meeting" as const })),
       ...pages
         .filter((page) => words.length > 0 && words.every((word) => `${page.label} ${page.group}`.toLowerCase().includes(word)))
         .slice(0, 8)
@@ -570,6 +575,10 @@ export function CommandPalette({ pages, saved }: { pages: PaletteLink[]; saved?:
                             ? Megaphone
                             : option.kind === "page"
                               ? ArrowRight
+                              : option.kind === "ticket"
+                                ? Ticket
+                                : option.kind === "meeting"
+                                  ? CalendarClock
                               : option.group === "Recents" || option.group.startsWith("Recently")
                                 ? History
                                 : FileText;

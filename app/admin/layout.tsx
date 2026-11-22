@@ -15,6 +15,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   after(() => checkJobRunnerStopped().then(() => undefined));
   const analytics = await featureOn("analytics", user);
   const reports = await canUseReports(user);
+  // v1.72.1 (D-395, QA F-14): records of a switched-off module leave the menu (set-up pages stay, so IT can prepare).
+  const [tasks, information, ai] = await Promise.all([featureOn("tasks", user), featureOn("information", user), featureOn("ai", user)]);
   return (
     <AppShell
       area="admin"
@@ -29,8 +31,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         { href: "/admin/workload", label: "Workload" },
         // D-191 (owner): every record, whoever raised it.
         { href: "/admin/records/requests", label: "Approval requests", section: "Records" },
-        { href: "/admin/records/tasks", label: "Tasks", section: "Records" },
-        { href: "/admin/records/information", label: "Information", section: "Records" },
+        ...(tasks ? [{ href: "/admin/records/tasks", label: "Tasks", section: "Records" }] : []),
+        ...(information ? [{ href: "/admin/records/information", label: "Information", section: "Records" }] : []),
         { href: "/admin/custom-approval", label: "Custom approval", section: "Approval set-up" },
         { href: "/admin/groups", label: "Approver groups", section: "Approval set-up" },
         { href: "/admin/doa", label: "Approval authority (DoA)", section: "Approval set-up" },
@@ -49,7 +51,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         // D-209: reminders and escalations for approvals and tasks.
         { href: "/admin/reminders", label: "Reminders & escalations", section: "Automation" },
         { href: "/admin/notifications", label: "Notifications", section: "Automation" },
-        { href: "/admin/ai-analytics", label: "AI Analytics", section: "AI" },
+        ...(ai ? [{ href: "/admin/ai-analytics", label: "AI Analytics", section: "AI" }] : []),
         { href: "/admin/ai-rules", label: "AI Rules", section: "AI" },
         { href: "/admin/calendar", label: "Working calendar", section: "Organisation" },
         { href: "/admin/users", label: "Users & roles", section: "Organisation" },

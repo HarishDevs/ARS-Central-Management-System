@@ -9,6 +9,7 @@ import { CompactToggle, ScreenTitle, SheetLink, ViewDock } from "@/features/mobi
 import { requireArea } from "@/server/authorization/guards";
 import { isHiddenHref, navAccess } from "@/server/authorization/page-access";
 import { isMobileLayout } from "@/server/ui/layout-mode";
+import { approvalsDesktopHref, approvalsPhoneTab } from "@/features/shell/nav-routes";
 import { listMyRequests, listPendingTasksFor } from "@/lib/db/repositories/approvals.repository";
 import { listDrafts } from "@/lib/db/repositories/drafts.repository";
 import { cardFacts } from "@/server/mobile/card-facts";
@@ -38,12 +39,13 @@ const DAY = 24 * 60 * 60 * 1000;
 
 export default async function ApprovalsHub({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const { user } = await requireArea("users");
-  if (!(await isMobileLayout())) redirect("/users/queue");
   const access = await navAccess(user);
   const canQueue = !isHiddenHref("/users/queue", access.hidden);
   const canMine = !isHiddenHref("/users/requests", access.hidden);
   const asked = (await searchParams).tab;
-  const tab: Tab = TABS.some((item) => item.key === asked) ? (asked as Tab) : canQueue ? "waiting" : "mine";
+  // v1.72.1 (D-395): on a computer ?tab= opens the matching list (if the person may open it).
+  if (!(await isMobileLayout())) redirect(approvalsDesktopHref(asked, { queue: canQueue, mine: canMine, approved: !isHiddenHref("/users/approved", access.hidden) }));
+  const tab: Tab = approvalsPhoneTab(asked, { queue: canQueue, mine: canMine });
   const tabs = TABS.filter((item) => (item.key === "waiting" ? canQueue : canMine));
 
   const [waiting, mine, drafts] = await Promise.all([
@@ -137,7 +139,18 @@ export default async function ApprovalsHub({ searchParams }: { searchParams: Pro
 
       {tab === "drafts" ? (
         drafts.length === 0 ? (
-          <EmptyState title="No drafts" body="A request you start and leave is kept here for a while." icon={<FilePen className="h-6 w-6" />} />
+          <EmptyState
+            title="No drafts"
+            body="A request you start and leave is kept here for a while."
+            icon={<FilePen className="h-6 w-6" />}
+            action={
+              !isHiddenHref("/users/custom", access.hidden) ? (
+                <Link href="/users/custom" className="btn-secondary btn-compact">
+                  Start a request
+                </Link>
+              ) : undefined
+            }
+          />
         ) : (
           <ul className="space-y-3">
             {drafts.map((draft) => (
@@ -168,8 +181,14 @@ export default async function ApprovalsHub({ searchParams }: { searchParams: Pro
           ))}
         </ul>
       )}
-      {tab !== "drafts" && cards.length >= 100 && (
-        <p className="text-center text-[13px] text-ink-muted">Showing the first 100. Use Search to find an older one.</p>
+      {/* v1.72.1 (D-395): a capped list says so and links to the full, paged list. */}
+      {((tab === "waiting" && waiting.length >= 100) || (tab !== "waiting" && tab !== "drafts" && mine.length >= 200)) && (
+        <p className="text-center text-[13px] text-ink-muted" data-testid="m-approvals-cap">
+          Showing the latest {tab === "waiting" ? 100 : 200}.{" "}
+          <Link href={tab === "waiting" ? "/users/queue" : tab === "approved" ? "/users/approved" : "/users/requests"} className="link">
+            See the full list
+          </Link>
+        </p>
       )}
     </div>
   );

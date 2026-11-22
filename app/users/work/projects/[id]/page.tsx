@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/features/shell/PageHeader";
-import { Badge } from "@/features/ui/Display";
+import { Badge, Breadcrumbs } from "@/features/ui/Display";
 import { SafeText } from "@/features/ui/SafeText";
 import { ProjectWorkspace } from "@/features/work/ProjectWorkspace";
 import { TaskCalendar } from "@/features/work/TaskCalendar";
@@ -129,6 +129,7 @@ export default async function ProjectPage({
       ]);
     return (
       <>
+        <Breadcrumbs items={[{ href: "/users/work/projects", label: "Projects" }, { label: project.name }]} />
         <PageHeader title={project.name} meta={`Template · ${countTemplateTasks(template?.tasks ?? [])} tasks · ${template?.sections.length ?? 0} sections · Owner ${project.ownerName}`}>
           <Badge tone="info">Template</Badge>
           {can.manage && <ProjectCommandButton projectId={project.id} command="DELETE" label="Delete template" danger confirmText="Projects made from it stay." />}
@@ -242,6 +243,8 @@ async function ProjectView({ found, user, viewer, searchParams }: { found: NonNu
 
   return (
     <>
+      {/* v1.72.1 (D-395, QA F-06): a way back to the list. */}
+      <Breadcrumbs items={[{ href: "/users/work/projects", label: "Projects" }, { label: project.name }]} />
       <ProjectHeader
         projectId={project.id}
         name={project.name}

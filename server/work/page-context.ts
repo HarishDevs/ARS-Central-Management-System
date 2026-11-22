@@ -1,8 +1,9 @@
+import { requireFeature } from "@/server/settings/feature-guard";
 import { personLabel } from "@/lib/people/label";
 import "server-only";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { switchedOffHref } from "@/features/shell/switched-off";
 import { requireArea } from "@/server/authorization/guards";
-import { featureOn } from "@/server/settings/features";
 import { listActiveUserOptions } from "@/lib/db/repositories/admin-users.repository";
 import { workViewer } from "@/server/work/task-access";
 
@@ -11,7 +12,8 @@ import { workViewer } from "@/server/work/task-access";
 // and the person as a project viewer.
 export async function workPage() {
   const { user } = await requireArea("users");
-  if (!(await featureOn("tasks", user))) notFound();
+  // v1.72.1 (D-395): a switched-off feature says so (not a 404).
+  await requireFeature("tasks", user);
   const viewer = await workViewer(user);
   return { user, viewer };
 }
@@ -26,6 +28,8 @@ export async function peopleOptions(): Promise<{ id: number; label: string; deta
 export async function portfolioPage() {
   const context = await workPage();
   const { portfoliosOn } = await import("@/server/work/portfolios");
-  if (context.viewer.projects === false || !(await portfoliosOn(context.user))) notFound();
+  if (context.viewer.projects === false) notFound();
+  // v1.72.1 (D-395): the switch off → the "switched off" screen.
+  if (!(await portfoliosOn(context.user))) redirect(switchedOffHref("pm_portfolios"));
   return context;
 }

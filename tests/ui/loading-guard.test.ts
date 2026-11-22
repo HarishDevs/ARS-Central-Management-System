@@ -27,7 +27,8 @@ const ALLOWED = [
   "app/superadmin/templates/(list)/loading.tsx",
   "app/users/help/loading.tsx",
   "app/users/new/(list)/loading.tsx",
-  "app/users/profile/loading.tsx", // the theme choice doesn't need a refresh
+  // v1.72.1 (D-395, QA F-09): only the Profile tab itself (calendar and devices have actions); it no longer calls notFound().
+  "app/users/profile/(main)/loading.tsx", // the theme choice doesn't need a refresh
 ];
 
 function find(dir: string, root: string): string[] {

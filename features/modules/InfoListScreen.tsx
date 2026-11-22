@@ -1,7 +1,6 @@
+import { requireFeature } from "@/server/settings/feature-guard";
 import { TaskPriorityPill } from "@/features/ui/ChoicePill";
-import { featureOn } from "@/server/settings/features";
 import { Megaphone } from "lucide-react";
-import { notFound } from "next/navigation";
 import Link from "next/link";
 import { requireArea } from "@/server/authorization/guards";
 import { EmptyState, PageHeader } from "@/features/shell/PageHeader";
@@ -63,7 +62,8 @@ function infoBucket(item: InfoListItem, today: string, group: InfoListGroup | nu
 }
 export async function InfoListScreen({ base, query }: { base: InfoBase; query: Record<string, string | string[] | undefined> }) {
   const { user } = await requireArea("users");
-  if (!(await featureOn("information", user))) notFound();
+  // v1.72.1 (D-395): a switched-off feature says so (not a 404).
+  await requireFeature("information", user);
   // v1.58.0 (D-354): an empty address opens the person's default saved view.
   await applyDefaultListView(user.id, VIEW_TARGET[base], PATH[base], query);
   const filters = parseInfoFilters(query, base);

@@ -9,7 +9,7 @@ import { listExtras } from "@/server/requests/list-extras";
 import { ClipboardList, Plus } from "lucide-react";
 import { baseTotal, listChoices, listRequests, tabCounts } from "@/lib/db/repositories/request-lists.repository";
 // v1.58.0 (D-354, owner: saved views are "Only mine"): only the person's own views show and set the default.
-import { myListViews } from "@/server/lists/views";
+import { applyDefaultListView, myListViews } from "@/server/lists/views";
 import { parseListFilters } from "@/server/requests/list-filters";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
@@ -24,10 +24,8 @@ export default async function MyRequestsPage({ searchParams }: { searchParams: P
   // v1.7.2: the old "Shared with me" tab is its own screen now.
   if (params.tab === "shared") redirect("/users/collaborating");
   // D-234 (Default effect): no filters in the address → your default view, as on the other lists.
-  if (Object.keys(params).length === 0) {
-    const preferred = (await myListViews(user.id, "my_requests")).find((view) => view.isDefault && Object.keys(view.query).length > 0);
-    if (preferred) redirect(`/users/requests?${new URLSearchParams(preferred.query).toString()}`);
-  }
+  // v1.72.1 (D-395): not when the person pressed Clear on this list (the shared check).
+  await applyDefaultListView(user.id, "my_requests", "/users/requests", params);
   const filters = parseListFilters(params, "MINE");
   const [result, counts, choices, views, mineTotal, sharedTotal] = await Promise.all([
     listRequests("MINE", user.id, filters),
