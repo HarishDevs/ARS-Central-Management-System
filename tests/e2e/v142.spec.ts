@@ -327,14 +327,14 @@ test("Home: approvers open on the Approval Overview, others on My Work; either c
   // Switch to approvals.
   await focus.getByRole("link", { name: "Approvals" }).click();
   await expect(page).toHaveURL(/home=approvals/);
-  await expect(page.getByRole("heading", { level: 1, name: "Approval Overview" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Approvals – Overview" })).toBeVisible(); // v1.79.0 (D-406): one title pattern on all three overviews
   await expect(page.locator('[data-tour="overview-tiles"]')).toBeVisible();
   await expect(page.getByTestId("quick-insights")).toBeVisible();
 
   // An approver (the manager) opens on Approvals.
   await as(context, "E2E_MGR");
   await page.goto("/users");
-  await expect(page.getByRole("heading", { level: 1, name: "Approval Overview" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Approvals – Overview" })).toBeVisible(); // v1.79.0 (D-406): one title pattern on all three overviews
   await expect(page.getByRole("navigation", { name: "Show on Home" }).getByRole("link", { name: "Approvals" })).toHaveAttribute("aria-current", "page");
 });
 

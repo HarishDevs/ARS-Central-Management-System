@@ -4,9 +4,8 @@ import { ApprovalBadge, approvalRowClass } from "@/features/work/ApprovalLink";
 import Link from "next/link";
 import {
   AlertTriangle,
-  ArrowDownRight,
   ArrowRight,
-  ArrowUpRight,
+  BarChart3,
   CalendarClock,
   CalendarDays,
   CheckCircle2,
@@ -21,6 +20,7 @@ import {
   Pencil,
   Search,
   Tag,
+  Timer,
   UserPlus,
   Users,
 } from "lucide-react";
@@ -30,13 +30,15 @@ import { Badge, type Tone } from "@/features/ui/Display";
 import { dueLabel, indiaDayOf, TONE_TEXT } from "@/features/work/format";
 import { homeProjects, listTaskItems, recentStatusUpdates, type StatusUpdate, type WorkTaskItem } from "@/lib/db/repositories/work.repository";
 import { STATUS_KIND_LABEL, STATUS_KIND_TONE } from "@/server/work/access";
-import { weeklyWorkload, workActivity, workSummary, type WorkActivity } from "@/lib/db/repositories/overview.repository";
+import { taskInsights, weeklyWorkload, workActivity, workSummary, type TaskInsights, type WorkActivity } from "@/lib/db/repositories/overview.repository";
 import { personProfile } from "@/lib/db/repositories/profile.repository";
 import { indiaDateTimeText } from "@/server/modules/settings";
 import { changePercent, parsePeriod, PREVIOUS_LABEL } from "@/server/work/period";
 import type { WorkViewer } from "@/server/work/access";
 import type { workPage } from "@/server/work/page-context";
-import { PeriodPicker, QuietRefresh, WorkloadChart } from "@/features/home/HomeClient";
+import { CreateTaskQuick, QuietRefresh, WorkloadChart } from "@/features/home/HomeClient";
+import { AttentionWidget, InsightFigures, OverviewHeader, periodKeep, SummaryCards, type AttentionItem, type SummaryCard } from "@/features/home/OverviewParts";
+import { WIDGETS_TOOLBAR_SLOT } from "@/features/home/QuickActions";
 import { hasModule } from "@/server/modules/modules";
 import { ComingSoonCard, ComingSoonChip, LockedProjectName } from "@/features/ui/ComingSoon";
 import { SortTh } from "@/features/ui/SortTh";
@@ -45,7 +47,7 @@ import { HomeWidgets } from "@/features/home/HomeWidgets";
 import { HomeNotepad } from "@/features/home/HomeNotepad";
 import { TeamWorkloadTable } from "@/features/work/TeamWorkloadTable";
 import { teamWorkload } from "@/lib/db/repositories/work.repository";
-import type { WidgetItem, WidgetKind } from "@/server/home/widgets";
+import { sharePercent, type WidgetItem, type WidgetKind } from "@/server/home/widgets";
 import { homeForms, type HomeForms } from "@/server/work/intake-forms";
 
 // v1.63.0 (D-369, PM-A12): with "pm_foundations" on, Home's sections are the
@@ -140,7 +142,10 @@ export async function MyWorkOverview({
   // v1.63.0 (D-369): only the widgets on the person's Home load their data.
   const shown = (kind: WidgetKind) => !widgets || widgets.layout.some((item) => item.kind === kind);
   const projectScope = widgets && query.pw === "starred" ? "starred" : "recent";
-  const [summary, list, projectRows, taskEvents, statusPosts, workload, profile, team] = await Promise.all([
+  // v1.79.0 (D-406): the standard widgets (Needs attention, Quick insights), loaded only when shown.
+  const attentionWanted = Boolean(widgets) && shown("task_attention");
+  const insightsWanted = Boolean(widgets) && shown("task_insights");
+  const [summary, list, projectRows, taskEvents, statusPosts, workload, profile, team, attentionList, insights] = await Promise.all([
     workSummary(user.id, today, period),
     shown("my_tasks") ? listTaskItems(...sortedWhere(tab), PAGE, (page - 1) * PAGE) : Promise.resolve({ items: [] as WorkTaskItem[], total: 0 }),
     projectsOn && shown("projects") ? homeProjects(viewer, widgets ? 40 : 4) : Promise.resolve([]),
@@ -149,6 +154,8 @@ export async function MyWorkOverview({
     shown("workload") ? weeklyWorkload(user.id, period) : Promise.resolve({ assigned: [] as number[], completed: [] as number[] }),
     personProfile(user.id).catch(() => null),
     widgets && shown("people") ? teamWorkload(viewer.teamIds, user.id) : Promise.resolve([]),
+    attentionWanted ? listTaskItems([...mineBase, OPEN, "t.due_at IS NOT NULL", `${IST_DAY} <= ?`], [user.id, today], "t.due_at, t.id", 10, 0) : Promise.resolve({ items: [] as WorkTaskItem[], total: 0 }),
+    insightsWanted ? taskInsights(user.id, period).catch(() => null) : Promise.resolve(null as TaskInsights | null),
   ]);
   // v1.66.0 (D-374): the Forms widget: forms the person may submit, and their recent submissions.
   const formsData: HomeForms | null = widgets && shown("forms") ? await homeForms({ id: user.id, name: user.name, roles: user.roles, modules: user.modules }).catch(() => null) : null;
@@ -169,8 +176,7 @@ export async function MyWorkOverview({
   const counts: Record<Tab, number> = { upcoming: summary.upcoming, overdue: summary.overdue, completed: summary.completed, all: total };
   const keep: Record<string, string> = {
     home: "tasks",
-    ...(period.key !== "week" ? { period: period.key } : {}),
-    ...(period.key === "custom" ? { from: period.fromDay, to: period.toDay } : {}),
+    ...periodKeep(period, "week"),
     ...(columnSort.sortBy ? { sortBy: columnSort.sortBy, dir: columnSort.dir } : {}), // v1.58.0 (D-354)
   };
   const mwSort = (column: MwColumn, label: string) => (
@@ -183,7 +189,7 @@ export async function MyWorkOverview({
   const pages = Math.max(1, Math.ceil(list.total / PAGE));
   const role = [profile?.designationName, profile?.departmentName].filter(Boolean).join(" · ");
 
-  const cards = [
+  const cards: SummaryCard[] = [
     {
       key: "total",
       label: "Total tasks",
@@ -192,7 +198,6 @@ export async function MyWorkOverview({
       icon: ListChecks,
       tone: "bg-primary-50 text-primary-700",
       href: "/users/work/my-tasks",
-      change: null as number | null,
     },
     {
       key: "upcoming",
@@ -202,7 +207,6 @@ export async function MyWorkOverview({
       icon: Clock3,
       tone: "bg-[color:var(--violet-bg)] text-[color:var(--violet-fg)]",
       href: `/users/work/search?assignee=me&due_from=${today}`,
-      change: null,
     },
     {
       key: "overdue",
@@ -212,8 +216,6 @@ export async function MyWorkOverview({
       icon: AlertTriangle,
       tone: "bg-warning-50 text-warning-600",
       href: "/users/work/search?assignee=me&overdue=1",
-      change: null,
-      bad: true,
     },
     {
       key: "completed",
@@ -223,9 +225,38 @@ export async function MyWorkOverview({
       icon: CheckCircle2,
       tone: "bg-success-50 text-success-600",
       href: "/users/work/search?assignee=me&status=completed",
-      change: changePercent(summary.completed, summary.completedBefore),
+      change: { value: changePercent(summary.completed, summary.completedBefore), label: PREVIOUS_LABEL[period.key] },
     },
   ];
+  // v1.79.0 (D-406): Needs attention on My Work: overdue tasks first, then those due today.
+  const attentionItems: AttentionItem[] = attentionList.items.map((task) => {
+    const late = task.dueAt ? indiaDayOf(task.dueAt) < today : false;
+    return { key: `t${task.id}`, text: late ? "Overdue task" : "Due today", detail: `${task.title}${task.projects[0] ? ` · ${task.projects[0].name}` : ""}`, href: links.open(task.id), danger: late };
+  });
+  const attentionNode = <AttentionWidget id="mw-attention" items={attentionItems} empty="Nothing overdue or due today. Well done." testId="task-attention" />;
+  const insightsNode = (
+    <section className="card min-w-0 px-4 py-4 sm:px-5" aria-labelledby="mw-insights" data-testid="task-insights">
+      <h2 id="mw-insights" className="mb-3 flex items-center gap-2 text-[calc(17px*var(--text-scale,1))] font-semibold">
+        <BarChart3 aria-hidden="true" className="h-5 w-5 text-primary-700" /> Quick insights
+      </h2>
+      {insights === null ? (
+        <p className="text-label text-ink-muted">Insights couldn&apos;t be worked out just now. Reload the page to try again.</p>
+      ) : (
+        <>
+          <InsightFigures
+            figures={[
+              { icon: <CheckCircle2 className="h-5 w-5" />, tone: "text-success-600", label: "Completion rate", value: pct(sharePercent(insights.givenDone, insights.given)) },
+              { icon: <Clock3 className="h-5 w-5" />, tone: "text-primary-700", label: "On time", value: pct(sharePercent(insights.onTime, insights.withDue)) },
+              { icon: <Timer className="h-5 w-5" />, tone: "text-[color:var(--violet-fg)]", label: "Avg. days to complete", value: insights.avgDays === null ? "N/A" : insights.avgDays < 1 ? "< 1" : insights.avgDays.toFixed(1) },
+            ]}
+          />
+          <p className="mt-2 text-caption text-ink-muted">
+            {period.label}: {insights.givenDone} of {insights.given} task{insights.given === 1 ? "" : "s"} given to you are completed; {insights.onTime} of {insights.withDue} completed with a due date were on time. Days are from being given the task to completing it.
+          </p>
+        </>
+      )}
+    </section>
+  );
 
   const myTasksNode = (
           <section className="card min-w-0 px-4 py-4 sm:px-5" aria-labelledby="mw-tasks">
@@ -570,6 +601,12 @@ export async function MyWorkOverview({
         return widgets ? <HomeNotepad initialText={widgets.note.body} version={widgets.note.version} /> : null;
       case "forms":
         return formsData ? <FormsWidget data={formsData} /> : null;
+      case "task_attention":
+        return attentionNode;
+      case "task_insights":
+        return insightsNode;
+      default:
+        return null;
     }
   };
   const workloadNode = (
@@ -586,70 +623,41 @@ export async function MyWorkOverview({
   return (
     <div data-testid="my-work-overview">
       <QuietRefresh />
-      {greeting && <div className="mb-4">{greeting}</div>}
-      <header className="mb-5 flex flex-wrap items-start justify-between gap-4">
-        <div className="flex min-w-0 items-start gap-3">
-          <span className="page-icon grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary-50 text-primary-700" aria-hidden="true">
-            <Layers className="h-6 w-6" />
-          </span>
-          <div className="min-w-0">
-            <h1 className="text-title font-semibold tracking-tight">My Work – Overview</h1>
-            {greeting ? (
-              role && <p className="text-label text-ink-muted">{role}</p>
-            ) : (
-              <p className="text-label text-ink-muted">
-                Welcome back, <span className="font-medium text-ink">{user.name}</span>
-                {role && <span> · {role}</span>}
-              </p>
-            )}
-            <p className="text-label text-ink-muted">Your tasks, projects and recent updates in one place.</p>
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          {switcher}
-          <PeriodPicker value={period.key} from={period.fromDay} to={period.toDay} base={{ home: "tasks", tab }} />
-        </div>
-      </header>
+      {/* v1.79.0 (D-406): the header every overview shares. */}
+      <OverviewHeader
+        icon={Layers}
+        title="My Work – Overview"
+        role={greeting ? role : `Welcome back, ${user.name}${role ? ` · ${role}` : ""}`}
+        description="Your tasks, projects and recent updates in one place."
+        greeting={greeting}
+        switcher={switcher}
+        period={period}
+        periodBase={{ home: "tasks", tab }}
+      />
 
       <nav aria-label="Quick actions" className="mb-5 flex flex-wrap gap-2" data-testid="work-quick-actions">
-        <CreateTaskButton />
+        <CreateTaskQuick />
         <QuickLink href="/users/work/my-tasks" icon={<ListChecks className="h-4 w-4" />} label="View all tasks" />
         {projectsOn ? <QuickLink href="/users/work/projects" icon={<FolderKanban className="h-4 w-4" />} label="Projects" /> : <ComingSoonChip label="Projects" className="rounded-lg border border-line" />}
         <QuickLink href="/users/work/search" icon={<Search className="h-4 w-4" />} label="Search tasks" />
         <QuickLink href="/users/calendar" icon={<CalendarDays className="h-4 w-4" />} label="Calendar" />
         {/* v1.77.1 (owner, 22 Nov 2026): Add widgets and Customise sit at the right end of this row (HomeWidgets renders them here through a portal). */}
-        {widgets && <div id="home-widgets-toolbar-slot" className="ml-auto flex flex-wrap items-center gap-2" />}
+        {widgets && <div id={WIDGETS_TOOLBAR_SLOT} className="ml-auto flex flex-wrap items-center gap-2" />}
       </nav>
 
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4" data-testid="work-kpis">
-        {cards.map((card) => (
-          <Link key={card.key} href={card.href} className="card-link status-card flex items-center gap-3 px-4 py-3" data-testid={`work-kpi-${card.key}`}>
-            <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${card.tone}`} aria-hidden="true">
-              <card.icon className="h-5 w-5" />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-card-title font-bold tabular-nums leading-tight">{card.value}</span>
-              <span className="block text-label font-medium">{card.label}</span>
-              <span className="block truncate text-caption text-ink-muted">{card.note}</span>
-              {/* v1.74.1 (D-397): the change sits under the note; beside it, it squeezed "Completed" into two lines on a tablet. */}
-              {card.key === "completed" && (
-                <span className="mt-0.5 block">
-                  <Change value={card.change} label={PREVIOUS_LABEL[period.key]} />
-                </span>
-              )}
-            </span>
-          </Link>
-        ))}
-      </div>
+      <SummaryCards cards={cards} testId="work-kpis" cardTestId="work-kpi" />
 
       <WithPane pane={pane}>
         {widgets ? (
+          <div className="mt-6">
           <HomeWidgets
             version={widgets.version}
             addable={widgets.addable}
+            scope="tasks"
             widgets={widgets.layout.map((item) => ({ kind: item.kind, size: item.size, node: nodeFor(item.kind) }))}
             extra={!projectsOn ? projectsNode : undefined}
           />
+          </div>
         ) : (
           <>
             <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
@@ -675,26 +683,7 @@ function QuickLink({ href, icon, label }: { href: string; icon: React.ReactNode;
   );
 }
 
-function Change({ value, label }: { value: number | null; label: string }) {
-  if (value === null)
-    return (
-      <span className="hidden items-center gap-1 text-caption text-ink-faint sm:flex">
-        <Minus aria-hidden="true" className="h-3.5 w-3.5" />
-        {label}
-      </span>
-    );
-  const up = value >= 0;
-  return (
-    <span className="hidden flex-wrap items-center gap-1 sm:flex">
-      <span className={`inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-caption font-semibold ${up ? "bg-success-50 text-success-600" : "bg-danger-50 text-danger-600"}`}>
-        {up ? <ArrowUpRight aria-hidden="true" className="h-3.5 w-3.5" /> : <ArrowDownRight aria-hidden="true" className="h-3.5 w-3.5" />}
-        {up ? "+" : ""}
-        {value}%
-      </span>
-      <span className="text-caption text-ink-muted">{label}</span>
-    </span>
-  );
-}
+const pct = (value: number | null) => (value === null ? "N/A" : `${value}%`);
 
 function ProjectChip({ task, on }: { task: WorkTaskItem; on: boolean }) {
   const project = task.projects[0];

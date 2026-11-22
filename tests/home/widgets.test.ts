@@ -27,7 +27,8 @@ const noTasks = { tasks: false, projects: false };
 
 describe("which widgets a person may have", () => {
   it("follows the modules: no Tasks, only the notepad; no Projects, nothing about projects", () => {
-    expect(availableKinds(all)).toEqual(["my_tasks", "projects", "status_updates", "notepad", "workload", "assigned", "people"]);
+    // v1.79.0 (D-406): Needs attention and Quick insights joined My Work (offered under Add widgets, not in the default).
+    expect(availableKinds(all)).toEqual(["my_tasks", "projects", "status_updates", "notepad", "workload", "assigned", "people", "task_attention", "task_insights"]);
     expect(availableKinds(noProjects)).not.toContain("projects");
     expect(availableKinds(noTasks)).toEqual(["notepad"]);
     // v1.66.0 (D-374): Forms came with phase C; it needs the "pm_forms" switch (and Tasks).
@@ -93,7 +94,7 @@ describe("changes", () => {
     expect(resizeWidget(layout, "notepad", "full")[1]).toEqual({ kind: "notepad", size: "full" });
   });
   it("offers only allowed widgets not on Home yet", () => {
-    expect(addableWidgets(layout, all).map((entry) => entry.kind)).toEqual(["status_updates", "workload", "assigned", "people"]);
+    expect(addableWidgets(layout, all).map((entry) => entry.kind)).toEqual(["status_updates", "workload", "assigned", "people", "task_attention", "task_insights"]);
     expect(addableWidgets([], noTasks).map((entry) => entry.kind)).toEqual(["notepad"]);
   });
 });

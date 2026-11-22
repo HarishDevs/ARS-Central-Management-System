@@ -1,5 +1,15 @@
 # Release notes
 
+## v1.79.0 (22 Nov 2026): The three Home overviews work the same way
+Migration `202611241000_home_overview_scope.sql` (runs on start; no triggers). Approvals, My Work and Meetings on Home now have the same parts:
+- **Header:** the greeting with today's date, the title (*Approvals – Overview*, *My Work – Overview*, *Meetings – Overview*), your designation and department, a one-line description, the area switch and the **period** picker (Today, This week, This month, Last 30 days, Last 90 days, Custom period) on all three.
+- **Quick actions:** the create action first (New request, Create task, Schedule meeting), the pages you can open, and **+ Add widgets** and **Customise** at the right end.
+- **Four cards** with the same design. Approvals: Waiting for me, Overdue for me, My open requests and **Decided by me** in the period (with the change against the period before; *Changes asked of me* is now the *Returned to you for changes* widget). Meetings: Upcoming, To approve, MOM to write and **Held** in the period (meetings you ran or attended, with the change; *My open actions* is now the *My action items* widget). My Work: unchanged.
+- **Your own widgets on each overview**, kept separately: move (drag, keyboard or ⋯ Move up/down), Half or Full width, Remove, Add widgets, Reset to that overview's default. Each overview's sections are widgets now (Approvals: Waiting for me, Due soon or overdue, Returned to you for changes, My recent requests, Your drafts, Quick insights; Meetings: Needs attention, Coming up, My action items, Waiting for my approval, Done to confirm, Quick insights, How meetings are running, Register). Until you customise, each shows today's screen in today's order.
+- **New widgets you can add:** **Private notepad** (the same note on every overview), a **day-by-day chart** (Approvals: requests you raised and steps you decided; Meetings: meetings you ran or attended and actions you completed), **Needs attention** (Approvals: overdue and due-soon steps and returned requests; My Work: overdue tasks and tasks due today) and **Quick insights** on My Work (completion rate, on-time share, average days to complete).
+- Every list still shows only what you may see; the meeting figures still need the *Meetings: dashboard figures* page access. The phone layout is unchanged.
+- **Owner steps:** publish v1.79.0 (the migration runs by itself). Nothing else.
+
 ## v1.78.0 (24 Nov 2026): Task Summary, extra tabs and reach: Dashboard, Notes and Files tabs, Request access, the Tasks card on a profile
 Comes with the Projects phase A switch (Dashboard tabs also need Projects phase D, Files tabs phase E, as on projects). Migration `202611231200_task_summary_r3.sql` (runs on start; no triggers).
 - **Dashboard tab:** + beside your Task Summary tabs adds a Dashboard: open, overdue, due today and completed numbers, and charts of open tasks by due date, project and priority, open against completed, and what you completed each day (or week) in the last 14, 30 or 90 days. Each chart has **View as table**.

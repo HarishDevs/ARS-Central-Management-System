@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CalendarDays, Trash2 } from "lucide-react";
+import { CalendarDays, Plus, Trash2 } from "lucide-react";
+import { CREATE_TASK_EVENT } from "@/features/work/client";
 import { ConfirmDialog } from "@/features/ui/Dialog";
 import { discardDraftAction } from "@/app/users/draft-actions";
 
@@ -90,7 +91,21 @@ const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 // Two series per day (assigned, completed) on one axis; a tooltip on hover or
 // tap; a table for screen readers.
-export function WorkloadChart({ assigned, completed, caption }: { assigned: number[]; completed: number[]; caption: string }) {
+// v1.79.0 (D-406): the same chart on every overview; `labels` names the two
+// series (Assigned / Completed on My Work) and `empty` the line shown when both are zero.
+export function WorkloadChart({
+  assigned,
+  completed,
+  caption,
+  labels = ["Assigned", "Completed"],
+  empty: emptyText = "Nothing assigned or completed in this period.",
+}: {
+  assigned: number[];
+  completed: number[];
+  caption: string;
+  labels?: [string, string];
+  empty?: string;
+}) {
   const [active, setActive] = useState<number | null>(null);
   const top = Math.max(1, ...assigned, ...completed);
   const step = top <= 4 ? 1 : top <= 10 ? 2 : Math.ceil(top / 5);
@@ -101,10 +116,10 @@ export function WorkloadChart({ assigned, completed, caption }: { assigned: numb
     <figure data-testid="workload-chart">
       <div className="mb-2 flex flex-wrap justify-end gap-4 text-caption text-ink-muted" aria-hidden="true">
         <span className="inline-flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-[color:var(--chart-assigned)]" /> Assigned
+          <span className="h-2.5 w-2.5 rounded-full bg-[color:var(--chart-assigned)]" /> {labels[0]}
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-[color:var(--chart-completed)]" /> Completed
+          <span className="h-2.5 w-2.5 rounded-full bg-[color:var(--chart-completed)]" /> {labels[1]}
         </span>
       </div>
       <div className="relative flex h-48 gap-2" aria-hidden="true">
@@ -137,7 +152,7 @@ export function WorkloadChart({ assigned, completed, caption }: { assigned: numb
                 {active === index && (
                   <span className="absolute bottom-full left-1/2 z-10 mb-1 -translate-x-1/2 whitespace-nowrap rounded-md border border-line bg-raised px-2 py-1 text-left text-caption text-ink shadow-overlay">
                     <span className="block font-semibold">{day}</span>
-                    Assigned {assigned[index]} · Completed {completed[index]}
+                    {labels[0]} {assigned[index]} · {labels[1]} {completed[index]}
                   </span>
                 )}
               </button>
@@ -152,7 +167,7 @@ export function WorkloadChart({ assigned, completed, caption }: { assigned: numb
           </div>
         </div>
       </div>
-      {empty && <p className="mt-2 text-center text-caption text-ink-muted">Nothing assigned or completed in this period.</p>}
+      {empty && <p className="mt-2 text-center text-caption text-ink-muted">{emptyText}</p>}
       {/* A table grows to its content, so it hides inside a div (no sideways scroll on phones). */}
       <div className="sr-only">
         <table>
@@ -160,8 +175,8 @@ export function WorkloadChart({ assigned, completed, caption }: { assigned: numb
           <thead>
             <tr>
               <th scope="col">Day</th>
-              <th scope="col">Assigned</th>
-              <th scope="col">Completed</th>
+              <th scope="col">{labels[0]}</th>
+              <th scope="col">{labels[1]}</th>
             </tr>
           </thead>
           <tbody>
@@ -177,6 +192,16 @@ export function WorkloadChart({ assigned, completed, caption }: { assigned: numb
       </div>
       <figcaption className="sr-only">{caption}</figcaption>
     </figure>
+  );
+}
+
+// v1.79.0 (D-406): the create action leads each overview's quick-action row
+// as the primary button (My Work's opens the same Create task window).
+export function CreateTaskQuick() {
+  return (
+    <button type="button" onClick={() => window.dispatchEvent(new Event(CREATE_TASK_EVENT))} className="btn-primary btn-compact inline-flex items-center gap-1.5">
+      <Plus aria-hidden="true" className="h-4 w-4" /> Create task
+    </button>
   );
 }
 

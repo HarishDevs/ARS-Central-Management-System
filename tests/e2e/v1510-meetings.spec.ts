@@ -126,7 +126,7 @@ test("someone not on the meeting gets not found; the dashboard and phone view re
   // v1.51.1 (owner): the dashboard is Home → Meetings; the old address opens it.
   await page.goto("/users/meetings/dashboard");
   await expect(page).toHaveURL(/\/users\?home=meetings/);
-  await expect(page.getByRole("heading", { name: "Meeting Overview" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Meetings – Overview" })).toBeVisible(); // v1.79.0 (D-406): one title pattern on all three overviews
   await expect(page.getByTestId("home-focus").getByRole("link", { name: "Meetings" })).toHaveAttribute("aria-current", "page");
   for (const part of ["meeting-tiles", "meeting-attention", "meeting-insights", "meeting-figures", "meeting-kpis"]) await expect(page.getByTestId(part)).toBeVisible();
   await expect(page.getByTestId("sidebar").getByRole("link", { name: "Meeting dashboard" })).toHaveCount(0);

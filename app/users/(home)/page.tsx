@@ -1,6 +1,5 @@
 import { ListSkeleton } from "@/features/ui/Skeleton";
 import type { Metadata } from "next";
-import { formDueDays } from "@/server/approvals/form-due";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { legacyTaskHref } from "@/features/shell/nav-routes";
@@ -8,14 +7,6 @@ import Link from "next/link";
 import { requireArea } from "@/server/authorization/guards";
 import { PageHeader } from "@/features/shell/PageHeader";
 import { displayName } from "@/features/shell/AppShell";
-import { MyRequestsTable, QueueTable } from "@/features/requests/lists";
-import { priorityRecord } from "@/server/approvals/priority-lookup";
-import { HOME_MINE_COLUMNS, HOME_QUEUE_COLUMNS, homeTableSort, sortMyRequests, sortQueueItems } from "@/server/lists/home-sort";
-import { countPendingTasksFor, listAttentionTasksFor, listMyRequests, listPendingTasksFor } from "@/lib/db/repositories/approvals.repository";
-import { ErrorState } from "@/features/ui/States";
-import { listDrafts } from "@/lib/db/repositories/drafts.repository";
-import { formatIndiaTime } from "@/server/notifications/security-messages";
-import { SafeText } from "@/features/ui/SafeText";
 import { FirstUseChecklist } from "@/features/help/FirstUseChecklist";
 import { hasFlag } from "@/lib/db/repositories/user-flags.repository";
 import { hasModule, MODULE_LABEL, MODULES } from "@/server/modules/modules";
@@ -31,16 +22,14 @@ import { workViewer } from "@/server/work/task-access";
 import { TaskHome } from "@/features/work/TaskHome";
 import { MyWorkOverview, type HomeWidgetSetup } from "@/features/home/MyWorkOverview";
 import { HomeGreeting } from "@/features/home/HomeGreeting";
-import { homeAccess, homeLayoutFor } from "@/server/home/home-service";
+import { homeAccess, homeLayoutFor, overviewWidgets } from "@/server/home/home-service";
+import { ApprovalOverview } from "@/features/home/ApprovalOverview";
 import { addableWidgets } from "@/server/home/widgets";
 import { getHomeNote } from "@/lib/db/repositories/home.repository";
 import { MeetingHome } from "@/features/meetings/MeetingHome";
-import { DeleteDraftButton, PeriodPicker, QuietRefresh } from "@/features/home/HomeClient";
-import { approvalInsights, isApproverForHome, myRequestCounts } from "@/lib/db/repositories/overview.repository";
-import { indiaDayOf } from "@/features/work/format";
-import { parsePeriod } from "@/server/work/period";
-import { AlertTriangle, ArrowRight, BarChart3, CalendarClock, CalendarDays, CalendarPlus, CheckCircle2, ClipboardCheck, Clock3, FileEdit, FilePlus2, FileText, Inbox, Layers, ListChecks, PenSquare, Repeat2, Search, UserCheck } from "lucide-react";
-import { QuickActions, type QuickAction } from "@/features/home/QuickActions";
+import { isApproverForHome } from "@/lib/db/repositories/overview.repository";
+import { BarChart3, CalendarClock, CalendarDays, CalendarPlus, CheckCircle2, ClipboardCheck, FileEdit, FilePlus2, FileText, Inbox, ListChecks, Search, UserCheck } from "lucide-react";
+import type { QuickAction } from "@/features/home/QuickActions";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
 export const metadata: Metadata = { title: "Home" };
@@ -52,8 +41,6 @@ export const metadata: Metadata = { title: "Home" };
 // chosen at the top (?home=). D-265 (owner): approvers start on Approvals,
 // everyone else on Task Management; either can switch.
 type HomeFocus = "approvals" | "tasks" | "meetings";
-
-const RECENT_PAGE_SIZE = 8;
 
 export default async function UsersHome({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const { user } = await requireArea("users");
@@ -148,9 +135,6 @@ export default async function UsersHome({ searchParams }: { searchParams: Promis
   // date and the time of day, and Task Management's sections are the person's
   // own widgets. The approval parts of Home are unchanged.
   const pmOn = await featureOn("pm_foundations", user).catch(() => false);
-  const name = displayName(user.name);
-  const words = name.split(/\s+/);
-  const greetingName = words.length <= 2 ? name : words[0];
 
   if (focus === "meetings") {
     const base: Record<string, string> = { home: "meetings", ...(overview ? { view: "overview" } : {}) };
@@ -164,15 +148,17 @@ export default async function UsersHome({ searchParams }: { searchParams: Promis
       { href: "/users/meetings/follow-ups", label: "Follow-ups", icon: <ListChecks className="h-4 w-4" /> },
       { href: "/users/calendar", label: "Calendar", icon: <CalendarDays className="h-4 w-4" /> },
     ].filter((item) => !isHiddenHref(item.href, meetingHidden));
+    // v1.79.0 (D-406): the person's Meetings widgets (figures only with the dashboard page access).
     return (
       <MeetingHome
         user={user}
-        greetingName={greetingName ?? name}
         query={query}
         base={base}
         figures={!isHiddenHref("/users/meetings/dashboard", meetingHidden)}
         switcher={<HomeFocusSwitch focus={focus} overview={overview} choices={choices} locked={lockedChoices} />}
-        quick={<QuickActions items={meetingQuick} testId="meeting-quick-actions" />}
+        quick={meetingQuick}
+        widgets={await overviewWidgets(user, "meetings")}
+        greeting={pmOn ? <HomeGreeting name={user.name} /> : undefined}
       />
     );
   }
@@ -212,70 +198,6 @@ export default async function UsersHome({ searchParams }: { searchParams: Promis
     );
   }
 
-  const today = indiaDayOf(new Date());
-  const period = parsePeriod({ period: query.period, from: query.from, to: query.to }, today, "month");
-  // v1.49.6 (owner): no Recently viewed and no Finished in the last 30 days on Home.
-  const [queue, waiting, attention, mine, drafts, onboarded, insights, counts] = await Promise.all([
-    listPendingTasksFor(user.id, { limit: 5, offset: 0 }),
-    countPendingTasksFor(user.id),
-    listAttentionTasksFor(user.id, 10),
-    listMyRequests(user.id),
-    listDrafts(user.id, query.drafts === "all" ? 20 : 5),
-    hasFlag(user.id, "ONBOARDING_DONE"),
-    approvalInsights(user.id, period).catch(() => null),
-    myRequestCounts(user.id),
-  ]);
-  // v1.47.0 (owner): the Priority pill on every Home widget, one query for them all.
-  const priority = await priorityRecord([...queue.map((item) => item.requestId), ...attention.items.map((item) => item.requestId), ...mine.map((item) => item.id)], user);
-  // v1.58.1 (owner: "request's form Priority is a must sortable column in all
-  // tables"): every Home table sorts on every column (prefixed keys, one sortBy).
-  const sortQuery = { ...query, home: "approvals" }; // a sort stays on the Approvals view
-  const queueSort = homeTableSort(sortQuery, "hq", HOME_QUEUE_COLUMNS);
-  const attentionSort = homeTableSort(sortQuery, "ha", HOME_QUEUE_COLUMNS);
-  const returnedSort = homeTableSort(sortQuery, "hx", HOME_MINE_COLUMNS);
-  const recentSort = homeTableSort(sortQuery, "hr", HOME_MINE_COLUMNS);
-  const queueShown = sortQueueItems(queue, queueSort, priority);
-  const attentionShown = sortQueueItems(attention.items, attentionSort, priority);
-  const returned = sortMyRequests(mine.filter((item) => item.status === "CHANGES_REQUIRED"), returnedSort, priority);
-  // v1.49.6 (owner): My recent requests shows 8 at a time, the rest on pages (?recent=N); a sort covers every page.
-  const mineSorted = sortMyRequests(mine, recentSort, priority);
-  const recentPages = Math.max(1, Math.ceil(mine.length / RECENT_PAGE_SIZE));
-  const recentPage = Math.min(recentPages, Math.max(1, Math.floor(Number(query.recent)) || 1));
-  const recentItems = mineSorted.slice((recentPage - 1) * RECENT_PAGE_SIZE, recentPage * RECENT_PAGE_SIZE);
-  // D-265: icon, label, what it counts; each opens the page with that list.
-  const tiles = [
-    { label: "Waiting for me", note: "Requests awaiting your approval", value: waiting, href: "/users/queue", icon: Inbox, tone: "bg-primary-50 text-primary-700", alert: waiting > 0 },
-    {
-      label: "Overdue for me",
-      note: "Your steps past their due time",
-      value: attention.overdue,
-      href: "/users/queue?show=overdue",
-      icon: AlertTriangle,
-      tone: "bg-warning-50 text-warning-600",
-      alert: attention.overdue > 0,
-      danger: true,
-    },
-    {
-      label: "My open requests",
-      note: "Raised by you, in progress",
-      value: counts.open,
-      href: "/users/requests?status=IN_PROGRESS",
-      icon: FileText,
-      tone: "bg-[color:var(--violet-bg)] text-[color:var(--violet-fg)]",
-      alert: false,
-    },
-    {
-      label: "Changes asked of me",
-      note: "Returned to you for changes",
-      value: counts.returned,
-      href: "/users/requests?status=CHANGES_REQUIRED",
-      icon: PenSquare,
-      tone: "bg-danger-50 text-danger-600",
-      alert: counts.returned > 0,
-    },
-  ];
-  const keep = { home: "approvals", ...(overview ? { view: "overview" } : {}), ...(recentSort.sortBy ? { sortBy: `hr.${recentSort.sortBy}`, dir: recentSort.dir } : {}) };
-  const hours = insights?.avgHours ?? null;
   const approvalHidden = (await navAccess(user)).hidden;
   // v1.77.1 (owner): the basic quick actions, as on the Task Management overview. D-206: New request opens the page where people choose their own approvers.
   const approvalQuick: QuickAction[] = [
@@ -287,235 +209,19 @@ export default async function UsersHome({ searchParams }: { searchParams: Promis
     { href: "/users/reports", label: "Reports", icon: <BarChart3 className="h-4 w-4" /> },
     { href: "/users/search", label: "Search", icon: <Search className="h-4 w-4" /> },
   ].filter((item) => !isHiddenHref(item.href, approvalHidden));
-
+  // v1.79.0 (D-406): the Approvals overview is built like My Work (features/home/ApprovalOverview.tsx).
+  const [onboarded, approvalWidgets] = await Promise.all([hasFlag(user.id, "ONBOARDING_DONE"), overviewWidgets(user, "approvals")]);
   return (
-    <div data-testid="approval-overview">
-      <QuietRefresh />
-      {pmOn && (
-        <div className="mb-4">
-          <HomeGreeting name={user.name} />
-        </div>
-      )}
-      <header className="mb-6 flex flex-wrap items-center justify-between gap-4" data-tour="page-header">
-        <div className="flex min-w-0 items-center gap-3">
-          <span className="page-icon grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary-50 text-primary-700" aria-hidden="true">
-            <Layers className="h-6 w-6" />
-          </span>
-          <div className="min-w-0">
-            <h1 className="text-title font-semibold tracking-tight">Approval Overview</h1>
-            <p className="text-label text-ink-muted">{pmOn ? "" : `Welcome back, ${greetingName}. `}What needs you first, then where your requests are.</p>
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          {choices.length + lockedChoices.length > 1 && <HomeFocusSwitch focus={focus} overview={overview} choices={choices} locked={lockedChoices} />}
-        </div>
-      </header>
-      <QuickActions items={approvalQuick} testId="approval-quick-actions" />
-      {!onboarded && <FirstUseChecklist hidden={(await navAccess(user)).hidden.has("users.queue") ? ["/users/queue", "/users/delegation"] : []} />}
-      <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 xl:grid-cols-4" data-tour="overview-tiles">
-        {tiles.map((tile) => (
-          <Link key={tile.label} href={tile.href} className="card-link status-card flex items-center gap-3 px-4 py-3">
-            <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${tile.tone}`} aria-hidden="true">
-              <tile.icon className="h-5 w-5" />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-label font-semibold">{tile.label}</span>
-              <span className="block text-caption leading-snug text-ink-muted">{tile.note}</span>
-            </span>
-            <span className={`text-card-title font-bold tabular-nums ${tile.alert ? (tile.danger ? "text-danger-600" : "text-primary-700") : "text-ink"}`}>{tile.value}</span>
-          </Link>
-        ))}
-      </div>
-
-      <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-        <div className="min-w-0 space-y-6">
-          <section className="card min-w-0 px-4 py-4 sm:px-5" aria-labelledby="waiting">
-            <div className="mb-3 flex items-baseline justify-between gap-2">
-              <h2 id="waiting" className="text-[calc(17px*var(--text-scale,1))] font-semibold">
-                Waiting for me
-              </h2>
-              {waiting > 0 && (
-                <Link href="/users/queue" className="link inline-flex items-center gap-1 text-label">
-                  {waiting > 5 ? `All ${waiting}` : "View all"} <ArrowRight aria-hidden="true" className="h-4 w-4" />
-                </Link>
-              )}
-            </div>
-            {queue.length === 0 ? (
-              <div className="flex flex-col items-center px-4 py-8 text-center" data-testid="nothing-waiting">
-                <span className="relative mb-4 grid h-20 w-20 place-items-center rounded-full bg-primary-50 text-primary-700" aria-hidden="true">
-                  <Inbox className="h-10 w-10" />
-                  <span className="absolute -bottom-1 -right-1 grid h-8 w-8 place-items-center rounded-full bg-success-solid text-on-solid ring-4 ring-[color:var(--color-surface)]">
-                    <CheckCircle2 className="h-5 w-5" />
-                  </span>
-                </span>
-                <p className="font-semibold">Nothing waiting for you</p>
-                <p className="mt-1 text-label text-ink-muted">Requests that need your approval, and work given to you, appear here.</p>
-              </div>
-            ) : (
-              <QueueTable items={queueShown} priority={priority} formDue={await formDueDays(queue.map((item) => item.requestId))} sort={queueSort} editable />
-            )}
-          </section>
-
-          {attention.items.length > 0 && (
-            <section className="card min-w-0 px-4 py-4 sm:px-5" aria-labelledby="attention">
-              <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-                <h2 id="attention" className="text-[calc(17px*var(--text-scale,1))] font-semibold">
-                  Due soon or overdue
-                </h2>
-                <span className="text-label text-ink-muted">
-                  {attention.overdue} overdue · {attention.dueSoon} due within 24 hours
-                </span>
-              </div>
-              <QueueTable items={attentionShown} priority={priority} formDue={await formDueDays(attention.items.map((item) => item.requestId))} sort={attentionSort} />
-            </section>
-          )}
-
-          {returned.length > 0 && (
-            <section className="card min-w-0 px-4 py-4 sm:px-5" aria-labelledby="returned">
-              <h2 id="returned" className="mb-3 text-[calc(17px*var(--text-scale,1))] font-semibold">
-                Returned to you for changes
-              </h2>
-              <MyRequestsTable items={returned.slice(0, 5)} priority={priority} sort={returnedSort} />
-            </section>
-          )}
-
-          <section className="card min-w-0 px-4 py-4 sm:px-5" aria-labelledby="recent-requests">
-            <div className="mb-3 flex items-baseline justify-between">
-              <h2 id="recent-requests" className="text-[calc(17px*var(--text-scale,1))] font-semibold">
-                My recent requests
-              </h2>
-              {mine.length > 0 && (
-                <Link href="/users/requests" className="link inline-flex items-center gap-1 text-label">
-                  View all <ArrowRight aria-hidden="true" className="h-4 w-4" />
-                </Link>
-              )}
-            </div>
-            <MyRequestsTable items={recentItems} priority={priority} sort={recentSort} />
-            {recentPages > 1 && (
-              <nav aria-label="My recent requests pages" className="mt-3 flex flex-wrap items-center justify-between gap-2 text-label" data-testid="recent-pages">
-                <span className="text-ink-muted">
-                  {(recentPage - 1) * RECENT_PAGE_SIZE + 1}–{(recentPage - 1) * RECENT_PAGE_SIZE + recentItems.length} of {mine.length}
-                </span>
-                <span className="flex items-center gap-1">
-                  {recentPage > 1 && (
-                    <Link href={`/users?${new URLSearchParams({ ...keep, recent: String(recentPage - 1) })}`} scroll={false} className="btn-secondary btn-compact" aria-label="Previous page">
-                      ←
-                    </Link>
-                  )}
-                  {Array.from({ length: recentPages }, (_, index) => index + 1).map((value) =>
-                    value === recentPage ? (
-                      <span key={value} aria-current="page" className="grid h-8 min-w-8 place-items-center rounded-md bg-primary-solid px-2 font-semibold text-on-solid">
-                        {value}
-                      </span>
-                    ) : (
-                      <Link key={value} href={`/users?${new URLSearchParams({ ...keep, recent: String(value) })}`} scroll={false} className="grid h-8 min-w-8 place-items-center rounded-md px-2 hover:bg-surface-muted" aria-label={`Page ${value}`}>
-                        {value}
-                      </Link>
-                    ),
-                  )}
-                  {recentPage < recentPages && (
-                    <Link href={`/users?${new URLSearchParams({ ...keep, recent: String(recentPage + 1) })}`} scroll={false} className="btn-secondary btn-compact" aria-label="Next page">
-                      →
-                    </Link>
-                  )}
-                </span>
-              </nav>
-            )}
-          </section>
-
-        </div>
-
-        <div className="min-w-0 space-y-6">
-          <section className="card min-w-0 px-4 py-4 sm:px-5" aria-labelledby="drafts">
-            <div className="mb-3 flex items-baseline justify-between">
-              <h2 id="drafts" className="text-[calc(17px*var(--text-scale,1))] font-semibold">
-                Your drafts
-              </h2>
-              {drafts.length === 5 && query.drafts !== "all" && (
-                <Link href={`/users?${new URLSearchParams({ ...keep, drafts: "all" })}`} scroll={false} className="link inline-flex items-center gap-1 text-label">
-                  View all <ArrowRight aria-hidden="true" className="h-4 w-4" />
-                </Link>
-              )}
-            </div>
-            {drafts.length === 0 ? (
-              <p className="py-3 text-label text-ink-muted">No drafts. A request you start is kept here until you submit it.</p>
-            ) : (
-              <ul className="space-y-2">
-                {drafts.map((draft) => (
-                  <li key={draft.key} className="flex items-center gap-3 rounded-lg border border-line px-3 py-2">
-                    <FileEdit aria-hidden="true" className="h-5 w-5 shrink-0 text-primary-700" />
-                    <span className="min-w-0 flex-1">
-                      <Link href={draft.href} className="link block truncate font-medium">
-                        <SafeText text={draft.title} />
-                      </Link>
-                      <span className="block truncate text-caption text-ink-muted">
-                        {draft.typeName} · saved {formatIndiaTime(draft.updatedAt)}
-                      </span>
-                    </span>
-                    <DeleteDraftButton draftKey={draft.key} title={draft.title} />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          <section className="card min-w-0 px-4 py-4 sm:px-5" aria-labelledby="insights" data-testid="quick-insights">
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <h2 id="insights" className="flex items-center gap-2 text-[calc(17px*var(--text-scale,1))] font-semibold">
-                <BarChart3 aria-hidden="true" className="h-5 w-5 text-primary-700" /> Quick insights
-              </h2>
-              <PeriodPicker
-                value={period.key}
-                from={period.fromDay}
-                to={period.toDay}
-                base={keep}
-                label="Insights period"
-                options={[
-                  ["week", "This week"],
-                  ["month", "This month"],
-                  ["30d", "Last 30 days"],
-                  ["90d", "Last 90 days"],
-                ]}
-              />
-            </div>
-            {insights === null ? (
-              <ErrorState variant="inline" body="Insights couldn't be worked out just now. Reload the page to try again." />
-            ) : (
-              <dl className="grid grid-cols-3 divide-x divide-line rounded-lg border border-line">
-                <Insight icon={<CheckCircle2 className="h-5 w-5" />} tone="text-success-600" label="Requests raised" value={String(insights.raised)} />
-                <Insight icon={<Repeat2 className="h-5 w-5" />} tone="text-primary-700" label="Requests approved" value={String(insights.approved)} />
-                <Insight
-                  icon={<Clock3 className="h-5 w-5" />}
-                  tone="text-[color:var(--violet-fg)]"
-                  label="Avg. approval time"
-                  value={hours === null ? "N/A" : hours < 1 ? (hours * 60 < 1 ? "< 1 min" : `${Math.round(hours * 60)} min`) : hours < 24 ? `${hours.toFixed(1)} h` : `${(hours / 24).toFixed(1)} d`}
-                />
-              </dl>
-            )}
-            {insights && (
-              <p className="mt-2 text-caption text-ink-muted">
-                {period.label}: {insights.returned} of your requests sent back for changes; you decided {insights.decided} approval step{insights.decided === 1 ? "" : "s"}. Average time is from
-                submission to final approval.
-              </p>
-            )}
-          </section>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Insight({ icon, tone, label, value }: { icon: React.ReactNode; tone: string; label: string; value: string }) {
-  return (
-    <div className="min-w-0 px-3 py-3">
-      <dt className="text-caption text-ink-muted">
-        <span className={`mb-1 block ${tone}`} aria-hidden="true">
-          {icon}
-        </span>
-        {label}
-      </dt>
-      <dd className="text-title font-bold tabular-nums">{value}</dd>
-    </div>
+    <ApprovalOverview
+      user={user}
+      query={query}
+      overview={overview}
+      switcher={choices.length + lockedChoices.length > 1 ? <HomeFocusSwitch focus={focus} overview={overview} choices={choices} locked={lockedChoices} /> : null}
+      quick={approvalQuick}
+      widgets={approvalWidgets}
+      greeting={pmOn ? <HomeGreeting name={user.name} /> : undefined}
+      checklist={!onboarded ? <FirstUseChecklist hidden={approvalHidden.has("users.queue") ? ["/users/queue", "/users/delegation"] : []} /> : null}
+    />
   );
 }
 

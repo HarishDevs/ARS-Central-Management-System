@@ -2637,3 +2637,27 @@ flowchart TD
   F --> H[record hash in ops_restores] --> M
   M --> S[seed.js] --> N[next start]
 ```
+
+## F-HOME-OVERVIEWS: The three Home overviews and their widgets (v1.79.0, D-406)
+```mermaid
+flowchart TD
+  A[Home /users?home=approvals or tasks or meetings] --> B{phone layout?}
+  B -- yes --> MH[MobileHome, unchanged]
+  B -- no --> C{Classic view and not ?view=overview?}
+  C -- yes --> G[Gateway, unchanged]
+  C -- no --> H[Header: greeting, Area – Overview, designation · department, switcher, period picker]
+  H --> Q[Quick actions: create first, pages the person can open, + Add widgets, Customise]
+  Q --> K[Four cards; the fourth compares with the previous period]
+  K --> L[homeAccess: approvals, tasks, projects, forms, meetings, meetingFigures]
+  L --> R[home_layouts row for user + scope; none: the overview's default = today's screen]
+  R --> F[readLayout drops kinds of other scopes and kinds the person may not have]
+  F --> W[Draw only the widgets on the layout; load only their data]
+  W --> X{pm_foundations on?}
+  X -- no --> Y[Default layout, no controls]
+  X -- yes --> Z[Add widgets / ⋯ Move, Half or Full, Remove / Customise drag or keyboard / Reset]
+  Z --> S[homeLayoutAction scope + widgets + version]
+  S --> V{scope known and open to the person, layout valid, version current?}
+  V -- no --> N[Refused or conflict: reload]
+  V -- yes --> O[Saved for that overview only; announced]
+```
+- Standard widgets on every overview: Private notepad (one note shared by the three), day-by-day chart, Needs attention, Quick insights. Meeting figures (Quick insights, How meetings are running, Register) only with the *Meetings: dashboard figures* page access.

@@ -11,8 +11,13 @@ export interface QuickAction {
   primary?: boolean;
 }
 
-export function QuickActions({ items, testId }: { items: QuickAction[]; testId: string }) {
-  if (!items.length) return null;
+// v1.79.0 (D-406): `widgets` adds the slot at the right end of the row where
+// the overview's widget board draws + Add widgets and Customise (a portal,
+// HomeWidgets), as on My Work since v1.77.1.
+export const WIDGETS_TOOLBAR_SLOT = "home-widgets-toolbar-slot";
+
+export function QuickActions({ items, testId, widgets = false }: { items: QuickAction[]; testId: string; widgets?: boolean }) {
+  if (!items.length && !widgets) return null;
   return (
     <nav aria-label="Quick actions" className="mb-5 flex flex-wrap gap-2" data-testid={testId}>
       {items.map((item) => (
@@ -21,6 +26,7 @@ export function QuickActions({ items, testId }: { items: QuickAction[]; testId: 
           {item.label}
         </Link>
       ))}
+      {widgets && <div id={WIDGETS_TOOLBAR_SLOT} className="ml-auto flex flex-wrap items-center gap-2" />}
     </nav>
   );
 }

@@ -180,7 +180,7 @@ test("Home: greeting with the date; customise widgets with the keyboard; width, 
   await as(context, "E2E_MGR");
   await page.goto("/users?home=approvals");
   await expect(page.getByTestId("home-greeting")).toContainText("Manoj Manager");
-  await expect(page.getByRole("heading", { level: 1, name: "Approval Overview" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Approvals – Overview" })).toBeVisible(); // v1.79.0 (D-406): one title pattern on all three overviews
   await expect(page.locator('[data-tour="overview-tiles"]')).toBeVisible();
 });
 

@@ -18,6 +18,7 @@ export interface ApprovalInsights {
   avgHours: number | null; // submitted → approved, for those approved in the period; null when none
   returned: number; // my requests sent back for changes in the period
   decided: number; // approval steps I decided in the period
+  decidedBefore: number; // v1.79.0 (D-406): the same, previous period
 }
 
 export async function approvalInsights(userId: number, period: { from: Date; to: Date; prevFrom: Date; prevTo: Date }, db: Queryable = getDbPool()): Promise<ApprovalInsights> {
@@ -32,11 +33,12 @@ export async function approvalInsights(userId: number, period: { from: Date; to:
       [period.from, period.to, period.prevFrom, period.prevTo, period.from, period.to, period.from, period.to, userId, period.prevFrom, period.prevFrom],
     ),
     db.query<RowDataPacket[]>(
-      `SELECT COUNT(*) AS decided,
+      `SELECT COALESCE(SUM(t.decided_at >= ? AND t.decided_at < ?), 0) AS decided,
+              COALESCE(SUM(t.decided_at >= ? AND t.decided_at < ?), 0) AS decided_before,
               (SELECT COUNT(DISTINCT t2.request_id) FROM approval_tasks t2 JOIN approval_requests r2 ON r2.id = t2.request_id
                 WHERE r2.requester_id = ? AND r2.deleted_at IS NULL AND t2.status = 'CHANGES_REQUESTED' AND t2.decided_at >= ? AND t2.decided_at < ?) AS returned
        FROM approval_tasks t WHERE t.approver_id = ? AND t.status IN ('APPROVED', 'REJECTED', 'CHANGES_REQUESTED') AND t.decided_at >= ? AND t.decided_at < ?`,
-      [userId, period.from, period.to, userId, period.from, period.to],
+      [period.from, period.to, period.prevFrom, period.prevTo, userId, period.from, period.to, userId, period.prevFrom, period.to],
     ),
   ]);
   const row = (mine[0] ?? {}) as RowDataPacket;
@@ -48,7 +50,96 @@ export async function approvalInsights(userId: number, period: { from: Date; to:
     avgHours: minutes === null ? null : minutes / 60,
     returned: n(decided[0]?.returned),
     decided: n(decided[0]?.decided),
+    decidedBefore: n(decided[0]?.decided_before),
   };
+}
+
+// v1.79.0 (D-406): the per-day spread used by every overview's day-by-day
+// chart (Monday first, India days, within the period).
+const spreadDays = (rows: RowDataPacket[]) => {
+  const out = [0, 0, 0, 0, 0, 0, 0];
+  for (const row of rows) out[n(row.d)] = n(row.c);
+  return out;
+};
+const WEEKDAY = (column: string) => `WEEKDAY(DATE_ADD(${column}, INTERVAL 330 MINUTE))`;
+
+// Approvals chart: requests I raised (submitted_at) and approval steps I
+// decided (decided_at), by day of the week within the period.
+export async function approvalDaily(userId: number, period: { from: Date; to: Date }, db: Queryable = getDbPool()): Promise<{ raised: number[]; decided: number[] }> {
+  const [[raised], [decided]] = await Promise.all([
+    db.query<RowDataPacket[]>(
+      `SELECT ${WEEKDAY("r.submitted_at")} AS d, COUNT(*) AS c FROM approval_requests r
+       WHERE r.requester_id = ? AND r.deleted_at IS NULL AND r.submitted_at >= ? AND r.submitted_at < ? GROUP BY d`,
+      [userId, period.from, period.to],
+    ),
+    db.query<RowDataPacket[]>(
+      `SELECT ${WEEKDAY("t.decided_at")} AS d, COUNT(*) AS c FROM approval_tasks t
+       WHERE t.approver_id = ? AND t.status IN ('APPROVED', 'REJECTED', 'CHANGES_REQUESTED') AND t.decided_at >= ? AND t.decided_at < ? GROUP BY d`,
+      [userId, period.from, period.to],
+    ),
+  ]);
+  return { raised: spreadDays(raised), decided: spreadDays(decided) };
+}
+
+// ---- Meetings (personal figures, D-406) ---------------------------------------
+// "Held" = a meeting that started (actual_start) in the period which the person
+// ran (owner or coordinator) or attended (marked present or late). Only their
+// own meetings, so no dashboard access is needed for these.
+const HELD_BY = `(m.owner_id = ? OR m.coordinator_id = ? OR EXISTS (SELECT 1 FROM meeting_participants p WHERE p.meeting_id = m.id AND p.user_id = ? AND p.attendance IN ('PRESENT', 'LATE')))`;
+
+export async function meetingSummary(userId: number, period: { from: Date; to: Date; prevFrom: Date; prevTo: Date }, db: Queryable = getDbPool()): Promise<{ held: number; heldBefore: number }> {
+  const [[row]] = await db.query<RowDataPacket[]>(
+    `SELECT COALESCE(SUM(m.actual_start >= ? AND m.actual_start < ?), 0) AS held,
+            COALESCE(SUM(m.actual_start >= ? AND m.actual_start < ?), 0) AS held_before
+     FROM meetings m WHERE m.status <> 'CANCELLED' AND m.actual_start >= ? AND m.actual_start < ? AND ${HELD_BY}`,
+    [period.from, period.to, period.prevFrom, period.prevTo, period.prevFrom, period.to, userId, userId, userId],
+  );
+  return { held: n(row?.held), heldBefore: n(row?.held_before) };
+}
+
+// Meetings chart: meetings held or attended (by actual start) and my meeting
+// action items completed (their task's completed_at), by day of the week.
+export async function meetingDaily(userId: number, period: { from: Date; to: Date }, db: Queryable = getDbPool()): Promise<{ held: number[]; done: number[] }> {
+  const [[held], [done]] = await Promise.all([
+    db.query<RowDataPacket[]>(
+      `SELECT ${WEEKDAY("m.actual_start")} AS d, COUNT(*) AS c FROM meetings m
+       WHERE m.status <> 'CANCELLED' AND m.actual_start >= ? AND m.actual_start < ? AND ${HELD_BY} GROUP BY d`,
+      [period.from, period.to, userId, userId, userId],
+    ),
+    db.query<RowDataPacket[]>(
+      `SELECT ${WEEKDAY("t.completed_at")} AS d, COUNT(*) AS c FROM meeting_actions a JOIN tasks t ON t.id = a.task_id AND t.deleted_at IS NULL
+       WHERE a.owner_id = ? AND t.status = 'COMPLETED' AND t.completed_at >= ? AND t.completed_at < ? GROUP BY d`,
+      [userId, period.from, period.to],
+    ),
+  ]);
+  return { held: spreadDays(held), done: spreadDays(done) };
+}
+
+// ---- My Work: Quick insights (D-406) ---------------------------------------------
+export interface TaskInsights {
+  given: number; // given to me in the period (assigned_at, else created_at)
+  givenDone: number; // of those, completed now
+  completed: number; // completed in the period
+  withDue: number; // of those, the ones that had a due date
+  onTime: number; // of those, completed on or before the due day (India days)
+  avgDays: number | null; // given → completed, for those completed in the period; null when none
+}
+
+export async function taskInsights(userId: number, period: { from: Date; to: Date }, db: Queryable = getDbPool()): Promise<TaskInsights> {
+  const assignedAt = "COALESCE(t.assigned_at, t.created_at)";
+  const doneIn = "(t.status = 'COMPLETED' AND t.completed_at >= ? AND t.completed_at < ?)";
+  const [[row]] = await db.query<RowDataPacket[]>(
+    `SELECT COALESCE(SUM(${assignedAt} >= ? AND ${assignedAt} < ?), 0) AS given,
+            COALESCE(SUM(${assignedAt} >= ? AND ${assignedAt} < ? AND t.status = 'COMPLETED'), 0) AS given_done,
+            COALESCE(SUM(${doneIn}), 0) AS completed,
+            COALESCE(SUM(${doneIn} AND t.due_at IS NOT NULL), 0) AS with_due,
+            COALESCE(SUM(${doneIn} AND t.due_at IS NOT NULL AND ${IST_DAY("t.completed_at")} <= ${IST_DAY("t.due_at")}), 0) AS on_time,
+            AVG(CASE WHEN ${doneIn} THEN TIMESTAMPDIFF(MINUTE, ${assignedAt}, t.completed_at) END) AS avg_minutes
+     FROM tasks t WHERE t.assignee_id = ? AND t.deleted_at IS NULL`,
+    [period.from, period.to, period.from, period.to, period.from, period.to, period.from, period.to, period.from, period.to, period.from, period.to, userId],
+  );
+  const minutes = row?.avg_minutes === null || row?.avg_minutes === undefined ? null : Math.max(0, Number(row.avg_minutes));
+  return { given: n(row?.given), givenDone: n(row?.given_done), completed: n(row?.completed), withDue: n(row?.with_due), onTime: n(row?.on_time), avgDays: minutes === null ? null : minutes / 1440 };
 }
 
 // ---- My Work ----------------------------------------------------------------

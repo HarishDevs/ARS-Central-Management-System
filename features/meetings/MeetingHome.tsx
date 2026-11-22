@@ -1,16 +1,25 @@
 import Link from "next/link";
-import { AlertTriangle, ArrowRight, CalendarClock, ClipboardCheck, FilePenLine, Lightbulb, ListChecks } from "lucide-react";
+import { CalendarCheck2, CalendarClock, ClipboardCheck, FilePenLine, Lightbulb } from "lucide-react";
 import { FollowUpBadge, MeetingStatusBadge, PointsBadge, whenText } from "@/features/meetings/MeetingParts";
 import { KpiGrid, pct, TallyTable, tallyMeetings } from "@/features/meetings/MeetingStats";
-import { PeriodPicker } from "@/features/home/HomeClient";
+import { QuietRefresh, WorkloadChart } from "@/features/home/HomeClient";
+import { HomeWidgets } from "@/features/home/HomeWidgets";
+import { HomeNotepad } from "@/features/home/HomeNotepad";
+import { QuickActions, type QuickAction } from "@/features/home/QuickActions";
+import { AttentionWidget, OverviewHeader, periodKeep, SectionHead, SummaryCards, type AttentionItem, type SummaryCard } from "@/features/home/OverviewParts";
 import { dashboardMeetings, listFollowUps, listMeetings, type MeetingListFilter } from "@/lib/db/repositories/meetings.repository";
+import { meetingDaily, meetingSummary } from "@/lib/db/repositories/overview.repository";
+import { personProfile } from "@/lib/db/repositories/profile.repository";
 import { scopeFor } from "@/server/meetings/service";
 import { actionState, durationBand, MEETING_STATUSES, minutesBetween, MODE_LABEL } from "@/server/meetings/rules";
 import { SortTh } from "@/features/ui/SortTh";
+import { ErrorState } from "@/features/ui/States";
 import { nextDir, parseColumnSort, sortHref, sortRows } from "@/server/lists/sorting";
 import { indiaDateTimeText } from "@/server/modules/settings";
-import { parsePeriod } from "@/server/work/period";
+import { changePercent, parsePeriod, PREVIOUS_LABEL } from "@/server/work/period";
 import { indiaDayOf } from "@/features/work/format";
+import type { WidgetKind } from "@/server/home/widgets";
+import type { OverviewWidgets } from "@/server/home/home-service";
 
 // v1.51.1 (owner: "remove the meeting dashboard from the menu and show it in
 // the overview; every card, insight and point needing attention"): Home's
@@ -22,6 +31,12 @@ import { indiaDayOf } from "@/features/work/format";
 // all columns"): the Register sorts on every column (?sortBy=mr.<column>); the
 // two tally tables use mt. and md., so the three tables never clash.
 const REGISTER_SORTS = ["mr.meeting", "mr.type", "mr.dept", "mr.duration", "mr.present", "mr.actions", "mr.status"] as const;
+// v1.79.0 (D-406, owner: "Match all 3 Overview Screens, it should be
+// identically featured"): built like My Work: the shared header with the
+// period, quick actions with Add widgets / Customise, four summary cards
+// (Held this period compares with the period before), then the person's own
+// widgets: each section above is a widget; the figures and register stay
+// behind the dashboard page access (they can't be added without it).
 const REGISTER_LABEL: Record<(typeof REGISTER_SORTS)[number], string> = {
   "mr.meeting": "Meeting",
   "mr.type": "Type",
@@ -31,35 +46,44 @@ const REGISTER_LABEL: Record<(typeof REGISTER_SORTS)[number], string> = {
   "mr.actions": "Actions",
   "mr.status": "Status",
 };
-type Attention = { key: string; text: string; detail: string; href: string; danger: boolean };
+type Attention = AttentionItem;
 
 export async function MeetingHome({
   user,
-  greetingName,
   switcher,
   query,
   base,
   figures,
   quick,
+  widgets,
+  greeting,
 }: {
   user: { id: number; roles: readonly string[] };
-  greetingName: string;
   switcher: React.ReactNode;
   query: Record<string, string | undefined>;
   base: Record<string, string>;
   figures: boolean;
-  quick?: React.ReactNode;
+  quick: QuickAction[];
+  widgets: OverviewWidgets;
+  greeting?: React.ReactNode;
 }) {
   const scope = await scopeFor(user);
   const period = parsePeriod({ period: query.period, from: query.from, to: query.to }, indiaDayOf(new Date()), "month");
+  const shown = (kind: WidgetKind) => widgets.layout.some((item) => item.kind === kind);
+  // The figures need the dashboard page access (the layout can't hold them without it; checked again here).
+  const wantFigures = figures && (shown("mt_insights") || shown("mt_figures") || shown("mt_register"));
   const list = (tab: MeetingListFilter["tab"], pageSize: number) => listMeetings(scope, { tab, userId: user.id, q: "", typeId: null, departmentId: null, status: null, from: null, to: null, page: 1, pageSize });
-  const [upcoming, toApprove, mine, actions, periodRows] = await Promise.all([
+  const [upcoming, toApprove, mine, actions, periodRows, held, daily, profile] = await Promise.all([
     list("upcoming", 6),
     list("approve", 5),
     list("mine", 200),
     listFollowUps(scope, { ownerOnly: null, q: "", limit: 1000 }),
-    figures ? dashboardMeetings(scope, period.from, period.to) : Promise.resolve([]),
+    wantFigures ? dashboardMeetings(scope, period.from, period.to) : Promise.resolve([]),
+    meetingSummary(user.id, period).catch(() => null),
+    shown("mt_chart") ? meetingDaily(user.id, period).catch(() => null) : Promise.resolve(null),
+    personProfile(user.id).catch(() => null),
   ]);
+  const role = [profile?.designationName, profile?.departmentName].filter(Boolean).join(" · ");
   const now = new Date();
   const soon = now.getTime() + 86_400_000;
   const coordinated = mine.rows.filter((row) => row.coordinatorId === user.id);
@@ -87,12 +111,12 @@ export async function MeetingHome({
   for (const { row } of myOverdue.slice(0, 5)) attention.push({ key: `a${row.id}`, text: "Your action is overdue", detail: `${row.title} · ${row.meetingNo}`, href: row.taskId ? `/users/tasks/${row.taskId}` : `/users/meetings/${row.meetingId}`, danger: true });
   if (runOverdue.length) attention.push({ key: "ro", text: `${runOverdue.length} overdue action${runOverdue.length === 1 ? "" : "s"} in meetings you run`, detail: "Follow them up, or carry them to a follow-up meeting", href: "/users/meetings/follow-ups?view=overdue", danger: true });
   if (toConfirm.length) attention.push({ key: "tc", text: `${toConfirm.length} completed action${toConfirm.length === 1 ? "" : "s"} to confirm`, detail: "Confirm them as done, or send them back", href: "/users/meetings/follow-ups?view=confirm", danger: false });
-  attention.sort((a, b) => Number(b.danger) - Number(a.danger));
 
   const { total, byType, byDepartment } = tallyMeetings(periodRows);
   const insights = figures ? insightsOf(periodRows, total, byDepartment) : [];
   // v1.58.0 (D-354): the latest 100 (as the note says), in the chosen column order.
-  const sortQuery: Record<string, unknown> = { ...query, ...base };
+  const keep = { ...base, ...periodKeep(period, "month") };
+  const sortQuery: Record<string, unknown> = { ...query, ...keep };
   const registerSort = parseColumnSort(sortQuery, REGISTER_SORTS);
   const latest = periodRows.slice(0, 100);
   const registerRows = registerSort.sortBy
@@ -119,253 +143,265 @@ export async function MeetingHome({
         registerSort.dir,
       )
     : latest;
-  const tiles = [
-    { label: "Upcoming meetings", note: "Scheduled, not yet held", value: upcoming.total, href: "/users/meetings", icon: CalendarClock, tone: "bg-primary-50 text-primary-700", alert: false, danger: false },
-    { label: "To approve", note: "Points and MOM sent to you", value: toApprove.total, href: "/users/meetings?tab=approve", icon: ClipboardCheck, tone: "bg-warning-50 text-warning-600", alert: toApprove.total > 0, danger: false },
-    { label: "MOM to write", note: "Meetings you coordinate", value: momToWrite.length, href: "/users/meetings?tab=mine", icon: FilePenLine, tone: "bg-[color:var(--violet-bg)] text-[color:var(--violet-fg)]", alert: momToWrite.length > 0, danger: false },
+  // D-406: the four cards (My open actions is the My action items widget now).
+  const cards: SummaryCard[] = [
+    { key: "upcoming", label: "Upcoming", note: "Scheduled, not yet held", value: upcoming.total, href: "/users/meetings", icon: CalendarClock, tone: "bg-primary-50 text-primary-700" },
+    { key: "approve", label: "To approve", note: "Points and MOM sent to you", value: toApprove.total, href: "/users/meetings?tab=approve", icon: ClipboardCheck, tone: "bg-warning-50 text-warning-600", alert: toApprove.total > 0 },
+    { key: "mom", label: "MOM to write", note: "Meetings you coordinate", value: momToWrite.length, href: "/users/meetings?tab=mine", icon: FilePenLine, tone: "bg-[color:var(--violet-bg)] text-[color:var(--violet-fg)]", alert: momToWrite.length > 0 },
     {
-      label: "My open actions",
-      note: myOverdue.length ? `${myOverdue.length} overdue` : "From approved MOMs",
-      value: myActions.length,
-      href: "/users/meetings/follow-ups?view=mine",
-      icon: myOverdue.length ? AlertTriangle : ListChecks,
-      tone: myOverdue.length ? "bg-danger-50 text-danger-600" : "bg-success-50 text-success-600",
-      alert: myOverdue.length > 0,
-      danger: myOverdue.length > 0,
+      key: "held",
+      label: "Held",
+      note: `${period.label}: you ran or attended`,
+      value: held?.held ?? 0,
+      href: "/users/meetings?tab=mine",
+      icon: CalendarCheck2,
+      tone: "bg-success-50 text-success-600",
+      change: { value: held ? changePercent(held.held, held.heldBefore) : null, label: PREVIOUS_LABEL[period.key] },
     },
   ];
 
+  const attentionNode = <AttentionWidget id="mh-attention" items={attention} empty="Nothing late or due soon. Well done." testId="meeting-attention" />;
+  const upcomingNode = (
+    <section className="card min-w-0 px-4 py-4 sm:px-5" aria-labelledby="mh-upcoming">
+      <SectionHead id="mh-upcoming" title="Coming up" href="/users/meetings" count={upcoming.total} />
+      {upcoming.rows.length === 0 ? (
+        <p className="py-6 text-center text-label text-ink-muted">No meetings scheduled.</p>
+      ) : (
+        <ul className="divide-y divide-line">
+          {upcoming.rows.map((row) => (
+            <li key={row.id}>
+              <Link href={`/users/meetings/${row.id}`} className="flex flex-wrap items-start justify-between gap-2 py-2.5 hover:text-primary-700">
+                <span className="min-w-0">
+                  <span className="block font-medium">{row.title}</span>
+                  <span className="block text-caption text-ink-muted">
+                    {whenText(row.scheduledStart, row.scheduledEnd)} · {MODE_LABEL[row.mode]} · {row.typeName}
+                  </span>
+                </span>
+                <span className="flex shrink-0 gap-1.5">
+                  <MeetingStatusBadge status={row.status} />
+                  {row.status === "SCHEDULED" && <PointsBadge status={row.pointsStatus} />}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+  const actionsNode = (
+    <section className="card min-w-0 px-4 py-4 sm:px-5" aria-labelledby="mh-actions" data-testid="meeting-actions">
+      <SectionHead id="mh-actions" title="My action items" href="/users/meetings/follow-ups?view=mine" count={myActions.length} />
+      {myOverdue.length > 0 && <p className="-mt-2 mb-2 text-caption font-semibold text-danger-600">{myOverdue.length} overdue</p>}
+      {myActions.length === 0 ? (
+        <p className="py-6 text-center text-label text-ink-muted">No open action items for you.</p>
+      ) : (
+        <ul className="divide-y divide-line">
+          {myActions.slice(0, 6).map(({ row, state }) => (
+            <li key={row.id} className="flex flex-wrap items-start justify-between gap-2 py-2.5">
+              <span className="min-w-0">
+                {row.taskId ? (
+                  <Link href={`/users/tasks/${row.taskId}`} className="font-medium hover:text-primary-700">
+                    {row.title}
+                  </Link>
+                ) : (
+                  <span className="font-medium">{row.title}</span>
+                )}
+                <span className="block text-caption text-ink-muted">
+                  {row.meetingNo} · {row.taskDueAt ? `due ${indiaDateTimeText(row.taskDueAt)}` : "no due date"}
+                </span>
+              </span>
+              <FollowUpBadge state={state} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+  const approveNode = (
+    <section className="card min-w-0 px-4 py-4 sm:px-5" aria-labelledby="mh-approve">
+      <SectionHead id="mh-approve" title="Waiting for my approval" href="/users/meetings?tab=approve" count={toApprove.total} />
+      {toApprove.rows.length === 0 ? (
+        <p className="py-4 text-label text-ink-muted">Nothing to approve.</p>
+      ) : (
+        <ul className="space-y-2">
+          {toApprove.rows.map((row) => (
+            <li key={row.id}>
+              <Link href={`/users/meetings/${row.id}`} className="block rounded-md border border-line px-3 py-2 hover:border-primary-600">
+                <span className="block text-label font-medium">{row.title}</span>
+                <span className="block text-caption text-ink-muted">
+                  {row.status === "MOM_SUBMITTED" ? "MOM" : "Meeting points"} from {row.coordinatorName}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+  const confirmNode = (
+    <section className="card min-w-0 px-4 py-4 sm:px-5" aria-labelledby="mh-confirm">
+      <SectionHead id="mh-confirm" title="Done, to confirm" href="/users/meetings/follow-ups?view=confirm" count={toConfirm.length} />
+      {toConfirm.length === 0 ? (
+        <p className="py-4 text-label text-ink-muted">No completed actions waiting for you to confirm.</p>
+      ) : (
+        <ul className="space-y-2">
+          {toConfirm.slice(0, 5).map(({ row }) => (
+            <li key={row.id}>
+              <Link href={`/users/meetings/${row.meetingId}`} className="block rounded-md border border-line px-3 py-2 hover:border-primary-600">
+                <span className="block text-label font-medium">{row.title}</span>
+                <span className="block text-caption text-ink-muted">
+                  {row.ownerName} · {row.meetingNo}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+  const insightsNode = figures ? (
+    <section className="card min-w-0 px-4 py-4 sm:px-5" aria-labelledby="mh-insights" data-testid="meeting-insights">
+      <h2 id="mh-insights" className="mb-3 flex items-center gap-2 text-[calc(17px*var(--text-scale,1))] font-semibold">
+        <Lightbulb aria-hidden="true" className="h-4 w-4 text-warning-600" /> Quick insights · {period.label}
+      </h2>
+      {insights.length === 0 ? (
+        <p className="text-label text-ink-muted">No meetings in this period yet.</p>
+      ) : (
+        <ul className="list-disc space-y-1.5 pl-5 text-label">
+          {insights.map((text) => (
+            <li key={text}>{text}</li>
+          ))}
+        </ul>
+      )}
+    </section>
+  ) : null;
+  const figuresNode = figures ? (
+    <section className="card min-w-0 space-y-6 px-4 py-4 sm:px-5" aria-labelledby="mh-figures" data-testid="meeting-figures">
+      <h2 id="mh-figures" className="text-[calc(17px*var(--text-scale,1))] font-semibold">
+        How meetings are running · {period.label}
+      </h2>
+      <KpiGrid total={total} />
+      {periodRows.length > 0 && (
+        <div className="grid gap-6 2xl:grid-cols-2">
+          <TallyTable caption="By meeting type" rows={byType} sort={{ prefix: "mt", path: "/users", query: sortQuery }} />
+          <TallyTable caption="By department" rows={byDepartment} sort={{ prefix: "md", path: "/users", query: sortQuery }} />
+        </div>
+      )}
+    </section>
+  ) : null;
+  const registerNode = !figures ? null : periodRows.length === 0 ? (
+    <section className="card min-w-0 px-4 py-4 sm:px-5" aria-labelledby="mh-register" data-testid="meeting-register-widget">
+      <SectionHead id="mh-register" title="Register" />
+      <p className="text-label text-ink-muted">No meetings in this period.</p>
+    </section>
+  ) : (
+    <section className="card min-w-0 overflow-x-auto" aria-label="Register" data-testid="meeting-register-widget">
+      {(
+        <>
+          <table className="data-table" data-testid="meeting-register">
+            <caption className="px-4 py-2 text-left font-semibold">Register</caption>
+            <thead>
+              <tr>
+                {REGISTER_SORTS.map((column) => (
+                  <SortTh key={column} label={REGISTER_LABEL[column]} column={column} sortBy={registerSort.sortBy} dir={registerSort.dir} href={sortHref("/users", sortQuery, column, nextDir(registerSort, column))} />
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {registerRows.map((row) => {
+                const minutes = minutesBetween(row.actualStart, row.actualEnd);
+                return (
+                  <tr key={row.id}>
+                    <td>
+                      <Link href={`/users/meetings/${row.id}`} className="text-primary-700 underline">
+                        {row.meetingNo}
+                      </Link>
+                      <p className="text-caption text-ink-muted">{row.title}</p>
+                    </td>
+                    <td className="text-label">{row.typeName}</td>
+                    <td className="text-label">{row.departmentName ?? "—"}</td>
+                    <td className="text-label">{minutes === null ? "—" : `${minutes} min (${durationBand(minutes)})`}</td>
+                    <td className="text-label">
+                      {row.present} of {row.participants}
+                    </td>
+                    <td className="text-label">
+                      {row.actionsDone} of {row.actions}
+                      {row.actionsOverdue ? `, ${row.actionsOverdue} overdue` : ""}
+                    </td>
+                    <td>
+                      <MeetingStatusBadge status={row.status} />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {periodRows.length > 100 && <p className="px-4 py-2 text-caption text-ink-muted">The latest 100 of {periodRows.length}. Choose a shorter period to see the rest.</p>}
+        </>
+      )}
+    </section>
+  );
+  const chartNode = (
+    <section className="card min-w-0 px-4 py-4 sm:px-5" aria-labelledby="mh-chart" data-testid="meeting-chart">
+      <h2 id="mh-chart" className="mb-1 text-[calc(17px*var(--text-scale,1))] font-semibold">
+        My meeting activity
+      </h2>
+      <p className="mb-2 text-caption text-ink-muted">{period.key === "week" ? "This week, day by day" : `${period.label}, by day of the week`}: meetings you ran or attended, and your meeting actions completed.</p>
+      {daily ? (
+        <WorkloadChart assigned={daily.held} completed={daily.done} labels={["Meetings", "Actions done"]} empty="No meetings or completed actions in this period." caption={`Meetings held or attended and actions completed by day, ${period.label.toLowerCase()}`} />
+      ) : (
+        <ErrorState variant="inline" body="The chart couldn't be worked out just now. Reload the page to try again." />
+      )}
+    </section>
+  );
+  const nodeFor = (kind: WidgetKind): React.ReactNode => {
+    switch (kind) {
+      case "mt_attention":
+        return attentionNode;
+      case "mt_upcoming":
+        return upcomingNode;
+      case "mt_actions":
+        return actionsNode;
+      case "mt_approve":
+        return approveNode;
+      case "mt_confirm":
+        return confirmNode;
+      case "mt_insights":
+        return insightsNode;
+      case "mt_figures":
+        return figuresNode;
+      case "mt_register":
+        return registerNode;
+      case "mt_chart":
+        return chartNode;
+      case "notepad":
+        return <HomeNotepad initialText={widgets.note.body} version={widgets.note.version} />;
+      default:
+        return null;
+    }
+  };
+  // Without the dashboard access the figure widgets are never on the layout (readLayout); this keeps them out regardless.
+  const layout = widgets.layout.filter((item) => figures || !["mt_insights", "mt_figures", "mt_register"].includes(item.kind));
+
   return (
     <div data-testid="meeting-overview">
-      <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex min-w-0 items-center gap-3">
-          <span className="page-icon grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary-50 text-primary-700" aria-hidden="true">
-            <CalendarClock className="h-6 w-6" />
-          </span>
-          <div className="min-w-0">
-            <h1 className="text-title font-semibold tracking-tight">Meeting Overview</h1>
-            <p className="text-label text-ink-muted">Welcome back, {greetingName}. What needs you, what&apos;s coming up and how meetings are running.</p>
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          {switcher}
-        </div>
-      </header>
-      {/* v1.77.1 (owner): quick actions row (Schedule meeting first), as on the Task Management overview. */}
-      {quick}
-
-      <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 xl:grid-cols-4" data-testid="meeting-tiles">
-        {tiles.map((tile) => (
-          <Link key={tile.label} href={tile.href} className="card-link status-card flex items-center gap-3 px-4 py-3">
-            <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${tile.tone}`} aria-hidden="true">
-              <tile.icon className="h-5 w-5" />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-label font-semibold">{tile.label}</span>
-              <span className="block text-caption leading-snug text-ink-muted">{tile.note}</span>
-            </span>
-            <span className={`text-card-title font-bold tabular-nums ${tile.alert ? (tile.danger ? "text-danger-600" : "text-primary-700") : "text-ink"}`}>{tile.value}</span>
-          </Link>
-        ))}
+      <QuietRefresh />
+      <OverviewHeader
+        icon={CalendarClock}
+        title="Meetings – Overview"
+        role={role}
+        description="What needs you, what's coming up and how meetings are running."
+        greeting={greeting}
+        switcher={switcher}
+        period={period}
+        periodBase={base}
+      />
+      {/* v1.77.1 (owner): quick actions row (Schedule meeting first); v1.79.0: + Add widgets / Customise at its right end. */}
+      <QuickActions items={quick} testId="meeting-quick-actions" widgets={widgets.editable} />
+      <SummaryCards cards={cards} testId="meeting-tiles" cardTestId="meeting-card" />
+      <div className="mt-6">
+        <HomeWidgets scope="meetings" fixed={!widgets.editable} version={widgets.version} addable={widgets.addable} widgets={layout.map((item) => ({ kind: item.kind, size: item.size, node: nodeFor(item.kind) }))} />
       </div>
-
-      <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-        <div className="min-w-0 space-y-6">
-          <section className="card min-w-0 px-4 py-4 sm:px-5" aria-labelledby="mh-attention" data-testid="meeting-attention">
-            <SectionHead id="mh-attention" title="Needs attention" />
-            {attention.length === 0 ? (
-              <p className="py-6 text-center text-label text-ink-muted">Nothing late or due soon. Well done.</p>
-            ) : (
-              <ul className="divide-y divide-line">
-                {attention.slice(0, 10).map((item) => (
-                  <li key={item.key}>
-                    <Link href={item.href} className="flex items-start gap-3 py-2.5 hover:text-primary-700">
-                      <AlertTriangle aria-hidden="true" className={`mt-0.5 h-4 w-4 shrink-0 ${item.danger ? "text-danger-600" : "text-warning-600"}`} />
-                      <span className="min-w-0">
-                        <span className="block text-label font-semibold">{item.text}</span>
-                        <span className="block truncate text-caption text-ink-muted">{item.detail}</span>
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          <section className="card min-w-0 px-4 py-4 sm:px-5" aria-labelledby="mh-upcoming">
-            <SectionHead id="mh-upcoming" title="Coming up" href="/users/meetings" count={upcoming.total} />
-            {upcoming.rows.length === 0 ? (
-              <p className="py-6 text-center text-label text-ink-muted">No meetings scheduled.</p>
-            ) : (
-              <ul className="divide-y divide-line">
-                {upcoming.rows.map((row) => (
-                  <li key={row.id}>
-                    <Link href={`/users/meetings/${row.id}`} className="flex flex-wrap items-start justify-between gap-2 py-2.5 hover:text-primary-700">
-                      <span className="min-w-0">
-                        <span className="block font-medium">{row.title}</span>
-                        <span className="block text-caption text-ink-muted">
-                          {whenText(row.scheduledStart, row.scheduledEnd)} · {MODE_LABEL[row.mode]} · {row.typeName}
-                        </span>
-                      </span>
-                      <span className="flex shrink-0 gap-1.5">
-                        <MeetingStatusBadge status={row.status} />
-                        {row.status === "SCHEDULED" && <PointsBadge status={row.pointsStatus} />}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          <section className="card min-w-0 px-4 py-4 sm:px-5" aria-labelledby="mh-actions">
-            <SectionHead id="mh-actions" title="My action items" href="/users/meetings/follow-ups?view=mine" count={myActions.length} />
-            {myActions.length === 0 ? (
-              <p className="py-6 text-center text-label text-ink-muted">No open action items for you.</p>
-            ) : (
-              <ul className="divide-y divide-line">
-                {myActions.slice(0, 6).map(({ row, state }) => (
-                  <li key={row.id} className="flex flex-wrap items-start justify-between gap-2 py-2.5">
-                    <span className="min-w-0">
-                      {row.taskId ? (
-                        <Link href={`/users/tasks/${row.taskId}`} className="font-medium hover:text-primary-700">
-                          {row.title}
-                        </Link>
-                      ) : (
-                        <span className="font-medium">{row.title}</span>
-                      )}
-                      <span className="block text-caption text-ink-muted">
-                        {row.meetingNo} · {row.taskDueAt ? `due ${indiaDateTimeText(row.taskDueAt)}` : "no due date"}
-                      </span>
-                    </span>
-                    <FollowUpBadge state={state} />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        </div>
-
-        <div className="min-w-0 space-y-6">
-          <section className="card min-w-0 px-4 py-4 sm:px-5" aria-labelledby="mh-approve">
-            <SectionHead id="mh-approve" title="Waiting for my approval" href="/users/meetings?tab=approve" count={toApprove.total} />
-            {toApprove.rows.length === 0 ? (
-              <p className="py-4 text-label text-ink-muted">Nothing to approve.</p>
-            ) : (
-              <ul className="space-y-2">
-                {toApprove.rows.map((row) => (
-                  <li key={row.id}>
-                    <Link href={`/users/meetings/${row.id}`} className="block rounded-md border border-line px-3 py-2 hover:border-primary-600">
-                      <span className="block text-label font-medium">{row.title}</span>
-                      <span className="block text-caption text-ink-muted">
-                        {row.status === "MOM_SUBMITTED" ? "MOM" : "Meeting points"} from {row.coordinatorName}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          <section className="card min-w-0 px-4 py-4 sm:px-5" aria-labelledby="mh-confirm">
-            <SectionHead id="mh-confirm" title="Done, to confirm" href="/users/meetings/follow-ups?view=confirm" count={toConfirm.length} />
-            {toConfirm.length === 0 ? (
-              <p className="py-4 text-label text-ink-muted">No completed actions waiting for you to confirm.</p>
-            ) : (
-              <ul className="space-y-2">
-                {toConfirm.slice(0, 5).map(({ row }) => (
-                  <li key={row.id}>
-                    <Link href={`/users/meetings/${row.meetingId}`} className="block rounded-md border border-line px-3 py-2 hover:border-primary-600">
-                      <span className="block text-label font-medium">{row.title}</span>
-                      <span className="block text-caption text-ink-muted">
-                        {row.ownerName} · {row.meetingNo}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-
-          {figures && (
-            <section className="card min-w-0 px-4 py-4 sm:px-5" aria-labelledby="mh-insights" data-testid="meeting-insights">
-              <h2 id="mh-insights" className="mb-3 flex items-center gap-2 text-[calc(17px*var(--text-scale,1))] font-semibold">
-                <Lightbulb aria-hidden="true" className="h-4 w-4 text-warning-600" /> Insights · {period.label}
-              </h2>
-              {insights.length === 0 ? (
-                <p className="text-label text-ink-muted">No meetings in this period yet.</p>
-              ) : (
-                <ul className="list-disc space-y-1.5 pl-5 text-label">
-                  {insights.map((text) => (
-                    <li key={text}>{text}</li>
-                  ))}
-                </ul>
-              )}
-            </section>
-          )}
-        </div>
-      </div>
-
-      {figures && (
-        <section className="mt-6 space-y-6" aria-labelledby="mh-figures" data-testid="meeting-figures">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 id="mh-figures" className="text-[calc(17px*var(--text-scale,1))] font-semibold">
-              How meetings are running
-            </h2>
-            <PeriodPicker value={period.key} from={period.fromDay} to={period.toDay} base={base} />
-          </div>
-          <KpiGrid total={total} />
-          {periodRows.length > 0 && (
-            <>
-              <div className="grid gap-6 2xl:grid-cols-2">
-                <TallyTable caption="By meeting type" rows={byType} sort={{ prefix: "mt", path: "/users", query: sortQuery }} />
-                <TallyTable caption="By department" rows={byDepartment} sort={{ prefix: "md", path: "/users", query: sortQuery }} />
-              </div>
-              <div className="card overflow-x-auto">
-                <table className="data-table" data-testid="meeting-register">
-                  <caption className="px-4 py-2 text-left font-semibold">Register</caption>
-                  <thead>
-                    <tr>
-                      {REGISTER_SORTS.map((column) => (
-                        <SortTh key={column} label={REGISTER_LABEL[column]} column={column} sortBy={registerSort.sortBy} dir={registerSort.dir} href={sortHref("/users", sortQuery, column, nextDir(registerSort, column))} />
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {registerRows.map((row) => {
-                      const minutes = minutesBetween(row.actualStart, row.actualEnd);
-                      return (
-                        <tr key={row.id}>
-                          <td>
-                            <Link href={`/users/meetings/${row.id}`} className="text-primary-700 underline">
-                              {row.meetingNo}
-                            </Link>
-                            <p className="text-caption text-ink-muted">{row.title}</p>
-                          </td>
-                          <td className="text-label">{row.typeName}</td>
-                          <td className="text-label">{row.departmentName ?? "—"}</td>
-                          <td className="text-label">{minutes === null ? "—" : `${minutes} min (${durationBand(minutes)})`}</td>
-                          <td className="text-label">
-                            {row.present} of {row.participants}
-                          </td>
-                          <td className="text-label">
-                            {row.actionsDone} of {row.actions}
-                            {row.actionsOverdue ? `, ${row.actionsOverdue} overdue` : ""}
-                          </td>
-                          <td>
-                            <MeetingStatusBadge status={row.status} />
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-                {periodRows.length > 100 && <p className="px-4 py-2 text-caption text-ink-muted">The latest 100 of {periodRows.length}. Choose a shorter period to see the rest.</p>}
-              </div>
-            </>
-          )}
-        </section>
-      )}
     </div>
   );
 }
@@ -385,19 +421,4 @@ function insightsOf(rows: Awaited<ReturnType<typeof dashboardMeetings>>, total: 
   if (worst) out.push(`Most overdue actions: ${worst.name} (${worst.overdue}).`);
   if (total.cancelled) out.push(`${total.cancelled} meeting${total.cancelled === 1 ? " was" : "s were"} cancelled.`);
   return out.slice(0, 6);
-}
-
-function SectionHead({ id, title, href, count = 0 }: { id: string; title: string; href?: string; count?: number }) {
-  return (
-    <div className="mb-3 flex items-baseline justify-between gap-2">
-      <h2 id={id} className="text-[calc(17px*var(--text-scale,1))] font-semibold">
-        {title}
-      </h2>
-      {href && count > 0 && (
-        <Link href={href} className="link inline-flex items-center gap-1 text-label">
-          View all <ArrowRight aria-hidden="true" className="h-4 w-4" />
-        </Link>
-      )}
-    </div>
-  );
 }

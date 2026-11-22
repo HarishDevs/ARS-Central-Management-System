@@ -23,7 +23,8 @@ export async function homeLayoutAction(input: unknown): Promise<Result> {
   if (!user) return { ok: false, message: "Not found." };
   const value = input && typeof input === "object" ? (input as Record<string, unknown>) : {};
   try {
-    const result = await saveLayout(user, value.reset === true ? { reset: true } : { widgets: value.widgets, version: value.version });
+    // v1.79.0 (D-406): the overview the layout belongs to (checked on the server; Tasks when not given).
+    const result = await saveLayout(user, value.reset === true ? { reset: true, scope: value.scope } : { widgets: value.widgets, version: value.version, scope: value.scope });
     if (result.ok || result.conflict) revalidatePath("/users");
     return result.ok ? { ok: true, message: result.message, version: result.value.version } : { ok: false, message: result.message, conflict: result.conflict };
   } catch (error) {

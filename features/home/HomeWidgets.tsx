@@ -7,7 +7,7 @@ import { createPortal } from "react-dom";
 import { homeLayoutAction } from "@/app/users/home-actions";
 import { Menu, type MenuItem } from "@/features/ui/Menu";
 import { useToast } from "@/features/ui/Toast";
-import { addWidget, moveWidget, placeWidget, removeWidget, resizeWidget, widgetEntry, type WidgetItem, type WidgetKind, type WidgetSize } from "@/server/home/widgets";
+import { addWidget, moveWidget, placeWidget, removeWidget, resizeWidget, widgetEntry, type OverviewScope, type WidgetItem, type WidgetKind, type WidgetSize } from "@/server/home/widgets";
 
 // v1.63.0 (D-369, PM-A12, spec HOME_MODULE §3.15, §5.2): the person's Home
 // widgets. "Customise" shows each widget's controls: a handle to drag it, or
@@ -21,7 +21,24 @@ export interface BoardWidget {
   node: React.ReactNode; // drawn on the server
 }
 
-export function HomeWidgets({ widgets, version, addable, extra }: { widgets: BoardWidget[]; version: number; addable: { kind: WidgetKind; title: string; description: string }[]; extra?: React.ReactNode }) {
+// v1.79.0 (D-406): the same board on all three Home overviews; `scope` names
+// the overview whose layout is saved; `fixed` (the "pm_foundations" switch
+// off) draws the default layout with no controls.
+export function HomeWidgets({
+  widgets,
+  version,
+  addable,
+  extra,
+  scope = "tasks",
+  fixed = false,
+}: {
+  widgets: BoardWidget[];
+  version: number;
+  addable: { kind: WidgetKind; title: string; description: string }[];
+  extra?: React.ReactNode;
+  scope?: OverviewScope;
+  fixed?: boolean;
+}) {
   const router = useRouter();
   const toast = useToast();
   const [pending, start] = useTransition();
@@ -49,7 +66,7 @@ export function HomeWidgets({ widgets, version, addable, extra }: { widgets: Boa
     setLayout(next);
     setLive(message);
     start(async () => {
-      const result = await homeLayoutAction({ widgets: next, version: at });
+      const result = await homeLayoutAction({ widgets: next, version: at, scope });
       if (result.ok && result.version !== undefined) {
         setAt(result.version);
         if (options.refresh) router.refresh();
@@ -103,9 +120,9 @@ export function HomeWidgets({ widgets, version, addable, extra }: { widgets: Boa
   };
 
   return (
-    <div data-testid="home-widgets" data-editing={editing ? "on" : undefined}>
+    <div data-testid="home-widgets" data-scope={scope} data-editing={editing ? "on" : undefined}>
       {/* v1.73.0 (D-396, spec HOME §3.1.1, §3.15): "+ Add widgets" is always in the header (a dropdown of the widgets not on Home); Customise shows the move handles and Reset. */}
-      {(() => {
+      {!fixed && (() => {
         const toolbar = (
       <div className={slot ? "flex flex-wrap items-center gap-2" : "mb-3 flex flex-wrap items-center justify-end gap-2"} role="toolbar" aria-label="Home widgets">
         {addable.length > 0 && (
@@ -134,7 +151,7 @@ export function HomeWidgets({ widgets, version, addable, extra }: { widgets: Boa
               onClick={() => {
                 if (!window.confirm("Go back to the default widgets? Your note is kept.")) return;
                 start(async () => {
-                  const result = await homeLayoutAction({ reset: true });
+                  const result = await homeLayoutAction({ reset: true, scope });
                   toast(result.ok ? { tone: "success", title: result.message } : { tone: "error", title: result.message });
                   router.refresh();
                 });
@@ -255,12 +272,13 @@ export function HomeWidgets({ widgets, version, addable, extra }: { widgets: Boa
                 </div>
               )}
               {/* v1.73.0 (D-396, spec HOME §3.1.2): each widget's "Actions" (⋯) at the top right: move, width, remove. */}
-              <div className="relative [&>section>:first-child]:pr-9">
+              <div className={fixed ? "relative" : "relative [&>section>:first-child]:pr-9"}>
                 {node ?? (
                   <section className="card px-5 py-6 text-center text-label text-ink-muted" aria-label={entry.title}>
                     Loading {entry.title}…
                   </section>
                 )}
+                {!fixed && (
                 <div className="absolute right-2 top-2.5">
                   <Menu
                     label={`Actions for ${entry.title}`}
@@ -292,6 +310,7 @@ export function HomeWidgets({ widgets, version, addable, extra }: { widgets: Boa
                     ]}
                   />
                 </div>
+                )}
               </div>
             </li>
           );
