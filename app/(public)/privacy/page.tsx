@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 // request's background work step may read that request.
 // v1.46.0 (D-277, D-278): the encrypted backup copy may go to an ARS Google
 // Drive folder; security records are deleted after 90 days.
-const PRIVACY_EFFECTIVE = "24 November 2026";
+const PRIVACY_EFFECTIVE = "22 November 2026";
 
 export default function PrivacyPage() {
   return (

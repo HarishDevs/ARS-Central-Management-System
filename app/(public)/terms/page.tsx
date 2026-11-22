@@ -19,7 +19,7 @@ export default function TermsPage() {
     <PublicPage>
       <Prose>
         <h1>Terms of use</h1>
-        <p className="text-label text-ink-muted">Effective 24 November 2026 · approved by the head of IT, 2 November 2026</p>
+        <p className="text-label text-ink-muted">Effective 22 November 2026 · approved by the head of IT, 2 November 2026</p>
         <p>
           ARS CMS (approval.arssteels.net) is provided by {COMPANY} (&ldquo;ARS&rdquo;) for its employees to carry out company work. By signing in you agree to these terms and to ARS&apos;s
           policies that apply to company systems.
