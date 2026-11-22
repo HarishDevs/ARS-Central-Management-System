@@ -17,6 +17,7 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 **Multi-level approvals in any custom manner.** The engine must support any number of levels in any combination: sequential, parallel, any-one, any-N-of-M, conditional and hybrid. Approvers can come from any source, and levels can be added or skipped by rules. Build the engine for this from the first engine phase (P2). The drag-and-drop designer (P3) is only the screen for building it. Check every task against this.
 
 ## Now / Next
+- **Now (22 Nov 2026):** **v1.68.0** PM phase D part 2: project automations (rules with a trigger, steps and Paths; draft/publish; run log; loop protection; webhook) (D-380). **Owner:** back up, publish (migration 202611221700_pm_d_automations.sql runs on start), switch "Projects D, automations" on for IT only, try a rule in a test project, then On (DEPLOYMENT G0n). **Next:** PM-D9 portfolios (phase D part 3).
 - **Now (22 Nov 2026):** **v1.67.1** the 30-day clean-up covers forms and dashboards (D-379). **Owner:** publish (no migration).
 - [x] OPS-32 (22 Nov 2026) Purge: intake forms, submissions, dashboard widgets, capacity; guard test for future tables
 - **Now (22 Nov 2026):** **v1.67.0** PM phase D part 1: project Dashboard tab (8 default widgets, chart builder with 9 styles, tasks or time entries, metrics on one axis, filters, data labels, benchmark, View as table, keyboard reorder) and Workload tab (person × day/week, task count or an effort field, capacity, over-capacity, reassign) (D-375). **Owner:** back up, publish (migration 202611221600_pm_d_dashboards.sql runs on start), switch "Projects D, dashboards and workload" on for IT only, try, then On (DEPLOYMENT G0m).
@@ -88,7 +89,7 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
   - [x] PM-D5 (22 Nov 2026) Our own SVG charts with validated --color-chart-1..8 (light and dark), tooltips on hover and arrow keys, View as table, View full size
   - [x] PM-D6 (22 Nov 2026) Widget edit, resize, remove, reorder by drag and by keyboard (pick up / move / drop / cancel, announced)
   - [x] PM-D7 (22 Nov 2026) Workload tab: days/weeks, task count or a number/timer effort field, capacity (project and person), weekly offs and holidays, Over with icon and text, cell → tasks → Reassign
-  - [ ] PM-D8 Automations (rules, triggers, steps, run log, loop protection) — phase D part 2
+  - [x] PM-D8 (22 Nov 2026) Automations: feature switch pm_automations ("Projects D, automations"); builder (vertical flow, keyboard, inline problems, draft/publish, on/off, duplicate, delete, owner + Become owner); 14 triggers incl. due/overdue, scheduled, manual, webhook; 12 steps; Paths; engine (outbox, after the response + job runner, owner's rights as the system user, loop/depth/rate caps, idempotent run keys, pause on lost access); run log; webhook (HMAC/bearer, 60/min, log, 30-day purge); Admin limits (D-380, v1.68.0)
   - [ ] PM-D9 Portfolios (wizard, grid, roll-ups, dashboard roll-ups) — phase D part 2
 - [ ] PM-E Phase E backlog
 - **Now (21 Nov 2026):** **v1.60.0** edit and delete every comment, versions kept (D-365). **Owner:** back up, run migration 202611211000_comment_edits.sql (and 202611201000 first if v1.59.3 isn't live), publish.

@@ -394,3 +394,24 @@ These are called by machines. The middleware's cross-site check doesn't apply to
 - Exact query fields for report, dashboard and records filters live in `server/reports/run.ts` (`cleanQuery`), `server/dashboards/filters.ts` and `server/records/filters.ts`; only the route-level fields are listed here.
 - The full `jobs/run` report shape and the CEOITBox receipt body format were not traced.
 - Which modules the page rules need (for example for Pic bot) is decided in `server/authorization/page-access.ts` and the page catalogue, not in the routes.
+
+## POST /api/webhooks/automations/{token} (v1.68.0, D-380)
+
+The incoming webhook of one project automation whose trigger is **Web request received**. Public (no session); the `{token}` (22 characters, 128 random bits) is shown on the rule's page after publishing. "Not found" (404) for an unknown token, a rule that isn't a published webhook rule, or while the **Projects D, automations** switch is Off.
+
+**Authentication** (either; both compared in constant time):
+- `X-ARS-Signature: sha256=<hex HMAC-SHA256 of the raw request body, keyed with the rule's secret>`
+- `Authorization: Bearer <the rule's secret>`
+
+The secret (`whsec_…`) is shown once when the rule is first published or when **Make a new secret** is used; it is stored encrypted.
+
+**Body** (JSON object, at most 16,000 bytes):
+- Create mode: `title` (or `name`, required, ≤ 200), `description` (≤ 4000), `dueDate` (`YYYY-MM-DD`; default 3 working days from today), `priority` (`NORMAL`, `ELEVATED`, `IMPORTANT`, `HIGH`, `URGENT`). The task goes to the rule's section (or the first), assigned to the rule's chosen person (or its owner).
+- Update mode: `task` (the task number `TSK-…`, or the value of the project's ID field such as `PO-12`; required), and optionally `title`, `dueDate`, `priority`.
+- Optional header `Idempotency-Key` (8–100 of `A-Z a-z 0-9 _ . : -`): the same key again returns the first answer and does nothing twice.
+
+Then the rule's steps run on that task, with the rule owner's rights.
+
+**Answers:** `201` created / `200` updated: `{"success": true, "data": {"taskId", "taskNo", "created", "run": "SUCCEEDED" | "FAILED" | "SKIPPED" | "ALREADY_RECEIVED", "error"}}`; `400` not a JSON object or a bad field; `401` signature or token missing or wrong; `404` not found (or no task with that number / ID); `409` rule switched off or paused; `413` body too large; `422` the task couldn't be created or changed (the reason); `429` more than 60 calls a minute for the rule (or the app-wide webhook limit). Every call is logged on the rule (accepted bodies kept 30 days).
+
+Example: `curl -X POST "$URL" -H "content-type: application/json" -H "authorization: Bearer $SECRET" -d '{"title":"New order 4411","dueDate":"2026-12-01"}'`

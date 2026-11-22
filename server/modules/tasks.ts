@@ -9,6 +9,8 @@ import { loadFieldLookups } from "@/lib/db/repositories/lookups.repository";
 import { listActiveUserOptions } from "@/lib/db/repositories/admin-users.repository";
 import { findLiveType, versionWithType } from "@/lib/db/repositories/module-types.repository";
 import { appendTaskEvent, findTask, findTaskBySubmissionKey, insertTask, personFacts, updateTask } from "@/lib/db/repositories/tasks.repository";
+import { emitAutomationEvent } from "@/lib/db/repositories/automations.repository";
+import { kickAutomations } from "@/lib/automation/kick";
 import { countEvidence, discardStaged, insertRecordFiles, RecordFileError, type StagedFile } from "@/server/modules/files";
 import { taskMessages } from "@/server/modules/messages";
 import { indiaLocalToUtc, mayCreate, parseTaskSettings, TASK_PRIORITIES, type TaskPriority, type TaskSettings } from "@/server/modules/settings";
@@ -370,6 +372,8 @@ export async function actOnTask(input: TaskActionInput, actor: TaskActor): Promi
       if (Object.keys(changes).length && !(await updateTask(task.id, task.rowVersion, changes, connection))) return { error: "Someone changed this task while you were looking. Reload and try again." } as const;
       await appendTaskEvent(task.id, { actorId: actor.id, type: input.action, from: task.status, to: (changes.status as string | undefined) ?? task.status, body: reason || null, payload }, connection);
       await insertRecordFiles("TASK", task.id, input.files, actor.id, input.action === "COMPLETE" ? "EVIDENCE" : "GENERAL", connection);
+      // v1.68.0 (D-380): files added: the automations' "attachment is added" trigger.
+      if (input.files.length && (await emitAutomationEvent(task.id, { type: "ATTACHMENT_ADDED", payload: { files: input.files.length }, actorId: actor.id }, connection))) kickAutomations();
       await recordAudit(
         { actorUserId: actor.id, action: `TASK_${input.action}`, entityType: "TASK", entityId: task.id, sessionId: actor.sessionId, ipAddress: actor.ipAddress ?? null, metadata: { taskNo: task.taskNo, from: task.status, to: changes.status ?? task.status, files: input.files.length, ...(payload ?? {}) } },
         connection,

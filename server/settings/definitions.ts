@@ -68,6 +68,8 @@ export const SETTING_DEFINITIONS: readonly SettingDefinition[] = [
   { key: "features.pm_planning", group: "FEATURES", label: "Projects B, fields and planning: custom fields, field library, dependency types and auto-shift, editable Timeline, Gantt, week calendar, fuller status updates (phase B)", valueType: "STRING", encrypted: false, schema: z.enum(["ON", "OFF", "IT_ONLY"]), defaultValue: "OFF" },
   { key: "features.pm_forms", group: "FEATURES", label: "Projects C, intake forms: forms that turn submissions into tasks, for signed-in people (phase C)", valueType: "STRING", encrypted: false, schema: z.enum(["ON", "OFF", "IT_ONLY"]), defaultValue: "OFF" },
   { key: "features.pm_reporting", group: "FEATURES", label: "Projects D, dashboards and workload: project dashboards with charts, and Workload against capacity (phase D)", valueType: "STRING", encrypted: false, schema: z.enum(["ON", "OFF", "IT_ONLY"]), defaultValue: "OFF" },
+  // v1.68.0 (D-380): project automations (rules with triggers, steps and paths, run on the job runner).
+  { key: "features.pm_automations", group: "FEATURES", label: "Projects D, automations: rules that act on a project's tasks when something happens, on a schedule or from a webhook (phase D)", valueType: "STRING", encrypted: false, schema: z.enum(["ON", "OFF", "IT_ONLY"]), defaultValue: "OFF" },
   // Retention (FN10, D-126): 0 = not set, keep for ever. Setting a value only
   // changes the dry run; nothing is archived or deleted automatically.
   { key: "retention.requests_years", group: "RETENTION", label: "Keep finished requests for (years; 0 = keep for ever)", valueType: "NUMBER", encrypted: false, schema: z.coerce.number().int().min(0).max(50), defaultValue: "0" },

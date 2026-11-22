@@ -9,6 +9,7 @@ import { inside } from "@/features/ui/inside";
 import { useToast } from "@/features/ui/Toast";
 import { COPY_BLOCKED, copyText } from "@/features/ui/clipboard";
 import { useDeleteWithUndo, useWorkCall } from "@/features/work/client";
+import { RunAutomationButtons } from "@/features/work/automations/RunAutomationButtons";
 import { clampPaneWidth, PANE_DEFAULT, PANE_MAX, PANE_MIN } from "@/server/work/pm-rules";
 
 // v1.62.0 (D-368, spec CMP-27 / PRJ views §13): the parts of the task pane
@@ -107,7 +108,7 @@ export function TaskLikeButton({ taskId, liked, count, names }: { taskId: number
 }
 
 // More actions: copy link, open full page, delete (with Undo).
-export function PaneMoreMenu({ taskId, title, canDelete, closeHref }: { taskId: number; title: string; canDelete: boolean; closeHref: string }) {
+export function PaneMoreMenu({ taskId, title, canDelete, closeHref, automations = [] }: { taskId: number; title: string; canDelete: boolean; closeHref: string; automations?: { id: number; name: string; projectName: string }[] }) {
   const box = useRef<HTMLDetailsElement>(null);
   const toast = useToast();
   const router = useRouter();
@@ -137,6 +138,7 @@ export function PaneMoreMenu({ taskId, title, canDelete, closeHref }: { taskId: 
         <Link href={path} className="flex w-full items-center gap-2 rounded px-2 py-1.5 hover:bg-surface-muted">
           <Maximize2 aria-hidden="true" className="h-4 w-4" /> Open full page
         </Link>
+        <RunAutomationButtons taskId={taskId} rules={automations} compact />
         {canDelete &&
           (confirming ? (
             <div className="space-y-1 rounded bg-danger-50 p-2">

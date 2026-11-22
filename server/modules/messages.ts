@@ -77,6 +77,17 @@ export const formMessages = {
     ),
 };
 
+// v1.68.0 (D-380): project automations. "Notify people" steps, and notices to
+// the people responsible when a rule fails or pauses.
+export const automationMessages = {
+  notify: (task: TaskInfo, to: number, ruleName: string, text: string) =>
+    message("WORK_AUTOMATION", to, `${ruleName}: ${task.taskNo} ${task.title}`, `${text.slice(0, 600)} (from the automation "${ruleName}", task "${task.title}", ${task.taskNo}).`, taskPath(task), { type: "TASK", id: task.id }),
+  failed: (project: ProjectInfo, to: number, ruleName: string, error: string) =>
+    message("WORK_AUTOMATION_NOTICE", to, `Automation failed: ${ruleName}`, `The automation "${ruleName}" in the project "${project.name}" couldn't finish: ${error.slice(0, 300)} You won't be told again until it has run without a problem. Its run log has the details.`, `${projectPath(project)}/settings#automations`, null),
+  paused: (project: ProjectInfo, to: number, ruleName: string, reason: string) =>
+    message("WORK_AUTOMATION_NOTICE", to, `Automation paused: ${ruleName}`, `The automation "${ruleName}" in the project "${project.name}" has stopped: ${reason} An owner or editor of the project can open it and choose Become owner to start it again.`, `${projectPath(project)}/settings#automations`, null),
+};
+
 export interface InfoSummary {
   id: number;
   infoNo: string;

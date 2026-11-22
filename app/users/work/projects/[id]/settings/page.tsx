@@ -18,6 +18,8 @@ import { DependenciesPanel, SchedulingPanel } from "@/features/work/SchedulingPa
 import { projectSchedule } from "@/server/work/schedule-service";
 import { projectFormsFor } from "@/server/work/intake-forms";
 import { FormsPanel } from "@/features/work/forms/FormsPanel";
+import { projectRulesFor } from "@/server/work/automations";
+import { AutomationsPanel } from "@/features/work/automations/AutomationsPanel";
 
 export const metadata: Metadata = { title: "Project settings" };
 export const dynamic = "force-dynamic";
@@ -52,6 +54,10 @@ const EVENT_WORD: Record<string, string> = {
   FORM_PUBLISHED: "Published a form",
   FORM_UNPUBLISHED: "Unpublished a form",
   FORM_DELETED: "Deleted a form",
+  AUTOMATION_ADDED: "Added an automation",
+  AUTOMATION_PUBLISHED: "Published an automation",
+  AUTOMATION_DELETED: "Deleted an automation",
+  AUTOMATION_OWNER: "Became the owner of an automation",
 };
 
 // D-215: members and roles, details and privacy, archive and delete, history.
@@ -74,6 +80,8 @@ export default async function ProjectSettingsPage({ params }: { params: Promise<
   const scheduling = planning ? await projectSchedule(project.id) : null;
   // v1.66.0 (D-374): Forms ("pm_forms"): builders see every form, others the published ones.
   const projectForms = await projectFormsFor(project.id, actor);
+  // v1.68.0 (D-380): Automations ("pm_automations"): owners and editors.
+  const automations = await projectRulesFor(project.id, actor);
   return (
     <>
       <Breadcrumbs items={[{ href: "/users/work/projects", label: "Projects" }, { href: `/users/work/projects/${project.id}`, label: project.name }, { label: "Members & settings" }]} />
@@ -138,6 +146,14 @@ export default async function ProjectSettingsPage({ params }: { params: Promise<
                 Forms
               </h2>
               <FormsPanel projectId={project.id} rows={projectForms.rows} build={projectForms.build} />
+            </section>
+          )}
+          {automations && (
+            <section className="card px-5 py-4" aria-labelledby="automations" id="automations-section">
+              <h2 id="automations" className="mb-1 font-semibold">
+                Automations
+              </h2>
+              <AutomationsPanel projectId={project.id} rows={automations.rows} build={automations.build} limit={automations.limit} />
             </section>
           )}
           {planFields && gone && (

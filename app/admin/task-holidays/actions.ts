@@ -12,6 +12,7 @@ import { personFacts } from "@/lib/db/repositories/tasks.repository";
 import { moveHolidayTasks, tellHolidayTasks } from "@/server/work/service";
 import { parseCelebration, parsePmExtras, PM_EXTRAS_KEY, pmExtrasSchema } from "@/server/work/pm-rules";
 import { FIELD_LIMITS_KEY, fieldLimitsSchema, parseFieldLimits } from "@/server/work/custom-fields";
+import { AUTOMATION_LIMITS_KEY, automationLimitsSchema, parseAutomationLimits } from "@/server/work/automation-rules";
 
 // D-217: Admin → Task holidays. IT (with access to the page) sets what tasks
 // do on holidays, and moves or tells about tasks due on a holiday.
@@ -142,6 +143,25 @@ export async function saveFieldLimitsAction(_previous: ActionResult | null, form
     await recordAudit({ actorUserId: actor.id, action: "TASK_SETTINGS", entityType: "SETTING", entityId: FIELD_LIMITS_KEY, sessionId: actor.sessionId, ipAddress: actor.ipAddress, metadata: { before, after: parsed.data } });
   } catch (error) {
     logError("saveFieldLimitsAction failed", error);
+    return { ok: false, message: "Couldn't save. Please try again." };
+  }
+  revalidatePath("/admin/task-holidays");
+  return { ok: true, message: "Saved." };
+}
+
+// v1.68.0 (D-380, C-8): the project automation limits (defaults 50 automations
+// per project, 20 steps per automation), enforced on the server.
+export async function saveAutomationLimitsAction(_previous: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  const actor = await getAdminActor("admin.task_holidays");
+  if (!actor) return NOT_FOUND;
+  const parsed = automationLimitsSchema.safeParse({ perProject: Number(formData.get("perProject")), stepsPerRule: Number(formData.get("stepsPerRule")) });
+  if (!parsed.success) return { ok: false, message: "Use whole numbers: automations per project 1 to 200, steps per automation 1 to 50." };
+  try {
+    const before = parseAutomationLimits(await loadSetting(AUTOMATION_LIMITS_KEY));
+    await saveJsonSetting(AUTOMATION_LIMITS_KEY, parsed.data, actor.id);
+    await recordAudit({ actorUserId: actor.id, action: "TASK_SETTINGS", entityType: "SETTING", entityId: AUTOMATION_LIMITS_KEY, sessionId: actor.sessionId, ipAddress: actor.ipAddress, metadata: { before, after: parsed.data } });
+  } catch (error) {
+    logError("saveAutomationLimitsAction failed", error);
     return { ok: false, message: "Couldn't save. Please try again." };
   }
   revalidatePath("/admin/task-holidays");

@@ -127,6 +127,10 @@ export async function purgeTasks(ids: readonly number[], db: Queryable): Promise
   // v1.67.1 (D-379): a task made from an intake form (D-374) has its submission
   // (the answers) pointing at it; it goes with the task.
   await db.query("DELETE FROM project_form_submissions WHERE task_id IN (?)", [ids]);
+  // v1.68.0: automation events of these tasks go; run log rows keep their task number but lose the link.
+  await db.query("DELETE FROM automation_events WHERE task_id IN (?)", [ids]);
+  await db.query("UPDATE automation_runs SET task_id = NULL WHERE task_id IN (?)", [ids]);
+  await db.query("UPDATE automation_webhook_deliveries SET task_id = NULL WHERE task_id IN (?)", [ids]);
   await db.query("DELETE FROM gcal_links WHERE entity_type = 'TASK' AND entity_id IN (?)", [ids]);
   // Subtasks before parents: one at a time in the given order.
   let removed = 0;
@@ -169,6 +173,10 @@ export async function purgeProject(projectId: number, db: Queryable, files: stri
   for (const table of ["project_fields", "project_sections", "project_members", "project_status_updates", "project_events", "work_recent_projects", "work_project_order"]) {
     await db.query(`DELETE FROM ${table} WHERE project_id = ?`, [projectId]);
   }
+  // v1.68.0 (D-380): the project's automations with their run logs and webhook calls.
+  await db.query("DELETE r FROM automation_runs r JOIN project_automations a ON a.id = r.automation_id WHERE a.project_id = ?", [projectId]);
+  await db.query("DELETE w FROM automation_webhook_deliveries w JOIN project_automations a ON a.id = w.automation_id WHERE a.project_id = ?", [projectId]);
+  await db.query("DELETE FROM project_automations WHERE project_id = ?", [projectId]);
   await db.query("DELETE FROM work_views WHERE scope = 'PROJECT' AND scope_id = ?", [projectId]);
   await db.query("DELETE FROM work_favourites WHERE object_type = 'PROJECT' AND object_id = ?", [projectId]);
   const [result] = await db.query<ResultSetHeader>("DELETE FROM projects WHERE id = ? AND deleted_at IS NOT NULL", [projectId]);

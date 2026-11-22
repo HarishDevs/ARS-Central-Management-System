@@ -3,6 +3,9 @@ import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { getDbPool, type Queryable } from "@/lib/db/client";
 import type { TaskPriority } from "@/server/modules/settings";
 import type { TaskStatus } from "@/server/modules/task-rules";
+import { automationContext } from "@/lib/automation/context";
+import { emitAutomationEvent } from "@/lib/db/repositories/automations.repository";
+import { kickAutomations } from "@/lib/automation/kick";
 
 // v1.9.0 (D-143): tasks, their append-only history and reminders.
 export interface TaskRecord {
@@ -200,15 +203,22 @@ export async function appendTaskEvent(
   event: { actorId: number | null; type: string; from?: string | null; to?: string | null; body?: string | null; payload?: Record<string, unknown> | null },
   db: Queryable,
 ): Promise<void> {
+  // v1.68.0 (D-380): inside a running project automation the change is the
+  // system user's, on behalf of the rule (the story reads "<rule> (automation)").
+  const automation = automationContext();
+  const actorId = automation ? automation.systemId : event.actorId;
+  const payload = automation ? { ...(event.payload ?? {}), automation: { id: automation.ruleId, name: automation.ruleName, ownerId: automation.ownerId } } : event.payload;
   await db.query<ResultSetHeader>("INSERT INTO task_events (task_id, actor_id, event_type, from_status, to_status, body, payload_json) VALUES (?, ?, ?, ?, ?, ?, ?)", [
     taskId,
-    event.actorId,
+    actorId,
     event.type,
     event.from ?? null,
     event.to ?? null,
     event.body ?? null,
-    event.payload ? JSON.stringify(event.payload) : null,
+    payload ? JSON.stringify(payload) : null,
   ]);
+  // v1.68.0 (D-380): the automation outbox (only for tasks in projects with live rules).
+  if (await emitAutomationEvent(taskId, { type: event.type, from: event.from, to: event.to, payload: event.payload ?? null, actorId }, db)) kickAutomations();
 }
 
 export async function listTaskEvents(taskId: number, db: Queryable = getDbPool()): Promise<TaskEvent[]> {
@@ -216,16 +226,21 @@ export async function listTaskEvents(taskId: number, db: Queryable = getDbPool()
     "SELECT e.id, u.name, e.event_type, e.from_status, e.to_status, e.body, e.payload_json, e.created_at FROM task_events e LEFT JOIN users u ON u.id = e.actor_id WHERE e.task_id = ? ORDER BY e.id",
     [taskId],
   );
-  return rows.map((row) => ({
-    id: row.id,
-    actorName: row.name,
-    eventType: row.event_type,
-    fromStatus: row.from_status,
-    toStatus: row.to_status,
-    body: row.body,
-    payload: (typeof row.payload_json === "string" ? JSON.parse(row.payload_json) : row.payload_json) as Record<string, unknown> | null,
-    createdAt: row.created_at,
-  }));
+  return rows.map((row) => {
+    const payload = (typeof row.payload_json === "string" ? JSON.parse(row.payload_json) : row.payload_json) as Record<string, unknown> | null;
+    // v1.68.0 (D-380): a change made by a project automation reads "<rule name> (automation)".
+    const automation = payload?.automation as { name?: unknown } | undefined;
+    return {
+      id: row.id,
+      actorName: automation && typeof automation.name === "string" ? `${automation.name} (automation)` : row.name,
+      eventType: row.event_type,
+      fromStatus: row.from_status,
+      toStatus: row.to_status,
+      body: row.body,
+      payload,
+      createdAt: row.created_at,
+    };
+  });
 }
 
 // ---- lists ------------------------------------------------------------------------

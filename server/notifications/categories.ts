@@ -29,6 +29,9 @@ export const TASK_EVENTS: readonly string[] = [
   // v1.66.0 (D-374): project intake forms (a submission for the project's people; the submitter's confirmation).
   "WORK_FORM_SUBMITTED",
   "WORK_FORM_RECEIVED",
+  // v1.68.0 (D-380): project automations ("Notify people" steps; a rule failing or paused).
+  "WORK_AUTOMATION",
+  "WORK_AUTOMATION_NOTICE",
 ];
 // v1.51.0 (D-300), v1.51.1 (owner): Meeting Management, its own Inbox category.
 export const MEETING_EVENTS: readonly string[] = ["MEETING_INVITED", "MEETING_UPDATED", "MEETING_CANCELLED", "MEETING_APPROVAL", "MEETING_DECIDED", "MEETING_PUBLISHED", "MEETING_REMINDER", "MEETING_ACTION"];

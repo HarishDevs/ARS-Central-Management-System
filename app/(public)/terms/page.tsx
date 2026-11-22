@@ -51,6 +51,13 @@ export default function TermsPage() {
             write them as you would any work message). Charts and Workload count only the tasks the viewer may see. Capacity and Workload are planning aids for sharing work fairly, not a
             measure of anyone&apos;s performance.
           </li>
+          <li>
+            Project automations: only a project&apos;s owners and editors (or only its owners, if the project says so) build its automations. An automation acts on other people&apos;s tasks
+            on its owner&apos;s behalf, with the owner&apos;s rights (never more): its changes, comments and messages are recorded as &ldquo;ARS-CMS Automation&rdquo; for the rule, and its owner is
+            responsible for what it does. Build rules for genuine work, check them before publishing, and switch off or fix a rule that misbehaves. If its owner can no longer edit the project
+            the rule stops until someone becomes its owner. A rule&apos;s webhook secret is a password for that rule: give it only to the system that needs it, never put it in a link or message, and
+            make a new one if it may have been seen. Web requests must carry only the work data the rule needs.
+          </li>
           <li>The private notepad on Home is for your work notes. Only you see it in the app, but it is stored with your other records: don&apos;t keep passwords or other people&apos;s personal details in it.</li>
           <li>You can edit or delete your own comments, and IT can edit or delete any comment. Every earlier version is kept and shown to the people who can see the comment, so edit to correct, not to rewrite what was agreed.</li>
           <li>

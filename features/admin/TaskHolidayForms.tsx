@@ -1,7 +1,8 @@
 "use client";
 
-import { departmentHolidayAction, holidayTasksAction, saveFieldLimitsAction, savePmExtrasAction, saveTaskExtrasAction, saveTaskHolidaySettingsAction } from "@/app/admin/task-holidays/actions";
+import { departmentHolidayAction, holidayTasksAction, saveAutomationLimitsAction, saveFieldLimitsAction, savePmExtrasAction, saveTaskExtrasAction, saveTaskHolidaySettingsAction } from "@/app/admin/task-holidays/actions";
 import type { FieldLimits } from "@/server/work/custom-fields";
+import type { AutomationLimits } from "@/server/work/automation-rules";
 import { CELEBRATION_LABEL, CELEBRATIONS, PURGE_DAYS, type PmExtras } from "@/server/work/pm-rules";
 import type { DigestSettings, RecurrenceSettings } from "@/server/work/more-rules";
 import { FieldError, ResultMessage, SubmitButton, useActionForm } from "@/features/ui/form";
@@ -230,6 +231,32 @@ export function FieldLimitsForm({ limits }: { limits: FieldLimits }) {
         </div>
       </div>
       <p className="text-caption text-ink-muted">Checked every time someone adds a field, an option or a value. Lowering a limit doesn&apos;t remove anything already there; it only stops new additions.</p>
+      <ResultMessage result={result} />
+      <SubmitButton pending={pending}>Save</SubmitButton>
+    </form>
+  );
+}
+
+// v1.68.0 (D-380, C-8): project automation limits.
+export function AutomationLimitsForm({ limits }: { limits: AutomationLimits }) {
+  const { result, pending, onSubmit } = useActionForm(saveAutomationLimitsAction);
+  return (
+    <form onSubmit={onSubmit} className="space-y-4 px-5 py-4" aria-label="Project automation limits" data-testid="automation-limits">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <label htmlFor="limit-rules" className="field-label">
+            Automations per project
+          </label>
+          <input id="limit-rules" name="perProject" type="number" min={1} max={200} defaultValue={limits.perProject} className="field-input h-9" />
+        </div>
+        <div>
+          <label htmlFor="limit-steps" className="field-label">
+            Steps per automation
+          </label>
+          <input id="limit-steps" name="stepsPerRule" type="number" min={1} max={50} defaultValue={limits.stepsPerRule} className="field-input h-9" />
+        </div>
+      </div>
+      <p className="text-caption text-ink-muted">Checked when someone adds an automation and when they publish one. Lowering a limit doesn&apos;t remove anything; existing automations keep running. Loop protection (at most 3 automations in a chain, 500 runs an hour per automation) is fixed.</p>
       <ResultMessage result={result} />
       <SubmitButton pending={pending}>Save</SubmitButton>
     </form>

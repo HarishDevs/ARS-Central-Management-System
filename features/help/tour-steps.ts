@@ -154,6 +154,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
       "Plan dates on the Timeline or a Gantt tab: drag bars (or use the arrow keys), link tasks as Blocked by / Blocking, and let dependent tasks move with them.",
       "Add a form (settings → Forms): people fill it in through its link or QR code, and each submission becomes a task in the section you choose.",
       "Add a Dashboard tab for charts of the project's tasks (View as table shows the figures), and a Workload tab to see who has too much work against their capacity.",
+      "Add automations (settings → Automations): when something happens to a task, a rule moves it, changes fields, comments or tells people for you; check its Run log.",
     ],
     path: "/users/work/projects",
     target: HEADER,

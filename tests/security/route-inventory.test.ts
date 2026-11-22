@@ -28,6 +28,7 @@ const PUBLIC: Record<string, string> = {
   "app/api/push/resubscribe/route.ts": "service worker re-subscription (D-252): proven by the old endpoint, swaps only that row's endpoint and keys, rate-limited per IP",
   "app/api/webhooks/google-calendar/route.ts": "Google push notifications: channel id, resource id and hashed token must match, rate-limited",
   "app/api/webhooks/ceoitbox/route.ts": "provider receipts: shared secret compared in constant time, rate-limited",
+  "app/api/webhooks/automations/[token]/route.ts": "project automation webhook (D-380): 128-bit address token plus the rule's secret (HMAC-SHA256 signature or bearer, constant time), 60 a minute per rule, every call logged; off with the switch",
 };
 
 function routes(dir: string): string[] {
@@ -61,6 +62,7 @@ describe("API route inventory (SEC-02)", () => {
 
   it("machine routes check their secret in constant time", () => {
     expect(fs.readFileSync(path.join(ROOT, "app/api/webhooks/ceoitbox/route.ts"), "utf8")).toContain("timingSafeEqual");
+    expect(fs.readFileSync(path.join(ROOT, "server/work/automation-webhook.ts"), "utf8")).toContain("timingSafeEqual");
     const jobs = fs.readFileSync(path.join(ROOT, "app/api/jobs/run/route.ts"), "utf8");
     expect(/timingSafeEqual|safeEqual|sameSecret/.test(jobs)).toBe(true);
   });

@@ -378,7 +378,7 @@ export async function setFieldValue(taskId: number, fieldId: number, value: unkn
   const outbox = await withTransaction(async (connection) => {
     await fields.writeValue(taskId, fieldId, stored, text, actor.id, connection);
     // Activity story (spec §8.9): "<actor> changed <field> to …".
-    await appendTaskEvent(taskId, { actorId: actor.id, type: "FIELD_SET", body: stored ? `changed ${field.name} to ${text}` : `cleared ${field.name}` }, connection);
+    await appendTaskEvent(taskId, { actorId: actor.id, type: "FIELD_SET", body: stored ? `changed ${field.name} to ${text}` : `cleared ${field.name}`, payload: { fieldId } }, connection);
     if (!field.notify) return [];
     // Notify on change: the task's followers (not the person who changed it), with the Projects module (D-308).
     const followers = (await repo.listFollowers(taskId, connection)).map((person) => person.id).filter((id) => id !== actor.id);
@@ -423,7 +423,7 @@ export async function timer(taskId: number, fieldId: number, command: "start" | 
     const total = Number(rows[0]?.number_value ?? 0) + seconds;
     const stored: StoredValue = { text: null, number: total, date: null, time: null, optionId: null, ids: null };
     await fields.writeValue(taskId, fieldId, stored, legacyText(field, stored), actor.id, connection);
-    await appendTaskEvent(taskId, { actorId: actor.id, type: "FIELD_SET", body: `stopped ${field.name} (${legacyText(field, stored)} in all)` }, connection);
+    await appendTaskEvent(taskId, { actorId: actor.id, type: "FIELD_SET", body: `stopped ${field.name} (${legacyText(field, stored)} in all)`, payload: { fieldId } }, connection);
     return { ok: true, seconds: total };
   });
   if (!result.ok) return fail(command === "start" ? "Your timer is already running." : "Your timer isn't running.");

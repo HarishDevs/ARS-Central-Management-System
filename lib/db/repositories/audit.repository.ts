@@ -4,6 +4,7 @@ import { getDbPool, type Queryable } from "@/lib/db/client";
 import type { ColumnSort } from "@/server/lists/sorting";
 import { AUDIT_ORDER, LOGIN_ORDER, orderBySql, type AuditColumn, type LoginColumn } from "@/server/lists/superadmin-lists";
 import type { AuthMethod } from "@/types/auth";
+import { automationContext } from "@/lib/automation/context";
 
 // Append-only (D-012): this module only ever INSERTs. There is deliberately
 // no update or delete function for audit_logs anywhere in the codebase.
@@ -19,7 +20,11 @@ export interface AuditEntry {
   metadata?: Record<string, unknown> | null;
 }
 
-export async function recordAudit(entry: AuditEntry, db: Queryable = getDbPool()): Promise<void> {
+export async function recordAudit(given: AuditEntry, db: Queryable = getDbPool()): Promise<void> {
+  // v1.68.0 (D-380): inside a running project automation the actor is the
+  // system user, on behalf of the rule's owner (whose rights it used).
+  const automation = automationContext();
+  const entry: AuditEntry = automation ? { ...given, actorUserId: automation.systemId, onBehalfOfUserId: automation.ownerId, metadata: { ...(given.metadata ?? {}), automationId: automation.ruleId } } : given;
   await db.query<ResultSetHeader>(
     `INSERT INTO audit_logs (actor_user_id, on_behalf_of_user_id, action, entity_type, entity_id, result, ip_address, session_id, metadata_json)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,

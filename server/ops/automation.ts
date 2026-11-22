@@ -320,6 +320,18 @@ export const AUTOMATIONS: readonly Automation[] = [
     owner: "IT team",
   },
   {
+    key: "projectAutomations",
+    name: "Project automations",
+    what: "Runs the project automations (rules) of v1.68.0 (D-380): task changes waiting in the automation outbox that the request didn't handle straight away, \"due date is approaching\" and \"task is overdue\" triggers, and scheduled rules (daily or weekly at a time, India). Each rule acts with its owner's rights as the system user ARS-CMS Automation. Also keeps each rule's last 200 runs, removes webhook calls (and their bodies) after 30 days and handled events after 7 days.",
+    trigger: "Every job run, while the Projects automations switch isn't Off (the clean-up runs always).",
+    everyMinutes: 5,
+    retry: "Events not handled (a process that stopped) are claimed again after 10 minutes; up to 1,000 events and 200 tasks per time rule a run; the next run carries on.",
+    idempotency: "One run per rule and event, due date, scheduled day or webhook call (a unique run key), so nothing runs twice. Loop protection: a rule's own changes never start it again, at most 3 rules in a chain, 500 runs an hour per rule and 5,000 in all.",
+    onFailure: "Recorded here; a failing rule is recorded in its run log and its owner is told once until it works again.",
+    recovery: "None needed. If a rule's owner can no longer edit the project, the rule pauses and the project's owners are told; an owner or editor chooses Become owner.",
+    owner: "IT team (rules: the project's owners)",
+  },
+  {
     key: "ticketConfirmations",
     name: "Ticket confirmations",
     what: "Tickets whose work is done and wait for the requester: a reminder after 2 and after 3 working days, and the ticket closes by itself (Closed – auto closed) after 4 complete working days without an answer (Working Calendar: weekly offs and holidays skipped). v1.55.0.",
@@ -400,6 +412,10 @@ const STEPS: Record<string, () => Promise<StepResult>> = {
   statusReminders: async () => {
     const { runStatusReminders } = await import("@/server/work/schedule-service");
     return { ...(await runStatusReminders()) };
+  },
+  projectAutomations: async () => {
+    const { runAutomationStep } = await import("@/server/work/automation-engine");
+    return { ...(await runAutomationStep()) };
   },
   ticketConfirmations: async () => {
     const { runTicketConfirmations } = await import("@/server/tickets/service");

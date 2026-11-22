@@ -1889,6 +1889,36 @@ The application audit (`application-audit/`) found these gaps between flows and 
 - **F-59 Bulk import:** the import doesn't apply the rule that only the Super Admin changes another IT Admin's contact details (AUD-01). Fix planned: V181-A2.
 - **F-121 Page access:** an action posted from an address that is no configured page isn't restricted (AUD-14). Fix planned: V181-A7.
 
+## F-PM-AUTO: Project automations (v1.68.0, D-380; "pm_automations")
+```mermaid
+flowchart TD
+  A[Owner/editor: Project settings → Automations → Add automation] --> B{pm_automations on, may customise, < 50 rules?}
+  B -- no --> X[Refused / Not found]
+  B -- yes --> C[Untitled draft, owner = creator]
+  C --> D[Builder: trigger card → step cards → Paths + Otherwise; add/move/delete with buttons]
+  D --> E[Save draft: zod + row version; published version untouched]
+  D --> F{Publish: checkRule (sections, fields, forms, people, owner's target projects, ≤ 20 steps) and owner may edit?}
+  F -- no --> G[Cards show Requires setup; Publish stays off]
+  F -- yes --> H[published_json = draft, version + 1; webhook rule: token + secret shown once]
+  I[A person changes a task: move, field, status, assignee, comment, file, collaborator, add, form] --> J[(automation_events, same transaction, only if the task's project has live rules)]
+  J --> K[After the response, or the job runner every 5 min: claim events]
+  T[Job runner: due in N days / overdue / scheduled day and time] --> M
+  W[POST /api/webhooks/automations/token: signature or bearer, 60/min, logged] --> W2[Create a task, or find one by number / ID field] --> M
+  MAN[Task ⋯ → Run “rule” (owners/editors)] --> M
+  K --> L{Rule of the task's project whose trigger matches?}
+  L -- yes --> M{Own change in the chain? Depth > 3? Owner still OWNER/EDITOR? Hourly caps? Run key new?}
+  M -- own change / already ran --> N[Nothing]
+  M -- depth or cap --> O[Run log: Not run, reason]
+  M -- owner lost access --> P[Pause rule; tell project owners once; Become owner resumes]
+  M -- ok --> Q[Steps in order as the owner, recorded as ARS-CMS Automation for the rule]
+  Q --> R{Paths?}
+  R -- yes --> S[First path whose conditions match, else Otherwise]
+  S --> Q2[Its steps]
+  Q --> U[Run log: each step's result; a failure stops the run and tells the owner once]
+  Q2 --> U
+  Q -. their own changes .-> J
+```
+
 ## F-PM-DASH: Project dashboard and chart builder (v1.67.0, D-375; "pm_reporting")
 ```mermaid
 flowchart TD

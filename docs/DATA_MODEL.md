@@ -1090,3 +1090,14 @@ Times are stored in UTC (`DATETIME`, set by `CURRENT_TIMESTAMP` or the app). Ind
 - `meeting_actions`: title, description, `owner_id` (task assignee), priority, `due_on`, `task_id` (set on MOM approval), `carried_from_id` (the same task carried into a follow-up meeting), `confirmed_by` / `confirmed_at`, `review_note`; UNIQUE (meeting_id, task_id).
 - `meeting_open_points` (text, owner, review date, OPEN/CLOSED with note, `carried_from_id`) and `meeting_events` (history, reminders).
 - `tasks.meeting_id`: the meeting an action-item task came from (FK, indexed).
+
+## Project automations (v1.68.0, D-380; migration 202611221700_pm_d_automations.sql)
+
+| Table | Key columns | Notes |
+|---|---|---|
+| `project_automations` | `id`, `project_id` → projects, `name`, `owner_id` → users, `draft_json`, `published_json`, `published_version`, `published_at`, `draft_changed`, `trigger_type`, `enabled`, `paused_reason`, `webhook_token` (unique), `webhook_secret_enc` (AES-GCM), `scheduled_on`, `hour_start`, `hour_runs`, `failing`, `last_run_at`, `last_result`, `last_error`, `row_version`, `created_by`, `updated_by` | A rule: one trigger, steps, optional paths (JSON, `server/work/automation-rules.ts` `definitionSchema`). Only `published_json` runs. Hard delete (with its runs and webhook calls); purged with its project. |
+| `automation_events` | `id`, `task_id` (no FK), `event_type`, `from_status`, `to_status`, `payload_json`, `actor_id`, `depth`, `chain_json`, `status` PENDING/CLAIMED/DONE, `claimed_at`, `created_at` | The outbox: written by `appendTaskEvent` (and attachment adds) in the change's own transaction, only for tasks in projects with live rules. DONE rows go after 7 days. |
+| `automation_runs` | `id`, `automation_id` → project_automations, `version`, `run_key` (unique per rule), `trigger_label`, `task_id`, `task_no`, `status` RUNNING/SUCCEEDED/FAILED/SKIPPED, `steps_json`, `error`, `depth`, `started_at`, `finished_at` | The run log; the newest 200 per rule are kept (older ones after 2 days). |
+| `automation_webhook_deliveries` | `id`, `automation_id`, `received_at`, `status` ACCEPTED/REFUSED/FAILED, `http_status`, `payload_json` (accepted bodies, ≤ 16 KB), `task_id`, `error` | Every webhook call; removed after 30 days. Also counts the 60-a-minute limit. |
+
+Settings: `features.pm_automations` (ON / OFF / IT_ONLY, default OFF), `tasks.automation_limits` (JSON `{perProject: 50, stepsPerRule: 20}`). `task_events.payload_json.automation = {id, name, ownerId}` marks a change made by a rule (actor = the system user); `audit_logs.on_behalf_of_user_id` is the rule's owner.

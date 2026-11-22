@@ -427,7 +427,7 @@ export async function moveInProject(input: { taskId: number; projectId: number; 
       ({ before, after } = slot());
     }
     await repo.placeTaskInProject(input.taskId, input.projectId, input.sectionId, positionBetween(before, after), actor.id, connection);
-    if (link.sectionId !== input.sectionId) await appendTaskEvent(input.taskId, { actorId: actor.id, type: "MOVED_SECTION", body: `${found.project.name}: ${link.sectionName} → ${section.name}` }, connection);
+    if (link.sectionId !== input.sectionId) await appendTaskEvent(input.taskId, { actorId: actor.id, type: "MOVED_SECTION", body: `${found.project.name}: ${link.sectionName} → ${section.name}`, payload: { projectId: input.projectId, sectionId: input.sectionId, fromSectionId: link.sectionId } }, connection);
   });
   return { ok: true, value: undefined };
 }
@@ -454,7 +454,7 @@ export async function addToProject(taskId: number, projectId: number, sectionId:
     if ((await repo.countTaskProjects(taskId, connection)) >= MAX_PROJECTS_PER_TASK) return false;
     const rows = await repo.sectionPositions(projectId, section.id, connection);
     await repo.placeTaskInProject(taskId, projectId, section.id, positionBetween(rows.at(-1)?.position ?? null, null), actor.id, connection);
-    await appendTaskEvent(taskId, { actorId: actor.id, type: "ADDED_TO_PROJECT", body: `${found.project.name} · ${section.name}` }, connection);
+    await appendTaskEvent(taskId, { actorId: actor.id, type: "ADDED_TO_PROJECT", body: `${found.project.name} · ${section.name}`, payload: { projectId, sectionId: section.id } }, connection);
     return true;
   });
   return done ? { ok: true, value: undefined, message: `Added to ${found.project.name}.` } : fail(`A task can be in at most ${MAX_PROJECTS_PER_TASK} projects.`);
@@ -562,7 +562,9 @@ export async function setTaskFields(taskId: number, change: { dueDay?: string; s
     if (!fresh) return [];
     if (Object.keys(changes).length) await updateTask(taskId, fresh.rowVersion, changes, connection);
     if (Object.keys(work).length) await repo.setTaskWorkFields(taskId, work, connection);
-    await appendTaskEvent(taskId, { actorId: actor.id, type: "EDIT", from: fresh.status, to: fresh.status, body: notes.join("; "), payload: changes.due_at !== undefined ? { dueChanged: true } : null }, connection);
+    // v1.68.0 (D-380): which fields changed (automations' "field is changed" trigger).
+    const changed = [changes.due_at !== undefined && "due", (changes.starts_on !== undefined || work.starts_on !== undefined) && "start", changes.priority !== undefined && "priority", changes.title !== undefined && "name"].filter((item): item is string => Boolean(item));
+    await appendTaskEvent(taskId, { actorId: actor.id, type: "EDIT", from: fresh.status, to: fresh.status, body: notes.join("; "), payload: { ...(changes.due_at !== undefined ? { dueChanged: true } : {}), changed } }, connection);
     const messages = changes.due_at !== undefined && fresh.assigneeId !== actor.id ? [taskMessages.updated(info({ ...fresh, dueAt }), fresh.assigneeId, notes[0]!.toLowerCase())] : [];
     if (shifting && fresh.dueAt) {
       const result = await shiftDependents(connection, taskId, { start: fresh.startsOn ?? null, due: indiaDay(fresh.dueAt) }, fresh.dueAt, actor);
