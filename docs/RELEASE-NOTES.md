@@ -1,5 +1,13 @@
 # Release notes
 
+## v1.66.1 (22 Nov 2026): Clearer names for the Projects feature switches (owner)
+- Super Admin → Settings → **Feature switches** showed three switches all named "Projects" (the rest of each name was in the ⓘ). They are now:
+  - **Projects A, views and lists**: tabs for every view, faster list, row density, task pane, Home widgets (phase A, v1.61.0–v1.63.0);
+  - **Projects B, fields and planning**: custom fields, dependency types, Gantt, week calendar, status updates (phase B, v1.64.0–v1.65.0);
+  - **Projects C, intake forms**: project forms that make tasks (phase C, v1.66.0).
+- The plain **Projects** switch elsewhere on the page (if shown) is the Projects module itself. Only the names changed; the switches keep their settings.
+- **Owner steps:** none (no migration); publish v1.66.1.
+
 ## v1.66.0 (22 Nov 2026): Project forms: a form people fill in becomes a task in your project (Project Management phase C)
 Behind a new feature switch, **Projects: intake forms that turn submissions into tasks, for signed-in people (phase C)**, Off until IT turns it on. Only people signed in to ARS-CMS can open a form; a link for people without an account is not part of this release.
 - **Build a form** in a project's settings (**Customize → Forms → Add form**). It is the same form designer the app already uses for approval, task and ticket forms, with the question types a project form needs: **Text, Long text, Single-select, Multi-select, Date, Number, Attachment** and **Heading**. Give each question a name, a description, options and **Required**; move it with the buttons, by dragging or with **Alt + ↑ / ↓**; duplicate or delete it. The form's title starts as the project's name; add a description and a cover image (PNG, JPG or WEBP). The filler's **Name and Email** come from their account.
