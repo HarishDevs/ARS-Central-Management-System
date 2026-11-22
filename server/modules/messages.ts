@@ -88,6 +88,23 @@ export const automationMessages = {
     message("WORK_AUTOMATION_NOTICE", to, `Automation paused: ${ruleName}`, `The automation "${ruleName}" in the project "${project.name}" has stopped: ${reason} An owner or editor of the project can open it and choose Become owner to start it again.`, `${projectPath(project)}/settings#automations`, null),
 };
 
+// v1.69.0 (D-382): portfolios. Added to a portfolio; a status update on it
+// (to its people); a project in it goes off track (to its owners who can see
+// that project).
+export interface PortfolioInfo {
+  id: number;
+  name: string;
+}
+const portfolioPath = (portfolio: PortfolioInfo) => `/users/work/portfolios/${portfolio.id}`;
+export const portfolioMessages = {
+  added: (portfolio: PortfolioInfo, to: number, by: string, role: string) =>
+    message("WORK_PORTFOLIO_MEMBER", to, `Added to portfolio: ${portfolio.name}`, `${by} added you to the portfolio "${portfolio.name}" as ${role.toLowerCase()}. You see the projects in it that you already have access to.`, portfolioPath(portfolio), null),
+  status: (portfolio: PortfolioInfo, to: number, by: string, status: string, title: string) =>
+    message("WORK_PORTFOLIO_STATUS", to, `${portfolio.name}: ${status}`, `${by} posted a status update on the portfolio "${portfolio.name}": ${status}. ${title}`, `${portfolioPath(portfolio)}?tab=progress`, null),
+  offTrack: (portfolio: PortfolioInfo, to: number, project: { id: number; name: string }, by: string) =>
+    message("WORK_PORTFOLIO_ALERT", to, `Off track in ${portfolio.name}: ${project.name}`, `${by} set the project "${project.name}" in your portfolio "${portfolio.name}" to Off track.`, `/users/work/projects/${project.id}?view=overview`, null),
+};
+
 export interface InfoSummary {
   id: number;
   infoNo: string;

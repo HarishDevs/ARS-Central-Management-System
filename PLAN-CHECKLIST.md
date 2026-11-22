@@ -17,6 +17,7 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 **Multi-level approvals in any custom manner.** The engine must support any number of levels in any combination: sequential, parallel, any-one, any-N-of-M, conditional and hybrid. Approvers can come from any source, and levels can be added or skipped by rules. Build the engine for this from the first engine phase (P2). The drag-and-drop designer (P3) is only the screen for building it. Check every task against this.
 
 ## Now / Next
+- **Now (22 Nov 2026):** **v1.69.0** PM phase D part 3: portfolios (wizard, List with roll-ups and masking of projects the viewer can't see, nesting ≤ 5 levels, own columns, Progress with status updates, quarter Timeline, Dashboard roll-ups, star, Ctrl K, notices, 30-day purge) (D-382). **Owner:** back up, publish (migration 202611221800_pm_d_portfolios.sql runs on start), switch "Projects D, portfolios" on for IT only, try it, then On (DEPLOYMENT G0o). **Next:** PM-B12 and phase E (PM-E); portfolio items listed under "Not built" in D-382 when asked.
 - **Now (22 Nov 2026):** **v1.68.1** purge note capped at 30 days (D-381). **Owner:** publish (no migration).
 - [x] OPS-33 (22 Nov 2026) Deleted pages: "in 31 days" from clock skew
 - **Now (22 Nov 2026):** **v1.68.0** PM phase D part 2: project automations (rules with a trigger, steps and Paths; draft/publish; run log; loop protection; webhook) (D-380). **Owner:** back up, publish (migration 202611221700_pm_d_automations.sql runs on start), switch "Projects D, automations" on for IT only, try a rule in a test project, then On (DEPLOYMENT G0n). **Next:** PM-D9 portfolios (phase D part 3).
@@ -92,7 +93,17 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
   - [x] PM-D6 (22 Nov 2026) Widget edit, resize, remove, reorder by drag and by keyboard (pick up / move / drop / cancel, announced)
   - [x] PM-D7 (22 Nov 2026) Workload tab: days/weeks, task count or a number/timer effort field, capacity (project and person), weekly offs and holidays, Over with icon and text, cell → tasks → Reassign
   - [x] PM-D8 (22 Nov 2026) Automations: feature switch pm_automations ("Projects D, automations"); builder (vertical flow, keyboard, inline problems, draft/publish, on/off, duplicate, delete, owner + Become owner); 14 triggers incl. due/overdue, scheduled, manual, webhook; 12 steps; Paths; engine (outbox, after the response + job runner, owner's rights as the system user, loop/depth/rate caps, idempotent run keys, pause on lost access); run log; webhook (HMAC/bearer, 60/min, log, 30-day purge); Admin limits (D-380, v1.68.0)
-  - [ ] PM-D9 Portfolios (wizard, grid, roll-ups, dashboard roll-ups) — phase D part 2
+  - [x] PM-D9 (22 Nov 2026) Portfolios (wizard, grid, roll-ups, dashboard roll-ups) — phase D part 3 (D-382, v1.69.0)
+    - [x] PM-D9a (22 Nov 2026) Feature switch pm_portfolios ("Projects D, portfolios"; default OFF; ON in e2e); Projects module + Projects page access
+    - [x] PM-D9b (22 Nov 2026) Data: portfolios, members (4 roles), items (project or portfolio; ≤ 500), own columns (text/number/single-select/date/person) and values, status updates; star type PORTFOLIO
+    - [x] PM-D9c (22 Nov 2026) Deny by default: rows the viewer can't see masked ("Private project", who added it); every figure only over visible projects
+    - [x] PM-D9d (22 Nov 2026) Nesting with no circles and ≤ 5 levels; sub-portfolio roll-ups (each project once)
+    - [x] PM-D9e (22 Nov 2026) Create wizard (details, projects, people); Portfolios page (mine / all / archived / deleted)
+    - [x] PM-D9f (22 Nov 2026) Portfolio page: header (tile, actions, star, status, people, Share, Customize), List (status, task progress, due, owner, priority, own columns; filter/sort/group/search; Add work combobox; remove), Progress, Timeline (quarters, keyboard), Dashboard (D-375 charts)
+    - [x] PM-D9g (22 Nov 2026) Sidebar (Portfolios link, starred portfolios), Create menu, Ctrl K, palette pages
+    - [x] PM-D9h (22 Nov 2026) Notices: added to a portfolio, status update posted, project in it set Off track (owners who can see it)
+    - [x] PM-D9i (22 Nov 2026) 30-day purge of portfolios; a purged project leaves every portfolio; purge-coverage guard extended
+    - [ ] PM-D9j Later (not built, D-382): saved/added tabs, Workload and Messages tabs, share project access with members, access requests, rollup formula fields, portfolio dashboard builder, goals, AI summary, export
 - [ ] PM-E Phase E backlog
 - **Now (21 Nov 2026):** **v1.60.0** edit and delete every comment, versions kept (D-365). **Owner:** back up, run migration 202611211000_comment_edits.sql (and 202611201000 first if v1.59.3 isn't live), publish.
 - [x] COL-12 (21 Nov 2026) Edit and delete on request comments, ticket remarks and task comments (author and IT), every earlier version kept and shown

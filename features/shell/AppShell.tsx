@@ -106,6 +106,8 @@ export async function AppShell({ area, user, nav, children }: { area: AppArea; u
   // left out of the sidebar and the quick search; the server refuses them anyway.
   const visible = (href: string) => !isHiddenHref(href, access.hidden);
   // WS-03: everywhere the person can go, for the command palette.
+  // v1.69.0 (D-382): portfolios (Projects module and the "pm_portfolios" switch).
+  const portfoliosSwitch = area === "users" && hasModule(user, "PROJECT") && (await featureOn("pm_portfolios", user).catch(() => false));
   const userPages: PaletteLink[] = [
     { href: "/users", label: "Home", group: "My approvals" },
     { href: "/users/custom", label: "New request", group: "My approvals" },
@@ -122,6 +124,7 @@ export async function AppShell({ area, user, nav, children }: { area: AppArea; u
     { href: "/users/work/my-tasks", label: "Task Summary", group: "Tasks" },
     { href: "/users/tasks", label: "Assigned to me", group: "Tasks" },
     { href: "/users/work/projects", label: "Projects", group: "Projects" },
+    ...(portfoliosSwitch ? [{ href: "/users/work/portfolios", label: "Portfolios", group: "Projects" }, { href: "/users/work/portfolios/new", label: "New portfolio", group: "Projects" }] : []),
     { href: "/users/work/search", label: "Task search", group: "Tasks" },
     { href: "/users/tasks/assigned", label: "Assigned by me", group: "Tasks" },
     { href: "/users/tasks/team", label: "Team tasks", group: "Tasks" },
@@ -180,6 +183,7 @@ export async function AppShell({ area, user, nav, children }: { area: AppArea; u
   // pages. + Create offers what the person can create.
   const tasksOn = items.some((item) => item.section === "Tasks");
   const projectsOn = tasksOn && visible("/users/work/projects/new");
+  const portfoliosOn = projectsOn && portfoliosSwitch && visible("/users/work/portfolios");
   // D-307 (owner): Tasks and Projects are separate modules, so separate
   // groups; each link only when the person may open it.
   const workGroup: NavItem[] = [
@@ -194,6 +198,7 @@ export async function AppShell({ area, user, nav, children }: { area: AppArea; u
       { href: "/users/work/projects", label: "All projects" },
       { href: "/users/work/projects/new", label: "New project" },
       { href: "/users/work/projects?show=templates", label: "Templates" },
+      ...(portfoliosOn ? [{ href: "/users/work/portfolios", label: "Portfolios" }] : []),
     ].map((item) => ({ ...item, section: "Projects" })),
   ].filter((item) => visible(item.href));
   const sideItems: NavItem[] =
@@ -207,7 +212,7 @@ export async function AppShell({ area, user, nav, children }: { area: AppArea; u
   }
   const sidebarCollapsed = (await cookies()).get(SIDEBAR_COOKIE)?.value === "rail";
   // v1.62.0 (D-368): Starred and department projects under the links (Projects module and "pm_foundations").
-  const workSidebar = area === "users" && visible("/users/work/projects") && hasModule(user, "PROJECT") && (await featureOn("pm_foundations", user).catch(() => false)) ? await loadSidebar(user).catch(() => null) : null;
+  const workSidebar = area === "users" && visible("/users/work/projects") && hasModule(user, "PROJECT") && (await featureOn("pm_foundations", user).catch(() => false)) ? await loadSidebar(user, portfoliosOn).catch(() => null) : null;
   // D-233: IT's maintenance notice, if any (a failed read shows none).
   const maintenance = await getSettingValue("general.maintenance_notice").catch(() => null);
   // D-230: the person's photo in the account menu.
@@ -240,13 +245,13 @@ export async function AppShell({ area, user, nav, children }: { area: AppArea; u
           homeHref={`/${area}`}
           homeLabel={`ARS Green Steel: ${SPACE_LABEL[area]} home`}
           rail={rail}
-          create={area === "users" ? { approval: items.some((item) => item.href === "/users/custom"), task: tasksOn, project: projectsOn, information: items.some((item) => item.href === "/users/information/new") } : null}
+          create={area === "users" ? { approval: items.some((item) => item.href === "/users/custom"), task: tasksOn, project: projectsOn, portfolio: portfoliosOn, information: items.some((item) => item.href === "/users/information/new") } : null}
         >
-          {area === "users" && <CreateMenu approval={items.some((item) => item.href === "/users/custom")} task={tasksOn} project={projectsOn} information={items.some((item) => item.href === "/users/information/new")} />}
+          {area === "users" && <CreateMenu approval={items.some((item) => item.href === "/users/custom")} task={tasksOn} project={projectsOn} portfolio={portfoliosOn} information={items.some((item) => item.href === "/users/information/new")} />}
           <p className="shrink-0 px-6 pt-4 text-caption font-semibold uppercase tracking-wider text-ink-faint">{SPACE_LABEL[area]}</p>
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain" data-testid="sidebar-scroll">
             <SideNav items={sideItems} collapsible={area !== "admin"} chats={chats} />
-            {workSidebar && <WorkSidebar starred={workSidebar.starred} departments={workSidebar.departments} departmentName={workSidebar.departments.departmentName} />}
+            {workSidebar && <WorkSidebar starred={workSidebar.starred} departments={workSidebar.departments} departmentName={workSidebar.departments.departmentName} portfolios={workSidebar.portfolios} />}
           </div>
         </SidebarFrame>
       )}

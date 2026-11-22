@@ -1,5 +1,6 @@
 import "server-only";
 import { departmentName, saveProjectOrder, sidebarProjects } from "@/lib/db/repositories/pm.repository";
+import { listVisiblePortfolios } from "@/lib/db/repositories/portfolios.repository";
 import { getUserSetting, setUserSetting } from "@/lib/db/repositories/user-settings.repository";
 import { workViewer } from "@/server/work/task-access";
 import { moveInOrder, parseSidebarSort, sidebarSortSetting, sortSidebar, type SidebarList, type SidebarProject, type SidebarSort } from "@/server/work/pm-rules";
@@ -22,10 +23,16 @@ async function section(user: Who, list: SidebarList): Promise<SidebarSectionData
   return { list, sort, items: sortSidebar(items, sort).map(({ id, name, color }) => ({ id, name, color })) };
 }
 
-export async function loadSidebar(user: Who): Promise<{ starred: SidebarSectionData; departments: SidebarSectionData & { departmentName: string | null } }> {
+// v1.69.0 (D-382): with portfolios on, the starred portfolios too (under Starred, by name).
+export async function loadSidebar(user: Who, portfolios = false): Promise<{ starred: SidebarSectionData; departments: SidebarSectionData & { departmentName: string | null }; portfolios: { id: number; name: string; color: string }[] | null }> {
   const viewer = await workViewer(user);
-  const [starred, departments, name] = await Promise.all([section(user, "STARRED"), section(user, "DEPARTMENTS"), departmentName(viewer.departmentId)]);
-  return { starred, departments: { ...departments, departmentName: name } };
+  const [starred, departments, name, starredPortfolios] = await Promise.all([
+    section(user, "STARRED"),
+    section(user, "DEPARTMENTS"),
+    departmentName(viewer.departmentId),
+    portfolios ? listVisiblePortfolios(viewer, { starredOnly: true, limit: 50 }) : Promise.resolve(null),
+  ]);
+  return { starred, departments: { ...departments, departmentName: name }, portfolios: starredPortfolios ? starredPortfolios.map(({ id, name: label, color }) => ({ id, name: label, color })).sort((a, b) => a.name.localeCompare(b.name)) : null };
 }
 
 // Moves one project up or down in the person's manual order of that list

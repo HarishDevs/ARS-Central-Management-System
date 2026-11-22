@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
 // foreign keys to tasks / projects / their children and checks the purge code
 // names each table (or that the table is listed below with the reason).
 const ROOT = path.join(__dirname, "..", "..");
-const PARENTS = ["tasks", "projects", "project_sections", "project_fields", "project_forms", "project_form_versions", "task_comments"];
+const PARENTS = ["tasks", "projects", "project_sections", "project_fields", "project_forms", "project_form_versions", "task_comments", "portfolios", "portfolio_items", "portfolio_fields"];
 const NOT_PURGED: Record<string, string> = {
   tasks: "self references (subtasks), deleted children first",
   tickets: "a ticket's task is never purged (purgeTaskCandidates)",

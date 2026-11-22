@@ -155,6 +155,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
       "Add a form (settings → Forms): people fill it in through its link or QR code, and each submission becomes a task in the section you choose.",
       "Add a Dashboard tab for charts of the project's tasks (View as table shows the figures), and a Workload tab to see who has too much work against their capacity.",
       "Add automations (settings → Automations): when something happens to a task, a rule moves it, changes fields, comments or tells people for you; check its Run log.",
+      "Portfolios group projects so you can follow their status and task progress together (List, Timeline, Progress, Dashboard); you only ever see the projects you already have access to.",
     ],
     path: "/users/work/projects",
     target: HEADER,

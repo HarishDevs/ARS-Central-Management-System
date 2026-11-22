@@ -17,11 +17,11 @@ The space you work in is called **Central Management System**. There are two vie
 
 ### The sidebar (Compact view)
 From the top:
-- **+ Create:** a new approval request, task, project or information (only what you can create).
+- **+ Create:** a new approval request, task, project, portfolio or information (only what you can create).
 - **Home** and **Inbox**.
 - **My Approvals:** New request, My pending requests, My approved requests, Waiting for me, Approved by me, Collaborating, Approval templates. If your designation isn't an approver designation you see only New request, My pending requests, My approved requests and Collaborating (Approval templates is still reached from New request). A request you open highlights the list it belongs to for you (for example Waiting for me when it needs your decision).
 - **Tasks:** My Tasks, Assigned by me, Team tasks, Periodic tasks, Task search, New task.
-- **Projects:** All projects, New project, Templates (only if the Projects module is switched on for you).
+- **Projects:** All projects, New project, Templates, and Portfolios when IT has switched them on (only if the Projects module is switched on for you).
 - **Information:** Information inbox, Sent by me, New information.
 - **AI Assistant** (if Pico Bot is on for you), with your chats.
 - **Calendar** and **Analytics**.
@@ -230,6 +230,13 @@ While it's open: **Withdraw** on the request. The approvers are told.
   - **Run log:** the rule's page lists its last 200 runs: when, what started it, the task, each step and the result or error.
   - **Safety:** a rule's own changes never start it again; at most 3 rules run one after another; a rule runs at most 500 times an hour. Admin → Task settings sets how many rules a project may have (50) and steps a rule (20).
   - **Webhook:** publishing a web-request rule shows its address and a **secret** (shown once; **Make a new secret** replaces it). The other system sends a POST with JSON (`title`, `description`, `dueDate`, `priority`; or `task` with the task number or ID field value to update), signed with the secret (see API_REFERENCE). Calls are logged on the rule; at most 60 a minute.
+- **Portfolios (v1.69.0, once IT switches "Projects D, portfolios" on):** a portfolio groups projects (and other portfolios, up to 5 levels deep, never inside each other) so you can follow them in one place. **+ Create → Portfolio** or **Projects → Portfolios → Create portfolio**: (1) name, colour, who can see it (private to its members, a department, or everyone) and the tab it opens on; (2) the projects and portfolios to add, from those you can see; (3) people with a role: **owner** (everything, including who can see it, archive and delete), **editor** (add and remove work, columns and values, status updates, add people), **commenter** or **viewer** (read only). Nothing is saved until **Create portfolio**.
+  - **Being in a portfolio never opens its projects.** A project (or portfolio) you can't see shows as **Private project**, with who added it and when: ask them or the project's owner for access. It is left out of every count and chart.
+  - **List:** each row's latest **status**, **task progress** (completed of all tasks, as a bar and as "4 of 6 tasks done (66%)"; a sub-portfolio adds up its projects), due date, owner, **priority** and the portfolio's own columns (**Customize**: text, number, single-select, date or person). **Filter** (incomplete, closed, just my work, at risk or off track, has overdue tasks), **Sort**, **Group** and search. Owners and editors **Add work** (type a name, ↑ / ↓, Enter) and remove rows; the project itself never changes.
+  - **Progress:** how many rows are on track, at risk or off track, the portfolio's **status updates** (owners and editors post them: a status and a headline or summary) and **About** (owner, dates, description; owners change them with ⌄ → Edit details).
+  - **Timeline:** bars from each project's start to its due date, by quarter. Keyboard: Tab to the rows, ↑ / ↓ move, ← / → show the previous or next quarter, Enter opens it.
+  - **Dashboard:** total, completed, incomplete and overdue tasks, projects by status, incomplete tasks by project, completion over the last 30 days and sub-portfolios by status; **View as table** on each chart. Every task counts once.
+  - **Star** a portfolio to keep it in the sidebar; Ctrl K finds portfolios by name. You are told when you're added to one, when a status update is posted on it, and (its owners) when a project in it goes **Off track**. A deleted portfolio stays 30 days in **Portfolios → Deleted** (Restore), then goes for good; its projects are never touched.
 - **Periodic tasks** repeat (daily, weekly, monthly, yearly, or some days after completion) and are marked ↻.
 - **Managers** see the tasks of everyone below them.
 - **Separate from approvals:** completing a task never approves a request.

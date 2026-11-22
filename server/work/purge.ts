@@ -3,7 +3,7 @@ import { unlink } from "node:fs/promises";
 import path from "node:path";
 import { withTransaction } from "@/lib/db/transaction";
 import { recordAudit } from "@/lib/db/repositories/audit.repository";
-import { childrenOf, purgeProject, purgeProjectCandidates, purgeTaskCandidates, purgeTasks, storedFileInUse } from "@/lib/db/repositories/pm.repository";
+import { childrenOf, purgePortfolio, purgePortfolioCandidates, purgeProject, purgeProjectCandidates, purgeTaskCandidates, purgeTasks, storedFileInUse } from "@/lib/db/repositories/pm.repository";
 import { loadSetting } from "@/server/work/holiday-store";
 import { featureMode } from "@/server/settings/features";
 import { uploadRoot } from "@/server/attachments/service";
@@ -18,7 +18,7 @@ import { parsePmExtras, PM_EXTRAS_KEY, PURGE_DAYS, purgeableTasks } from "@/serv
 const TASK_BATCH = 500;
 const PROJECT_BATCH = 50;
 
-export async function runWorkPurge(options: { force?: boolean } = {}): Promise<{ purgedTasks: number; purgedProjects: number; purgedFields?: number; skipped?: string }> {
+export async function runWorkPurge(options: { force?: boolean } = {}): Promise<{ purgedTasks: number; purgedProjects: number; purgedFields?: number; purgedPortfolios?: number; skipped?: string }> {
   if (!options.force) {
     if ((await featureMode("pm_foundations")) === "OFF") return { purgedTasks: 0, purgedProjects: 0, skipped: "switch off" };
     if (!parsePmExtras(await loadSetting(PM_EXTRAS_KEY)).purge) return { purgedTasks: 0, purgedProjects: 0, skipped: "purge off" };
@@ -52,6 +52,17 @@ export async function runWorkPurge(options: { force?: boolean } = {}): Promise<{
     });
     files = [...files, ...covers];
   }
+  // v1.69.0 (D-382): portfolios deleted more than 30 days ago (their projects stay).
+  const portfolios = await purgePortfolioCandidates(PROJECT_BATCH);
+  let purgedPortfolios = 0;
+  if (portfolios.length) {
+    purgedPortfolios = await withTransaction(async (connection) => {
+      let count = 0;
+      for (const id of portfolios) count += await purgePortfolio(id, connection);
+      await recordAudit({ actorUserId: null, action: "WORK_PORTFOLIOS_PURGED", entityType: "RETENTION", entityId: "portfolios", metadata: { olderThanDays: PURGE_DAYS, count, portfolioIds: portfolios } }, connection);
+      return count;
+    });
+  }
   // v1.64.0 (D-371, BR-CF-004): custom fields deleted more than 30 days ago, with their values.
   const purgedFields = await withTransaction(async (connection) => {
     const ids = await purgeDeletedFields(PROJECT_BATCH, connection);
@@ -69,5 +80,5 @@ export async function runWorkPurge(options: { force?: boolean } = {}): Promise<{
       if (error.code !== "ENOENT") logError("work purge: couldn't remove a file", error);
     });
   }
-  return { purgedTasks, purgedProjects, purgedFields };
+  return { purgedTasks, purgedProjects, purgedFields, purgedPortfolios };
 }

@@ -37,6 +37,8 @@ export async function usersNav(user: { id: number; roles: readonly string[] }): 
           { href: "/users/tasks/assigned", label: "Assigned by me", section: "Tasks" },
           { href: "/users/tasks/team", label: "Team tasks", section: "Tasks" },
           { href: "/users/work/projects", label: "Projects", section: "Projects" },
+          // v1.69.0 (D-382): portfolios, with the "pm_portfolios" switch.
+          ...(features.pm_portfolios ? [{ href: "/users/work/portfolios", label: "Portfolios", section: "Projects" }] : []),
           { href: "/users/work/search", label: "Task search", section: "Tasks" },
           // D-219: repeating tasks have their own list.
           { href: "/users/work/periodic", label: "Periodic tasks", section: "Tasks" },

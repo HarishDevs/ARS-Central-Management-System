@@ -1,5 +1,17 @@
 # Release notes
 
+## v1.69.0 (22 Nov 2026): Portfolios (Project Management phase D, part 3)
+Behind a new feature switch, **Projects D, portfolios**, Off until IT turns it on. With it Off nothing changes.
+- **+ Create → Portfolio** (or **Projects → Portfolios → Create portfolio**): three steps: name, colour, who can see it (private to members, a department or everyone) and the tab it opens on; the projects (and portfolios) to add, from those you can see; people with a role (owner, editor, commenter, viewer). People added are told.
+- **Deny by default:** being in a portfolio never opens its projects. A project you can't see shows as **Private project** with who added it ("ask them or the project's owner for access") and is left out of every count and chart.
+- **List:** each project's latest **status**, **task progress** (a bar and "4 of 6 tasks done (66%)"), due date, owner, **priority** and the portfolio's own columns (**Customize**: text, number, single-select, date, person). Filter, sort, group, search. Owners and editors **Add work** (a search box that works with the keyboard) and remove rows.
+- **Nesting:** a portfolio can hold other portfolios, up to 5 levels, never inside itself; a sub-portfolio's row adds up its projects.
+- **Progress:** counts on track / at risk / off track, the portfolio's **status updates** (owners and editors; people in it are told) and About.
+- **Timeline:** bars by quarter from each project's start to due date; ↑ / ↓ rows, ← / → quarters.
+- **Dashboard:** totals, projects by status, incomplete tasks by project, completion over 30 days and sub-portfolios by status, drawn with the project dashboard's charts (View as table).
+- **Star** portfolios (sidebar), **Ctrl K** finds them, **Portfolios** page (mine, all I can see, archived, deleted). Owners of a portfolio are told when a project in it is set **Off track**. Deleted portfolios stay 30 days, then go with the 30-day clean-up; their projects are never touched.
+- **Owner steps:** back up the database, publish v1.69.0 (the migration `202611221800_pm_d_portfolios.sql` runs on start: six new tables and a new star type; no triggers; rollback inside). Then switch **Projects D, portfolios** to IT only, try it (DEPLOYMENT G0o), then On.
+
 ## v1.68.1 (22 Nov 2026): Fix: "removed for good in 31 days"
 - The Deleted pages could say a just-deleted task or project would be removed "in 31 days" when the database's clock ran a moment ahead of the app's. It now never says more than 30.
 - **Owner steps:** none (no migration); publish v1.68.1.

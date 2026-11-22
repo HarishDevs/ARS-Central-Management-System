@@ -20,3 +20,12 @@ export async function peopleOptions(): Promise<{ id: number; label: string; deta
   // v1.52.1 (owner): "Name - Employee code", the department below.
   return (await listActiveUserOptions()).map((person) => ({ id: person.id, label: personLabel(person), detail: person.departmentName ?? undefined }));
 }
+
+// v1.69.0 (D-382): portfolio pages: the Projects module (page access refuses
+// the path without it) and the "pm_portfolios" switch; otherwise not found.
+export async function portfolioPage() {
+  const context = await workPage();
+  const { portfoliosOn } = await import("@/server/work/portfolios");
+  if (context.viewer.projects === false || !(await portfoliosOn(context.user))) notFound();
+  return context;
+}

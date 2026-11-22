@@ -177,9 +177,30 @@ export async function purgeProject(projectId: number, db: Queryable, files: stri
   await db.query("DELETE r FROM automation_runs r JOIN project_automations a ON a.id = r.automation_id WHERE a.project_id = ?", [projectId]);
   await db.query("DELETE w FROM automation_webhook_deliveries w JOIN project_automations a ON a.id = w.automation_id WHERE a.project_id = ?", [projectId]);
   await db.query("DELETE FROM project_automations WHERE project_id = ?", [projectId]);
+  // v1.69.0 (D-382): the project leaves every portfolio it was in (with that row's column values).
+  await db.query("DELETE v FROM portfolio_field_values v JOIN portfolio_items i ON i.id = v.item_id WHERE i.project_id = ?", [projectId]);
+  await db.query("DELETE FROM portfolio_items WHERE project_id = ?", [projectId]);
   await db.query("DELETE FROM work_views WHERE scope = 'PROJECT' AND scope_id = ?", [projectId]);
   await db.query("DELETE FROM work_favourites WHERE object_type = 'PROJECT' AND object_id = ?", [projectId]);
   const [result] = await db.query<ResultSetHeader>("DELETE FROM projects WHERE id = ? AND deleted_at IS NOT NULL", [projectId]);
+  return result.affectedRows;
+}
+
+// v1.69.0 (D-382): portfolios deleted more than 30 days ago.
+export async function purgePortfolioCandidates(limit: number, db: Queryable = getDbPool()): Promise<number[]> {
+  const [rows] = await db.query<Row[]>(`SELECT id FROM portfolios WHERE deleted_at IS NOT NULL AND deleted_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL ${PURGE_DAYS} DAY) ORDER BY deleted_at, id LIMIT ?`, [limit]);
+  return rows.map((row) => num(row.id));
+}
+// Removes a portfolio with its people, columns, values, status updates and
+// stars, and takes it out of every portfolio that held it. The projects and
+// portfolios it held stay (only the link goes).
+export async function purgePortfolio(portfolioId: number, db: Queryable): Promise<number> {
+  await db.query("DELETE v FROM portfolio_field_values v JOIN portfolio_items i ON i.id = v.item_id WHERE i.portfolio_id = ? OR i.child_portfolio_id = ?", [portfolioId, portfolioId]);
+  await db.query("DELETE FROM portfolio_items WHERE portfolio_id = ? OR child_portfolio_id = ?", [portfolioId, portfolioId]);
+  await db.query("DELETE v FROM portfolio_field_values v JOIN portfolio_fields f ON f.id = v.field_id WHERE f.portfolio_id = ?", [portfolioId]);
+  for (const table of ["portfolio_fields", "portfolio_members", "portfolio_status_updates"]) await db.query(`DELETE FROM ${table} WHERE portfolio_id = ?`, [portfolioId]);
+  await db.query("DELETE FROM work_favourites WHERE object_type = 'PORTFOLIO' AND object_id = ?", [portfolioId]);
+  const [result] = await db.query<ResultSetHeader>("DELETE FROM portfolios WHERE id = ? AND deleted_at IS NOT NULL", [portfolioId]);
   return result.affectedRows;
 }
 

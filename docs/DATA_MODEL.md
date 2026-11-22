@@ -1091,6 +1091,19 @@ Times are stored in UTC (`DATETIME`, set by `CURRENT_TIMESTAMP` or the app). Ind
 - `meeting_open_points` (text, owner, review date, OPEN/CLOSED with note, `carried_from_id`) and `meeting_events` (history, reminders).
 - `tasks.meeting_id`: the meeting an action-item task came from (FK, indexed).
 
+## Portfolios (v1.69.0, D-382; migration 202611221800_pm_d_portfolios.sql)
+
+| Table | Key columns | Notes |
+|---|---|---|
+| `portfolios` | `id`, `name`, `color` (a project colour key), `owner_id` → users, `privacy` PRIVATE/DEPARTMENT/ORGANISATION, `department_id` → departments, `default_access_role` EDITOR/COMMENTER/VIEWER (default VIEWER), `description`, `start_on`, `due_on`, `current_status` (from the latest status update), `default_tab` LIST/TIMELINE/PROGRESS/DASHBOARD, `archived_at`, `row_version`, `created_by`, `deleted_at`, `deleted_by` | Soft delete; purged 30 days after (with everything below). `visiblePortfolioClause` = `effectivePortfolioRole` (the project rule: own grant, privacy default, managers of a member see it, IT owner, nothing without the Projects module). |
+| `portfolio_members` | PK (`portfolio_id`, `user_id`), `role` OWNER/EDITOR/COMMENTER/VIEWER, `added_by` | At least one OWNER (checked by the app). People only (no department members). |
+| `portfolio_items` | `id`, `portfolio_id` → portfolios, `project_id` → projects or `child_portfolio_id` → portfolios (exactly one, checked by the app), `priority` HIGH/MEDIUM/LOW, `position`, `added_by`, `added_at`; UNIQUE (portfolio, project), (portfolio, child) | Nesting: no circles, at most 5 levels (`server/work/portfolio-rules.ts` `nestingProblem`), ≤ 500 items. A deleted project or portfolio drops out of the rows until restored; purging a project deletes its rows here. |
+| `portfolio_fields` | `id`, `portfolio_id`, `name`, `kind` TEXT/NUMBER/SELECT/DATE/PEOPLE, `options_json`, `position`, `created_by` | The portfolio's own columns (≤ 20). Hard delete with values. |
+| `portfolio_field_values` | PK (`item_id` → portfolio_items, `field_id` → portfolio_fields), `value` VARCHAR(500), `updated_by` | Checked per kind (`checkFieldValue`). |
+| `portfolio_status_updates` | `id`, `portfolio_id`, `status`, `title`, `body`, `author_id`, `deleted_at`, `created_at` | The portfolio's own updates (project updates stay in `project_status_updates`). |
+
+`work_favourites.object_type` adds PORTFOLIO. Setting: `features.pm_portfolios` (ON / OFF / IT_ONLY, default OFF). Figures (task progress, counts, charts) are not stored: worked out per viewer from `task_projects`/`tasks` over the projects they can see, each task once.
+
 ## Project automations (v1.68.0, D-380; migration 202611221700_pm_d_automations.sql)
 
 | Table | Key columns | Notes |

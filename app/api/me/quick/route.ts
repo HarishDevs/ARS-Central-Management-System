@@ -7,6 +7,7 @@ import { STATUS_WORD } from "@/features/ui/labels";
 import { LIMITS, overLimit, tooManyResponse } from "@/server/security/limits";
 import { apiError } from "@/lib/http/api-response";
 import { quickWork } from "@/lib/db/repositories/work.repository";
+import { listVisiblePortfolios } from "@/lib/db/repositories/portfolios.repository";
 import { hasModule } from "@/server/modules/modules";
 import { featureOn } from "@/server/settings/features";
 import { workViewer } from "@/server/work/task-access";
@@ -35,6 +36,11 @@ export async function GET(request: NextRequest) {
     const found = q.length >= 2 && hasModule(session.user, "TASK") && (await featureOn("tasks", session.user)) ? await quickWork(await workViewer(session.user), q) : { tasks: [], projects: [] };
     // D-307: projects only for people with the Projects module.
     const work = hasModule(session.user, "PROJECT") ? found : { ...found, projects: [] };
+    // v1.69.0 (D-382): portfolios the person can see (Projects module and the "pm_portfolios" switch).
+    const portfolios =
+      q.length >= 2 && hasModule(session.user, "PROJECT") && (await featureOn("tasks", session.user)) && (await featureOn("pm_portfolios", session.user))
+        ? (await listVisiblePortfolios(await workViewer(session.user), { q, limit: 5 })).map((item) => ({ id: item.id, name: item.name }))
+        : [];
     // D-232: people and information too (the universal search).
     const people = q.length >= 2 ? (await searchPeople(q)).map((person) => ({ id: person.id, name: person.name, label: personLabel(person), email: person.email, detail: [person.department, person.designation].filter(Boolean).join(" · "), photo: photoUrl(person.id, person.photoUpdatedAt) })) : [];
     let information: { id: number; infoNo: string; title: string }[] = [];
@@ -46,7 +52,7 @@ export async function GET(request: NextRequest) {
       }
       information = [...found.values()].slice(0, 6);
     }
-    return Response.json({ kind: q.length >= 2 ? "search" : "recent", items, tasks: work.tasks, projects: work.projects, people, information }, { headers: { "Cache-Control": "no-store" } });
+    return Response.json({ kind: q.length >= 2 ? "search" : "recent", items, tasks: work.tasks, projects: work.projects, portfolios, people, information }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     if ((error as Error)?.name !== "ForbiddenError") logError("quick search failed", error);
     return apiError("NOT_FOUND", "Not found.", 404);

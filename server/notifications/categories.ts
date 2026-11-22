@@ -32,6 +32,10 @@ export const TASK_EVENTS: readonly string[] = [
   // v1.68.0 (D-380): project automations ("Notify people" steps; a rule failing or paused).
   "WORK_AUTOMATION",
   "WORK_AUTOMATION_NOTICE",
+  // v1.69.0 (D-382): portfolios (added to one; its status updates; a project in it off track).
+  "WORK_PORTFOLIO_MEMBER",
+  "WORK_PORTFOLIO_STATUS",
+  "WORK_PORTFOLIO_ALERT",
 ];
 // v1.51.0 (D-300), v1.51.1 (owner): Meeting Management, its own Inbox category.
 export const MEETING_EVENTS: readonly string[] = ["MEETING_INVITED", "MEETING_UPDATED", "MEETING_CANCELLED", "MEETING_APPROVAL", "MEETING_DECIDED", "MEETING_PUBLISHED", "MEETING_REMINDER", "MEETING_ACTION"];

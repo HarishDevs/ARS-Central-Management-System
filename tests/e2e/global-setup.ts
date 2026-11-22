@@ -40,6 +40,8 @@ export default async function globalSetup(): Promise<void> {
     await conn.query("INSERT INTO system_settings (setting_key, setting_group, value_type, encrypted, value) VALUES ('features.pm_reporting', 'FEATURES', 'STRING', FALSE, 'ON') ON DUPLICATE KEY UPDATE value = 'ON'");
     // v1.68.0 (D-380): the PM automations switch, likewise ON for the e2e run.
     await conn.query("INSERT INTO system_settings (setting_key, setting_group, value_type, encrypted, value) VALUES ('features.pm_automations', 'FEATURES', 'STRING', FALSE, 'ON') ON DUPLICATE KEY UPDATE value = 'ON'");
+    // v1.69.0 (D-382): the PM portfolios switch, likewise ON for the e2e run.
+    await conn.query("INSERT INTO system_settings (setting_key, setting_group, value_type, encrypted, value) VALUES ('features.pm_portfolios', 'FEATURES', 'STRING', FALSE, 'ON') ON DUPLICATE KEY UPDATE value = 'ON'");
   } finally {
     await conn.end();
   }

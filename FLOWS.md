@@ -1889,6 +1889,32 @@ The application audit (`application-audit/`) found these gaps between flows and 
 - **F-59 Bulk import:** the import doesn't apply the rule that only the Super Admin changes another IT Admin's contact details (AUD-01). Fix planned: V181-A2.
 - **F-121 Page access:** an action posted from an address that is no configured page isn't restricted (AUD-14). Fix planned: V181-A7.
 
+## F-PM-PORT: Portfolios (v1.69.0, D-382; "pm_portfolios")
+```mermaid
+flowchart TD
+  A[+ Create → Portfolio, or Portfolios → Create portfolio] --> B{pm_portfolios on and Projects module?}
+  B -- no --> X[Not found / no menu entry]
+  B -- yes --> C[Step 1: name, colour, who can see it, opens on]
+  C --> D[Step 2: projects and portfolios the person can see]
+  D --> E[Step 3: people with a role]
+  E --> F[Create portfolio: owner = creator; items; members told WORK_PORTFOLIO_MEMBER]
+  F --> G[Portfolio page]
+  G --> H{Viewer's role: own grant, privacy default, manager of a member, IT owner}
+  H -- none --> X
+  H -- any --> I[Load items; ask which projects and sub-portfolios the viewer can see]
+  I --> J{Can see the item?}
+  J -- no --> K["Private project": who added it, ask for access; left out of every figure]
+  J -- yes --> L[Row: latest status, task progress, due, owner, priority, own columns]
+  L --> M[Tabs: List, Timeline by quarter, Progress, Dashboard]
+  G --> N{Editor? Add work}
+  N --> O{Visible, not already in, ≤ 500, sub-portfolio: no circle and ≤ 5 levels}
+  O -- no --> P[Refused with the reason]
+  O -- yes --> Q[Row added; project unchanged]
+```
+- **Status update:** owners and editors; a status and a headline or summary; the portfolio's `current_status`; members told (WORK_PORTFOLIO_STATUS).
+- **Off track:** a project status update set to Off track → each live portfolio that holds the project → its owners who can see the project (not the person who set it) get WORK_PORTFOLIO_ALERT.
+- **Delete:** owners → Deleted for 30 days (Restore) → the 30-day clean-up purges it with members, columns, values, status updates, stars and its place in other portfolios. Purging a project removes it from every portfolio.
+
 ## F-PM-AUTO: Project automations (v1.68.0, D-380; "pm_automations")
 ```mermaid
 flowchart TD

@@ -1,12 +1,12 @@
 "use client";
 
-import { ArrowDown, ArrowUp, ArrowUpDown, Star, Users } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Briefcase, Star, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { sidebarMoveAction, sidebarSortAction } from "@/app/users/work/actions";
 import { inside } from "@/features/ui/inside";
-import { ProjectDot, useWorkCall } from "@/features/work/client";
+import { identityColor, ProjectDot, useWorkCall } from "@/features/work/client";
 import { SIDEBAR_SORT_LABEL, SIDEBAR_SORTS, type SidebarList, type SidebarSort } from "@/server/work/pm-rules";
 
 // v1.62.0 (D-368, spec NAV sidebar): Starred projects and the projects
@@ -19,10 +19,12 @@ export interface SidebarSectionView {
   items: { id: number; name: string; color: string }[];
 }
 
-export function WorkSidebar({ starred, departments, departmentName }: { starred: SidebarSectionView; departments: SidebarSectionView; departmentName: string | null }) {
+// v1.69.0 (D-382): starred portfolios follow the starred projects (by name), and a Portfolios link.
+export function WorkSidebar({ starred, departments, departmentName, portfolios = null }: { starred: SidebarSectionView; departments: SidebarSectionView; departmentName: string | null; portfolios?: { id: number; name: string; color: string }[] | null }) {
   return (
     <div className="space-y-1 px-2 pb-3" data-testid="work-sidebar">
       <ProjectSection title="Starred" icon={<Star aria-hidden="true" className="h-3 w-3" />} data={starred} empty="Star a project (☆ in its header or the project list) to keep it here." />
+      {portfolios && <PortfolioLinks items={portfolios} />}
       {departmentName && <ProjectSection title={departmentName} heading="Departments" icon={<Users aria-hidden="true" className="h-3 w-3" />} data={departments} empty="No projects are shared with your department yet." />}
     </div>
   );
@@ -89,6 +91,32 @@ function ProjectSection({ title, heading, icon, data, empty }: { title: string; 
         {live}
       </span>
     </section>
+  );
+}
+
+function PortfolioLinks({ items }: { items: { id: number; name: string; color: string }[] }) {
+  const pathname = usePathname();
+  return (
+    <ul className="space-y-0.5" aria-label="Starred portfolios" data-testid="sidebar-portfolios">
+      {items.map((item) => {
+        const href = `/users/work/portfolios/${item.id}`;
+        const active = pathname === href;
+        return (
+          <li key={item.id} className="rounded-md hover:bg-surface-muted focus-within:bg-surface-muted">
+            <Link href={href} aria-current={active ? "page" : undefined} className={`flex h-8 min-w-0 items-center gap-2 px-2 text-label ${active ? "font-semibold text-primary-700" : "text-ink"}`} data-testid="sidebar-portfolio">
+              <Briefcase aria-hidden="true" className="h-3.5 w-3.5 shrink-0" style={{ color: identityColor(item.color) }} />
+              <span className="truncate">{item.name}</span>
+            </Link>
+          </li>
+        );
+      })}
+      <li>
+        <Link href="/users/work/portfolios" aria-current={pathname === "/users/work/portfolios" ? "page" : undefined} className="flex h-8 items-center gap-2 px-2 text-label text-ink-muted hover:text-ink" data-testid="sidebar-portfolios-link">
+          <Briefcase aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
+          All portfolios
+        </Link>
+      </li>
+    </ul>
   );
 }
 

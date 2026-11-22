@@ -45,6 +45,7 @@ import { checkHoliday, holidayMessage, nearestWorkingDay, type HolidayHit } from
 import { departmentOf, holidayContext, openTasksDueOn } from "@/server/work/holiday-store";
 import { featureOn } from "@/server/settings/features";
 import { shiftDependents, type ShiftOutcome } from "@/server/work/schedule-service";
+import { notifyProjectOffTrack } from "@/server/work/portfolios";
 
 // D-215: Task & Project Management. Each operation checks the person's
 // rights on the server (access.ts through task-access.ts), runs in one
@@ -874,6 +875,8 @@ export async function postStatus(projectId: number, input: { status: string; tit
     return insertOutbox(null, people.map((person) => projectMessages.status({ id: projectId, name: found.project.name }, person, actor.name, STATUS_KIND_LABEL[status], title)), connection);
   });
   await send(outbox);
+  // v1.69.0 (D-382): a project set to Off track tells the owners of the portfolios it is in.
+  if (status === "OFF_TRACK" && found.project.currentStatus !== "OFF_TRACK") await notifyProjectOffTrack({ id: projectId, name: found.project.name }, actor);
   return { ok: true, value: undefined, message: "Status update posted." };
 }
 

@@ -58,6 +58,10 @@ export default function TermsPage() {
             the rule stops until someone becomes its owner. A rule&apos;s webhook secret is a password for that rule: give it only to the system that needs it, never put it in a link or message, and
             make a new one if it may have been seen. Web requests must carry only the work data the rule needs.
           </li>
+          <li>
+            Portfolios: a portfolio&apos;s owners decide who can see it and who may change it; its owners and editors add and remove work and post its status updates. Being in a portfolio never
+            gives access to its projects: ask a project&apos;s owner for access instead of working around it. Add only work that belongs together, and keep status updates factual, as for projects.
+          </li>
           <li>The private notepad on Home is for your work notes. Only you see it in the app, but it is stored with your other records: don&apos;t keep passwords or other people&apos;s personal details in it.</li>
           <li>You can edit or delete your own comments, and IT can edit or delete any comment. Every earlier version is kept and shown to the people who can see the comment, so edit to correct, not to rewrite what was agreed.</li>
           <li>
