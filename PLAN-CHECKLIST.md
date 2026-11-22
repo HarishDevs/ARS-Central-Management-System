@@ -17,6 +17,8 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 **Multi-level approvals in any custom manner.** The engine must support any number of levels in any combination: sequential, parallel, any-one, any-N-of-M, conditional and hybrid. Approvers can come from any source, and levels can be added or skipped by rules. Build the engine for this from the first engine phase (P2). The drag-and-drop designer (P3) is only the screen for building it. Check every task against this.
 
 ## Now / Next
+- **Now (22 Nov 2026):** **v1.68.1** purge note capped at 30 days (D-381). **Owner:** publish (no migration).
+- [x] OPS-33 (22 Nov 2026) Deleted pages: "in 31 days" from clock skew
 - **Now (22 Nov 2026):** **v1.68.0** PM phase D part 2: project automations (rules with a trigger, steps and Paths; draft/publish; run log; loop protection; webhook) (D-380). **Owner:** back up, publish (migration 202611221700_pm_d_automations.sql runs on start), switch "Projects D, automations" on for IT only, try a rule in a test project, then On (DEPLOYMENT G0n). **Next:** PM-D9 portfolios (phase D part 3).
 - **Now (22 Nov 2026):** **v1.67.1** the 30-day clean-up covers forms and dashboards (D-379). **Owner:** publish (no migration).
 - [x] OPS-32 (22 Nov 2026) Purge: intake forms, submissions, dashboard widgets, capacity; guard test for future tables

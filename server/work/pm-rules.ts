@@ -129,9 +129,11 @@ export const PURGE_DAYS = 30;
 export function purgeDueAt(deletedAt: Date): Date {
   return new Date(deletedAt.getTime() + PURGE_DAYS * 86_400_000);
 }
-// Whole days left before the purge (0 when due).
+// Whole days left before the purge (0 when due). v1.68.1: never more than 30 —
+// "deleted at" comes from the database clock and "now" from the app's, so a
+// database clock a moment ahead made a just-deleted task say "in 31 days".
 export function daysUntilPurge(deletedAt: Date, now: Date): number {
-  return Math.max(0, Math.ceil((purgeDueAt(deletedAt).getTime() - now.getTime()) / 86_400_000));
+  return Math.min(PURGE_DAYS, Math.max(0, Math.ceil((purgeDueAt(deletedAt).getTime() - now.getTime()) / 86_400_000)));
 }
 // Which candidate tasks may go: a task goes only when every one of its
 // subtasks goes too (a subtask that stays, e.g. a restored one or a request's

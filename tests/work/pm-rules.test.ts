@@ -106,6 +106,8 @@ describe("purge after 30 days", () => {
     expect(purgeDueAt(deleted).toISOString()).toBe("2026-12-01T10:00:00.000Z");
     expect(daysUntilPurge(deleted, new Date("2026-11-21T10:00:00.000Z"))).toBe(10);
     expect(daysUntilPurge(deleted, new Date("2026-12-05T00:00:00.000Z"))).toBe(0);
+    // v1.68.1: the database clock a moment ahead of the app's still says 30, not 31.
+    expect(daysUntilPurge(new Date("2026-11-21T10:00:02.000Z"), new Date("2026-11-21T10:00:00.000Z"))).toBe(30);
   });
   it("says when an item goes, or that it stays when the purge is off", () => {
     expect(purgeText(deleted, new Date("2026-11-21T10:00:00.000Z"), true)).toBe("Removed for good on 1 Dec 2026 (in 10 days)");

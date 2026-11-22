@@ -1,5 +1,9 @@
 # Release notes
 
+## v1.68.1 (22 Nov 2026): Fix: "removed for good in 31 days"
+- The Deleted pages could say a just-deleted task or project would be removed "in 31 days" when the database's clock ran a moment ahead of the app's. It now never says more than 30.
+- **Owner steps:** none (no migration); publish v1.68.1.
+
 ## v1.68.0 (22 Nov 2026): Project automations: rules that act on a project's tasks (Project Management phase D, part 2)
 Behind a new feature switch, **Projects D, automations**, Off until IT turns it on. With it Off nothing changes.
 - **Project settings → Automations → Add automation** (owners and editors; only owners when *Only admins customise* is ticked): a builder laid out as a flow of cards: the **trigger**, the **steps**, and optional **Paths** (if / otherwise, with conditions on the section, assignee, priority, due date status, completion, name or custom fields). Every card is added, moved (↑ / ↓) and removed with buttons and the keyboard; cards say **Requires setup** until complete.
