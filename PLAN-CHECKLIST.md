@@ -18,6 +18,7 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 
 ## Now / Next
 - **Now (22 Nov 2026):** **v1.76.2** one-time restore of the 22 Nov backup on start (D-403). **Owner:** add secrets RESTORE_CONFIRM and RESTORE_BACKUP_KEY, Update Preview, check the data, Publish, remove the secrets, run the two optional trigger files.
+- [ ] BK-1 (planned 22 Nov 2026, after the motion review) Backup, Restore and Migrate centre in Super Admin — brief docs/ops/BACKUP-CENTRE-BRIEF.md: full encrypted package (DB + attachments + secrets, owner passphrase), all destinations/sources, safety snapshot before restore, app-to-app and DB-to-DB migration GoDaddy <-> VPS
 - [x] OPS-38 (22 Nov 2026) Append-only history enforced by a code test (triggers can't be created on GoDaddy)
 - [x] OPS-37 (22 Nov 2026) Warn: never use Database Manager Import for partial SQL; owner steps skip the optional trigger files
 - [x] OPS-36 (22 Nov 2026) Encrypted backup bundle + restore-on-start (guarded, run once, never blocks start)
