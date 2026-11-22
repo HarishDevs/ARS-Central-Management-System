@@ -143,42 +143,42 @@ export default async function MorePage() {
           // eslint-disable-next-line @next/next/no-img-element -- static brand image
           <img src={defaultAvatar(Boolean(profile?.isApprover))} alt="" className="h-24 w-24 rounded-full object-cover ring-1 ring-line" data-testid="more-default-photo" />
         )}
-        <span className="flex items-center gap-1 text-[22px] font-semibold">
+        <span className="flex items-center gap-1 text-[length:calc(22px*var(--text-scale,1))] font-semibold">
           {user.name}
           <ChevronRight aria-hidden="true" className="h-5 w-5 text-ink-muted" />
         </span>
-        <span className="text-[14px] text-ink-muted">{user.email}</span>
-        {(profile?.designationName || profile?.departmentName) && <span className="text-[13px] text-ink-muted">{[profile?.designationName, profile?.departmentName].filter(Boolean).join(" · ")}</span>}
+        <span className="text-[length:calc(14px*var(--text-scale,1))] text-ink-muted">{user.email}</span>
+        {(profile?.designationName || profile?.departmentName) && <span className="text-[length:calc(13px*var(--text-scale,1))] text-ink-muted">{[profile?.designationName, profile?.departmentName].filter(Boolean).join(" · ")}</span>}
       </Link>
       <div className="mt-5 grid grid-cols-2 gap-3">
         {open("/users/delegation") && (
           <Link href="/users/delegation" className="mob-card flex min-h-[96px] flex-col items-center justify-center gap-1.5 p-3 text-center" data-testid="more-away">
             <CalendarDays aria-hidden="true" className="h-6 w-6 text-ink-muted" />
-            <span className="text-[15px] font-medium">Out of office</span>
-            <span className="text-[12px] text-ink-muted">{away ? `${away.state === "ACTIVE" ? "On" : "From " + dayText(away.startsOn)} until ${dayText(away.endsOn)}` : "Off"}</span>
+            <span className="text-[length:calc(15px*var(--text-scale,1))] font-medium">Out of office</span>
+            <span className="text-[length:calc(12px*var(--text-scale,1))] text-ink-muted">{away ? `${away.state === "ACTIVE" ? "On" : "From " + dayText(away.startsOn)} until ${dayText(away.endsOn)}` : "Off"}</span>
           </Link>
         )}
         {open("/users/notifications/settings") && (
           <Link href="/users/notifications/settings" className="mob-card flex min-h-[96px] flex-col items-center justify-center gap-1.5 p-3 text-center">
             <BellRing aria-hidden="true" className="h-6 w-6 text-ink-muted" />
-            <span className="text-[15px] font-medium">Notifications</span>
-            <span className="text-[12px] text-ink-muted">Email, WhatsApp, phone</span>
+            <span className="text-[length:calc(15px*var(--text-scale,1))] font-medium">Notifications</span>
+            <span className="text-[length:calc(12px*var(--text-scale,1))] text-ink-muted">Email, WhatsApp, phone</span>
           </Link>
         )}
       </div>
       {groups.map((group) => (
         <section key={group.title} aria-label={group.title} className="-mx-4 mt-5 border-t-8 border-[color:var(--m-bg)]">
-          <h2 className="px-4 pb-1 pt-4 text-[14px] text-ink-muted">{group.title}</h2>
+          <h2 className="px-4 pb-1 pt-4 text-[length:calc(14px*var(--text-scale,1))] text-ink-muted">{group.title}</h2>
           <ul>
             {group.entries.map((entry) => (
               <li key={`${entry.href}-${entry.label}`}>
                 <Link href={entry.href} className="flex min-h-[56px] items-center gap-4 px-4 py-2 hover:bg-surface-muted">
                   <entry.icon aria-hidden="true" className="h-[22px] w-[22px] shrink-0 text-ink-muted" />
                   <span className="min-w-0 flex-1">
-                    <span className="block text-[16px]">{entry.label}</span>
-                    {entry.hint && <span className="block truncate text-[12px] text-ink-muted">{entry.hint}</span>}
+                    <span className="block text-[length:calc(16px*var(--text-scale,1))]">{entry.label}</span>
+                    {entry.hint && <span className="block truncate text-[length:calc(12px*var(--text-scale,1))] text-ink-muted">{entry.hint}</span>}
                   </span>
-                  {entry.value && <span className="text-[14px] text-ink-muted">{entry.value}</span>}
+                  {entry.value && <span className="text-[length:calc(14px*var(--text-scale,1))] text-ink-muted">{entry.value}</span>}
                   <ChevronRight aria-hidden="true" className="h-5 w-5 text-ink-faint" />
                 </Link>
               </li>
@@ -188,10 +188,10 @@ export default async function MorePage() {
       ))}
       <div className="-mx-4 mt-5 border-t-8 border-[color:var(--m-bg)]">
         <MoreSignOut />
-        <p className="flex min-h-[52px] items-center gap-4 px-4 text-[16px]" data-testid="more-version">
+        <p className="flex min-h-[52px] items-center gap-4 px-4 text-[length:calc(16px*var(--text-scale,1))]" data-testid="more-version">
           <Smartphone aria-hidden="true" className="h-[22px] w-[22px] text-ink-muted" />
           <span className="flex-1">App version</span>
-          <span className="text-[14px] tabular-nums text-ink-muted">{packageJson.version}</span>
+          <span className="text-[length:calc(14px*var(--text-scale,1))] tabular-nums text-ink-muted">{packageJson.version}</span>
         </p>
       </div>
     </div>

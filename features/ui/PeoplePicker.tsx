@@ -178,7 +178,7 @@ export function PeoplePicker({
               id={listId}
               role="listbox"
               aria-label={`${label}: matches`}
-              className={`absolute z-[70] w-full overflow-auto rounded-md border border-line bg-raised py-1 shadow-card ${fit.up ? "bottom-full mb-1" : "mt-1"}`}
+              className={`absolute z-popover w-full overflow-auto rounded-lg border border-line bg-raised py-1 shadow-overlay ${fit.up ? "bottom-full mb-1" : "mt-1"}`}
               style={{ maxHeight: Math.min(fit.maxHeight, 320) }}
             >
               <li role="presentation" className="flex justify-end px-1">

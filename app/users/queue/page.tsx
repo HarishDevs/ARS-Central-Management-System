@@ -68,7 +68,7 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
     filter.raisedFrom || filter.raisedTo ? { label: `Raised ${filter.raisedFrom ?? "…"} to ${filter.raisedTo ?? "…"}`, href: without({ raisedFrom: null, raisedTo: null }) } : null,
     filter.waitingFrom || filter.waitingTo ? { label: `Waiting since ${filter.waitingFrom ?? "…"} to ${filter.waitingTo ?? "…"}`, href: without({ waitingFrom: null, waitingTo: null }) } : null,
   ].filter((chip): chip is { label: string; href: string } => chip !== null);
-  const select = "field-input h-10";
+  const select = "field-input field-compact";
   // v1.58.0 (D-354, owner: "sorting in all the tables asc to desc or vice versa in all
   // columns"): each column title links to its next direction; a preset clears it.
   const columnSort = { sortBy: filter.sortBy ?? null, dir: filter.dir ?? "asc" } as const;

@@ -25,7 +25,7 @@ test("D-210: switch to Classic; Gateway, module menu, page tabs, letters and Esc
   await page.goto("/users");
   await expect(page.getByTestId("sidebar")).toBeVisible();
   await page.getByRole("button", { name: /open your menu|profile menu|account/i }).first().click();
-  await page.getByTestId("view-switch").getByRole("radio", { name: "Classic" }).click();
+  await page.getByRole("menuitemradio", { name: "Classic" }).click(); // v1.72.2 (D-394): radio items of the account menu
   await expect(page.getByTestId("classic-gateway")).toBeVisible();
   await expect(page.getByTestId("sidebar")).toHaveCount(0);
   // Page 2 of the sketch: one box, the Central Management System.
@@ -76,7 +76,7 @@ test("D-210: switch to Classic; Gateway, module menu, page tabs, letters and Esc
   const bodyText = () => page.getByTestId("gateway-menu").getByRole("link", { name: /Approval Management/ }).evaluate((element) => getComputedStyle(element).fontSize);
   expect(await bodyText()).toBe("14px");
   await page.getByRole("button", { name: /open your menu|profile menu|account/i }).first().click();
-  await page.getByTestId("text-size").getByRole("radio", { name: "Largest" }).click();
+  await page.getByRole("menuitemradio", { name: /^Largest/ }).click();
   await expect.poll(bodyText).toBe("21px");
   await page.screenshot({ path: "test-results/classic-largest.png", fullPage: true });
   await page.reload();
@@ -84,7 +84,7 @@ test("D-210: switch to Classic; Gateway, module menu, page tabs, letters and Esc
 
   // Back to Compact: normal text, no Classic text size.
   await page.getByRole("button", { name: /open your menu|profile menu|account/i }).first().click();
-  await page.getByTestId("view-switch").getByRole("radio", { name: "Compact" }).click();
+  await page.getByRole("menuitemradio", { name: "Compact" }).click();
   await expect(page.getByTestId("sidebar")).toBeVisible();
   await page.goto("/users");
   await expect(page.getByTestId("classic-gateway")).toHaveCount(0);

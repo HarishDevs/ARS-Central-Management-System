@@ -119,7 +119,7 @@ export function ViewTabs({ projectId = 0, scope = "PROJECT", base, strip, active
                 <Menu
                   label={`Tab menu: ${tab.name}`}
                   trigger={<MoreHorizontal aria-hidden="true" className="h-4 w-4" />}
-                  buttonClass={`mr-1 inline-flex h-6 w-6 items-center justify-center rounded text-ink-faint hover:bg-surface-muted hover:text-ink aria-expanded:opacity-100 ${active ? "" : "sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100"}`}
+                  buttonClass={`mr-1 inline-flex h-6 w-6 items-center justify-center rounded text-ink-faint hover:bg-surface-muted hover:text-ink aria-expanded:opacity-100 ${active ? "" : "sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100 [@media(hover:none)]:!opacity-100"}`}
                   align="left"
                   menuClass="w-56"
                   testId="tab-menu"

@@ -59,13 +59,13 @@ export function MobileInfoList({
         {Object.entries(search.keep).map(([name, value]) => (
           <input key={name} type="hidden" name={name} value={value} />
         ))}
-        <label className="flex min-h-12 items-center gap-3 rounded-full bg-surface-muted px-4">
+        <label className="flex min-h-12 items-center gap-3 rounded-full border border-[color:var(--color-border-input)] bg-surface-muted px-4 focus-within:border-primary-600 focus-within:ring-[3px] focus-within:ring-primary-600/25">
           <Search aria-hidden="true" className="h-5 w-5 text-ink-muted" />
           <span className="sr-only">Search information</span>
-          <input name="q" type="search" defaultValue={search.value} maxLength={100} placeholder="Number, subject or message" enterKeyHint="search" className="min-w-0 flex-1 bg-transparent text-[16px] outline-none" />
+          <input name="q" type="search" defaultValue={search.value} maxLength={100} placeholder="Number, subject or message" enterKeyHint="search" className="min-w-0 flex-1 bg-transparent text-[length:max(16px,calc(16px*var(--text-scale,1)))] outline-none placeholder:text-ink-faint" />
         </label>
       </form>
-      <p className="pt-4 text-[13px] font-semibold uppercase tracking-wide text-ink-muted">Sort</p>
+      <p className="pt-4 text-[length:calc(13px*var(--text-scale,1))] font-semibold uppercase tracking-wide text-ink-muted">Sort</p>
       <SheetChoices label="Sort" items={sorts} />
     </div>
   );
@@ -73,7 +73,7 @@ export function MobileInfoList({
     <div className="pb-20" data-testid="mobile-information">
       <ScreenTitle title={title} menu={menu} menuLabel="Information pages" />
       {search.value && (
-        <p className="pt-3 text-[14px] text-ink-muted">
+        <p className="pt-3 text-[length:calc(14px*var(--text-scale,1))] text-ink-muted">
           Searching: “{search.value}” ·{" "}
           <Link href={views.find((view) => view.current)?.href ?? search.action} className="font-semibold text-[color:var(--m-navy-text)]">
             Clear
@@ -91,11 +91,11 @@ export function MobileInfoList({
               <Link href={`/users/information/${row.id}`} className="flex min-h-[72px] items-center gap-3 border-b border-line px-4 py-3" data-testid="m-info-row">
                 <span aria-hidden="true" className={`h-2.5 w-2.5 shrink-0 rounded-full ${row.unread ? "bg-primary-600" : "bg-transparent"}`} />
                 <span className="min-w-0 flex-1">
-                  <span className={`block truncate text-[16px] ${row.unread ? "font-semibold" : ""}`}>
+                  <span className={`block truncate text-[length:calc(16px*var(--text-scale,1))] ${row.unread ? "font-semibold" : ""}`}>
                     {row.unread && <span className="sr-only">Unread: </span>}
                     <SafeText text={row.title} />
                   </span>
-                  <span className="block truncate text-[13px] text-ink-muted">
+                  <span className="block truncate text-[length:calc(13px*var(--text-scale,1))] text-ink-muted">
                     <span className="font-mono">{row.infoNo}</span> · {row.detail}
                   </span>
                   {row.priority !== "NORMAL" && (
@@ -104,14 +104,14 @@ export function MobileInfoList({
                     </span>
                   )}
                 </span>
-                <span className={`shrink-0 rounded-md px-2.5 py-1 text-[12px] font-medium ${CHIP[row.chip.tone]}`}>{row.chip.text}</span>
+                <span className={`shrink-0 rounded-md px-2.5 py-1 text-[length:calc(12px*var(--text-scale,1))] font-medium ${CHIP[row.chip.tone]}`}>{row.chip.text}</span>
               </Link>
             </li>
           ))}
         </ul>
       )}
       {pages && (
-        <nav aria-label="Pages" className="flex items-center justify-between pt-4 text-[14px]">
+        <nav aria-label="Pages" className="flex items-center justify-between pt-4 text-[length:calc(14px*var(--text-scale,1))]">
           {pages.prev ? (
             <Link href={pages.prev} className="min-h-11 content-center font-semibold text-[color:var(--m-navy-text)]">
               ← Previous

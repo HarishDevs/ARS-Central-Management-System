@@ -103,7 +103,7 @@ export default async function ReportPage({ params, searchParams }: { params: Pro
                 <label htmlFor="scope" className="field-label">
                   Whose
                 </label>
-                <select id="scope" name="scope" defaultValue={scope.kind} className="field-input h-10">
+                <select id="scope" name="scope" defaultValue={scope.kind} className="field-input field-compact">
                   {scopes.map((item) => (
                     <option key={item.kind} value={item.kind}>
                       {item.label}
@@ -118,7 +118,7 @@ export default async function ReportPage({ params, searchParams }: { params: Pro
                   <label htmlFor="period" className="field-label">
                     Period
                   </label>
-                  <select id="period" name="period" defaultValue={filter.period.key} className="field-input h-10">
+                  <select id="period" name="period" defaultValue={filter.period.key} className="field-input field-compact">
                     {(Object.keys(PERIOD_LABEL) as PeriodKey[]).map((item) => (
                       <option key={item} value={item}>
                         {PERIOD_LABEL[item]}
@@ -130,13 +130,13 @@ export default async function ReportPage({ params, searchParams }: { params: Pro
                   <label htmlFor="from" className="field-label">
                     From <span className="font-normal text-ink-faint">(custom)</span>
                   </label>
-                  <input id="from" name="from" type="date" defaultValue={filter.period.from} className="field-input h-10" />
+                  <input id="from" name="from" type="date" defaultValue={filter.period.from} className="field-input field-compact" />
                 </div>
                 <div>
                   <label htmlFor="to" className="field-label">
                     To <span className="font-normal text-ink-faint">(custom)</span>
                   </label>
-                  <input id="to" name="to" type="date" defaultValue={filter.period.to} className="field-input h-10" />
+                  <input id="to" name="to" type="date" defaultValue={filter.period.to} className="field-input field-compact" />
                 </div>
               </>
             )}
@@ -144,7 +144,7 @@ export default async function ReportPage({ params, searchParams }: { params: Pro
               <label htmlFor="type" className="field-label">
                 Approval type
               </label>
-              <select id="type" name="type" defaultValue={query.type ?? ""} className="field-input h-10">
+              <select id="type" name="type" defaultValue={query.type ?? ""} className="field-input field-compact">
                 <option value="">All types</option>
                 <option value="-1">Custom approvals</option>
                 {choices.types.map((type) => (
@@ -159,7 +159,7 @@ export default async function ReportPage({ params, searchParams }: { params: Pro
                 <label htmlFor="department" className="field-label">
                   Raiser&apos;s department
                 </label>
-                <select id="department" name="department" defaultValue={query.department ?? ""} className="field-input h-10">
+                <select id="department" name="department" defaultValue={query.department ?? ""} className="field-input field-compact">
                   <option value="">All departments</option>
                   {choices.departments.map((department) => (
                     <option key={department.id} value={department.id}>

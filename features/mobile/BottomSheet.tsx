@@ -33,7 +33,7 @@ export function BottomSheet({ open, onClose, title, subtitle, action, children }
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-dialog" data-testid="m-sheet">
-      <button type="button" aria-label="Close" tabIndex={-1} onClick={onClose} className="mob-sheet-backdrop absolute inset-0 bg-black/50" />
+      <button type="button" aria-label="Close" tabIndex={-1} onClick={onClose} className="mob-sheet-backdrop absolute inset-0 bg-overlay" />
       <div
         ref={panel}
         role="dialog"
@@ -49,10 +49,10 @@ export function BottomSheet({ open, onClose, title, subtitle, action, children }
         </button>
         {title && (
           <div className="relative px-12 pb-2 pt-1 text-center">
-            <h2 id={titleId} className="text-[17px] font-semibold">
+            <h2 id={titleId} className="text-[length:calc(17px*var(--text-scale,1))] font-semibold">
               {title}
             </h2>
-            {subtitle && <p className="text-[13px] text-ink-muted">{subtitle}</p>}
+            {subtitle && <p className="text-[length:calc(13px*var(--text-scale,1))] text-ink-muted">{subtitle}</p>}
             {action && <div className="absolute right-4 top-1">{action}</div>}
           </div>
         )}
@@ -103,10 +103,10 @@ export function SheetChoices({ items, label }: { items: SheetView[]; label: stri
         <li key={item.href}>
           <Link href={item.href} aria-current={item.current ? "page" : undefined} className="flex min-h-[56px] items-center gap-3 py-2">
             <span className="min-w-0 flex-1">
-              <span className="block text-[16px]">{item.label}</span>
-              {item.hint && <span className="block text-[13px] text-ink-muted">{item.hint}</span>}
+              <span className="block text-[length:calc(16px*var(--text-scale,1))]">{item.label}</span>
+              {item.hint && <span className="block text-[length:calc(13px*var(--text-scale,1))] text-ink-muted">{item.hint}</span>}
             </span>
-            {item.count ? <span className="rounded-full bg-surface-muted px-2 text-[13px] tabular-nums text-ink-muted">{item.count}</span> : null}
+            {item.count ? <span className="rounded-full bg-surface-muted px-2 text-[length:calc(13px*var(--text-scale,1))] tabular-nums text-ink-muted">{item.count}</span> : null}
             {item.current && <Check aria-hidden="true" className="h-5 w-5 text-[color:var(--brand-accent-text)]" />}
           </Link>
         </li>
@@ -131,7 +131,7 @@ export function ViewDock({ views, manage, add, label }: { views: SheetView[]; ma
           title="Choose view"
           content={<SheetChoices items={views} label={label} />}
           testId="m-choose-view"
-          className="flex h-11 min-w-[9.5rem] items-center justify-center gap-2 rounded-full bg-surface-muted px-4 text-[15px] font-medium"
+          className="flex h-11 min-w-[9.5rem] items-center justify-center gap-2 rounded-full bg-surface-muted px-4 text-[length:calc(15px*var(--text-scale,1))] font-medium"
         >
           {current?.label}
           <ChevronsUpDown aria-hidden="true" className="h-4 w-4 text-ink-muted" />
@@ -164,8 +164,8 @@ export function SheetLink({ href, icon, label, value, danger = false }: { href: 
       <span aria-hidden="true" className="text-ink-muted">
         {icon}
       </span>
-      <span className="min-w-0 flex-1 text-[16px]">{label}</span>
-      {value && <span className="text-[14px] text-ink-muted">{value}</span>}
+      <span className="min-w-0 flex-1 text-[length:calc(16px*var(--text-scale,1))]">{label}</span>
+      {value && <span className="text-[length:calc(14px*var(--text-scale,1))] text-ink-muted">{value}</span>}
     </Link>
   );
 }
@@ -178,7 +178,7 @@ export function CompactToggle({ on }: { on: boolean }) {
   return (
     <label className="flex min-h-[56px] items-center gap-4 border-b border-line py-2">
       <Minimize2 aria-hidden="true" className="h-5 w-5 text-ink-muted" />
-      <span className="min-w-0 flex-1 text-[16px]">Compact mode</span>
+      <span className="min-w-0 flex-1 text-[length:calc(16px*var(--text-scale,1))]">Compact mode</span>
       <input
         type="checkbox"
         role="switch"

@@ -579,7 +579,7 @@ export function ProjectWorkspace({
               <section
                 key={boardCol.key}
                 aria-label={`${boardCol.name}, ${count} task${count === 1 ? "" : "s"}`}
-                className={`kanban-col flex w-[304px] shrink-0 flex-col rounded-xl border border-t-4 border-line bg-surface-muted ${columnAccent(index)}`}
+                className={`kanban-col flex w-board-col shrink-0 flex-col rounded-xl border border-t-4 border-line bg-surface-muted ${columnAccent(index)}`}
                 onDragOver={(event) => canMoveCards && event.preventDefault()}
                 onDrop={(event) => {
                   event.preventDefault();
@@ -781,7 +781,7 @@ export function ProjectWorkspace({
                         </div>
                       )}
                       <div role="cell" className="flex min-w-0 items-center gap-2 pr-2 [contain:inline-size]">
-                        <span aria-hidden="true" className={`text-ink-faint ${canDrag ? "cursor-grab opacity-0 group-hover:opacity-100" : "invisible"}`} title="Drag to move (or Alt+↑/↓)">
+                        <span aria-hidden="true" className={`text-ink-faint ${canDrag ? "cursor-grab opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:!opacity-60" : "invisible"}`} title="Drag to move (or Alt+↑/↓)">
                           <GripVertical className="h-4 w-4" />
                         </span>
                         <TaskCheck taskId={task.id} done={task.status === "COMPLETED"} disabled={!(canEdit || task.assigneeId === meId) || task.status === "CANCELLED"} label={task.title} />

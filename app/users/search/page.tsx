@@ -79,7 +79,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
               <label htmlFor="s-status" className="field-label">
                 Status
               </label>
-              <select id="s-status" name="status" defaultValue={filters.status ?? ""} className="field-input h-10">
+              <select id="s-status" name="status" defaultValue={filters.status ?? ""} className="field-input field-compact">
                 {REQUEST_STATUS_OPTIONS.map(([value, label]) => (
                   <option key={value} value={value}>
                     {label}
@@ -91,7 +91,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
               <label htmlFor="s-role" className="field-label">
                 My part
               </label>
-              <select id="s-role" name="role" defaultValue={filters.role} className="field-input h-10">
+              <select id="s-role" name="role" defaultValue={filters.role} className="field-input field-compact">
                 <option value="any">Any</option>
                 <option value="raised">I raised it</option>
                 <option value="approver">I approve or approved it</option>
@@ -101,7 +101,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
               <label htmlFor="s-type" className="field-label">
                 Approval type
               </label>
-              <select id="s-type" name="type" defaultValue={filters.typeId ?? ""} className="field-input h-10">
+              <select id="s-type" name="type" defaultValue={filters.typeId ?? ""} className="field-input field-compact">
                 <option value="">Any type</option>
                 {types.map((type) => (
                   <option key={type.id} value={type.id}>
@@ -115,7 +115,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                 <label htmlFor="s-dept" className="field-label">
                   Raised by department
                 </label>
-                <select id="s-dept" name="dept" defaultValue={filters.departmentId ?? ""} className="field-input h-10">
+                <select id="s-dept" name="dept" defaultValue={filters.departmentId ?? ""} className="field-input field-compact">
                   <option value="">Any department</option>
                   {departments.map((department) => (
                     <option key={department.id} value={department.id}>
@@ -129,19 +129,19 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
               <label htmlFor="s-from" className="field-label">
                 Raised from
               </label>
-              <input id="s-from" name="from" type="date" defaultValue={filters.from ?? ""} className="field-input h-10" />
+              <input id="s-from" name="from" type="date" defaultValue={filters.from ?? ""} className="field-input field-compact" />
             </div>
             <div>
               <label htmlFor="s-to" className="field-label">
                 to
               </label>
-              <input id="s-to" name="to" type="date" defaultValue={filters.to ?? ""} className="field-input h-10" />
+              <input id="s-to" name="to" type="date" defaultValue={filters.to ?? ""} className="field-input field-compact" />
             </div>
             <div>
               <label htmlFor="s-sort" className="field-label">
                 Order
               </label>
-              <select id="s-sort" name="sort" defaultValue={filters.sort} className="field-input h-10">
+              <select id="s-sort" name="sort" defaultValue={filters.sort} className="field-input field-compact">
                 <option value="newest">Newest first</option>
                 <option value="oldest">Oldest first</option>
                 <option value="due">Due soonest first</option>

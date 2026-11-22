@@ -4,8 +4,8 @@ import { CheckCircle2, FileCheck2, FolderKanban, Search } from "lucide-react";
 // v1.45.0 (owner's Asana Search screen): on a phone, Search opens on one box
 // with what to search (requests or tasks), then quick filters and shortcuts.
 // Every chip is an existing search (request search, task search, lists).
-const CHIP = "inline-flex min-h-11 items-center gap-2 rounded-full border border-line px-4 text-[15px]";
-const PILL = "inline-flex min-h-12 items-center rounded-2xl border border-line px-4 text-[15px]";
+const CHIP = "inline-flex min-h-11 items-center gap-2 rounded-full border border-line px-4 text-[length:calc(15px*var(--text-scale,1))]";
+const PILL = "inline-flex min-h-12 items-center rounded-2xl border border-line px-4 text-[length:calc(15px*var(--text-scale,1))]";
 
 export function MobileSearch({ tasks, projects }: { tasks: boolean; projects: boolean }) {
   const filters = [
@@ -27,10 +27,10 @@ export function MobileSearch({ tasks, projects }: { tasks: boolean; projects: bo
     <div className="space-y-6" data-testid="mobile-search">
       <h1 className="sr-only">Search</h1>
       <form method="get" action="/users/search" role="search" className="space-y-3">
-        <label className="flex min-h-14 items-center gap-3 rounded-full bg-surface-muted px-5">
+        <label className="flex min-h-14 items-center gap-3 rounded-full border border-[color:var(--color-border-input)] bg-surface-muted px-5 focus-within:border-primary-600 focus-within:ring-[3px] focus-within:ring-primary-600/25">
           <Search aria-hidden="true" className="h-5 w-5 text-ink-muted" />
           <span className="sr-only">Search ARS CMS</span>
-          <input name="q" type="search" maxLength={100} placeholder="Search ARS CMS" enterKeyHint="search" className="min-w-0 flex-1 bg-transparent text-[16px] outline-none placeholder:text-ink-faint" />
+          <input name="q" type="search" maxLength={100} placeholder="Search ARS CMS" enterKeyHint="search" className="min-w-0 flex-1 bg-transparent text-[length:max(16px,calc(16px*var(--text-scale,1)))] outline-none placeholder:text-ink-faint" />
         </label>
         <div className="mob-chips -mx-4 flex gap-2 overflow-x-auto px-4">
           <button type="submit" className={`${CHIP} shrink-0`}>
@@ -49,7 +49,7 @@ export function MobileSearch({ tasks, projects }: { tasks: boolean; projects: bo
         </div>
       </form>
       <section aria-labelledby="m-quick">
-        <h2 id="m-quick" className="mb-3 text-[20px] font-semibold">
+        <h2 id="m-quick" className="mb-3 text-[length:calc(20px*var(--text-scale,1))] font-semibold">
           Quick filters
         </h2>
         <div className="flex flex-wrap gap-2.5">
@@ -62,7 +62,7 @@ export function MobileSearch({ tasks, projects }: { tasks: boolean; projects: bo
       </section>
       {shortcuts.length > 0 && (
         <section aria-labelledby="m-shortcuts">
-          <h2 id="m-shortcuts" className="mb-3 text-[20px] font-semibold">
+          <h2 id="m-shortcuts" className="mb-3 text-[length:calc(20px*var(--text-scale,1))] font-semibold">
             Shortcuts
           </h2>
           <div className="flex flex-wrap gap-2.5">

@@ -24,7 +24,7 @@ function LoaderContent({ variant, title, detail }: { variant: "screen" | "classi
     return (
       // v1.49.0 (owner's splash reference): the logo on its own blue with the
       // light swooshes, and the bar near the bottom with what is happening.
-      <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden px-6 text-white" data-testid="brand-loader">
+      <div className="fixed inset-0 z-splash flex flex-col items-center justify-center overflow-hidden px-6 text-white" data-testid="brand-loader">
         <BlueBackdrop />
         {/* The logo without its background (owner). */}
         <BrandLogoClear variant="white" className="relative h-auto w-[min(70vw,340px)]" />
@@ -39,7 +39,7 @@ function LoaderContent({ variant, title, detail }: { variant: "screen" | "classi
     );
   }
   return (
-    <div className="fixed inset-0 z-[90] flex items-start justify-center bg-black/15 pt-[22vh]" data-testid="classic-loader">
+    <div className="fixed inset-0 z-splash flex items-start justify-center bg-overlay/30 pt-[22vh]" data-testid="classic-loader">
       <div role="status" aria-live="polite" className="w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-md border-2 border-primary-600 bg-surface shadow-lg">
         <p className="flex items-center justify-center gap-2 bg-primary-solid px-4 py-1.5 text-center text-label font-bold uppercase tracking-[0.12em] text-white">
           <CmsMark className="h-4 w-4" tone="white" /> Central Management System

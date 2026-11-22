@@ -89,7 +89,7 @@ export default async function LoginHistoryPage({ searchParams }: { searchParams:
             <label htmlFor="outcome" className="field-label">
               Outcome
             </label>
-            <select id="outcome" name="outcome" defaultValue={outcome ?? ""} className="field-input h-10">
+            <select id="outcome" name="outcome" defaultValue={outcome ?? ""} className="field-input field-compact">
               <option value="">All</option>
               <option value="SUCCESS">Signed in</option>
               <option value="FAILURE">Failed</option>

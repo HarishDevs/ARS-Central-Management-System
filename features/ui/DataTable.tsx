@@ -145,7 +145,7 @@ export function DataTable({
               Columns
             </button>
             {columnsOpen && (
-              <fieldset className="absolute right-0 z-drawer mt-1 w-56 space-y-1 rounded-md border border-line bg-raised p-2 shadow-overlay">
+              <fieldset className="absolute right-0 z-popover mt-1 w-56 space-y-1 rounded-md border border-line bg-raised p-2 shadow-overlay">
                 <legend className="sr-only">Columns to show</legend>
                 {optional.map((column) => (
                   <label key={column.key} className="flex items-center gap-2 rounded px-2 py-1.5 hover:bg-surface-muted">

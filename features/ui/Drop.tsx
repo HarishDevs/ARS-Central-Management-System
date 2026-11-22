@@ -55,7 +55,7 @@ export function Drop({ label, icon, buttonClass, panelClass = "left-0 w-56", tes
         const up = below < Math.min(height, 240) && above > below;
         const maxHeight = Math.max(120, (up ? above : below) - 4);
         const left = Math.min(Math.max(8, button.left), window.innerWidth - width - 8);
-        setEdge({ position: "fixed", left, right: "auto", zIndex: 60, maxHeight, ...(up ? { top: "auto", bottom: window.innerHeight - button.top + 4 } : { top: button.bottom + 4, bottom: "auto" }) });
+        setEdge({ position: "fixed", left, right: "auto", zIndex: "var(--z-popover)", maxHeight, ...(up ? { top: "auto", bottom: window.innerHeight - button.top + 4 } : { top: button.bottom + 4, bottom: "auto" }) });
       };
       place();
       window.addEventListener("resize", place);
@@ -76,7 +76,7 @@ export function Drop({ label, icon, buttonClass, panelClass = "left-0 w-56", tes
       </summary>
       <div
         ref={panel}
-        className={`absolute z-30 overflow-y-auto rounded-lg border border-line bg-raised p-3 text-ink shadow-overlay ${floating ? "" : fit.up ? "bottom-full mb-1" : "mt-1"} ${panelClass}`}
+        className={`absolute z-popover overflow-y-auto rounded-lg border border-line bg-raised p-3 text-ink shadow-overlay ${floating ? "" : fit.up ? "bottom-full mb-1" : "mt-1"} ${panelClass}`}
         style={{ maxHeight: fit.maxHeight, ...edge }}
         data-floating={floating || undefined}
       >

@@ -17,6 +17,7 @@ export function Dialog({
   variant = "dialog",
   size = "md",
   role,
+  testId,
 }: {
   open: boolean;
   onClose: () => void;
@@ -27,6 +28,7 @@ export function Dialog({
   variant?: "dialog" | "drawer";
   size?: "sm" | "md" | "lg";
   role?: "alertdialog";
+  testId?: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const opener = useRef<Element | null>(null);
@@ -67,13 +69,14 @@ export function Dialog({
     <dialog
       ref={ref}
       role={role}
+      data-testid={testId}
       aria-labelledby={titleId}
       aria-describedby={description ? descriptionId : undefined}
       onClick={(event) => {
         // A click on the backdrop (the dialog element itself) closes it.
         if (event.target === ref.current) ref.current?.close();
       }}
-      className={`z-dialog max-h-[90vh] border border-line bg-raised p-0 text-ink shadow-overlay backdrop:bg-overlay ${placement}`}
+      className={`z-dialog max-h-[90dvh] border border-line bg-raised p-0 text-ink shadow-overlay backdrop:bg-overlay ${placement}`}
     >
       {open && (
         <div className="flex max-h-[inherit] flex-col pb-[env(safe-area-inset-bottom)]">

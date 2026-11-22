@@ -129,7 +129,7 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
               <label htmlFor="mf-type" className="field-label">
                 Type
               </label>
-              <select id="mf-type" name="type" defaultValue={typeId ?? ""} className="field-input h-10">
+              <select id="mf-type" name="type" defaultValue={typeId ?? ""} className="field-input field-compact">
                 <option value="">Any type</option>
                 {types.map((type) => (
                   <option key={type.id} value={type.id}>
@@ -142,7 +142,7 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
               <label htmlFor="mf-status" className="field-label">
                 Status
               </label>
-              <select id="mf-status" name="status" defaultValue={status ?? ""} className="field-input h-10">
+              <select id="mf-status" name="status" defaultValue={status ?? ""} className="field-input field-compact">
                 <option value="">Any status</option>
                 {MEETING_STATUSES.map((value) => (
                   <option key={value} value={value}>

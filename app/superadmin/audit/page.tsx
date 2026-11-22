@@ -83,7 +83,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
             <label htmlFor="action" className="field-label">
               Action
             </label>
-            <select id="action" name="action" defaultValue={action ?? ""} className="field-input h-10">
+            <select id="action" name="action" defaultValue={action ?? ""} className="field-input field-compact">
               <option value="">All actions</option>
               {actions.map((item) => (
                 <option key={item} value={item}>

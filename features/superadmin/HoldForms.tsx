@@ -72,7 +72,7 @@ export function ReleaseHoldForm({ holdId, reference }: { holdId: number; referen
           <label htmlFor={`release-${holdId}`} className="sr-only">
             Why can the hold {reference} be released?
           </label>
-          <input id={`release-${holdId}`} name="releaseReason" maxLength={500} placeholder="Why it can be released" className="field-input h-9 w-72" />
+          <input id={`release-${holdId}`} name="releaseReason" maxLength={500} placeholder="Why it can be released" className="field-input field-compact w-full sm:w-72" />
           <FieldError result={result} name="releaseReason" />
         </div>
         <SubmitButton pending={pending} variant="secondary" className="btn-compact">

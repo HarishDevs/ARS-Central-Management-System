@@ -318,7 +318,7 @@ export function CustomApprovalForm({
                       title={item.hint}
                       className={`flex min-w-0 items-center gap-2 rounded-full px-2.5 py-1.5 text-left text-label transition-colors ${current ? "bg-primary-solid font-semibold text-on-solid" : done ? "text-ink hover:bg-surface-muted" : "text-ink-muted hover:bg-surface-muted"}`}
                     >
-                      <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-caption font-semibold ${current ? "bg-white/20" : done ? "bg-success-solid text-on-solid" : "border border-line-strong"}`}>
+                      <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-caption font-semibold ${current ? "bg-on-solid/20" : done ? "bg-success-solid text-on-solid" : "border border-line-strong"}`}>
                         {done ? <Check className="h-3.5 w-3.5" strokeWidth={3} aria-hidden="true" /> : item.step}
                       </span>
                       <span className="min-w-0 truncate">
@@ -603,7 +603,7 @@ function Notice({ tone, children, role = "status", onClose }: { tone: "info" | "
           setOpen(false);
           onClose?.();
         }}
-        className="grid h-6 w-6 shrink-0 place-items-center rounded opacity-70 hover:bg-black/5 hover:opacity-100"
+        className="grid h-6 w-6 shrink-0 place-items-center rounded opacity-70 hover:bg-surface-muted hover:opacity-100"
       >
         <X className="h-3.5 w-3.5" aria-hidden="true" />
       </button>

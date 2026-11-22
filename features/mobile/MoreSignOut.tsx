@@ -12,7 +12,7 @@ export function MoreSignOut() {
   const [busy, setBusy] = useState(false);
   return (
     <>
-      <button type="button" onClick={() => setAsking(true)} disabled={busy} className="flex min-h-[52px] w-full items-center gap-3 px-4 text-left text-[15px] font-semibold text-[color:var(--m-red)]">
+      <button type="button" onClick={() => setAsking(true)} disabled={busy} className="flex min-h-[52px] w-full items-center gap-3 px-4 text-left text-[length:calc(15px*var(--text-scale,1))] font-semibold text-[color:var(--m-red-text)]">
         <LogOut aria-hidden="true" className="h-5 w-5" />
         {busy ? "Signing out…" : "Sign out"}
       </button>

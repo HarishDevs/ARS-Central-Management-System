@@ -126,7 +126,7 @@ export default async function AiAnalyticsPage({ searchParams }: { searchParams: 
               <label htmlFor="ai-period" className="field-label">
                 Period
               </label>
-              <select id="ai-period" name="period" defaultValue={period.key} className="field-input h-10">
+              <select id="ai-period" name="period" defaultValue={period.key} className="field-input field-compact">
                 {PERIODS.map((key) => (
                   <option key={key} value={key}>
                     {PERIOD_LABEL[key]}
@@ -139,13 +139,13 @@ export default async function AiAnalyticsPage({ searchParams }: { searchParams: 
               <label htmlFor="ai-from" className="field-label">
                 From
               </label>
-              <input id="ai-from" type="date" name="from" defaultValue={period.key === "custom" ? period.from : ""} className="field-input h-10" />
+              <input id="ai-from" type="date" name="from" defaultValue={period.key === "custom" ? period.from : ""} className="field-input field-compact" />
             </div>
             <div>
               <label htmlFor="ai-to" className="field-label">
                 To
               </label>
-              <input id="ai-to" type="date" name="to" defaultValue={period.key === "custom" ? period.to : ""} className="field-input h-10" />
+              <input id="ai-to" type="date" name="to" defaultValue={period.key === "custom" ? period.to : ""} className="field-input field-compact" />
             </div>
           </>
         }

@@ -6,6 +6,7 @@ import { statusHighlightsAction, statusReminderAction, statusUpdateAction } from
 import { FieldError, ResultMessage, SubmitButton, useActionForm } from "@/features/ui/form";
 import { PersonSelect, type PersonChoice } from "@/features/ui/PersonSelect";
 import { RichEditor } from "@/features/ui/RichEditor";
+import { InlineLoading } from "@/features/ui/Spinner";
 import { useWorkCall } from "@/features/work/client";
 import { STATUS_KIND_LABEL, STATUS_KINDS } from "@/server/work/access";
 import { DEFAULT_HIGHLIGHT_DAYS, HIGHLIGHT_WINDOWS, MAX_EXTRA_RECIPIENTS, statusTitleFor } from "@/server/work/schedule";
@@ -157,7 +158,7 @@ export function StatusComposer({
             </select>
           </label>
         </div>
-        {items === null && <p className="text-caption text-ink-muted">Loading…</p>}
+        {items === null && <InlineLoading />}
         {items && items.length === 0 && <p className="text-caption text-ink-muted">Nothing was completed in this period.</p>}
         {items && items.length > 0 && (
           <>

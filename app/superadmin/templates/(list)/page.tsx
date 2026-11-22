@@ -98,7 +98,7 @@ export default async function TemplatesPage({ searchParams }: { searchParams: Pr
       <section className="card mb-6 flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 flex-1">
           <p className="text-label text-ink-muted">Live on WhatsApp</p>
-          <p className="mt-1 text-2xl font-bold tabular-nums">
+          <p className="mt-1 text-card-title font-bold tabular-nums">
             {live} <span className="text-label font-normal text-ink-muted">of {board.length} messages</span>
           </p>
           <div className="mt-2 h-2 max-w-sm overflow-hidden rounded-full bg-surface-muted" role="progressbar" aria-valuenow={live} aria-valuemin={0} aria-valuemax={board.length} aria-label="Templates live">

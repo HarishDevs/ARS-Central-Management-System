@@ -2330,6 +2330,17 @@ flowchart TD
 ```
 - Kinds: My Tasks, Projects (Recent / Starred), Latest status updates, Private notepad, My weekly workload, Tasks I've assigned, People; Forms waits for phase C. Each once, at most 20; the server refuses kinds of modules the person lacks. Without Projects, the locked "coming soon" card stays after the widgets (D-307).
 
+## F-UI-FEEDBACK: Messages and layers while a dialog is open (v1.72.2, D-394)
+```mermaid
+flowchart LR
+  A[An action in a modal dialog: save, copy, error] --> T[toast]
+  T --> Q{A modal dialog open?}
+  Q -->|yes| D[Toast region drawn inside the newest open dialog: above it, clickable, announced]
+  Q -->|no| P[Toast region on the page, layer z-toast]
+  D -->|dialog closes| P
+```
+- Layers, low to high: header, sticky bars, drawers (task pane, phone menu, Pico Bot), popovers (menus, pickers, listboxes), dialogs, toasts, tour, brand splash. Native modal dialogs sit in the top layer above all of these; popovers inside a dialog are part of it.
+
 ## F-PM-MENUS: Project screens' dropdown menus and Customize panel (v1.72.0, D-387)
 ```mermaid
 flowchart LR

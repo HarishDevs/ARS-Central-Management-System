@@ -1,13 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { MoreVertical } from "lucide-react";
-import { inside } from "@/features/ui/inside";
+import { Menu } from "@/features/ui/Menu";
 
 // D-256: a row's actions on the request lists. Only actions that exist for
 // this request and this person are offered; anything that changes it (withdraw,
 // resubmit) opens the request page, where it is checked and confirmed as before.
+// v1.72.2 (D-394, QA visual A4/G6): the shared menu, placed against the window
+// so the scrolling table never clips it, with the same look, layer and keys
+// as every other menu.
 export interface RowAction {
   label: string;
   href: string;
@@ -16,73 +17,14 @@ export interface RowAction {
 }
 
 export function RequestRowMenu({ title, actions }: { title: string; actions: RowAction[] }) {
-  const [open, setOpen] = useState(false);
-  // Rows sit in a scrolling table box, which would clip the menu: it is
-  // placed on the page (fixed), under the button or above it near the bottom.
-  const [spot, setSpot] = useState<{ top: number; right: number } | null>(null);
-  const box = useRef<HTMLDivElement>(null);
-  const count = actions.length;
-  const place = useCallback(() => {
-    if (!box.current) return;
-    const rect = box.current.getBoundingClientRect();
-    const height = 44 * count + 12;
-    setSpot({ top: rect.bottom + height > window.innerHeight ? Math.max(8, rect.top - height - 4) : rect.bottom + 4, right: Math.max(8, window.innerWidth - rect.right) });
-  }, [count]);
-  const toggle = () => {
-    if (!open) place();
-    setOpen((value) => !value);
-  };
-  useEffect(() => {
-    if (!open) return;
-    box.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus({ preventScroll: true });
-    const close = (event: MouseEvent) => box.current && !inside(event, box.current) && setOpen(false);
-    const key = (event: KeyboardEvent) => event.key === "Escape" && setOpen(false);
-    // v1.58.0: the fixed menu follows its row when the page scrolls (it used to
-    // close, and the scroll that brought the row into view closed it on open).
-    const away = () => place();
-    document.addEventListener("mousedown", close);
-    document.addEventListener("keydown", key);
-    window.addEventListener("scroll", away, true);
-    return () => {
-      document.removeEventListener("mousedown", close);
-      document.removeEventListener("keydown", key);
-      window.removeEventListener("scroll", away, true);
-    };
-  }, [open, place]);
   return (
-    <div ref={box} className="relative inline-block">
-      <button
-        type="button"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-label={`Actions for ${title}`}
-        onClick={toggle}
-        className="grid h-9 w-9 place-items-center rounded-md text-ink-muted hover:bg-surface-muted hover:text-ink"
-        data-testid="row-menu"
-      >
-        <MoreVertical className="h-4 w-4" aria-hidden="true" />
-      </button>
-      {open && (
-        <div role="menu" className="fixed z-[var(--z-drawer)] w-56 rounded-lg border border-line bg-raised p-1 shadow-overlay" style={spot ? { top: spot.top, right: spot.right } : undefined}>
-          {actions.map((action) =>
-            action.download ? (
-              <a key={action.label} role="menuitem" href={action.href} download className="block rounded-md px-3 py-2 text-label hover:bg-surface-muted focus:bg-surface-muted focus:outline-none" onClick={() => setOpen(false)}>
-                {action.label}
-              </a>
-            ) : (
-              <Link
-                key={action.label}
-                role="menuitem"
-                href={action.href}
-                className={`block rounded-md px-3 py-2 text-label hover:bg-surface-muted focus:bg-surface-muted focus:outline-none ${action.tone === "danger" ? "text-danger-600" : ""}`}
-                onClick={() => setOpen(false)}
-              >
-                {action.label}
-              </Link>
-            ),
-          )}
-        </div>
-      )}
-    </div>
+    <Menu
+      label={`Actions for ${title}`}
+      trigger={<MoreVertical className="h-4 w-4" aria-hidden="true" />}
+      items={actions.map((action) => ({ label: action.label, href: action.href, download: action.download, tone: action.tone ?? "default" }))}
+      menuClass="w-56"
+      buttonClass="grid h-9 w-9 place-items-center rounded-md text-ink-muted hover:bg-surface-muted hover:text-ink"
+      testId="row-menu"
+    />
   );
 }

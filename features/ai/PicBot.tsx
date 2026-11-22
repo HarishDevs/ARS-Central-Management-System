@@ -228,7 +228,7 @@ export function PicBot({ initialModes }: { initialModes: ModeOption[] }) {
           }}
           aria-label={minimised ? "Open Pico Bot (minimised)" : "Open Pico Bot"}
           data-testid="picbot-launcher"
-          className="picbot-launcher fixed bottom-20 right-4 z-40 h-14 w-14 overflow-hidden rounded-full border border-line bg-surface shadow-lg transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 motion-reduce:transition-none md:bottom-6 md:right-6"
+          className="picbot-launcher fixed bottom-20 right-4 z-sticky h-14 w-14 overflow-hidden rounded-full border border-line bg-surface shadow-lg transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 motion-reduce:transition-none md:bottom-6 md:right-6"
           style={{ marginBottom: "env(safe-area-inset-bottom)" }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element -- small static logo */}
@@ -251,7 +251,7 @@ export function PicBot({ initialModes }: { initialModes: ModeOption[] }) {
               close();
             }
           }}
-          className={`picbot-panel card fixed inset-x-2 bottom-2 z-50 flex h-[75dvh] flex-col overflow-hidden shadow-xl sm:inset-x-auto sm:bottom-6 sm:right-6 sm:h-[75dvh] sm:w-[75vw] ${leaving ? "picbot-out" : "picbot-in"}`}
+          className={`picbot-panel card fixed inset-x-2 bottom-2 z-drawer flex h-[75dvh] flex-col overflow-hidden shadow-xl sm:inset-x-auto sm:bottom-6 sm:right-6 sm:h-[75dvh] sm:w-[75vw] ${leaving ? "picbot-out" : "picbot-in"}`}
           style={{ marginBottom: "env(safe-area-inset-bottom)" }}
         >
           <header className="flex items-center gap-2 border-b border-line px-3 py-2">
@@ -319,7 +319,7 @@ export function PicBot({ initialModes }: { initialModes: ModeOption[] }) {
                     <label htmlFor="picbot-mode" className="sr-only">
                       What should this chat use?
                     </label>
-                    <select id="picbot-mode" title="What this chat uses" value={current.mode} onChange={(event) => setCurrent({ id: null, mode: event.target.value, usable: true })} className="h-8 rounded-full border border-line bg-surface-muted px-3 text-label text-ink" data-testid="picbot-mode">
+                    <select id="picbot-mode" title="What this chat uses" value={current.mode} onChange={(event) => setCurrent({ id: null, mode: event.target.value, usable: true })} className="pill-select" data-testid="picbot-mode">
                       {modes.map((item) => (
                         <option key={item.mode} value={item.mode}>
                           {item.label}

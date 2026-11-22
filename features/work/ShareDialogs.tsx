@@ -191,7 +191,7 @@ function ProjectShareDialog({ projectId, name, privacy, departmentId, department
                 {member.type === "DEPARTMENT" && <span className="text-caption text-ink-muted">Everyone in this department</span>}
               </span>
               {canShare && (canManage || member.role !== "OWNER") ? (
-                <select aria-label={`Role of ${member.name}`} value={member.role} onChange={(event) => void send(`${member.type}:${member.id}`, event.target.value)} className="bg-transparent text-label font-medium focus:outline-none">
+                <select aria-label={`Role of ${member.name}`} value={member.role} onChange={(event) => void send(`${member.type}:${member.id}`, event.target.value)} className="rounded bg-transparent text-label font-medium">
                   {roles
                     .filter((item) => member.type === "USER" || item !== "OWNER")
                     .map((item) => (

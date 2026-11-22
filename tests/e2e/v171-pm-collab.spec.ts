@@ -119,7 +119,7 @@ test("Files: the message's file in the gallery and the list, with filters (axe)"
   await tab.getByTestId("files-list").click();
   await expect(tab.getByTestId("file-row")).toHaveCount(1);
   await tab.getByLabel("Type").selectOption("image");
-  await expect(tab).toContainText("No files match these filters.");
+  await expect(tab).toContainText("No files match these filters");
   await tab.getByRole("button", { name: "Clear filters" }).click();
   await expect(tab.getByTestId("file-row")).toHaveCount(1);
   expect(await axe(page, "[data-testid=files-tab]")).toEqual([]);

@@ -115,7 +115,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
               ▾
             </span>
           </summary>
-          <ul className="absolute left-0 top-full z-header mt-1 w-64 overflow-hidden rounded-lg border border-line bg-surface py-1 shadow-overlay" aria-label="Show on the calendar">
+          <ul className="absolute left-0 top-full z-popover mt-1 w-64 overflow-hidden rounded-lg border border-line bg-raised py-1 shadow-overlay" aria-label="Show on the calendar">
             {allowedKinds.map((kind) => {
               const on = state.kinds.includes(kind);
               return (

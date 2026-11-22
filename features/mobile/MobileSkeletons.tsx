@@ -269,7 +269,7 @@ function JourneySkeleton() {
         <SkeletonBlock className="h-6 w-14 rounded-full" />
       </div>
       <div className="relative h-16 overflow-hidden rounded-lg bg-surface-muted">
-        <div className="absolute inset-x-0 top-1/2 h-6 -translate-y-1/2 bg-[#1f2937] opacity-60" />
+        <div className="absolute inset-x-0 top-1/2 h-6 -translate-y-1/2 bg-line-strong" />
         <div className="absolute inset-x-4 top-1/2 flex -translate-y-1/2 justify-between">
           {[0, 1, 2, 3].map((index) => (
             <span key={index} className="h-3 w-3 rounded-full bg-surface opacity-80" />

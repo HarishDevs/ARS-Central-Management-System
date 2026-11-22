@@ -230,17 +230,17 @@ export function OnboardingTour({ steps, autoStart }: { steps: TourStep[]; autoSt
   const last = index === steps.length - 1;
 
   return (
-    <div className="fixed inset-0 z-[70]" data-testid="tour">
+    <div className="fixed inset-0 z-palette" data-testid="tour">
       {/* The page behind is dimmed and can't be clicked during the tour. */}
       {box ? (
         <div
           aria-hidden="true"
           data-testid="tour-spotlight"
           className="pointer-events-none fixed rounded-lg ring-2 ring-primary-600 transition-all duration-200 motion-reduce:transition-none"
-          style={{ top: box.top, left: box.left, width: box.width, height: box.height, boxShadow: "0 0 0 9999px rgb(15 23 42 / 0.55)" }}
+          style={{ top: box.top, left: box.left, width: box.width, height: box.height, boxShadow: "0 0 0 9999px var(--color-overlay)" }}
         />
       ) : (
-        <div aria-hidden="true" className="fixed inset-0 bg-slate-900/55" />
+        <div aria-hidden="true" className="fixed inset-0 bg-overlay" />
       )}
       <div
         ref={card}

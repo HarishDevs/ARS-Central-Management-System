@@ -36,7 +36,7 @@ export function MobileTabBar({ waiting, unread, hidden }: { waiting: number; unr
               <Link
                 href={tab.href}
                 aria-current={active ? "page" : undefined}
-                className={`relative flex h-16 flex-col items-center justify-center gap-0.5 text-[12px] font-medium ${active ? "text-ink" : "text-ink-muted"}`}
+                className={`relative flex h-16 flex-col items-center justify-center gap-0.5 text-[length:calc(12px*var(--text-scale,1))] font-medium ${active ? "text-ink" : "text-ink-muted"}`}
               >
                 {/* v1.45.0 (Asana reference): the open tab sits in a pill and says its name. */}
                 <span aria-hidden="true" className={`grid h-8 place-items-center rounded-full transition-[width,background-color] ${active ? "w-14 bg-surface-muted" : "w-10"}`}>
@@ -44,7 +44,7 @@ export function MobileTabBar({ waiting, unread, hidden }: { waiting: number; unr
                 </span>
                 <span className={active ? "" : "sr-only"}>{tab.label}</span>
                 {count > 0 && (
-                  <span className="absolute left-1/2 top-1.5 ml-2.5 min-w-[18px] rounded-full bg-[color:var(--m-red)] px-1 text-center text-[10px] font-bold leading-[18px] text-white">
+                  <span className="absolute left-1/2 top-1.5 ml-2.5 min-w-[18px] rounded-full bg-[color:var(--m-red)] px-1 text-center text-[length:calc(10px*var(--text-scale,1))] font-bold leading-[18px] text-white">
                     {count > 99 ? "99+" : count}
                     <span className="sr-only"> {tab.key === "inbox" ? "unread" : "waiting"}</span>
                   </span>

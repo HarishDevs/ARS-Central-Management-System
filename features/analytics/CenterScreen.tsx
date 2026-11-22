@@ -167,7 +167,7 @@ export async function CenterScreen({ base, board, boards, soon = [], modules, qu
           <label htmlFor="period" className="field-label">
             Period
           </label>
-          <select id="period" name="period" defaultValue={period.key} className="field-input h-10">
+          <select id="period" name="period" defaultValue={period.key} className="field-input field-compact">
             {(Object.keys(PERIOD_LABEL) as PeriodKey[]).map((key) => (
               <option key={key} value={key}>
                 {PERIOD_LABEL[key]}
@@ -179,19 +179,19 @@ export async function CenterScreen({ base, board, boards, soon = [], modules, qu
           <label htmlFor="from" className="field-label">
             From <span className="font-normal text-ink-faint">(custom)</span>
           </label>
-          <input id="from" name="from" type="date" defaultValue={period.from} className="field-input h-10" />
+          <input id="from" name="from" type="date" defaultValue={period.from} className="field-input field-compact" />
         </div>
         <div>
           <label htmlFor="to" className="field-label">
             To <span className="font-normal text-ink-faint">(custom)</span>
           </label>
-          <input id="to" name="to" type="date" defaultValue={period.to} className="field-input h-10" />
+          <input id="to" name="to" type="date" defaultValue={period.to} className="field-input field-compact" />
         </div>
         <div>
           <label htmlFor="compare" className="field-label">
             Compare with
           </label>
-          <select id="compare" name="compare" defaultValue={compare} className="field-input h-10">
+          <select id="compare" name="compare" defaultValue={compare} className="field-input field-compact">
             <option value="PREVIOUS">Previous period</option>
             <option value="LAST_YEAR">Same period last year</option>
           </select>
@@ -202,13 +202,13 @@ export async function CenterScreen({ base, board, boards, soon = [], modules, qu
               <label htmlFor="q" className="field-label">
                 Person
               </label>
-              <input id="q" name="q" type="search" defaultValue={query.q ?? ""} maxLength={60} placeholder="Name or User ID" className="field-input h-10" />
+              <input id="q" name="q" type="search" defaultValue={query.q ?? ""} maxLength={60} placeholder="Name or User ID" className="field-input field-compact" />
             </div>
             <div>
               <label htmlFor="sort" className="field-label">
                 Sort by
               </label>
-              <select id="sort" name="sort" defaultValue={query.sort ?? "name"} className="field-input h-10">
+              <select id="sort" name="sort" defaultValue={query.sort ?? "name"} className="field-input field-compact">
                 <option value="name">Name</option>
                 <option value="pending">Approvals waiting</option>
                 <option value="overdue">Approvals overdue</option>

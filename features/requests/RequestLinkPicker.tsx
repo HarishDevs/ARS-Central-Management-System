@@ -94,7 +94,7 @@ export function RequestLinkPicker({ name, excludeId }: { name: string; excludeId
         />
       </div>
       {open && (
-        <ul id={listId} role="listbox" aria-label="Requests you can link" className="absolute z-20 mt-1 max-h-64 w-full overflow-auto rounded-md border border-line bg-raised py-1 shadow-card">
+        <ul id={listId} role="listbox" aria-label="Requests you can link" className="absolute z-popover mt-1 max-h-64 w-full overflow-auto rounded-lg border border-line bg-raised py-1 shadow-overlay">
           {loading && items.length === 0 ? (
             <li className="px-3 py-2 text-label text-ink-muted">Searching…</li>
           ) : items.length === 0 ? (

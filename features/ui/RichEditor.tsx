@@ -489,7 +489,7 @@ export function RichEditor({
           aria-keyshortcuts="Control+Enter"
         />
         {mention && matches.length > 0 && (
-          <ul role="listbox" aria-label="Mention someone" className="absolute left-2 top-full z-[70] mt-1 max-h-64 w-72 overflow-y-auto rounded-md border border-line bg-raised py-1 shadow-overlay">
+          <ul role="listbox" aria-label="Mention someone" className="absolute left-2 top-full z-popover mt-1 max-h-64 w-72 overflow-y-auto rounded-md border border-line bg-raised py-1 shadow-overlay">
             {matches.map((person, index) => (
               <li
                 key={person.id}
@@ -558,7 +558,7 @@ export function RichEditor({
           </>
         )}
         {emoji && (
-          <div className="absolute bottom-full left-1 z-[70] mb-1 grid w-64 grid-cols-10 gap-0.5 rounded-md border border-line bg-raised p-1.5 shadow-overlay" role="dialog" aria-label="Emoji">
+          <div className="absolute bottom-full left-1 z-popover mb-1 grid w-64 grid-cols-10 gap-0.5 rounded-md border border-line bg-raised p-1.5 shadow-overlay" role="dialog" aria-label="Emoji">
             {EMOJI.map((item) => (
               <button
                 key={item}

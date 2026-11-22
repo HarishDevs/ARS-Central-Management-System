@@ -1,5 +1,6 @@
 "use client";
 
+import { EmptyState } from "@/features/ui/Display";
 import { Copy, Pencil, Plus, Trash2, Zap } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -66,10 +67,7 @@ export function AutomationsPanel({ projectId, rows, build, limit }: { projectId:
         )}
       </div>
       {rows.length === 0 ? (
-        <div className="rounded-md border border-dashed border-line px-4 py-4 text-label">
-          <p className="font-medium">No automations yet</p>
-          <p className="text-ink-muted">{build ? "Add one: choose what starts it, then what it does. For example: when a task moves to Done, mark it complete." : "Owners and editors of this project can add automations."}</p>
-        </div>
+        <EmptyState title="No automations yet" body={build ? "Add one: choose what starts it, then what it does. For example: when a task moves to Done, mark it complete." : "Owners and editors of this project can add automations."} />
       ) : (
         <ul className="divide-y divide-line" aria-label="Automations">
           {rows.map((row) => (

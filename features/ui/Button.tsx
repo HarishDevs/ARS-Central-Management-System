@@ -6,13 +6,14 @@ import { Spinner } from "@/features/ui/Spinner";
 // Buttons (UI-03). The look comes from the existing .btn-* classes, so older
 // pages and new components match. While busy the button keeps its width
 // (the label stays, hidden) and says what it is doing to screen readers.
-export type ButtonVariant = "primary" | "secondary" | "danger" | "ghost";
+export type ButtonVariant = "primary" | "secondary" | "danger" | "danger-quiet" | "ghost";
 export type ButtonSize = "md" | "sm";
 
 const VARIANT: Record<ButtonVariant, string> = {
   primary: "btn-primary",
   secondary: "btn-secondary",
   danger: "btn-danger",
+  "danger-quiet": "btn-danger-quiet", // v1.72.2 (D-394, QA visual G15)
   ghost: "btn-ghost",
 };
 

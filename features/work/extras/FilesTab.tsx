@@ -1,5 +1,6 @@
 "use client";
 
+import { EmptyState } from "@/features/ui/Display";
 import { Download, ExternalLink, Eye, File as FileIcon, FileSpreadsheet, FileText, Image as ImageIcon, LayoutGrid, List as ListIcon, MessageSquare, Search } from "lucide-react";
 import Link from "next/link";
 import { useId, useMemo, useState } from "react";
@@ -83,12 +84,12 @@ export function FilesTab({ files, taskHref, messagesHref }: { files: FileItem[];
           Search
           <span className="relative">
             <Search aria-hidden="true" className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" />
-            <input type="search" value={filter.search} onChange={(event) => set({ search: event.target.value.slice(0, 100) })} className="input w-full pl-8" placeholder="Name, task or person" />
+            <input type="search" value={filter.search} onChange={(event) => set({ search: event.target.value.slice(0, 100) })} className="field-input field-compact pl-8" placeholder="Name, task or person" />
           </span>
         </label>
         <label className="flex flex-col gap-1 text-caption text-ink-muted">
           Type
-          <select className="input" value={filter.kind} onChange={(event) => set({ kind: event.target.value as FileKind | "" })}>
+          <select className="field-input field-compact w-auto" value={filter.kind} onChange={(event) => set({ kind: event.target.value as FileKind | "" })}>
             <option value="">All types</option>
             {FILE_KINDS.map((kind) => (
               <option key={kind} value={kind}>
@@ -99,7 +100,7 @@ export function FilesTab({ files, taskHref, messagesHref }: { files: FileItem[];
         </label>
         <label className="flex max-w-[16rem] flex-col gap-1 text-caption text-ink-muted">
           Task
-          <select className="input" value={filter.taskId ?? ""} onChange={(event) => set({ taskId: event.target.value ? Number(event.target.value) : null })}>
+          <select className="field-input field-compact w-auto" value={filter.taskId ?? ""} onChange={(event) => set({ taskId: event.target.value ? Number(event.target.value) : null })}>
             <option value="">All tasks</option>
             {tasks.map(([taskId, label]) => (
               <option key={taskId} value={taskId}>
@@ -110,7 +111,7 @@ export function FilesTab({ files, taskHref, messagesHref }: { files: FileItem[];
         </label>
         <label className="flex flex-col gap-1 text-caption text-ink-muted">
           Added by
-          <select className="input" value={filter.uploaderId ?? ""} onChange={(event) => set({ uploaderId: event.target.value ? Number(event.target.value) : null })}>
+          <select className="field-input field-compact w-auto" value={filter.uploaderId ?? ""} onChange={(event) => set({ uploaderId: event.target.value ? Number(event.target.value) : null })}>
             <option value="">Anyone</option>
             {people.map(([personId, name]) => (
               <option key={personId} value={personId}>
@@ -121,15 +122,15 @@ export function FilesTab({ files, taskHref, messagesHref }: { files: FileItem[];
         </label>
         <label className="flex flex-col gap-1 text-caption text-ink-muted">
           From
-          <input type="date" className="input" value={filter.from} max={filter.to || undefined} onChange={(event) => set({ from: event.target.value })} />
+          <input type="date" className="field-input field-compact w-auto" value={filter.from} max={filter.to || undefined} onChange={(event) => set({ from: event.target.value })} />
         </label>
         <label className="flex flex-col gap-1 text-caption text-ink-muted">
           To
-          <input type="date" className="input" value={filter.to} min={filter.from || undefined} onChange={(event) => set({ to: event.target.value })} />
+          <input type="date" className="field-input field-compact w-auto" value={filter.to} min={filter.from || undefined} onChange={(event) => set({ to: event.target.value })} />
         </label>
         <label className="flex flex-col gap-1 text-caption text-ink-muted">
           Sort
-          <select className="input" value={sort} onChange={(event) => setSort(event.target.value as FileSort)}>
+          <select className="field-input field-compact w-auto" value={sort} onChange={(event) => setSort(event.target.value as FileSort)}>
             {FILE_SORTS.map((item) => (
               <option key={item} value={item}>
                 {SORT_LABEL[item]}
@@ -162,8 +163,13 @@ export function FilesTab({ files, taskHref, messagesHref }: { files: FileItem[];
       <p role="status" aria-live="polite" className="text-caption text-ink-muted" id={`${id}-count`}>
         {shown.length === files.length ? `${files.length} ${files.length === 1 ? "file" : "files"}` : `${shown.length} of ${files.length} files`}
       </p>
-      {files.length === 0 && <p className="card px-5 py-8 text-center text-ink-muted">No files yet. Files added to the project&apos;s tasks, its form submissions and its messages show here.</p>}
-      {files.length > 0 && shown.length === 0 && <p className="card px-5 py-8 text-center text-ink-muted">No files match these filters.</p>}
+      {files.length === 0 && <EmptyState title="No files yet" body="Files added to the project's tasks, its form submissions and its messages show here." />}
+      {files.length > 0 && shown.length === 0 && (
+        <EmptyState
+          title="No files match these filters"
+          body="Change or clear the filters above to see more files."
+        />
+      )}
       {shown.length > 0 && layout === "tiles" && (
         <ul className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(12rem,1fr))]" aria-describedby={`${id}-count`}>
           {shown.map((file) => {

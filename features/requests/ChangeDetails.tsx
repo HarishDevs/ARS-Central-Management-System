@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ArrowDown, ArrowUp, PencilLine, Plus, Trash2 } from "lucide-react";
 import { Dialog } from "@/features/ui/Dialog";
+import { InlineLoading } from "@/features/ui/Spinner";
 import { DynamicFields } from "@/features/requests/DynamicFields";
 import { PeoplePicker } from "@/features/ui/PeoplePicker";
 import { FieldError, ResultMessage, SubmitButton, useActionForm } from "@/features/ui/form";
@@ -48,7 +49,7 @@ function ChangeDetailsDrawer({ requestId, taskKey, onClose }: { requestId: numbe
   }, [requestId, taskKey]);
   return (
     <Dialog open onClose={onClose} title={data ? `Change details: ${data.requestNo}` : "Change details"} description={data ? `${data.title} · your step: ${data.stepLabel}` : undefined} variant="drawer" size="lg">
-      {failed ? <p role="alert" className="text-label text-danger-600">{failed}</p> : data ? <ChangeDetailsForm data={data} onDone={onClose} /> : <p className="text-label text-ink-muted">Loading…</p>}
+      {failed ? <p role="alert" className="text-label text-danger-600">{failed}</p> : data ? <ChangeDetailsForm data={data} onDone={onClose} /> : <InlineLoading />}
     </Dialog>
   );
 }

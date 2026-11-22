@@ -501,7 +501,7 @@ export function ChoiceListEditor({
                   else delete next[option];
                   onColorsChange(next);
                 }}
-                className="h-7 max-w-[6.5rem] cursor-pointer rounded-full border border-line bg-surface px-1.5 text-caption text-ink"
+                className="pill-select h-7 max-w-[6.5rem] px-1.5 text-caption"
                 data-testid="option-colour"
               >
                 <option value="">No colour</option>

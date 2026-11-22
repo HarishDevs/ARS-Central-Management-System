@@ -56,7 +56,7 @@ export function MobileNav({ items, spaceLabel, home, collapsible = false, chats 
         </svg>
       </button>
       {open && (
-        <div className="fixed inset-0 z-50 flex" role="dialog" aria-modal="true" aria-label="Menu">
+        <div className="fixed inset-0 z-drawer flex" role="dialog" aria-modal="true" aria-label="Menu">
           <div ref={panel} className="flex h-dvh w-72 max-w-[85vw] flex-col bg-surface shadow-xl">
             <div className="flex h-topbar shrink-0 items-center justify-between border-b border-line px-4">
               <Link href={home} aria-label={`ARS Green Steel: ${spaceLabel} home`} className="rounded-md">
@@ -72,7 +72,7 @@ export function MobileNav({ items, spaceLabel, home, collapsible = false, chats 
             </div>
           </div>
           {/* The dimmed area: a tap closes the menu (the ✕ button is the keyboard way). */}
-          <button type="button" aria-hidden="true" tabIndex={-1} onClick={() => setOpen(false)} className="flex-1 bg-black/30" />
+          <button type="button" aria-hidden="true" tabIndex={-1} onClick={() => setOpen(false)} className="flex-1 bg-overlay" />
         </div>
       )}
     </div>

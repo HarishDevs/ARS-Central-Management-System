@@ -176,7 +176,7 @@ export async function TaskListScreen({ base, query }: { base: TaskBase; query: R
               <>
                 <label className="text-label">
                   Type
-                  <select name="type" defaultValue={filters.typeId ?? ""} className="field-input h-10">
+                  <select name="type" defaultValue={filters.typeId ?? ""} className="field-input field-compact">
                     <option value="">Any</option>
                     {types.map((type) => (
                       <option key={type.id} value={type.id}>
@@ -198,7 +198,7 @@ export async function TaskListScreen({ base, query }: { base: TaskBase; query: R
                 </div>
                 <label className="text-label">
                   Priority
-                  <select name="priority" defaultValue={filters.priorities[0] ?? ""} className="field-input h-10">
+                  <select name="priority" defaultValue={filters.priorities[0] ?? ""} className="field-input field-compact">
                     <option value="">Any</option>
                     {TASK_PRIORITIES.map((priority) => (
                       <option key={priority} value={priority}>
@@ -209,7 +209,7 @@ export async function TaskListScreen({ base, query }: { base: TaskBase; query: R
                 </label>
                 <label className="text-label">
                   Status
-                  <select name="status" defaultValue={filters.statuses[0] ?? ""} className="field-input h-10">
+                  <select name="status" defaultValue={filters.statuses[0] ?? ""} className="field-input field-compact">
                     <option value="">Any</option>
                     {TASK_STATUSES.map((status) => (
                       <option key={status} value={status}>
@@ -220,19 +220,19 @@ export async function TaskListScreen({ base, query }: { base: TaskBase; query: R
                 </label>
                 <label className="text-label">
                   Due from
-                  <input type="date" name="dueFrom" defaultValue={filters.dueFrom ?? ""} className="field-input h-10" />
+                  <input type="date" name="dueFrom" defaultValue={filters.dueFrom ?? ""} className="field-input field-compact" />
                 </label>
                 <label className="text-label">
                   Due to
-                  <input type="date" name="dueTo" defaultValue={filters.dueTo ?? ""} className="field-input h-10" />
+                  <input type="date" name="dueTo" defaultValue={filters.dueTo ?? ""} className="field-input field-compact" />
                 </label>
                 <label className="text-label">
                   Created from
-                  <input type="date" name="createdFrom" defaultValue={filters.createdFrom ?? ""} className="field-input h-10" />
+                  <input type="date" name="createdFrom" defaultValue={filters.createdFrom ?? ""} className="field-input field-compact" />
                 </label>
                 <label className="text-label">
                   Created to
-                  <input type="date" name="createdTo" defaultValue={filters.createdTo ?? ""} className="field-input h-10" />
+                  <input type="date" name="createdTo" defaultValue={filters.createdTo ?? ""} className="field-input field-compact" />
                 </label>
               </>
             }

@@ -1,3 +1,4 @@
+import { EmptyState } from "@/features/ui/Display";
 import type { Metadata } from "next";
 import { PageHeader } from "@/features/shell/PageHeader";
 import { recentAiEvents, recentFailures, usageByPerson, usageByProvider } from "@/lib/db/repositories/ai.repository";
@@ -54,7 +55,9 @@ export default async function AiReportsPage({ searchParams }: { searchParams: Pr
               Usage by person, last 30 days
             </h2>
             {people.length === 0 ? (
-              <p className="px-5 py-4 text-label text-ink-muted">No questions yet.</p>
+              <div className="p-4">
+                <EmptyState title="No questions yet" />
+              </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="data-table" data-testid="ai-usage-people">
@@ -110,7 +113,9 @@ export default async function AiReportsPage({ searchParams }: { searchParams: Pr
               Usage, last 30 days
             </h2>
             {usage.length === 0 ? (
-              <p className="px-5 py-4 text-label text-ink-muted">No questions yet.</p>
+              <div className="p-4">
+                <EmptyState title="No questions yet" />
+              </div>
             ) : (
               <ul className="divide-y divide-line text-label" data-testid="ai-usage">
                 {usage.map((row) => (

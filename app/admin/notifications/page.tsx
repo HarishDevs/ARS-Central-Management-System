@@ -1,3 +1,4 @@
+import { EmptyState } from "@/features/ui/Display";
 import { TaskPriorityPill } from "@/features/ui/ChoicePill";
 import type { Metadata } from "next";
 import { Send } from "lucide-react";
@@ -141,7 +142,7 @@ async function HistoryTab({ query }: { query: Query }) {
   // v1.72.1 (D-395, QA F-07): the latest 100, and "Show 100 more" up to 1,000.
   const limit = latestLimit(query.limit, 100, 1000);
   const loaded = await listBroadcasts(limit);
-  if (!loaded.length) return <p className="card px-5 py-4 text-label text-ink-muted">Nothing sent yet.</p>;
+  if (!loaded.length) return <EmptyState title="Nothing sent yet" body="Emails, WhatsApp and in-app messages show here once they go out." />;
   const sort = parseColumnSort(query, HISTORY_COLUMNS);
   const group = pickGroup(query.group, HISTORY_GROUPS.map((choice) => choice.key));
   const rows = sort.sortBy

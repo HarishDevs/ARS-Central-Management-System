@@ -1,5 +1,17 @@
 # Release notes
 
+## v1.72.2 (22 Nov 2026): Look and feel fixes from the visual review
+No new data, no migration, nothing to switch on.
+- **Messages you can see over dialogs:** a "saved", "copied" or error message raised while a dialog is open now shows on top of the dialog (it used to hide behind it), and you can close it there.
+- **Easier to read:** faint text (table headings, hints, placeholders) is a little darker, so it stays readable on grey rows and the selected row; empty fields have a clearer edge; done bars on the Timeline and Gantt are solid green with white text; the Home chart's **Completed** bars use the dashboards' colours (blue and orange) and are easy to see; **Sign out** on the phone's More page is readable in dark mode.
+- **Fields look the same everywhere:** the project Files, Messages and Page tabs, time tracking, the chart builder and Workload use the app's normal fields (they looked like plain browser boxes); filter boxes on lists are one height; the small round selects (form designer, Pico Bot, Assistant) show a focus ring.
+- **Menus and pop-ups:** the account menu, the row ⋯ menus on the users and request lists, people pickers and other pop-ups share one look and open above sticky bars and the task pane; the account menu works with the arrow keys, and **View** and **Text size** are choices in it. The Gantt's "Link tasks" box is a normal dialog.
+- **Touch screens:** buttons that appeared only on mouse hover (a chat's ⋯, a tab's ⋯, "Add a task" on a calendar day, the Gantt's link handle, the drag handle) now show on phones and tablets.
+- **Loading and empty screens:** Home's task sections load with a grey outline like the rest of the app; small "Loading…" lines have a spinner; empty project tabs, portfolios and admin lists show the usual empty box.
+- **Numbers and text size:** big numbers on Home, dashboards, Meetings, Tickets and Portfolios share one size and follow the Classic **Text size**, as does the phone layout's text.
+- **Smaller fixes:** the phone task page's title and assignee picture follow the app's styles; a dialog's buttons stay above a phone browser's toolbar; the journey card's tips stay on screen at the first and last stop; the figures on the analytics heatmap's middle shade are dark, so they stay readable.
+- **Owner steps:** publish v1.72.2 (no migration).
+
 ## v1.72.1 (22 Nov 2026): Finding your way: clear lists, switched-off pages, the way back
 Fixes from a review of every page's empty, loading and error states and of moving around the app. No migration. Nothing to switch on.
 - **Clear really clears.** On a list where you saved a default view (Waiting for me, My pending requests, My approved requests, Approved by me, Collaborating, Search, Analytics, a report), **Clear** or **Reset filters** now shows the whole list instead of bringing your default view straight back. Opening the list from elsewhere still opens your default view.

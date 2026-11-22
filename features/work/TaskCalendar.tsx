@@ -208,7 +208,7 @@ export function TaskCalendar({
             </span>
           )}
           {canEdit && (
-            <button type="button" aria-label={`Add a task due ${day}`} onClick={() => setAdding(day)} className="rounded px-1 text-caption text-ink-faint opacity-0 hover:bg-surface-muted group-hover:opacity-100 focus:opacity-100">
+            <button type="button" aria-label={`Add a task due ${day}`} onClick={() => setAdding(day)} className="rounded px-1 text-caption text-ink-faint opacity-0 hover:bg-surface-muted group-hover:opacity-100 focus:opacity-100 [@media(hover:none)]:!opacity-100">
               +
             </button>
           )}

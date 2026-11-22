@@ -36,7 +36,7 @@ export function FieldGlyph({ kind, className = "h-3.5 w-3.5" }: { kind: FieldTyp
 // Option colours are the eight identity tokens (white text, ≥ 4.5:1 in both themes); 0 = plain.
 export const OPTION_COLOR_NAMES = ["None", "Blue", "Violet", "Magenta", "Orange", "Ochre", "Green", "Cyan", "Grey"];
 export function optionStyle(color: number): React.CSSProperties | undefined {
-  return color >= 1 && color <= 8 ? { backgroundColor: `var(--color-identity-${color})`, color: "#fff" } : undefined;
+  return color >= 1 && color <= 8 ? { backgroundColor: `var(--color-identity-${color})`, color: "var(--color-text-on-solid)" } : undefined;
 }
 export function OptionChip({ name, color, className = "" }: { name: string; color: number; className?: string }) {
   return (
@@ -85,7 +85,7 @@ export function FieldChip({ field, cell }: { field: FieldView; cell: FieldCell }
   );
 }
 
-const panelClass = "fixed z-[var(--z-drawer)] w-72 rounded-lg border border-line bg-raised p-3 text-ink shadow-overlay";
+const panelClass = "fixed z-popover w-72 rounded-lg border border-line bg-raised p-3 text-ink shadow-overlay";
 
 // The inline editor of one field on one task.
 export function FieldValueEditor({

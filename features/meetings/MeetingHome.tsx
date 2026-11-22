@@ -163,7 +163,7 @@ export async function MeetingHome({
               <span className="block text-label font-semibold">{tile.label}</span>
               <span className="block text-caption leading-snug text-ink-muted">{tile.note}</span>
             </span>
-            <span className={`text-2xl font-bold tabular-nums ${tile.alert ? (tile.danger ? "text-danger-600" : "text-primary-700") : "text-ink"}`}>{tile.value}</span>
+            <span className={`text-card-title font-bold tabular-nums ${tile.alert ? (tile.danger ? "text-danger-600" : "text-primary-700") : "text-ink"}`}>{tile.value}</span>
           </Link>
         ))}
       </div>

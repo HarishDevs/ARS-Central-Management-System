@@ -1,3 +1,4 @@
+import { EmptyState } from "@/features/ui/Display";
 import type { Metadata } from "next";
 import { PushKeysPanel } from "@/features/superadmin/PushKeysPanel";
 import { countAllActiveDevices } from "@/lib/db/repositories/push.repository";
@@ -65,7 +66,9 @@ export default async function SettingsPage() {
           <section className="card">
             <h2 className="border-b border-line px-5 py-4 font-semibold">Recent changes</h2>
             {history.length === 0 ? (
-              <p className="px-5 py-4 text-label text-ink-muted">No changes yet.</p>
+              <div className="p-4">
+                <EmptyState title="No changes yet" />
+              </div>
             ) : (
               <ul className="divide-y divide-line">
                 {history.map((entry, index) => (

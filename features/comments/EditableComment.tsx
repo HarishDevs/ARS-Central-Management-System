@@ -5,6 +5,7 @@ import { changeCommentAction, commentVersionsAction } from "@/app/users/comment-
 import { ConfirmButton } from "@/features/ui/ConfirmButton";
 import { RichEditor } from "@/features/ui/RichEditor";
 import { RichText } from "@/features/work/RichText";
+import { InlineLoading } from "@/features/ui/Spinner";
 import { useWorkCall } from "@/features/work/client";
 
 // v1.60.0 (D-365, owner: "i want edit option in all the comments"; answers:
@@ -35,7 +36,7 @@ export function ShowEdits({ target, commentId, deleted = false }: { target: Comm
       {open && (
         <ol className="mt-1 w-full space-y-1 rounded-md border border-line bg-surface-muted px-3 py-2" aria-label="Earlier versions" data-testid="comment-versions">
           {problem && <li className="text-caption text-danger-600">{problem}</li>}
-          {!problem && !versions && <li className="text-caption text-ink-muted">Loading…</li>}
+          {!problem && !versions && <li><InlineLoading /></li>}
           {versions?.length === 0 && <li className="text-caption text-ink-muted">No earlier versions.</li>}
           {versions?.map((version) => (
             <li key={version.id} className="text-label">

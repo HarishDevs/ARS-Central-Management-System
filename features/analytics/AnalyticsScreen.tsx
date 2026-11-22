@@ -147,7 +147,7 @@ export async function AnalyticsScreen({ searchParams, base }: { searchParams: Re
             <label htmlFor="period" className="field-label">
               Period
             </label>
-            <select id="period" name="period" defaultValue={period.key} className="field-input h-10">
+            <select id="period" name="period" defaultValue={period.key} className="field-input field-compact">
               {(Object.keys(PERIOD_LABEL) as PeriodKey[]).map((key) => (
                 <option key={key} value={key}>
                   {PERIOD_LABEL[key]}
@@ -159,19 +159,19 @@ export async function AnalyticsScreen({ searchParams, base }: { searchParams: Re
             <label htmlFor="from" className="field-label">
               From <span className="font-normal text-ink-faint">(custom)</span>
             </label>
-            <input id="from" name="from" type="date" defaultValue={period.from} className="field-input h-10" />
+            <input id="from" name="from" type="date" defaultValue={period.from} className="field-input field-compact" />
           </div>
           <div>
             <label htmlFor="to" className="field-label">
               To <span className="font-normal text-ink-faint">(custom)</span>
             </label>
-            <input id="to" name="to" type="date" defaultValue={period.to} className="field-input h-10" />
+            <input id="to" name="to" type="date" defaultValue={period.to} className="field-input field-compact" />
           </div>
           <div>
             <label htmlFor="compare" className="field-label">
               Compare with
             </label>
-            <select id="compare" name="compare" defaultValue={compare} className="field-input h-10">
+            <select id="compare" name="compare" defaultValue={compare} className="field-input field-compact">
               <option value="PREVIOUS">{period.key === "this_month" || period.key === "last_month" ? "Previous month" : "Previous period"}</option>
               <option value="LAST_YEAR">Same period last year</option>
             </select>
@@ -180,7 +180,7 @@ export async function AnalyticsScreen({ searchParams, base }: { searchParams: Re
             <label htmlFor="type" className="field-label">
               Approval type
             </label>
-            <select id="type" name="type" defaultValue={carried.type ?? ""} className="field-input h-10">
+            <select id="type" name="type" defaultValue={carried.type ?? ""} className="field-input field-compact">
               <option value="">All types</option>
               <option value="-1">Custom approvals</option>
               {choices.types.map((type) => (
@@ -195,7 +195,7 @@ export async function AnalyticsScreen({ searchParams, base }: { searchParams: Re
               <label htmlFor="department" className="field-label">
                 Raiser&apos;s department
               </label>
-              <select id="department" name="department" defaultValue={carried.department ?? ""} className="field-input h-10">
+              <select id="department" name="department" defaultValue={carried.department ?? ""} className="field-input field-compact">
                 <option value="">All departments</option>
                 {choices.departments.map((department) => (
                   <option key={department.id} value={department.id}>
@@ -209,7 +209,7 @@ export async function AnalyticsScreen({ searchParams, base }: { searchParams: Re
               <label htmlFor="status" className="field-label">
                 Status now
               </label>
-              <select id="status" name="status" defaultValue={carried.status ?? ""} className="field-input h-10">
+              <select id="status" name="status" defaultValue={carried.status ?? ""} className="field-input field-compact">
                 <option value="">Any</option>
                 {Object.entries(STATUS_FILTER_LABEL).map(([value, label]) => (
                   <option key={value} value={value}>
@@ -235,7 +235,7 @@ export async function AnalyticsScreen({ searchParams, base }: { searchParams: Re
               <label htmlFor="step" className="field-label">
                 Step
               </label>
-              <select id="step" name="step" defaultValue={carried.step ?? ""} className="field-input h-10">
+              <select id="step" name="step" defaultValue={carried.step ?? ""} className="field-input field-compact">
                 <option value="">Any</option>
                 {filterChoices.steps.map((step) => (
                   <option key={step} value={step}>
@@ -248,7 +248,7 @@ export async function AnalyticsScreen({ searchParams, base }: { searchParams: Re
               <label htmlFor="sla" className="field-label">
                 Response time
               </label>
-              <select id="sla" name="sla" defaultValue={carried.sla ?? ""} className="field-input h-10">
+              <select id="sla" name="sla" defaultValue={carried.sla ?? ""} className="field-input field-compact">
                 <option value="">Any</option>
                 {Object.entries(SLA_FILTER_LABEL).map(([value, label]) => (
                   <option key={value} value={value}>
@@ -261,7 +261,7 @@ export async function AnalyticsScreen({ searchParams, base }: { searchParams: Re
               <label htmlFor="aging" className="field-label">
                 Open for
               </label>
-              <select id="aging" name="aging" defaultValue={carried.aging ?? ""} className="field-input h-10">
+              <select id="aging" name="aging" defaultValue={carried.aging ?? ""} className="field-input field-compact">
                 <option value="">Any age</option>
                 {AGING_BUCKETS.map((bucket) => (
                   <option key={bucket.key} value={bucket.key}>

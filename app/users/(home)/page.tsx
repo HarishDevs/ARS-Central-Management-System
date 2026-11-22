@@ -1,3 +1,4 @@
+import { ListSkeleton } from "@/features/ui/Skeleton";
 import type { Metadata } from "next";
 import { formDueDays } from "@/server/approvals/form-due";
 import { Suspense } from "react";
@@ -91,7 +92,7 @@ export default async function UsersHome({ searchParams }: { searchParams: Promis
       addable: addableWidgets(layout.widgets, access).map((entry) => ({ kind: entry.kind, title: entry.title, description: entry.description })),
       note,
       given: layout.widgets.some((item) => item.kind === "assigned") ? (
-        <Suspense fallback={<p className="card px-5 py-4 text-label text-ink-muted" role="status">Loading…</p>}>
+        <Suspense fallback={<HomeSectionLoading />}>
           <TaskHome user={user} viewer={viewer} params={{ tab: query.tab, given: query.given, home: "tasks" }} basePath="/users" greet={false} part="given" />
         </Suspense>
       ) : null,
@@ -105,7 +106,7 @@ export default async function UsersHome({ searchParams }: { searchParams: Promis
         greeting={<HomeGreeting name={user.name} />}
         switcher={null}
         others={
-          <Suspense fallback={<p className="mt-6 text-label text-ink-muted" role="status">Loading…</p>}>
+          <Suspense fallback={<HomeSectionLoading className="mt-6" />}>
             <TaskHome user={user} viewer={viewer} params={{ tab: query.tab, given: query.given, home: "tasks" }} basePath="/users" greet={false} part="others" />
           </Suspense>
         }
@@ -167,7 +168,7 @@ export default async function UsersHome({ searchParams }: { searchParams: Promis
         addable: addableWidgets(layout.widgets, access).map((entry) => ({ kind: entry.kind, title: entry.title, description: entry.description })),
         note,
         given: layout.widgets.some((item) => item.kind === "assigned") ? (
-          <Suspense fallback={<p className="card px-5 py-4 text-label text-ink-muted" role="status">Loading…</p>}>
+          <Suspense fallback={<HomeSectionLoading />}>
             <TaskHome user={user} viewer={viewer} params={{ tab: query.tab, given: query.given, home: "tasks" }} basePath="/users" greet={false} part="given" />
           </Suspense>
         ) : null,
@@ -182,13 +183,7 @@ export default async function UsersHome({ searchParams }: { searchParams: Promis
         greeting={pmOn ? <HomeGreeting name={user.name} /> : undefined}
         switcher={<HomeFocusSwitch focus={focus} overview={overview} choices={choices} locked={lockedChoices} />}
         others={
-          <Suspense
-            fallback={
-              <p className="mt-6 text-label text-ink-muted" role="status">
-                Loading…
-              </p>
-            }
-          >
+          <Suspense fallback={<HomeSectionLoading className="mt-6" />}>
             <TaskHome user={user} viewer={viewer} params={{ tab: query.tab, given: query.given, home: "tasks" }} basePath="/users" greet={false} part="others" />
           </Suspense>
         }
@@ -298,7 +293,7 @@ export default async function UsersHome({ searchParams }: { searchParams: Promis
               <span className="block text-label font-semibold">{tile.label}</span>
               <span className="block text-caption leading-snug text-ink-muted">{tile.note}</span>
             </span>
-            <span className={`text-2xl font-bold tabular-nums ${tile.alert ? (tile.danger ? "text-danger-600" : "text-primary-700") : "text-ink"}`}>{tile.value}</span>
+            <span className={`text-card-title font-bold tabular-nums ${tile.alert ? (tile.danger ? "text-danger-600" : "text-primary-700") : "text-ink"}`}>{tile.value}</span>
           </Link>
         ))}
       </div>
@@ -565,4 +560,14 @@ function ModulesHome({ name, user, tasks, boardFirst = false }: { name: string; 
 function greetingFor(now: Date): string {
   const hour = Number(new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", hour: "numeric", hourCycle: "h23" }).format(now));
   return hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+}
+
+// v1.72.2 (D-394, QA visual G7): Home's task sections load with the list
+// skeleton like every other module (not a line of text).
+function HomeSectionLoading({ className = "" }: { className?: string }) {
+  return (
+    <div role="status" aria-label="Loading your tasks" className={className}>
+      <ListSkeleton rows={3} />
+    </div>
+  );
 }

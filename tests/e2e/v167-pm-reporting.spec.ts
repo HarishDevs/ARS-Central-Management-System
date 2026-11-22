@@ -20,6 +20,13 @@ let projectId = 0;
 
 async function as(context: BrowserContext, loginId: string, theme?: "dark" | "light") {
   await context.clearCookies();
+  if (theme) {
+    // v1.72.2: a theme saved on the account by an earlier spec (v160-ui) would
+    // replace the cookie's theme after the page loads.
+    const conn = await db();
+    await conn.query("DELETE FROM user_settings WHERE setting_key = 'ui.theme' AND user_id = ?", [await userIdByLogin(loginId)]);
+    await conn.end();
+  }
   await context.addCookies([await sessionCookie(loginId, { tourDone: true }), ...(theme ? [{ name: "ars_theme", value: theme, domain: "localhost", path: "/" }] : [])]);
 }
 async function axe(page: Page, include?: string) {

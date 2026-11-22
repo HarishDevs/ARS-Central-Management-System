@@ -1,3 +1,4 @@
+import { EmptyState } from "@/features/ui/Display";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHeader } from "@/features/shell/PageHeader";
@@ -85,7 +86,9 @@ export default async function DemoPage({ searchParams }: { searchParams: Promise
           <Hint text="“Try as” continues as that person, to raise or approve requests. It ends your Super Admin session; sign in again to come back. Every switch is in the audit log." align="start" />
         </div>
         {people.length === 0 ? (
-          <p className="px-5 py-4 text-label text-ink-muted">Nothing loaded yet.</p>
+          <div className="p-4">
+            <EmptyState title="Nothing loaded yet" body="Load the demo data to try the app as its people." />
+          </div>
         ) : (
           <table className="data-table">
             <thead>

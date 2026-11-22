@@ -109,7 +109,7 @@ export function KpiGrid({ total }: { total: Tally }) {
       {kpisOf(total).map((kpi) => (
         <div key={kpi.label} className="card px-4 py-3">
           <dt className="text-caption text-ink-muted">{kpi.label}</dt>
-          <dd className="text-xl font-semibold tabular-nums">{kpi.value}</dd>
+          <dd className="text-card-title font-semibold tabular-nums">{kpi.value}</dd>
         </div>
       ))}
     </dl>

@@ -15,6 +15,8 @@ The space you work in is called **Central Management System**. There are two vie
 - **Compact** (the default): a sidebar on the left and a search bar at the top.
 - **Classic** (like Tally): no sidebar. After signing in you see a menu of the modules; each module has its own menu, summary boxes and its pages as tabs. Use the highlighted letters or the arrow keys and **Enter**; **Esc** goes back; **Ctrl+A** accepts a form. You can also choose a **text size** for the Classic view.
 
+The account menu works with the keyboard too: **↓ / ↑** move, **Enter** chooses, **Esc** closes it. In the Classic view, **Text size** is in the same menu, under View.
+
 ### The sidebar (Compact view)
 From the top:
 - **+ Create:** a new approval request, task, project, portfolio or information (only what you can create).

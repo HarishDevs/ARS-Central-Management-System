@@ -29,6 +29,7 @@ export interface MenuItem {
   shortcut?: string;
   download?: boolean;
   testId?: string;
+  badge?: string; // v1.72.2: a count on the right (e.g. unread)
   items?: MenuItem[]; // kind "submenu"
 }
 
@@ -48,7 +49,7 @@ function usePlace(open: boolean, anchor: React.RefObject<HTMLElement | null>, pa
         const fitsRight = box.right + width + 4 <= window.innerWidth - 8;
         const left = fitsRight ? box.right + 2 : Math.max(8, box.left - width - 2);
         const top = Math.max(8, Math.min(box.top - 4, window.innerHeight - Math.min(height, window.innerHeight - 16) - 8));
-        setPlace({ position: "fixed", left, top, maxHeight: window.innerHeight - 16, zIndex: 66 });
+        setPlace({ position: "fixed", left, top, maxHeight: window.innerHeight - 16, zIndex: "calc(var(--z-popover) + 1)" });
         return;
       }
       const below = window.innerHeight - box.bottom - 8;
@@ -56,7 +57,7 @@ function usePlace(open: boolean, anchor: React.RefObject<HTMLElement | null>, pa
       const up = below < Math.min(height, 260) && above > below;
       const wanted = align === "right" ? box.right - width : box.left;
       const left = Math.min(Math.max(8, wanted), Math.max(8, window.innerWidth - width - 8));
-      setPlace({ position: "fixed", left, maxHeight: Math.max(140, (up ? above : below) - 4), zIndex: 65, ...(up ? { bottom: window.innerHeight - box.top + 4 } : { top: box.bottom + 4 }) });
+      setPlace({ position: "fixed", left, maxHeight: Math.max(140, (up ? above : below) - 4), zIndex: "var(--z-popover)", ...(up ? { bottom: window.innerHeight - box.top + 4 } : { top: box.bottom + 4 }) });
     };
     measure();
     window.addEventListener("resize", measure);
@@ -81,6 +82,8 @@ export function Menu({
   testId,
   title,
   onOpenChange,
+  menuLabel,
+  header,
 }: {
   label: string;
   trigger: React.ReactNode;
@@ -91,13 +94,16 @@ export function Menu({
   testId?: string;
   title?: string;
   onOpenChange?: (open: boolean) => void;
+  menuLabel?: string; // the list's name when it differs from the button's
+  header?: React.ReactNode; // v1.72.2 (D-394): plain words above the items (who you are), not focusable
 }) {
   const [open, setOpenState] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   const list = useRef<HTMLDivElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
   const menuId = useId();
-  const place = usePlace(open, button, list, align, "below");
+  const place = usePlace(open, button, header ? panel : list, align, "below");
   const setOpen = useCallback(
     (value: boolean) => {
       setOpenState(value);
@@ -148,12 +154,25 @@ export function Menu({
       >
         {trigger}
       </button>
-      {open && <MenuList id={menuId} ref={list} label={label} items={items} style={place} className={menuClass} onClose={close} />}
+      {open &&
+        (header ? (
+          // A header (plain words) and the list share one panel; the list scrolls.
+          <div ref={panel} style={place} className={`flex flex-col ${MENU_PANEL} ${menuClass}`}>
+            <div className="shrink-0">{header}</div>
+            <MenuList id={menuId} ref={list} label={menuLabel ?? label} items={items} style={{}} className="min-h-0 flex-1" onClose={close} bare />
+          </div>
+        ) : (
+          <MenuList id={menuId} ref={list} label={menuLabel ?? label} items={items} style={place} className={menuClass} onClose={close} />
+        ))}
     </div>
   );
 }
 
-function MenuList({ id, label, items, style, className, onClose, onBack, ref }: { id?: string; label: string; items: MenuItem[]; style: Place; className: string; onClose: (refocus: boolean) => void; ref: React.RefObject<HTMLDivElement | null>; onBack?: () => void }) {
+// One look for every menu and popover panel (QA visual G6): raised surface,
+// overlay shadow, the popover layer.
+export const MENU_PANEL = "rounded-lg border border-line bg-raised p-1 text-ink shadow-overlay";
+
+function MenuList({ id, label, items, style, className, onClose, onBack, ref, bare = false }: { id?: string; label: string; items: MenuItem[]; style: Place; className: string; onClose: (refocus: boolean) => void; ref: React.RefObject<HTMLDivElement | null>; onBack?: () => void; bare?: boolean }) {
   const [sub, setSub] = useState<number | null>(null);
   const subFocus = useRef(false);
   const onKeyDown = (event: React.KeyboardEvent) => {
@@ -205,7 +224,7 @@ function MenuList({ id, label, items, style, className, onClose, onBack, ref }: 
     `flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-label focus:outline-none ${item.disabled ? "cursor-not-allowed text-ink-faint" : `hover:bg-surface-muted focus:bg-surface-muted ${item.tone === "danger" ? "text-danger-600" : "text-ink"}`}`;
   return (
     // tabIndex 0: a long menu scrolls, and a scrolling region must be reachable by keyboard (axe scrollable-region-focusable).
-    <div id={id} ref={ref} role="menu" aria-label={label} tabIndex={0} style={style} onKeyDown={onKeyDown} className={`overflow-y-auto focus:outline-none rounded-lg border border-line bg-raised p-1 text-ink shadow-overlay ${className}`}>
+    <div id={id} ref={ref} role="menu" aria-label={label} tabIndex={0} style={style} onKeyDown={onKeyDown} className={`overflow-y-auto focus:outline-none ${bare ? "" : MENU_PANEL} ${className}`}>
       {items.map((item, index) => {
         const key = `${index}-${item.label}`;
         if (item.kind === "separator") return <div key={key} role="separator" className="my-1 border-t border-line" />;
@@ -232,6 +251,7 @@ function MenuList({ id, label, items, style, className, onClose, onBack, ref }: 
               {item.hint && <span className="block text-caption text-ink-muted">{item.hint}</span>}
             </span>
             {item.shortcut && <span className="ml-3 shrink-0 text-caption text-ink-faint">{item.shortcut}</span>}
+            {item.badge && <span className="ml-3 shrink-0 rounded-full bg-danger-solid px-1.5 text-[length:calc(11px*var(--text-scale,1))] font-semibold leading-[18px] text-on-solid">{item.badge}</span>}
             {item.kind === "submenu" && <ChevronRight aria-hidden="true" className="h-4 w-4 shrink-0 text-ink-muted" />}
           </>
         );

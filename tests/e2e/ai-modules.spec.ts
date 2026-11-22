@@ -141,7 +141,7 @@ test("the Super Admin's AI settings: seven providers, encrypted key fields; Sale
   await page.goto("/superadmin/salesforce");
   await expect(page.getByText("Salesforce sync")).toBeVisible();
   await page.goto("/superadmin/ai/reports");
-  await expect(page.getByText("No questions yet.").first()).toBeVisible();
+  await expect(page.getByText("No questions yet").first()).toBeVisible();
   await page.goto("/superadmin/ai/data-sources");
   await expect(page.getByTestId("ai-sources")).toContainText("Salesforce");
   await page.goto("/superadmin/ai/history");

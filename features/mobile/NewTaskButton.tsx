@@ -10,7 +10,7 @@ const open = () => window.dispatchEvent(new CustomEvent(CREATE_TASK_EVENT, { det
 // task window (TaskCreator), so there is no second form.
 export function QuickNewTask() {
   return (
-    <button type="button" onClick={open} className="flex min-h-[72px] w-full flex-col items-center justify-center gap-1.5 rounded-xl bg-surface p-2 text-center text-[12px] font-semibold shadow-sm">
+    <button type="button" onClick={open} className="flex min-h-[72px] w-full flex-col items-center justify-center gap-1.5 rounded-xl bg-surface p-2 text-center text-[length:calc(12px*var(--text-scale,1))] font-semibold shadow-sm">
       <ListPlus aria-hidden="true" className="h-5 w-5 text-[color:var(--m-navy-text)]" />
       New task
     </button>

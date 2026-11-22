@@ -223,7 +223,7 @@ export function AlertForm({ scopes, metrics }: { scopes: { kind: string; label: 
         <label htmlFor="metric" className="field-label">
           Tell me when
         </label>
-        <select id="metric" name="metric" value={metric} onChange={(event) => setMetric(event.target.value)} className="field-input h-9 w-72">
+        <select id="metric" name="metric" value={metric} onChange={(event) => setMetric(event.target.value)} className="field-input field-compact w-full sm:w-72">
           {metrics.map((item) => (
             <option key={item.key} value={item.key}>
               {item.label}

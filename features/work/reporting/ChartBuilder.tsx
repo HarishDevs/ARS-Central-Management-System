@@ -67,7 +67,7 @@ function dimFrom(value: string, previous: ChartDimension | null): ChartDimension
   if (value.startsWith("field:")) return { ...base, by: "field", fieldId: Number(value.slice(6)) };
   return { ...base, by: value as ChartDimension["by"] };
 }
-const inputClass = "w-full rounded-md border border-line bg-raised px-2 py-1.5 text-label text-ink";
+const inputClass = "field-input field-compact";
 const SINGLE_METRIC: readonly ChartStyle[] = ["number", "donut", "burnup", "burndown"];
 
 export function ChartBuilder({ open, context, draft, onClose }: { open: boolean; context: BuilderContext; draft: ChartDraft; onClose: () => void }) {

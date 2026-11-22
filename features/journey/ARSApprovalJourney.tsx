@@ -73,7 +73,7 @@ function DotIcon({ state, index, small = false }: { state: CheckpointState; inde
   if (state === "skipped") return <SkipForward className={cls} aria-hidden="true" />;
   if (state === "cancelled") return <Minus className={cls} strokeWidth={3} aria-hidden="true" />;
   if (state === "current") return <span className={`${small ? "h-1.5 w-1.5" : "h-2.5 w-2.5"} rounded-full bg-white`} aria-hidden="true" />;
-  return <span className="h-2 w-2 rounded-full bg-[#94a3b8]" aria-hidden="true" data-index={index} />;
+  return <span className="h-2 w-2 rounded-full bg-[color:var(--jr-text-3)]" aria-hidden="true" data-index={index} />;
 }
 
 const levelsCounted = (road: Road) => road.checkpoints.slice(1).filter((point) => point.state === "done" || point.state === "skipped").length;
@@ -94,19 +94,21 @@ function tipText(point: Checkpoint, index: number, requesterName: string | null 
   return [point.label, words.word, words.time, approverLine(point, index, requesterName)].filter(Boolean).join(", ");
 }
 
-function LevelTip({ point, index, requesterName }: { point: Checkpoint; index: number; requesterName: string | null | undefined }) {
+// v1.72.2 (D-394, QA visual J2): at the first and last stop the tip lines up with
+// the stop's edge instead of its centre, so it never runs off a phone screen.
+function LevelTip({ point, index, requesterName, edge }: { point: Checkpoint; index: number; requesterName: string | null | undefined; edge?: "start" | "end" }) {
   const words = statusText(point, index);
   const who = approverLine(point, index, requesterName);
   return (
     <span
       aria-hidden="true"
-      className="jr-tip pointer-events-none absolute bottom-[calc(100%+8px)] left-1/2 hidden w-max min-w-[150px] max-w-[220px] -translate-x-1/2 rounded-lg border border-white/15 bg-[#0f1c31] px-3 py-2 text-center text-white shadow-xl group-hover:block group-focus-visible:block"
+      className={`jr-tip pointer-events-none absolute bottom-[calc(100%+8px)] ${edge === "start" ? "left-0" : edge === "end" ? "right-0" : "left-1/2 -translate-x-1/2"} hidden w-max min-w-[150px] max-w-[min(220px,calc(100vw-2rem))] rounded-lg border border-white/15 bg-[#0f1c31] px-3 py-2 text-center text-white shadow-xl group-hover:block group-focus-visible:block`}
       data-testid="journey-tip"
     >
       <span className="block text-[12.5px] font-semibold leading-tight">{point.label}</span>
       <span className={`mt-0.5 block text-[12px] font-semibold leading-tight ${toneText(STATE_TONE[point.state])}`}>{words.word}</span>
-      {words.time && <span className="block text-[11px] leading-tight text-[#cbd5e1]">{words.time}</span>}
-      {who && <span className="mt-0.5 block text-[11px] font-medium leading-tight text-[#e2e8f0]" data-testid="journey-approver">{who}</span>}
+      {words.time && <span className="block text-[11px] leading-tight text-[color:var(--jr-text-2)]">{words.time}</span>}
+      {who && <span className="mt-0.5 block text-[11px] font-medium leading-tight text-[color:var(--jr-text)]" data-testid="journey-approver">{who}</span>}
     </span>
   );
 }
@@ -161,7 +163,7 @@ const percentOf = (road: Road) => {
 type Outcome = { kind: "approved" | "expired" | "rejected" | "hold" | "changes" | "withdrawn"; title: string; text: string };
 const BANNER: Record<Outcome["kind"], { box: string; icon: string; Icon: typeof CheckCircle2 }> = {
   approved: { box: "border-[#22c55e]/60 bg-[#0f2f1f]", icon: "text-[#86efac]", Icon: CheckCircle2 },
-  expired: { box: "border-[#64748b]/70 bg-[#1e293b]", icon: "text-[#cbd5e1]", Icon: Clock },
+  expired: { box: "border-[#64748b]/70 bg-[#1e293b]", icon: "text-[color:var(--jr-text-2)]", Icon: Clock },
   rejected: { box: "border-[#ef4444]/60 bg-[#3d1518]", icon: "text-[#fca5a5]", Icon: XCircle },
   hold: { box: "border-[#f59e0b]/60 bg-[#36280c]", icon: "text-[#fcd34d]", Icon: PauseCircle },
   changes: { box: "border-[#f97316]/60 bg-[#3b220e]", icon: "text-[#fdba74]", Icon: PenLine },
@@ -457,11 +459,11 @@ export function ARSApprovalJourney({ journey: initial, serverNow, fresh = false,
       {approved ? "100% Completed" : rejected ? `Stopped at ${percent}%` : display.outcome ? "Withdrawn" : `${percent}% Completed`}
     </span>
   );
-  const iconButton = "grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-white/15 text-[#e2e8f0] outline-none hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-[#93c5fd] sm:h-9 sm:w-9";
+  const iconButton = "grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-white/15 text-[color:var(--jr-text)] outline-none hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-[#93c5fd] sm:h-9 sm:w-9";
 
   return (
     <div
-      className={`jr-panel relative overflow-hidden rounded-2xl border border-[#1e2d47] bg-[#0b1526] text-white shadow-lg ${hidden ? "jr-paused" : ""}`}
+      className={`jr-panel relative overflow-hidden rounded-2xl border border-[color:var(--jr-border)] bg-[color:var(--jr-bg)] text-white shadow-lg ${hidden ? "jr-paused" : ""}`}
       data-testid="approval-road"
       data-van-at={display.vanAt}
       data-outcome={display.outcome ?? "OPEN"}
@@ -476,11 +478,11 @@ export function ARSApprovalJourney({ journey: initial, serverNow, fresh = false,
         <span aria-hidden="true" className={`w-px shrink-0 bg-white/20 ${compact ? "h-6" : "h-9"}`} />
         <div className={`jr-title min-w-0 ${!compact && collapsed ? "flex-none sm:max-w-[40%]" : "flex-1 basis-[180px]"}`}>
           <h2 className={`font-bold leading-tight ${compact ? "text-[14px]" : "text-[17px] sm:text-[19px]"}`}>Approval Journey</h2>
-          <p className={`leading-snug text-[#cbd5e1] ${compact ? "truncate text-[12px]" : "break-words text-[12.5px] sm:text-[13px]"}`}>
+          <p className={`leading-snug text-[color:var(--jr-text-2)] ${compact ? "truncate text-[12px]" : "break-words text-[12.5px] sm:text-[13px]"}`}>
             <span className="font-mono">{shown.requestNo}</span>
             {shown.title && (
               <>
-                <span aria-hidden="true" className="mx-1.5 text-[#94a3b8]">
+                <span aria-hidden="true" className="mx-1.5 text-[color:var(--jr-text-3)]">
                   |
                 </span>
                 <span>{shown.title}</span>
@@ -502,7 +504,7 @@ export function ARSApprovalJourney({ journey: initial, serverNow, fresh = false,
           <span className={`rounded-full px-3 py-1 text-[12px] font-bold ${status.style}`} data-testid="journey-status">
             {status.label}
           </span>
-          {!compact && <span className="whitespace-nowrap text-[12px] font-medium text-[#cbd5e1]">{routeText}</span>}
+          {!compact && <span className="whitespace-nowrap text-[12px] font-medium text-[color:var(--jr-text-2)]">{routeText}</span>}
           {percentChip}
         </div>
         {/* v1.48.1 (owner): on a phone these sit in the header's top-right corner, beside the ARS mark. */}
@@ -530,7 +532,7 @@ export function ARSApprovalJourney({ journey: initial, serverNow, fresh = false,
         <div className={`flex flex-col gap-3 ${compact ? "p-2" : "p-3 sm:p-4"}`}>
           <div className="contents">
             {/* the scenic road */}
-            <div className="order-1 min-w-0 overflow-hidden rounded-xl border border-white/10 bg-[#0d1b2e]">
+            <div className="order-1 min-w-0 overflow-hidden rounded-xl border border-white/10 bg-[color:var(--jr-deep)]">
               <div ref={scroller} className="jr-scroll overflow-x-auto" tabIndex={0} aria-label="Approval journey road">
                 <div className="jr-track relative" style={{ minWidth: Math.max((points.length + 1) * (compact ? 110 : SPACING), compact ? 300 : 420), ["--jr-min" as string]: `${(points.length + 1) * 118}px` }}>
                   <div className={`relative ${compact ? "h-[96px]" : "h-[124px]"}`}>
@@ -601,7 +603,7 @@ export function ARSApprovalJourney({ journey: initial, serverNow, fresh = false,
                         >
                           <DotIcon state={point.state} index={index} />
                           {/* v1.48.1 (owner): the level's details show on hover (and keyboard focus), not under the road. */}
-                          {!compact && <LevelTip point={point} index={index} requesterName={shown.requesterName} />}
+                          {!compact && <LevelTip point={point} index={index} requesterName={shown.requesterName} edge={index === 0 ? "start" : index === points.length - 1 ? "end" : undefined} />}
                         </button>
                       ))}
                     </div>
@@ -646,7 +648,7 @@ export function ARSApprovalJourney({ journey: initial, serverNow, fresh = false,
                   })()}
                   <div className="min-w-0">
                     <p className="text-[16px] font-bold leading-tight text-white">{outcome.title}</p>
-                    <p className="text-[13px] text-[#e2e8f0]">{outcome.text}</p>
+                    <p className="text-[13px] text-[color:var(--jr-text)]">{outcome.text}</p>
                   </div>
                 </div>
               </div>
@@ -656,7 +658,7 @@ export function ARSApprovalJourney({ journey: initial, serverNow, fresh = false,
               <div className="order-5 grid gap-3 md:grid-cols-2" data-testid="journey-activities">
                 {shown.tasks.length > 0 && (
                   <section aria-label="Work tasks">
-                    <h3 className="mb-1.5 text-[12px] font-bold uppercase tracking-wide text-[#cbd5e1]">Work tasks</h3>
+                    <h3 className="mb-1.5 text-[12px] font-bold uppercase tracking-wide text-[color:var(--jr-text-2)]">Work tasks</h3>
                     <ul className="space-y-2">
                       {shown.tasks.map((task) => (
                         <WorkTaskActivity key={task.id} task={task} fresh={newItems.has(`t${task.id}:${task.status}`)} />
@@ -666,7 +668,7 @@ export function ARSApprovalJourney({ journey: initial, serverNow, fresh = false,
                 )}
                 {shown.fyi.length > 0 && (
                   <section aria-label="Information shared">
-                    <h3 className="mb-1.5 text-[12px] font-bold uppercase tracking-wide text-[#cbd5e1]">Information (FYI)</h3>
+                    <h3 className="mb-1.5 text-[12px] font-bold uppercase tracking-wide text-[color:var(--jr-text-2)]">Information (FYI)</h3>
                     <ul className="space-y-2">
                       {shown.fyi.map((item) => (
                         <FyiActivity key={item.key} item={item} fresh={newItems.has(`f${item.key}`)} />

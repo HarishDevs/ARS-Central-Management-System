@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { ChevronDown, ChevronLeft, ChevronRight, Filter, Link2, Lock, Plus, ZoomIn, ZoomOut } from "lucide-react";
 import { Menu } from "@/features/ui/Menu";
+import { Dialog } from "@/features/ui/Dialog";
 import { AddTaskSplit } from "@/features/work/ViewToolbar";
 import { taskFieldsAction } from "@/app/users/work/actions";
 import { typedDependencyAction } from "@/app/users/work/schedule-actions";
@@ -434,8 +435,8 @@ export function ScheduleView({
       >
         <div className="relative" style={{ width: gridW + canvasW, height: HEAD + rows.length * ROW }}>
           {/* Header: the grid's column titles (sticky left) and the two time-scale rows. */}
-          <div className="sticky top-0 z-30 flex bg-surface" style={{ height: HEAD, width: gridW + canvasW }}>
-            <div className="sticky left-0 z-30 flex shrink-0 items-end border-b border-r border-line bg-surface-muted text-caption font-semibold text-ink-muted" style={{ width: gridW }}>
+          <div className="sticky top-0 z-[4] flex bg-surface" style={{ height: HEAD, width: gridW + canvasW }}>
+            <div className="sticky left-0 z-[4] flex shrink-0 items-end border-b border-r border-line bg-surface-muted text-caption font-semibold text-ink-muted" style={{ width: gridW }}>
               <span className="flex-1 px-3 py-1">Name</span>
               {gantt && !narrow && <span className="w-[90px] px-2 py-1">Due date</span>}
               {gantt && !narrow && <span className="w-[150px] px-2 py-1">Blocked by</span>}
@@ -481,7 +482,7 @@ export function ScheduleView({
           {visible.map((row) =>
             row.kind === "section" ? (
               <div key={`s${row.id}`} className="relative z-10 flex" style={{ height: ROW }}>
-                <div className="sticky left-0 z-20 flex shrink-0 items-center border-b border-r border-line bg-surface-muted px-2 text-label font-semibold" style={{ width: gridW }}>
+                <div className="sticky left-0 z-[3] flex shrink-0 items-center border-b border-r border-line bg-surface-muted px-2 text-label font-semibold" style={{ width: gridW }}>
                   <button
                     type="button"
                     className="flex min-w-0 items-center gap-1 rounded px-1 hover:bg-surface"
@@ -608,7 +609,7 @@ function TaskLine({
   const due = box.dates.due;
   return (
     <div className="group relative z-10 flex" style={{ height: ROW }} data-testid="schedule-row">
-      <div className="sticky left-0 z-20 flex shrink-0 items-center border-b border-r border-line bg-surface text-label" style={{ width: gridW }}>
+      <div className="sticky left-0 z-[3] flex shrink-0 items-center border-b border-r border-line bg-surface text-label" style={{ width: gridW }}>
         <span className="flex min-w-0 flex-1 items-center gap-1.5 px-2">
           <TaskCheck taskId={task.id} done={done} disabled={!editable && !done} label={task.title} size="sm" />
           {blocked && <Lock aria-label="Waiting for other tasks" className="h-3.5 w-3.5 shrink-0 text-warning-600" />}
@@ -655,7 +656,7 @@ function TaskLine({
             onPointerDown={(event) => onDown(event, task, "move")}
             onPointerUp={() => onUp(task)}
             onKeyDown={(event) => onKey(event, task, index)}
-            className={`absolute top-[9px] h-4 w-4 rotate-45 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 ${done ? "bg-success-600" : "bg-primary-solid"} ${editable ? "cursor-grab" : ""} ${previewing ? "ring-2 ring-warning-600" : ""}`}
+            className={`absolute top-[9px] h-4 w-4 rotate-45 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 ${done ? "bg-success-solid" : "bg-primary-solid"} ${editable ? "cursor-grab" : ""} ${previewing ? "ring-2 ring-warning-600" : ""}`}
             style={{ left: box.left + box.width / 2 - 8 }}
           />
         ) : (
@@ -671,13 +672,13 @@ function TaskLine({
             onPointerDown={(event) => onDown(event, task, "move")}
             onPointerUp={() => onUp(task)}
             onKeyDown={(event) => onKey(event, task, index)}
-            className={`absolute top-[6px] flex h-[22px] items-center overflow-visible rounded text-caption leading-[22px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 ${done ? "bg-success-600/70 text-on-solid" : "bg-primary-solid text-on-solid"} ${editable ? (dragging ? "cursor-grabbing" : "cursor-grab") : ""} ${previewing ? "ring-2 ring-warning-600" : ""}`}
+            className={`absolute top-[6px] flex h-[22px] items-center overflow-visible rounded text-caption leading-[22px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 ${done ? "bg-success-solid text-on-solid" : "bg-primary-solid text-on-solid"} ${editable ? (dragging ? "cursor-grabbing" : "cursor-grab") : ""} ${previewing ? "ring-2 ring-warning-600" : ""}`}
             style={{ left: box.left, width: box.width }}
           >
             {editable && (
               <span
                 aria-hidden="true"
-                className="absolute inset-y-0 left-0 w-2 cursor-ew-resize rounded-l bg-black/10"
+                className="absolute inset-y-0 left-0 w-2 cursor-ew-resize rounded-l bg-on-solid/30"
                 data-testid="bar-start"
                 onPointerDown={(event) => onDown(event, task, "start")}
                 onPointerUp={(event) => {
@@ -690,7 +691,7 @@ function TaskLine({
             {editable && (
               <span
                 aria-hidden="true"
-                className="absolute inset-y-0 right-0 w-2 cursor-ew-resize rounded-r bg-black/10"
+                className="absolute inset-y-0 right-0 w-2 cursor-ew-resize rounded-r bg-on-solid/30"
                 data-testid="bar-end"
                 onPointerDown={(event) => onDown(event, task, "end")}
                 onPointerUp={(event) => {
@@ -708,7 +709,7 @@ function TaskLine({
             data-testid="link-handle"
             onPointerDown={(event) => onHandleDown(event, task)}
             onPointerUp={onHandleUp}
-            className="absolute top-[11px] z-10 flex h-3 w-3 cursor-crosshair items-center justify-center rounded-full border-2 border-primary-600 bg-surface opacity-0 group-hover:opacity-100"
+            className="absolute top-[11px] z-10 flex h-3 w-3 cursor-crosshair items-center justify-center rounded-full border-2 border-primary-600 bg-surface opacity-0 group-hover:opacity-100 [@media(hover:none)]:!opacity-100"
             style={{ left: box.left + (task.isMilestone ? box.width / 2 + 10 : box.width + 4) }}
           >
             <Link2 className="h-2 w-2" />
@@ -727,20 +728,31 @@ function TaskLine({
 // Link two tasks: which way, the other task, the type; lag shown, not editable yet.
 function LinkDialogBox({ dialog, tasks, pending, onClose, onSave }: { dialog: LinkDialog; tasks: ScheduleTask[]; pending: boolean; onClose: () => void; onSave: (value: LinkDialog) => void }) {
   const [value, setValue] = useState(dialog);
-  const first = useRef<HTMLSelectElement>(null);
-  const titleId = useId();
-  useEffect(() => first.current?.focus(), []);
   const self = tasks.find((task) => task.id === value.taskId);
   const others = tasks.filter((task) => task.id !== value.taskId).sort((a, b) => a.title.localeCompare(b.title));
+  // v1.72.2 (D-394, QA visual P4): the shared Dialog (top layer, focus kept inside, themed backdrop).
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 p-4" onKeyDown={(event) => event.key === "Escape" && (event.stopPropagation(), onClose())}>
-      <div role="dialog" aria-modal="true" aria-labelledby={titleId} className="card w-full max-w-md space-y-3 px-5 py-4" data-testid="link-dialog">
-        <h2 id={titleId} className="font-semibold">
-          Link “{self?.title ?? "task"}”
-        </h2>
+    <Dialog
+      open
+      onClose={onClose}
+      title={`Link “${self?.title ?? "task"}”`}
+      size="md"
+      testId="link-dialog"
+      footer={
+        <>
+          <button type="button" className="btn-secondary btn-compact" onClick={onClose}>
+            Cancel
+          </button>
+          <button type="button" className="btn-primary btn-compact" disabled={!value.otherId || pending} onClick={() => onSave(value)} data-testid="link-save">
+            Link
+          </button>
+        </>
+      }
+    >
+      <div className="space-y-3">
         <label className="block">
           <span className="field-label">This task</span>
-          <select ref={first} className="field-input" value={value.role} onChange={(event) => setValue({ ...value, role: event.target.value as LinkDialog["role"] })}>
+          <select data-autofocus className="field-input" value={value.role} onChange={(event) => setValue({ ...value, role: event.target.value as LinkDialog["role"] })}>
             <option value="BLOCKED_BY">is blocked by (waits for)</option>
             <option value="BLOCKING">is blocking (another task waits for it)</option>
           </select>
@@ -768,15 +780,7 @@ function LinkDialogBox({ dialog, tasks, pending, onClose, onSave }: { dialog: Li
           <span className="mt-1 block text-caption text-ink-muted">{DEP_TYPE_HELP[value.type]}</span>
         </label>
         <p className="text-caption text-ink-muted">Lag: 0 days (lag can&apos;t be changed yet).</p>
-        <div className="flex justify-end gap-2">
-          <button type="button" className="btn-secondary" onClick={onClose}>
-            Cancel
-          </button>
-          <button type="button" className="btn-primary" disabled={!value.otherId || pending} onClick={() => onSave(value)} data-testid="link-save">
-            Link
-          </button>
-        </div>
       </div>
-    </div>
+    </Dialog>
   );
 }

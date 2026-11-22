@@ -1,3 +1,4 @@
+import { EmptyState } from "@/features/ui/Display";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHeader } from "@/features/shell/PageHeader";
@@ -78,7 +79,9 @@ export default async function WorkloadPage({ searchParams }: { searchParams: Pro
       <section className="card overflow-x-auto">
         <h2 className="border-b border-line px-5 py-4 font-semibold">By person</h2>
         {rows.length === 0 ? (
-          <p className="px-5 py-4 text-label text-ink-muted">Nothing is waiting on anyone.</p>
+          <div className="p-4">
+            <EmptyState title="Nothing is waiting on anyone" />
+          </div>
         ) : (
           <FoldScope enabled={Boolean(group)}>
             <table className="data-table">

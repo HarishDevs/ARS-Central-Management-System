@@ -75,14 +75,14 @@ export function Workload({ projectId, data }: { projectId: number; data: Workloa
         </Link>
         <label className="ml-auto inline-flex items-center gap-1 text-label">
           <span className="text-ink-muted">Show</span>
-          <select className="rounded-md border border-line bg-raised px-2 py-1 text-label" value={data.unit} onChange={(event) => router.push(href({ wunit: event.target.value }))} data-testid="workload-unit">
+          <select className="field-input field-compact w-auto" value={data.unit} onChange={(event) => router.push(href({ wunit: event.target.value }))} data-testid="workload-unit">
             <option value="day">Days ({WORKLOAD_SPAN.day})</option>
             <option value="week">Weeks ({WORKLOAD_SPAN.week})</option>
           </select>
         </label>
         <label className="inline-flex items-center gap-1 text-label">
           <span className="text-ink-muted">Measure</span>
-          <select className="rounded-md border border-line bg-raised px-2 py-1 text-label" value={data.metric} onChange={(event) => router.push(href({ wmetric: event.target.value }))} data-testid="workload-metric">
+          <select className="field-input field-compact w-auto" value={data.metric} onChange={(event) => router.push(href({ wmetric: event.target.value }))} data-testid="workload-metric">
             {data.metrics.map((metric) => (
               <option key={metric.key} value={metric.key}>
                 {metric.label}
@@ -220,7 +220,7 @@ function CellTask({ task, people, canReassign, pending, href, metricKind, onReas
           <label htmlFor={selectId} className="text-caption text-ink-muted">
             Reassign to
           </label>
-          <select id={selectId} className="rounded-md border border-line bg-raised px-2 py-1 text-label" value={to} onChange={(event) => setTo(Number(event.target.value))} data-testid="workload-reassign-to">
+          <select id={selectId} className="field-input field-compact w-auto" value={to} onChange={(event) => setTo(Number(event.target.value))} data-testid="workload-reassign-to">
             {people.map((person) => (
               <option key={person.id} value={person.id}>
                 {person.name}
@@ -281,7 +281,7 @@ function CapacityDialog({ projectId, data, onClose, save }: { projectId: number;
       <div className="space-y-3 text-label" data-project={projectId}>
         <label className="flex items-center justify-between gap-3">
           <span className="font-medium">Project capacity ({unit} a day)</span>
-          <input type="number" min={0} max={10000} step="0.5" className="w-24 rounded-md border border-line bg-raised px-2 py-1 text-right" value={project} onChange={(event) => setProject(event.target.value)} data-testid="capacity-project" />
+          <input type="number" min={0} max={10000} step="0.5" className="field-input field-compact w-24 text-right" value={project} onChange={(event) => setProject(event.target.value)} data-testid="capacity-project" />
         </label>
         <ul className="space-y-2">
           {data.people.map((person) => (
@@ -294,7 +294,7 @@ function CapacityDialog({ projectId, data, onClose, save }: { projectId: number;
                   max={10000}
                   step="0.5"
                   placeholder={project}
-                  className="w-24 rounded-md border border-line bg-raised px-2 py-1 text-right"
+                  className="field-input field-compact w-24 text-right"
                   value={own[person.id] ?? ""}
                   onChange={(event) => setOwn((current) => ({ ...current, [person.id]: event.target.value }))}
                   data-testid="capacity-person"

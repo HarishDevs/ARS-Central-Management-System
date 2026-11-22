@@ -3,6 +3,7 @@
 import { AlertTriangle, CheckCircle2, Info, X, XCircle } from "lucide-react";
 import { BrandAnimation } from "@/features/ui/BrandAnimation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 // Toasts (FB-03). Polite announcements for success and info, assertive for
 // errors. Each has an icon and words (never colour alone), can be closed,
@@ -47,23 +48,57 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo(() => show, [show]);
   const polite = items.filter((item) => item.tone !== "error");
   const assertive = items.filter((item) => item.tone === "error");
+  const host = useTopModal();
+  const region = (
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-toast flex flex-col items-center gap-2 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:bottom-auto sm:left-auto sm:right-0 sm:top-[calc(var(--topbar,64px)+0.5rem)] sm:items-end max-md:mb-16" data-testid="toast-region">
+      <div role="status" aria-live="polite" className="contents">
+        {polite.map((item) => (
+          <ToastCard key={item.id} item={item} onDismiss={dismiss} />
+        ))}
+      </div>
+      <div role="alert" aria-live="assertive" className="contents">
+        {assertive.map((item) => (
+          <ToastCard key={item.id} item={item} onDismiss={dismiss} />
+        ))}
+      </div>
+    </div>
+  );
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-toast flex flex-col items-center gap-2 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:bottom-auto sm:left-auto sm:right-0 sm:top-[calc(var(--topbar,64px)+0.5rem)] sm:items-end max-md:mb-16">
-        <div role="status" aria-live="polite" className="contents">
-          {polite.map((item) => (
-            <ToastCard key={item.id} item={item} onDismiss={dismiss} />
-          ))}
-        </div>
-        <div role="alert" aria-live="assertive" className="contents">
-          {assertive.map((item) => (
-            <ToastCard key={item.id} item={item} onDismiss={dismiss} />
-          ))}
-        </div>
-      </div>
+      {host ? createPortal(region, host) : region}
     </ToastContext.Provider>
   );
+}
+
+// v1.72.2 (D-394, QA visual G1): a modal <dialog> sits in the browser's top
+// layer, above any z-index, and makes the rest of the page inert. While one is
+// open the toasts are drawn inside it (the most recently opened), so they show
+// above the dialog and its backdrop, can be clicked, and are still announced.
+export function useTopModal(): HTMLElement | null {
+  const [host, setHost] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    const stack: HTMLDialogElement[] = [];
+    const isModal = (dialog: HTMLDialogElement) => {
+      try {
+        return dialog.open && dialog.matches(":modal");
+      } catch {
+        return false; // a browser without :modal keeps the page-level toasts
+      }
+    };
+    const refresh = () => {
+      for (let index = stack.length - 1; index >= 0; index -= 1) if (!stack[index]!.isConnected || !isModal(stack[index]!)) stack.splice(index, 1);
+      document.querySelectorAll<HTMLDialogElement>("dialog[open]").forEach((dialog) => {
+        if (isModal(dialog) && !stack.includes(dialog)) stack.push(dialog);
+      });
+      setHost(stack.at(-1) ?? null);
+    };
+    const observer = new MutationObserver(refresh);
+    observer.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["open"] });
+    refresh();
+    return () => observer.disconnect();
+  }, []);
+  return host;
 }
 
 function ToastCard({ item, onDismiss }: { item: ToastItem; onDismiss: (id: number) => void }) {

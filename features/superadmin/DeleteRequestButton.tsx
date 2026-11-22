@@ -28,7 +28,7 @@ export function DeleteRequestButton({ requestId, requestNo, redirectTo }: { requ
     );
   }
   return (
-    <form onSubmit={onSubmit} className="w-full min-w-[260px] space-y-2 rounded-md border border-danger-200 bg-danger-50 p-3 text-left" aria-label={`Delete ${requestNo}`}>
+    <form onSubmit={onSubmit} className="w-full min-w-0 space-y-2 sm:min-w-[260px] rounded-md border border-danger-200 bg-danger-50 p-3 text-left" aria-label={`Delete ${requestNo}`}>
       <input type="hidden" name="requestId" value={requestId} />
       {redirectTo && <input type="hidden" name="next" value={redirectTo} />}
       <label className="block text-label font-semibold text-danger-600" htmlFor={`reason-${requestId}`}>

@@ -78,7 +78,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
     { label: "Overdue", value: counts.overdue, status: "overdue", tone: "text-danger-600" },
   ];
   const pages = Math.max(1, Math.ceil(list.total / TICKET_PAGE_SIZE));
-  const select = "field-input h-9 py-0 text-label";
+  const select = "field-input field-compact py-0";
   return (
     <>
       <Breadcrumbs items={[{ href: "/users/tickets/dashboards", label: "Ticket dashboards" }, { label: category.name }]} />

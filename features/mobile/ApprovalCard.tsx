@@ -24,7 +24,7 @@ export interface ApprovalCardData {
   road?: MiniRoad | null; // D-273: the request's journey in small
 }
 
-const TONE = { red: "bg-[color:var(--m-red)] text-white", amber: "bg-warning-50 text-warning-600" } as const;
+const TONE = { red: "bg-[color:var(--m-red)] text-on-solid", amber: "bg-warning-50 text-warning-600" } as const;
 
 export function ApprovalCard({ card, compact = false }: { card: ApprovalCardData; compact?: boolean }) {
   // v1.45.0 (Manage view → Compact mode): one row, as Asana's compact list.
@@ -32,17 +32,17 @@ export function ApprovalCard({ card, compact = false }: { card: ApprovalCardData
     return (
       <Link href={card.href} className="flex min-h-[60px] items-center gap-3 border-b border-line px-4 py-2 active:bg-surface-muted" data-testid="m-approval-card">
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[16px]">
+          <span className="block truncate text-[length:calc(16px*var(--text-scale,1))]">
             <SafeText text={card.title} />
           </span>
-          <span className="block truncate font-mono text-[12px] text-ink-muted">
+          <span className="block truncate font-mono text-[length:calc(12px*var(--text-scale,1))] text-ink-muted">
             {card.requestNo}
             {card.requester ? ` · ${card.requester}` : ""}
           </span>
         </span>
         {card.requestPriority && <RequestPriorityBadge priority={card.requestPriority} />}
         {card.priority ? (
-          <span className={`shrink-0 rounded-md px-2 py-1 text-[12px] font-bold ${TONE[card.priority.tone]}`}>{card.priority.label}</span>
+          <span className={`shrink-0 rounded-md px-2 py-1 text-[length:calc(12px*var(--text-scale,1))] font-bold ${TONE[card.priority.tone]}`}>{card.priority.label}</span>
         ) : (
           <span className={`badge shrink-0 ${card.status.className}`}>{card.status.label}</span>
         )}
@@ -60,19 +60,19 @@ export function ApprovalCard({ card, compact = false }: { card: ApprovalCardData
     <Link href={card.href} className="mob-card block p-4 active:bg-surface-muted" data-testid="m-approval-card">
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
-          <p className="font-mono text-[12px] font-semibold text-ink-muted">{card.requestNo}</p>
-          <p className="mt-0.5 line-clamp-2 text-[16px] font-bold leading-snug">
+          <p className="font-mono text-[length:calc(12px*var(--text-scale,1))] font-semibold text-ink-muted">{card.requestNo}</p>
+          <p className="mt-0.5 line-clamp-2 text-[length:calc(16px*var(--text-scale,1))] font-bold leading-snug">
             <SafeText text={card.title} />
           </p>
         </div>
         <ChevronRight aria-hidden="true" className="mt-1 h-5 w-5 shrink-0 text-ink-faint" />
       </div>
-      <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-[13px]">
+      <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-[length:calc(13px*var(--text-scale,1))]">
         {facts
           .filter(([, value]) => value)
           .map(([label, value]) => (
             <div key={label} className={label === "Requested by" ? "col-span-2" : undefined}>
-              <dt className="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">{label}</dt>
+              <dt className="text-[length:calc(11px*var(--text-scale,1))] font-semibold uppercase tracking-wide text-ink-muted">{label}</dt>
               <dd className="truncate font-medium">{value}</dd>
             </div>
           ))}
@@ -85,7 +85,7 @@ export function ApprovalCard({ card, compact = false }: { card: ApprovalCardData
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <span className={`badge ${card.status.className}`}>{card.status.label}</span>
         {card.requestPriority && <RequestPriorityBadge priority={card.requestPriority} />}
-        {card.priority && <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${TONE[card.priority.tone]}`}>{card.priority.label}</span>}
+        {card.priority && <span className={`rounded-full px-2 py-0.5 text-[length:calc(11px*var(--text-scale,1))] font-bold ${TONE[card.priority.tone]}`}>{card.priority.label}</span>}
       </div>
     </Link>
   );

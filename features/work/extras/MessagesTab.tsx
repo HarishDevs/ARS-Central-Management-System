@@ -3,6 +3,7 @@
 import { ChevronDown, ChevronRight, Download, MessageSquarePlus, Paperclip } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useToast } from "@/features/ui/Toast";
+import { InlineLoading } from "@/features/ui/Spinner";
 import { changeMessageAction, messageVersionsAction, postMessageAction, reactMessageAction } from "@/app/users/work/collab-actions";
 import { ConfirmButton } from "@/features/ui/ConfirmButton";
 import { FieldError, ResultMessage, SubmitButton, useActionForm } from "@/features/ui/form";
@@ -165,7 +166,7 @@ function Message({ message, canReact, people }: { message: MessageItem; canReact
           {message.parentId === null && (
             <label className="block text-caption text-ink-muted">
               Subject
-              <input className="input mt-1 w-full" value={subject} maxLength={150} required onChange={(event) => setSubject(event.target.value)} />
+              <input className="field-input mt-1" value={subject} maxLength={150} required onChange={(event) => setSubject(event.target.value)} />
             </label>
           )}
           <RichEditor name="body" label="Edit message" initialText={message.body} onText={setText} people={people} minHeight={72} maxLength={10000} autoFocus />
@@ -220,7 +221,7 @@ function MessageEdits({ messageId, deleted = false }: { messageId: number; delet
       {open && (
         <ol className="mt-1 w-full space-y-1 rounded-md border border-line bg-surface-muted px-3 py-2" aria-label="Earlier versions" data-testid="message-versions">
           {problem && <li className="text-caption text-danger-600">{problem}</li>}
-          {!problem && !versions && <li className="text-caption text-ink-muted">Loading…</li>}
+          {!problem && !versions && <li><InlineLoading /></li>}
           {versions?.length === 0 && <li className="text-caption text-ink-muted">No earlier versions.</li>}
           {versions?.map((version) => (
             <li key={version.id} className="text-label">
@@ -263,7 +264,7 @@ function Composer({ projectId, projectName, people, onDone }: { projectId: numbe
       <label className="block text-label font-medium" htmlFor="message-subject">
         Subject
       </label>
-      <input id="message-subject" name="subject" className="input w-full" maxLength={150} required aria-describedby="message-subject-error" />
+      <input id="message-subject" name="subject" className="field-input" maxLength={150} required aria-describedby="message-subject-error" />
       <FieldError result={result} name="subject" />
       <RichEditor name="body" id="message-body" label="Message" placeholder="Write a message or @mention a teammate" people={people} maxLength={10000} />
       <FieldError result={result} name="body" />

@@ -1,5 +1,6 @@
 "use client";
 
+import { EmptyState } from "@/features/ui/Display";
 import { Briefcase, ChevronLeft, ChevronRight, Lock } from "lucide-react";
 import Link from "next/link";
 import { useRef, useState } from "react";
@@ -55,7 +56,7 @@ export function PortfolioTimeline({ rows, today }: { rows: PortfolioRow[]; today
         {live}
       </span>
       {rows.length === 0 ? (
-        <p className="card px-4 py-8 text-center text-label text-ink-muted">Nothing in this portfolio yet.</p>
+        <EmptyState title="Nothing in this portfolio yet" body="Add projects or other portfolios to see them on the timeline." />
       ) : (
         <div className="card overflow-x-auto">
           <div className="min-w-[44rem]">

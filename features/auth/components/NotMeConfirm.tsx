@@ -42,7 +42,7 @@ export function NotMeConfirm({ token }: { token: string }) {
           {message}
         </p>
       )}
-      <button type="button" onClick={confirm} disabled={state === "busy" || !token} className="btn-primary mt-6 !bg-danger-solid hover:!bg-danger-solid-hover">
+      <button type="button" onClick={confirm} disabled={state === "busy" || !token} className="btn-danger mt-6">
         {state === "busy" ? "Securing…" : "Sign out everywhere and lock my account"}
       </button>
       <p className="mt-3 text-label text-ink-muted">If it was you, just close this page.</p>

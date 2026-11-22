@@ -81,7 +81,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
               <label htmlFor="status" className="field-label">
                 Status
               </label>
-              <select id="status" name="status" defaultValue={status} className="field-input h-10">
+              <select id="status" name="status" defaultValue={status} className="field-input field-compact">
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
                 <option value="all">All</option>
@@ -91,7 +91,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
               <label htmlFor="module" className="field-label">
                 Module
               </label>
-              <select id="module" name="module" defaultValue={moduleFilter ?? ""} className="field-input h-10">
+              <select id="module" name="module" defaultValue={moduleFilter ?? ""} className="field-input field-compact">
                 <option value="">Any</option>
                 {MODULES.map((module) => (
                   <option key={module} value={module}>
@@ -104,7 +104,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
               <label htmlFor="dept" className="field-label">
                 Department
               </label>
-              <select id="dept" name="dept" defaultValue={departmentFilter === undefined ? "" : deptParam} className="field-input h-10">
+              <select id="dept" name="dept" defaultValue={departmentFilter === undefined ? "" : deptParam} className="field-input field-compact">
                 <option value="">Any</option>
                 {departments.map((item) => (
                   <option key={item.id} value={item.id}>

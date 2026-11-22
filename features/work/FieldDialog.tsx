@@ -4,6 +4,7 @@ import { ArrowDown, ArrowUp, GripVertical, Info, Lock, Plus, Search, X } from "l
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { fieldDefAction, fieldLibraryAction } from "@/app/users/work/actions";
 import { Dialog } from "@/features/ui/Dialog";
+import { InlineLoading } from "@/features/ui/Spinner";
 import { useWorkCall } from "@/features/work/client";
 import { FIELD_DIALOG_EVENT, FieldGlyph, OPTION_COLOR_NAMES, optionStyle } from "@/features/work/FieldControls";
 import {
@@ -508,7 +509,7 @@ function LibraryPanel({ projectId, inProject, onAdded }: { projectId: number; in
         <input type="search" value={q} onChange={(event) => setQ(event.target.value)} placeholder="Search the field library" className="field-input h-9" />
       </label>
       {items === null ? (
-        <p className="text-label text-ink-muted">Loading…</p>
+        <InlineLoading />
       ) : items.length === 0 ? (
         <p className="text-label text-ink-muted">No library fields{q ? " match" : " yet"}. Tick “Add to the ARS field library” when you create a field to share it.</p>
       ) : (

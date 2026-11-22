@@ -84,7 +84,7 @@ export function TimeSection({ data }: { data: TimeData }) {
         >
           <label className="flex flex-col gap-1 text-caption text-ink-muted">
             Estimate
-            <input className="input w-32" value={estimate} onChange={(event) => setEstimate(event.target.value)} placeholder="e.g. 4h" aria-describedby={`estimate-hint-${data.taskId}`} data-testid="time-estimate" />
+            <input className="field-input field-compact w-32" value={estimate} onChange={(event) => setEstimate(event.target.value)} placeholder="e.g. 4h" aria-describedby={`estimate-hint-${data.taskId}`} data-testid="time-estimate" />
           </label>
           <button type="submit" className="btn-secondary btn-compact" disabled={pending}>
             Set estimate
@@ -122,15 +122,15 @@ export function TimeSection({ data }: { data: TimeData }) {
           >
             <label className="flex flex-col gap-1 text-caption text-ink-muted">
               Day
-              <input type="date" className="input" value={day} max={data.today} required onChange={(event) => setDay(event.target.value)} data-testid="time-day" />
+              <input type="date" className="field-input field-compact w-auto" value={day} max={data.today} required onChange={(event) => setDay(event.target.value)} data-testid="time-day" />
             </label>
             <label className="flex flex-col gap-1 text-caption text-ink-muted">
               How long
-              <input className="input w-28" value={duration} required placeholder="1h 30m" onChange={(event) => setDuration(event.target.value)} data-testid="time-duration" />
+              <input className="field-input field-compact w-28" value={duration} required placeholder="1h 30m" onChange={(event) => setDuration(event.target.value)} data-testid="time-duration" />
             </label>
             <label className="flex min-w-[10rem] flex-1 flex-col gap-1 text-caption text-ink-muted">
               Note (optional)
-              <input className="input" value={note} maxLength={500} onChange={(event) => setNote(event.target.value)} data-testid="time-note" />
+              <input className="field-input field-compact w-auto" value={note} maxLength={500} onChange={(event) => setNote(event.target.value)} data-testid="time-note" />
             </label>
             <button type="submit" className="btn-primary btn-compact" disabled={pending} data-testid="time-log">
               Log time
@@ -155,15 +155,15 @@ export function TimeSection({ data }: { data: TimeData }) {
                 >
                   <label className="flex flex-col gap-1 text-caption text-ink-muted">
                     Day
-                    <input type="date" className="input" value={draft.workDay} max={data.today} onChange={(event) => setDraft({ ...draft, workDay: event.target.value })} />
+                    <input type="date" className="field-input field-compact w-auto" value={draft.workDay} max={data.today} onChange={(event) => setDraft({ ...draft, workDay: event.target.value })} />
                   </label>
                   <label className="flex flex-col gap-1 text-caption text-ink-muted">
                     How long
-                    <input className="input w-28" value={draft.duration} onChange={(event) => setDraft({ ...draft, duration: event.target.value })} />
+                    <input className="field-input field-compact w-28" value={draft.duration} onChange={(event) => setDraft({ ...draft, duration: event.target.value })} />
                   </label>
                   <label className="flex min-w-[10rem] flex-1 flex-col gap-1 text-caption text-ink-muted">
                     Note
-                    <input className="input" value={draft.note} maxLength={500} onChange={(event) => setDraft({ ...draft, note: event.target.value })} />
+                    <input className="field-input field-compact w-auto" value={draft.note} maxLength={500} onChange={(event) => setDraft({ ...draft, note: event.target.value })} />
                   </label>
                   <button type="submit" className="btn-primary btn-compact" disabled={pending}>
                     Save

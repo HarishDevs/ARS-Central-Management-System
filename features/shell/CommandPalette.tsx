@@ -290,7 +290,7 @@ export function CommandPalette({ pages, saved }: { pages: PaletteLink[]; saved?:
       {control}
     </div>
   );
-  const select = "field-input h-9 text-label";
+  const select = "field-input field-compact";
 
   let lastGroup = "";
   return (
@@ -326,7 +326,7 @@ export function CommandPalette({ pages, saved }: { pages: PaletteLink[]; saved?:
       >
         {open && (
           <div onKeyDown={onKeyDown}>
-            <div className="m-2 flex items-center gap-2 rounded-lg border-2 border-primary-600 px-3">
+            <div className="m-2 flex items-center gap-2 rounded-lg border-2 border-primary-600 px-3 focus-within:ring-[3px] focus-within:ring-primary-600/25">
               <Search aria-hidden="true" className="h-4 w-4 text-ink-faint" />
               <input
                 ref={input}

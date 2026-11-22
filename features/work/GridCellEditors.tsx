@@ -57,7 +57,7 @@ export function useCellPanel() {
   return { spot, button, panel, open, close };
 }
 
-const panelClass = "fixed z-[var(--z-drawer)] w-72 rounded-lg border border-line bg-raised p-3 text-ink shadow-overlay";
+const panelClass = "fixed z-popover w-72 rounded-lg border border-line bg-raised p-3 text-ink shadow-overlay";
 
 export function CollaboratorsCell({ taskId, title, followers, people, canEdit }: { taskId: number; title: string; followers: { id: number; name: string }[]; people: { id: number; label: string; detail?: string }[]; canEdit: boolean }) {
   const { call, pending } = useWorkCall();

@@ -81,7 +81,7 @@ export function ClassicMenu({ title, entries, testId }: { title: string; entries
 
   return (
     <nav aria-label={title} className="overflow-hidden rounded-md border-2 border-primary-600 bg-surface shadow-sm" data-testid={testId}>
-      <h2 className="bg-primary-solid px-4 py-2 text-center text-label font-bold uppercase tracking-[0.12em] text-white">{title}</h2>
+      <h2 className="bg-primary-solid px-4 py-2 text-center text-label font-bold uppercase tracking-[0.12em] text-on-solid">{title}</h2>
       <ul className="py-2">
         {entries.map((entry, index) => {
           const at = entry.hotkey ? entry.label.toLowerCase().indexOf(entry.hotkey) : -1;
@@ -266,7 +266,7 @@ export function ClassicBar({ modules }: { modules: ClassicModule[] }) {
                 href={item.href}
                 aria-current={current ? "page" : undefined}
                 aria-keyshortcuts={at !== -1 ? keys[index]!.toUpperCase() : undefined}
-                className={`shrink-0 rounded-t-md border border-b-0 px-3 py-1.5 text-label ${current ? "border-primary-600 bg-primary-solid font-semibold text-white" : "border-line bg-surface-muted text-ink hover:bg-primary-50"}`}
+                className={`shrink-0 rounded-t-md border border-b-0 px-3 py-1.5 text-label ${current ? "border-primary-600 bg-primary-solid font-semibold text-on-solid" : "border-line bg-surface-muted text-ink hover:bg-primary-50"}`}
               >
                 {at === -1 ? (
                   item.label

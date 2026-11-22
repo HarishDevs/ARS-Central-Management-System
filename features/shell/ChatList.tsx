@@ -47,7 +47,7 @@ export function ChatList({ chats }: { chats: ChatSummary[] }) {
     <div className="space-y-1.5 py-1" data-testid="nav-chats">
       <div className="relative">
         <Search aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-faint" />
-        <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} aria-label="Search chats" placeholder="Search chats" className="h-8 w-full rounded-md border border-line bg-surface-muted pl-8 pr-2 text-label text-ink placeholder:text-ink-faint focus:border-primary-600 focus:outline-none" />
+        <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} aria-label="Search chats" placeholder="Search chats" className="field-input h-8 pl-8 pr-2 text-label" />
       </div>
       {problem && (
         <p role="alert" className="px-2 text-caption text-danger-600">
@@ -121,7 +121,7 @@ function RenameBox({ initial, onDone }: { initial: string; onDone: (title: strin
       defaultValue={initial}
       maxLength={200}
       aria-label="Chat name"
-      className="h-8 w-full rounded-md border border-primary-600 bg-surface px-2 text-label text-ink focus:outline-none"
+      className="field-input h-8 px-2 text-label"
       onKeyDown={(event) => {
         if (event.key === "Enter") onDone(event.currentTarget.value.replace(/\s+/g, " ").trim() || null);
         if (event.key === "Escape") onDone(null);
@@ -176,7 +176,7 @@ function ChatMenu({ title, pinned, disabled, onRename, onPin, onDelete }: { titl
           const rect = button.current!.getBoundingClientRect();
           setAt(at ? null : { top: Math.min(rect.bottom + 4, window.innerHeight - 140), left: Math.min(rect.left, window.innerWidth - 180) });
         }}
-        className={`mr-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded text-ink-faint hover:bg-surface hover:text-ink focus-visible:opacity-100 ${at ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}
+        className={`mr-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded text-ink-faint hover:bg-surface hover:text-ink focus-visible:opacity-100 ${at ? "opacity-100" : "opacity-0 group-hover:opacity-100 [@media(hover:none)]:!opacity-100"}`}
       >
         <MoreHorizontal aria-hidden="true" className="h-4 w-4" />
       </button>
@@ -186,7 +186,7 @@ function ChatMenu({ title, pinned, disabled, onRename, onPin, onDelete }: { titl
           role="menu"
           aria-label={`Options for ${title}`}
           style={{ position: "fixed", top: at.top, left: at.left }}
-          className="z-drawer min-w-40 rounded-lg border border-line bg-raised p-1 shadow-overlay"
+          className="z-popover min-w-40 rounded-lg border border-line bg-raised p-1 shadow-overlay"
           onKeyDown={(event) => {
             const entries = [...(menu.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])];
             const index = entries.indexOf(document.activeElement as HTMLElement);

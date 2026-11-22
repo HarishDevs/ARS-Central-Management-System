@@ -83,12 +83,12 @@ export async function MobileHome({
   return (
     <div className="space-y-5" data-testid="mobile-home">
       <section aria-label="Today" className="rounded-2xl bg-[color:var(--m-navy)] p-4 text-white">
-        <p className="text-[13px] opacity-80">{greeting}</p>
-        <p className="mt-1 text-[18px] font-bold leading-snug" data-testid="m-attention">
+        <p className="text-[length:calc(13px*var(--text-scale,1))] opacity-80">{greeting}</p>
+        <p className="mt-1 text-[length:calc(18px*var(--text-scale,1))] font-bold leading-snug" data-testid="m-attention">
           {attentionParts.length ? `Needs you: ${attentionParts.join(" · ")}` : "You're all caught up."}
         </p>
         {approvals && waiting ? (
-          <Link href="/users/approvals?tab=waiting" className="mt-3 inline-flex min-h-11 items-center gap-1.5 rounded-full bg-white px-4 text-[14px] font-semibold text-[color:var(--m-navy)]">
+          <Link href="/users/approvals?tab=waiting" className="mt-3 inline-flex min-h-11 items-center gap-1.5 rounded-full bg-white px-4 text-[length:calc(14px*var(--text-scale,1))] font-semibold text-[color:var(--m-navy)]">
             Review approvals <ArrowRight aria-hidden="true" className="h-4 w-4" />
           </Link>
         ) : null}
@@ -103,8 +103,8 @@ export async function MobileHome({
                   <kpi.icon className="h-4 w-4" />
                 </span>
                 <span>
-                  <span className="block text-[22px] font-extrabold leading-tight tabular-nums">{kpi.value.toLocaleString("en-IN")}</span>
-                  <span className="block text-[12px] font-semibold text-ink-muted">{kpi.label}</span>
+                  <span className="block text-[length:calc(22px*var(--text-scale,1))] font-extrabold leading-tight tabular-nums">{kpi.value.toLocaleString("en-IN")}</span>
+                  <span className="block text-[length:calc(12px*var(--text-scale,1))] font-semibold text-ink-muted">{kpi.label}</span>
                 </span>
               </Link>
             </li>
@@ -120,7 +120,7 @@ export async function MobileHome({
                 {action.href === "#new-task" ? (
                   <QuickNewTask />
                 ) : (
-                <Link href={action.href} className="flex min-h-[72px] flex-col items-center justify-center gap-1.5 rounded-xl bg-surface p-2 text-center text-[12px] font-semibold shadow-sm">
+                <Link href={action.href} className="flex min-h-[72px] flex-col items-center justify-center gap-1.5 rounded-xl bg-surface p-2 text-center text-[length:calc(12px*var(--text-scale,1))] font-semibold shadow-sm">
                   <action.icon aria-hidden="true" className="h-5 w-5 text-[color:var(--m-navy-text)]" />
                   {action.label}
                 </Link>
@@ -175,15 +175,15 @@ export async function MobileHome({
                     <Link href={`/users/tasks/${task.id}`} className="flex min-h-[56px] items-center gap-3 px-4 py-2">
                       <CheckCircle2 aria-hidden="true" className="h-5 w-5 shrink-0 text-ink-faint" />
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[15px] font-semibold">
+                        <span className="block truncate text-[length:calc(15px*var(--text-scale,1))] font-semibold">
                           <SafeText text={task.title} />
                         </span>
-                        <span className="block text-[12px] text-ink-muted">
+                        <span className="block text-[length:calc(12px*var(--text-scale,1))] text-ink-muted">
                           {task.taskNo}
                           {task.approval ? ` · from ${task.approval.requestNo}` : ""}
                         </span>
                       </span>
-                      {due && <span className={`shrink-0 text-[12px] font-semibold ${TONE_TEXT[due.tone]}`}>{due.text}</span>}
+                      {due && <span className={`shrink-0 text-[length:calc(12px*var(--text-scale,1))] font-semibold ${TONE_TEXT[due.tone]}`}>{due.text}</span>}
                     </Link>
                   </li>
                 );
@@ -202,16 +202,16 @@ export async function MobileHome({
               <li key={item.id}>
                 <Link href={`/users/requests/${item.id}`} className="block px-4 py-3">
                   <span className="flex items-center justify-between gap-2">
-                    <span className="font-mono text-[12px] font-semibold text-ink-muted">{item.requestNo}</span>
+                    <span className="font-mono text-[length:calc(12px*var(--text-scale,1))] font-semibold text-ink-muted">{item.requestNo}</span>
                     <span className="flex shrink-0 items-center gap-1.5">
                       {facts.get(item.id)?.priority && <RequestPriorityBadge priority={facts.get(item.id)!.priority!} />}
                       <span className={`badge ${REQUEST_STATUS[item.status].style}`}>{REQUEST_STATUS[item.status].label}</span>
                     </span>
                   </span>
-                  <span className="mt-0.5 block truncate text-[15px] font-semibold">
+                  <span className="mt-0.5 block truncate text-[length:calc(15px*var(--text-scale,1))] font-semibold">
                     <SafeText text={item.title} />
                   </span>
-                  <span className="block truncate text-[12px] text-ink-muted">{item.pendingWith ? `With ${item.pendingWith}` : `Submitted ${formatIndiaTime(item.submittedAt)}`}</span>
+                  <span className="block truncate text-[length:calc(12px*var(--text-scale,1))] text-ink-muted">{item.pendingWith ? `With ${item.pendingWith}` : `Submitted ${formatIndiaTime(item.submittedAt)}`}</span>
                 </Link>
               </li>
             ))}
@@ -240,7 +240,7 @@ function Block({ title, href, more, children }: { title: string; href: string; m
     <section aria-label={title}>
       <div className="mb-2 flex items-center justify-between px-1">
         <h2 className="mob-section-title">{title}</h2>
-        <Link href={href} className="min-h-11 content-center text-[13px] font-semibold text-[color:var(--m-navy-text)]">
+        <Link href={href} className="min-h-11 content-center text-[length:calc(13px*var(--text-scale,1))] font-semibold text-[color:var(--m-navy-text)]">
           {more}
         </Link>
       </div>
@@ -250,5 +250,5 @@ function Block({ title, href, more, children }: { title: string; href: string; m
 }
 
 function Quiet({ text }: { text: string }) {
-  return <p className="mob-card p-4 text-[14px] text-ink-muted">{text}</p>;
+  return <p className="mob-card p-4 text-[length:calc(14px*var(--text-scale,1))] text-ink-muted">{text}</p>;
 }

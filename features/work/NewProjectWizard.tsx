@@ -60,7 +60,7 @@ export function NewProjectWizard({
           const current = step === "start" ? 0 : step === "details" || step === "template" ? 1 : 2;
           return (
             <li key={label} aria-current={index === current ? "step" : undefined} className={`flex items-center gap-1 ${index === current ? "font-semibold text-primary-700" : ""}`}>
-              <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[length:calc(10px*var(--text-scale,1))] ${index <= current ? "bg-primary-solid text-white" : "bg-surface-muted"}`}>{index + 1}</span>
+              <span className={`flex h-5 w-5 items-center justify-center rounded-full text-[length:calc(10px*var(--text-scale,1))] ${index <= current ? "bg-primary-solid text-on-solid" : "bg-surface-muted"}`}>{index + 1}</span>
               {label}
             </li>
           );

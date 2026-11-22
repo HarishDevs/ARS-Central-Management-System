@@ -174,7 +174,7 @@ export function DependencyEditor({ taskId, title, blockedBy, blocking, canChange
               }}
             />
             {open && query.trim().length >= 2 && (
-              <ul id={listId} role="listbox" aria-label="Tasks" className="absolute z-30 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-line bg-surface py-1 shadow-lg">
+              <ul id={listId} role="listbox" aria-label="Tasks" className="absolute z-popover mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-line bg-raised py-1 shadow-overlay">
                 {found.length === 0 && (
                   <li role="option" aria-selected={false} aria-disabled="true" className="px-3 py-1.5 text-label text-ink-muted">
                     No task found that you can see.

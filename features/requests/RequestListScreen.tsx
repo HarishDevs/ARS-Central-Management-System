@@ -297,7 +297,7 @@ export function RequestListScreen({
     filters.activityFrom || filters.activityTo ? { label: `Activity ${filters.activityFrom ?? "…"} to ${filters.activityTo ?? "…"}`, remove: { activityFrom: null, activityTo: null } } : null,
   ];
   const chips = candidates.filter((chip): chip is Chip => chip !== null);
-  const select = "field-input h-10";
+  const select = "field-input field-compact";
   const dates = (name: string, label: string, from: string | null, to: string | null) => (
     <fieldset className="min-w-0">
       <legend className="field-label">{label}</legend>

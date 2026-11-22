@@ -104,7 +104,7 @@ export function AssistantForm({ conversationId, enabled, maxChars, modes, sugges
         />
         <div className="flex items-center justify-between gap-2">
           {conversationId === null && modes.length > 1 ? (
-            <select name="mode" aria-label="What this chat uses" title="What this chat uses" defaultValue={modes[0]?.mode} className="h-8 rounded-full border border-line bg-surface-muted px-3 text-label text-ink">
+            <select name="mode" aria-label="What this chat uses" title="What this chat uses" defaultValue={modes[0]?.mode} className="pill-select">
               {modes.map((item) => (
                 <option key={item.mode} value={item.mode}>
                   {item.label}
@@ -115,7 +115,7 @@ export function AssistantForm({ conversationId, enabled, maxChars, modes, sugges
             <span />
           )}
           {enabled && (
-            <button type="submit" disabled={pending} aria-label="Ask" title="Send (Enter)" className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary-solid text-white hover:bg-primary-solid-hover disabled:bg-primary-solid-disabled">
+            <button type="submit" disabled={pending} aria-label="Ask" title="Send (Enter)" className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary-solid text-on-solid hover:bg-primary-solid-hover disabled:bg-primary-solid-disabled">
               <ArrowUp aria-hidden="true" className="h-4 w-4" />
             </button>
           )}

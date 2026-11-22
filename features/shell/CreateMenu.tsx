@@ -63,7 +63,7 @@ export function CreateMenu({ approval, task, project = task, portfolio = false, 
         <div
           role="menu"
           aria-label="Create"
-          className={`z-[var(--z-drawer)] rounded-lg border border-line bg-raised p-1 shadow-overlay ${compact ? "fixed w-64" : "absolute left-3 right-3 mt-1"}`}
+          className={`z-popover rounded-lg border border-line bg-raised p-1 shadow-overlay ${compact ? "fixed w-64" : "absolute left-3 right-3 mt-1"}`}
           style={compact && spot ? { top: spot.top, left: spot.left } : undefined}
           onKeyDown={(event) => {
             if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;

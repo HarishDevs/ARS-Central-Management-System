@@ -29,7 +29,7 @@ import { PaneMoreMenu, TaskLikeButton } from "@/features/work/PaneParts";
 import { isMobileLayout } from "@/server/ui/layout-mode";
 import { SheetButton } from "@/features/mobile/BottomSheet";
 import { CopyLinkButton } from "@/features/work/client";
-import { initials } from "@/features/ui/Display";
+import { Avatar } from "@/features/ui/Avatar";
 
 import { TaskActivity } from "@/features/work/TaskActivity";
 import { RunAutomationButtons } from "@/features/work/automations/RunAutomationButtons";
@@ -214,31 +214,28 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
           <p className="font-mono text-[12px] text-ink-muted">
             {task.taskNo} · {task.typeName}
           </p>
-          <h1 className="text-[26px] font-semibold leading-tight">{task.title}</h1>
+          <h1 className="text-greeting font-semibold">{task.title}</h1>
           <div className="flex flex-wrap gap-2">
             <Badge tone={STATUS_TONE[task.status]}>{TASK_STATUS_LABEL[task.status]}</Badge>
             <TaskPriorityPill priority={task.priority} showNormal />
             {late && <Badge tone="danger">Overdue</Badge>}
             {task.deletedAt && <Badge tone="danger">Deleted</Badge>}
           </div>
+          {/* v1.72.2 (D-394): each fact is dt + dd directly (axe definition-list); the picture is a dd placed first. */}
           <dl className="grid grid-cols-2 gap-3 border-y border-line py-3" data-testid="m-task-facts">
-            <div className="flex items-center gap-3">
-              <span aria-hidden="true" className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[color:var(--m-navy)] text-[14px] font-bold text-white">
-                {initials(task.assigneeName)}
-              </span>
-              <div className="min-w-0">
-                <dt className="text-[13px] text-ink-muted">Assigned to</dt>
-                <dd className="truncate text-[15px]">{task.assigneeName}</dd>
-              </div>
+            <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3">
+              <dt className="col-start-2 row-start-1 text-[length:calc(13px*var(--text-scale,1))] text-ink-muted">Assigned to</dt>
+              <dd className="col-start-2 row-start-2 truncate text-[length:calc(15px*var(--text-scale,1))]">{task.assigneeName}</dd>
+              <dd className="col-start-1 row-span-2 row-start-1">
+                <Avatar name={task.assigneeName} src={null} size="md" />
+              </dd>
             </div>
-            <div className="flex items-center gap-3">
-              <span aria-hidden="true" className={`grid h-11 w-11 shrink-0 place-items-center rounded-full border-2 ${late ? "border-danger-600 text-danger-600" : "border-line text-ink-muted"}`}>
+            <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3">
+              <dt className="col-start-2 row-start-1 text-[length:calc(13px*var(--text-scale,1))] text-ink-muted">Due date</dt>
+              <dd className={`col-start-2 row-start-2 truncate text-[length:calc(15px*var(--text-scale,1))] ${late ? "text-danger-600" : ""}`}>{task.dueAt ? DUE_DAY.format(new Date(task.dueAt)) : "None"}</dd>
+              <dd aria-hidden="true" className={`col-start-1 row-span-2 row-start-1 grid h-11 w-11 shrink-0 place-items-center rounded-full border-2 ${late ? "border-danger-600 text-danger-600" : "border-line text-ink-muted"}`}>
                 <CalendarDays className="h-5 w-5" />
-              </span>
-              <div className="min-w-0">
-                <dt className="text-[13px] text-ink-muted">Due date</dt>
-                <dd className={`truncate text-[15px] ${late ? "text-danger-600" : ""}`}>{task.dueAt ? DUE_DAY.format(new Date(task.dueAt)) : "None"}</dd>
-              </div>
+              </dd>
             </div>
           </dl>
         </header>

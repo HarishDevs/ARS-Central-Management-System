@@ -49,7 +49,7 @@ export function DeliveryDashboard({ summary, filter, path, keep = {} }: { summar
   const statusOf = (label: string) => DELIVERY_STATUSES.find((status) => STATUS_LABEL[status] === label) ?? null;
   const channelOf = (label: string) => (label.startsWith("Email") ? "EMAIL" : label.startsWith("WhatsApp") ? "WHATSAPP" : null);
 
-  const select = "field-input h-9 py-0 text-label";
+  const select = "field-input field-compact py-0";
   return (
     <section aria-label="Delivery dashboard" className="mb-6 space-y-4" data-testid="delivery-dashboard">
       <form method="get" action={path} className="card flex flex-wrap items-end gap-3 px-4 py-3" aria-label="Delivery filters">

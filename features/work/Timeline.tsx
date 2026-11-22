@@ -76,7 +76,7 @@ export function Timeline({ tasks, todayDay, hrefFor }: { tasks: TimelineTask[]; 
                       ) : (
                         <span
                           title={`${task.title}: ${task.start} to ${task.due} · ${task.assigneeName}`}
-                          className={`absolute top-1.5 h-5 truncate rounded px-1.5 text-caption leading-5 text-white ${done ? "bg-success-600/70" : "bg-primary-solid"}`}
+                          className={`absolute top-1.5 h-5 truncate rounded px-1.5 text-caption leading-5 text-on-solid ${done ? "bg-success-solid" : "bg-primary-solid"}`}
                           style={{ left: `${left}%`, width: `${(length / span) * 100}%` }}
                         >
                           {task.assigneeName}

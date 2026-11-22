@@ -53,7 +53,7 @@ export function ColumnPicker({ list, available, shown }: { list: string; availab
         <Columns3 className="h-4 w-4" aria-hidden="true" /> Columns
       </button>
       {open && (
-        <div className="absolute right-0 z-[var(--z-sticky)] mt-1 w-60 rounded-lg border border-line bg-raised p-3 shadow-overlay" role="group" aria-label="Columns">
+        <div className="absolute right-0 z-popover mt-1 w-60 rounded-lg border border-line bg-raised p-3 shadow-overlay" role="group" aria-label="Columns">
           <p className="mb-2 text-caption text-ink-muted">The request is always shown. Drag a column title in the table, or use ↑ ↓, to change the order.</p>
           <ul className="space-y-1.5">
             {/* v1.52.3: shown columns in the person's order (move them up or down), then the hidden ones. */}

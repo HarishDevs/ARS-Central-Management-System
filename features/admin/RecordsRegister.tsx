@@ -146,13 +146,13 @@ export async function RecordsRegister({ kind, searchParams }: { kind: RecordKind
               <label htmlFor="rfrom" className="field-label">
                 {DATE_LABEL[kind]} from
               </label>
-              <input id="rfrom" type="date" name="from" defaultValue={filter.from ?? ""} className="field-input h-10" />
+              <input id="rfrom" type="date" name="from" defaultValue={filter.from ?? ""} className="field-input field-compact" />
             </div>
             <div>
               <label htmlFor="rto" className="field-label">
                 {DATE_LABEL[kind]} to
               </label>
-              <input id="rto" type="date" name="to" defaultValue={filter.to ?? ""} className="field-input h-10" />
+              <input id="rto" type="date" name="to" defaultValue={filter.to ?? ""} className="field-input field-compact" />
             </div>
             {kind === "tasks" && (
               <label className="flex items-center gap-2 self-end pb-2.5 text-label">
@@ -187,7 +187,7 @@ export async function RecordsRegister({ kind, searchParams }: { kind: RecordKind
               <caption className="sr-only">{RECORD_TITLE[kind]}</caption>
               <thead className="sticky top-0 z-10 bg-surface-muted">
                 <tr>
-                  <th scope="col" className="sticky left-0 z-20 w-12 border-b border-r border-line bg-surface-muted px-2 py-2 text-right font-medium text-ink-faint">
+                  <th scope="col" className="sticky left-0 z-[2] w-12 border-b border-r border-line bg-surface-muted px-2 py-2 text-right font-medium text-ink-faint">
                     #
                   </th>
                   {columns.map((column) => (
@@ -255,7 +255,7 @@ function Choice({ name, label, value, options }: { name: string; label: string; 
       <label htmlFor={`r-${name}`} className="field-label">
         {label}
       </label>
-      <select id={`r-${name}`} name={name} defaultValue={String(value)} className="field-input h-10">
+      <select id={`r-${name}`} name={name} defaultValue={String(value)} className="field-input field-compact">
         <option value="">All</option>
         {options.map(([optionValue, optionLabel]) => (
           <option key={optionValue} value={optionValue}>

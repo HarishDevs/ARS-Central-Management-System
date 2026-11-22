@@ -182,7 +182,7 @@ export async function InfoListScreen({ base, query }: { base: InfoBase; query: R
           <>
             <label className="text-label">
               Type
-              <select name="type" defaultValue={filters.typeId ?? ""} className="field-input h-10">
+              <select name="type" defaultValue={filters.typeId ?? ""} className="field-input field-compact">
                 <option value="">Any</option>
                 {types.map((type) => (
                   <option key={type.id} value={type.id}>
@@ -193,7 +193,7 @@ export async function InfoListScreen({ base, query }: { base: InfoBase; query: R
             </label>
             <label className="text-label">
               Importance
-              <select name="priority" defaultValue={filters.priority ?? ""} className="field-input h-10">
+              <select name="priority" defaultValue={filters.priority ?? ""} className="field-input field-compact">
                 <option value="">Any</option>
                 {INFO_PRIORITIES.map((priority) => (
                   <option key={priority} value={priority}>
@@ -217,11 +217,11 @@ export async function InfoListScreen({ base, query }: { base: InfoBase; query: R
             )}
             <label className="text-label">
               {base === "INBOX" ? "Published from" : "Created from"}
-              <input type="date" name="from" defaultValue={filters.from ?? ""} className="field-input h-10" />
+              <input type="date" name="from" defaultValue={filters.from ?? ""} className="field-input field-compact" />
             </label>
             <label className="text-label">
               To
-              <input type="date" name="to" defaultValue={filters.to ?? ""} className="field-input h-10" />
+              <input type="date" name="to" defaultValue={filters.to ?? ""} className="field-input field-compact" />
             </label>
           </>
         }

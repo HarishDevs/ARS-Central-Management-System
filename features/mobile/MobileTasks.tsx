@@ -85,11 +85,11 @@ export async function MobileTasks({ userId, tab: asked, sort: askedSort, group: 
   const manage = (
     <div>
       <CompactToggle on={compact} />
-      <p className="flex items-center gap-2 pt-4 text-[13px] font-semibold uppercase tracking-wide text-ink-muted">
+      <p className="flex items-center gap-2 pt-4 text-[length:calc(13px*var(--text-scale,1))] font-semibold uppercase tracking-wide text-ink-muted">
         <ArrowDownUp aria-hidden="true" className="h-4 w-4" /> Sort
       </p>
       <SheetChoices label="Sort" items={(Object.keys(SORTS) as Sort[]).map((key) => ({ href: href({ sort: key }), label: SORTS[key].label, current: key === sort }))} />
-      <p className="flex items-center gap-2 pt-4 text-[13px] font-semibold uppercase tracking-wide text-ink-muted">
+      <p className="flex items-center gap-2 pt-4 text-[length:calc(13px*var(--text-scale,1))] font-semibold uppercase tracking-wide text-ink-muted">
         <LayoutList aria-hidden="true" className="h-4 w-4" /> Group by
       </p>
       <SheetChoices label="Group by" items={(Object.keys(GROUPS) as Group[]).map((key) => ({ href: href({ group: key }), label: GROUPS[key], current: key === group }))} />
@@ -123,12 +123,12 @@ export async function MobileTasks({ userId, tab: asked, sort: askedSort, group: 
         {group !== "none" && <FoldSections selector='details[data-testid="m-task-section"]' />}
         {sections.map((section) => (
           <details key={section.key} open={group === "none"} className="mob-section -mx-4" data-testid="m-task-section">
-            <summary className="flex min-h-[52px] cursor-pointer list-none items-center gap-3 px-4 text-[17px] font-semibold">
+            <summary className="flex min-h-[52px] cursor-pointer list-none items-center gap-3 px-4 text-[length:calc(17px*var(--text-scale,1))] font-semibold">
               <span aria-hidden="true" className="mob-caret text-ink-muted">
                 ▾
               </span>
               <span className="min-w-0 flex-1 truncate">{section.label}</span>
-              <span className="text-[14px] font-normal tabular-nums text-ink-muted">{section.items.length}</span>
+              <span className="text-[length:calc(14px*var(--text-scale,1))] font-normal tabular-nums text-ink-muted">{section.items.length}</span>
             </summary>
             <ul>
               {section.items.map((task) => (
@@ -141,7 +141,7 @@ export async function MobileTasks({ userId, tab: asked, sort: askedSort, group: 
         ))}
         </>
       )}
-      {list.total > list.items.length && <p className="pt-3 text-center text-[13px] text-ink-muted">Showing {list.items.length} of {list.total}. Use Search tasks to find the rest.</p>}
+      {list.total > list.items.length && <p className="pt-3 text-center text-[length:calc(13px*var(--text-scale,1))] text-ink-muted">Showing {list.items.length} of {list.total}. Use Search tasks to find the rest.</p>}
       <ViewDock
         label="Task views"
         manage={manage}
@@ -206,13 +206,13 @@ function TaskRow({ task, now, compact, showAssignee }: { task: WorkTaskItem; now
       <TaskCheck taskId={task.id} done={!open} disabled={task.status === "CANCELLED"} label={task.title} />
       <Link href={`/users/tasks/${task.id}`} className={`flex min-w-0 flex-1 items-center gap-3 border-b border-line pr-4 ${compact ? "min-h-[52px] py-2" : "min-h-[72px] py-3"}`}>
         <span className="min-w-0 flex-1">
-          <span className={`block truncate text-[16px] ${open ? "" : "text-ink-muted line-through"}`}>
+          <span className={`block truncate text-[length:calc(16px*var(--text-scale,1))] ${open ? "" : "text-ink-muted line-through"}`}>
             <SafeText text={task.title} />
           </span>
           {!compact && (
             <>
               {(detail || task.approval) && (
-                <span className="flex min-w-0 items-center gap-1.5 text-[13px] text-ink-muted">
+                <span className="flex min-w-0 items-center gap-1.5 text-[length:calc(13px*var(--text-scale,1))] text-ink-muted">
                   {task.approval && (
                     <span className="inline-flex shrink-0 items-center gap-1 font-semibold text-primary-700">
                       <FileCheck2 aria-hidden="true" className="h-3.5 w-3.5" />
@@ -231,7 +231,7 @@ function TaskRow({ task, now, compact, showAssignee }: { task: WorkTaskItem; now
           )}
         </span>
         {task.dueAt && (
-          <span className={`shrink-0 rounded-md px-2.5 py-1 text-[13px] font-medium ${CHIP[due?.tone ?? "neutral"] ?? CHIP.neutral}`} title={due?.text}>
+          <span className={`shrink-0 rounded-md px-2.5 py-1 text-[length:calc(13px*var(--text-scale,1))] font-medium ${CHIP[due?.tone ?? "neutral"] ?? CHIP.neutral}`} title={due?.text}>
             {DAY.format(new Date(task.dueAt))}
             {due && <span className="sr-only">, {due.text}</span>}
           </span>

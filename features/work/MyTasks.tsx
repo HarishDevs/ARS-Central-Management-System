@@ -168,7 +168,7 @@ export function MyTasks({ sections, tasks, layout, nowIso, fixed = false }: { se
             <section
               key={section.id}
               aria-label={section.name}
-              className={`kanban-col flex w-72 shrink-0 flex-col rounded-xl border border-t-4 border-line bg-surface-muted ${columnAccent(index)}`}
+              className={`kanban-col flex w-board-col shrink-0 flex-col rounded-xl border border-t-4 border-line bg-surface-muted ${columnAccent(index)}`}
               onDragOver={(event) => event.preventDefault()}
               onDrop={(event) => {
                 event.preventDefault();

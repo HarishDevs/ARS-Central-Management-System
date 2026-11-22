@@ -625,7 +625,7 @@ export async function MyWorkOverview({
               <card.icon className="h-5 w-5" />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block text-2xl font-bold tabular-nums leading-tight">{card.value}</span>
+              <span className="block text-card-title font-bold tabular-nums leading-tight">{card.value}</span>
               <span className="block text-label font-medium">{card.label}</span>
               <span className="block truncate text-caption text-ink-muted">{card.note}</span>
             </span>
@@ -731,7 +731,7 @@ function RowMenu({ task, openHref, projectsOn }: { task: WorkTaskItem; openHref:
       >
         <MoreHorizontal aria-hidden="true" className="h-4 w-4" />
       </summary>
-      <div className="absolute right-0 z-[var(--z-drawer)] mt-1 w-52 rounded-lg border border-line bg-raised p-1 text-label shadow-overlay">
+      <div className="absolute right-0 z-popover mt-1 w-52 rounded-lg border border-line bg-raised p-1 text-label shadow-overlay">
         <Link href={openHref} scroll={false} className="flex items-center gap-2 rounded px-2 py-1.5 hover:bg-surface-muted">
           <CircleDot aria-hidden="true" className="h-4 w-4" /> Open task
         </Link>

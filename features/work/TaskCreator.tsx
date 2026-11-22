@@ -244,7 +244,7 @@ function CreateTaskDialog({
   };
   const chip = "inline-flex items-center gap-1 rounded-full border border-line px-2 py-0.5 text-label hover:border-line-strong";
   const tool = (on = false) => `grid h-8 w-8 place-items-center rounded hover:bg-surface-muted ${on ? "bg-primary-50 text-primary-700" : "text-ink-muted hover:text-ink"}`;
-  const popover = "absolute bottom-full z-20 mb-2 rounded-lg border border-line bg-raised p-2 shadow-overlay";
+  const popover = "absolute bottom-full z-popover mb-2 rounded-lg border border-line bg-raised p-2 shadow-overlay";
   return (
     <section
       role="dialog"
@@ -261,7 +261,7 @@ function CreateTaskDialog({
         }
         if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) void submit();
       }}
-      className={`draft-task fixed bottom-4 right-4 z-50 flex max-h-[calc(100dvh-2rem)] w-[min(30rem,calc(100vw-2rem))] flex-col rounded-xl border border-line bg-raised text-ink shadow-overlay ${small ? "" : "h-[34rem] lg:bottom-auto lg:right-auto lg:left-1/2 lg:top-1/2 lg:h-auto lg:max-h-[min(44rem,calc(100dvh-4rem))] lg:w-[min(60rem,calc(100vw-4rem))] lg:-translate-x-1/2 lg:-translate-y-1/2"}`}
+      className={`draft-task fixed bottom-4 right-4 z-drawer flex max-h-[calc(100dvh-2rem)] w-[min(30rem,calc(100vw-2rem))] flex-col rounded-xl border border-line bg-raised text-ink shadow-overlay ${small ? "" : "h-[34rem] lg:bottom-auto lg:right-auto lg:left-1/2 lg:top-1/2 lg:h-auto lg:max-h-[min(44rem,calc(100dvh-4rem))] lg:w-[min(60rem,calc(100vw-4rem))] lg:-translate-x-1/2 lg:-translate-y-1/2"}`}
     >
       <header className="draft-head flex items-center gap-2 border-b border-line px-4 py-2.5">
         <h2 id="draft-task-title" className="flex-1 font-semibold">
@@ -758,7 +758,7 @@ function PersonSearch({
         onBlur={() => closeOnBlur && window.setTimeout(onDone, 150)}
         className="field-input h-8 w-56 py-0 text-label"
       />
-      <ul id={listId} role="listbox" aria-label="People" className="absolute left-0 top-full z-10 mt-1 max-h-64 w-64 overflow-y-auto rounded-md border border-line bg-raised py-1 shadow-overlay">
+      <ul id={listId} role="listbox" aria-label="People" className="absolute left-0 top-full z-popover mt-1 max-h-64 w-64 overflow-y-auto rounded-lg border border-line bg-raised py-1 shadow-overlay">
         {matches.length === 0 ? (
           <li className="px-3 py-1.5 text-label text-ink-muted">No one matches.</li>
         ) : (

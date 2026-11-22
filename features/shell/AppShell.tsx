@@ -266,7 +266,7 @@ export async function AppShell({ area, user, nav, children }: { area: AppArea; u
         {mobile ? (
           // The mobile top bar: the mark and name, search, notifications, account.
           <header
-            className="mob-topbar sticky top-0 z-header flex h-14 items-center gap-2 border-b border-line bg-surface/95 px-3 pt-[env(safe-area-inset-top)] backdrop-blur"
+            className="mob-topbar sticky top-0 z-header flex h-[calc(3.5rem+env(safe-area-inset-top))] min-h-14 items-center gap-2 border-b border-line bg-surface/95 px-3 pt-[env(safe-area-inset-top)] backdrop-blur"
             data-testid="mobile-topbar"
           >
             <Link href="/users" aria-label="ARS CMS home" className="flex min-w-0 flex-1 items-center gap-2">

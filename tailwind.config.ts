@@ -77,12 +77,14 @@ const config: Config = {
       },
       transitionDuration: { fast: "var(--motion-fast)", base: "var(--motion-base)", slow: "var(--motion-slow)" },
       transitionTimingFunction: { standard: "var(--ease-standard)" },
-      zIndex: { header: "var(--z-header)", sticky: "var(--z-sticky)", drawer: "var(--z-drawer)", dialog: "var(--z-dialog)", toast: "var(--z-toast)", palette: "var(--z-palette)", popover: "var(--z-popover)" },
-      spacing: { sidebar: "220px", topbar: "64px", row: "var(--row-h)", "row-compact": "var(--row-h-compact)", "header-row": "var(--header-row-h)", pane: "var(--pane-w)" },
+      zIndex: { header: "var(--z-header)", sticky: "var(--z-sticky)", drawer: "var(--z-drawer)", dialog: "var(--z-dialog)", toast: "var(--z-toast)", palette: "var(--z-palette)", popover: "var(--z-popover)", splash: "var(--z-splash)" },
+      spacing: { sidebar: "220px", topbar: "64px", row: "var(--row-h)", "row-compact": "var(--row-h-compact)", "header-row": "var(--header-row-h)", pane: "var(--pane-w)", "board-col": "var(--board-col-w)" },
     },
   },
   // dark: variants follow the chosen theme (rarely needed: tokens switch by themselves).
-  darkMode: ["selector", '[data-theme="dark"]'],
+  // v1.72.2 (D-394, QA visual G11): also the device setting when the person
+  // chose "System" (no data-theme), like the colour tokens.
+  darkMode: ["variant", ['&:is([data-theme="dark"] *)', "@media (prefers-color-scheme: dark) { &:is(:root:not([data-theme]) *) }"]],
   plugins: [],
 };
 

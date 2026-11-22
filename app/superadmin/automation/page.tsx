@@ -3,7 +3,7 @@ import { PagedRows } from "@/features/ui/PagedRows";
 import Link from "next/link";
 import { requireArea } from "@/server/authorization/guards";
 import { PageHeader } from "@/features/shell/PageHeader";
-import { Badge } from "@/features/ui/Display";
+import { EmptyState, Badge } from "@/features/ui/Display";
 import { ResendOutbox, RunJobsNow } from "@/features/admin/AttentionForms";
 import { AUTOMATIONS, loadAutomationBoard, type AutomationHealth } from "@/server/ops/automation";
 import { listJobRuns } from "@/lib/db/repositories/job-runs.repository";
@@ -240,7 +240,9 @@ export default async function AutomationPage({ searchParams }: { searchParams: P
           )}
         </h2>
         {runs.length === 0 ? (
-          <p className="px-5 py-4 text-label text-ink-muted">No runs recorded yet.</p>
+          <div className="p-4">
+            <EmptyState title="No runs recorded yet" body="Runs show here after the job runner's first call." />
+          </div>
         ) : (
           <>
             <div className="px-5 pt-3">

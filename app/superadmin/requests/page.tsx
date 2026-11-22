@@ -129,7 +129,7 @@ export default async function SuperAdminRequestsPage({ searchParams }: { searchP
             <label htmlFor="status" className="field-label">
               Status
             </label>
-            <select id="status" name="status" defaultValue={status} className="field-input h-10">
+            <select id="status" name="status" defaultValue={status} className="field-input field-compact">
               {STATUS_OPTIONS.map(([value, label]) => (
                 <option key={value} value={value}>
                   {label}

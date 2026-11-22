@@ -39,7 +39,7 @@ function arcPath(cx: number, cy: number, outer: number, inner: number, start: nu
 export function ChartView({ data, title, table = false }: { data: ChartData; title: string; table?: boolean }) {
   if (data.style === "number")
     return (
-      <p className="py-2 text-4xl font-semibold text-ink" data-testid="chart-number">
+      <p className="py-2 text-kpi font-semibold text-ink" data-testid="chart-number">
         {formatValue(data.total, data.formats[0])}
       </p>
     );

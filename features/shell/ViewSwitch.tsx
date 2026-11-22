@@ -8,7 +8,8 @@ import { TEXT_SCALE, TEXT_SIZE_LABEL, TEXT_SIZES, VIEW_LABEL, WORKSPACE_VIEWS, t
 
 // D-210: Compact or Classic, saved on the person's account (every device).
 // D-211: in the Classic view, the text size too (it changes at once).
-export function ViewSwitch({ initial, initialText = "M", compact = false }: { initial: WorkspaceView; initialText?: TextSize; compact?: boolean }) {
+// v1.72.2 (D-394): the choice itself, shared by this switch and the account menu.
+export function useViewChoice(initial: WorkspaceView, initialText: TextSize = "M") {
   const router = useRouter();
   const [view, setView] = useState<WorkspaceView>(initial);
   const [text, setText] = useState<TextSize>(initialText);
@@ -43,8 +44,13 @@ export function ViewSwitch({ initial, initialText = "M", compact = false }: { in
       }
     });
   };
+  return { view, text, pending, message, choose, chooseText };
+}
+
+export function ViewSwitch({ initial, initialText = "M", compact = false }: { initial: WorkspaceView; initialText?: TextSize; compact?: boolean }) {
+  const { view, text, pending, message, choose, chooseText } = useViewChoice(initial, initialText);
   const label = compact ? "pb-1 text-caption font-semibold uppercase tracking-wider text-ink-faint" : "field-label";
-  const button = (on: boolean) => `rounded px-3 py-1 text-label ${on ? "bg-primary-solid font-semibold text-white" : "text-ink hover:bg-surface-muted"}`;
+  const button = (on: boolean) => `rounded px-3 py-1 text-label ${on ? "bg-primary-solid font-semibold text-on-solid" : "text-ink hover:bg-surface-muted"}`;
   return (
     <div className={compact ? "space-y-2 px-3 py-1.5" : "space-y-3"}>
       <div>

@@ -96,7 +96,7 @@ export function InstallInvite() {
       aria-modal="false"
       aria-labelledby="install-invite-title"
       data-testid="install-invite"
-      className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+72px)] z-[60] mx-auto max-w-md rounded-xl border border-line bg-raised p-4 shadow-overlay motion-safe:animate-[fadeIn_200ms_ease-out] sm:inset-x-auto sm:bottom-6 sm:right-6 sm:mx-0 sm:w-[380px] lg:bottom-6"
+      className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+72px)] z-drawer mx-auto max-w-md rounded-xl border border-line bg-raised p-4 shadow-overlay motion-safe:animate-[fadeIn_200ms_ease-out] sm:inset-x-auto sm:bottom-6 sm:right-6 sm:mx-0 sm:w-[380px] lg:bottom-6"
     >
       <div className="flex items-start gap-3">
         {/* eslint-disable-next-line @next/next/no-img-element -- small static app icon */}

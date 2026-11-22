@@ -93,19 +93,19 @@ export function DashboardFrame({
               <label htmlFor="from" className="field-label">
                 From
               </label>
-              <input id="from" name="from" type="date" defaultValue={filter.from} max={today} className="field-input h-10" />
+              <input id="from" name="from" type="date" defaultValue={filter.from} max={today} className="field-input field-compact" />
             </div>
             <div>
               <label htmlFor="to" className="field-label">
                 To
               </label>
-              <input id="to" name="to" type="date" defaultValue={filter.to} max={today} className="field-input h-10" />
+              <input id="to" name="to" type="date" defaultValue={filter.to} max={today} className="field-input field-compact" />
             </div>
             <div>
               <label htmlFor="type" className="field-label">
                 Approval type
               </label>
-              <select id="type" name="type" defaultValue={filter.workflowId ?? ""} className="field-input h-10">
+              <select id="type" name="type" defaultValue={filter.workflowId ?? ""} className="field-input field-compact">
                 <option value="">All types</option>
                 {choices.types.map((type) => (
                   <option key={type.id} value={type.id}>
@@ -119,7 +119,7 @@ export function DashboardFrame({
               <label htmlFor="dept" className="field-label">
                 Department
               </label>
-              <select id="dept" name="dept" defaultValue={filter.departmentId ?? ""} className="field-input h-10">
+              <select id="dept" name="dept" defaultValue={filter.departmentId ?? ""} className="field-input field-compact">
                 <option value="">All departments</option>
                 {choices.departments.map((department) => (
                   <option key={department.id} value={department.id}>
@@ -153,7 +153,7 @@ export function KpiTiles({ tiles }: { tiles: { label: string; value: string; not
       {tiles.map((tile) => (
         <div key={tile.label} className="card px-4 py-3">
           <p className="text-label text-ink-muted">{tile.label}</p>
-          <p className="mt-1 text-2xl font-bold tabular-nums">{tile.value}</p>
+          <p className="mt-1 text-card-title font-bold tabular-nums">{tile.value}</p>
           {tile.note && <p className="text-caption text-ink-muted">{tile.note}</p>}
         </div>
       ))}

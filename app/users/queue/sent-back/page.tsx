@@ -53,7 +53,7 @@ export default async function SentBackPage({ searchParams }: { searchParams: Pro
       <label htmlFor={`sb-${name}`} className="field-label">
         {label}
       </label>
-      <select id={`sb-${name}`} name={name} defaultValue={value} className="field-input h-10">
+      <select id={`sb-${name}`} name={name} defaultValue={value} className="field-input field-compact">
         <option value="">All</option>
         {options.map((option) => (
           <option key={option} value={option}>
@@ -115,13 +115,13 @@ export default async function SentBackPage({ searchParams }: { searchParams: Pro
                 <label htmlFor="sb-from" className="field-label">
                   Sent back from
                 </label>
-                <input id="sb-from" name="from" type="date" defaultValue={filter.from} className="field-input h-10" />
+                <input id="sb-from" name="from" type="date" defaultValue={filter.from} className="field-input field-compact" />
               </div>
               <div>
                 <label htmlFor="sb-to" className="field-label">
                   to
                 </label>
-                <input id="sb-to" name="to" type="date" defaultValue={filter.to} className="field-input h-10" />
+                <input id="sb-to" name="to" type="date" defaultValue={filter.to} className="field-input field-compact" />
               </div>
             </div>
           </>

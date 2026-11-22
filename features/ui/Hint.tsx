@@ -13,7 +13,7 @@ export function Hint({ text, align = "center", className = "" }: { text: string 
       tabIndex={0}
       data-tip={text}
       aria-description={text}
-      className={`relative inline-flex h-5 w-5 shrink-0 cursor-help items-center justify-center rounded-full align-middle text-ink-faint outline-none hover:text-ink-muted focus-visible:text-ink-muted focus-visible:ring-2 focus-visible:ring-primary-100 after:pointer-events-none after:absolute after:top-full after:z-50 after:mt-1 after:hidden after:w-max after:max-w-[min(20rem,80vw)] after:whitespace-normal after:rounded-md after:bg-ink after:px-2.5 after:py-1.5 after:text-left after:text-caption after:font-normal after:normal-case after:leading-snug after:tracking-normal after:text-surface after:shadow-lg after:content-[attr(data-tip)] hover:after:block focus-visible:after:block ${position} ${className}`}
+      className={`relative inline-flex h-5 w-5 shrink-0 cursor-help items-center justify-center rounded-full align-middle text-ink-faint outline-none hover:text-ink-muted focus-visible:text-ink-muted focus-visible:ring-2 focus-visible:ring-primary-100 after:pointer-events-none after:absolute after:top-full after:z-popover after:mt-1 after:hidden after:w-max after:max-w-[min(20rem,80vw)] after:whitespace-normal after:rounded-md after:bg-ink after:px-2.5 after:py-1.5 after:text-left after:text-caption after:font-normal after:normal-case after:leading-snug after:tracking-normal after:text-surface after:shadow-lg after:content-[attr(data-tip)] hover:after:block focus-visible:after:block ${position} ${className}`}
     >
       <Info aria-hidden="true" className="h-3.5 w-3.5" />
     </span>

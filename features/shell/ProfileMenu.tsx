@@ -1,18 +1,20 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Email } from "@/features/ui/SafeText";
-import { ViewSwitch } from "@/features/shell/ViewSwitch";
-import type { TextSize, WorkspaceView } from "@/server/ui/workspace-view";
+import { useViewChoice } from "@/features/shell/ViewSwitch";
+import { TEXT_SCALE, TEXT_SIZE_LABEL, TEXT_SIZES, VIEW_LABEL, WORKSPACE_VIEWS, type TextSize, type WorkspaceView } from "@/server/ui/workspace-view";
 import { defaultAvatar } from "@/features/ui/Avatar";
-import { inside } from "@/features/ui/inside";
+import { Menu, type MenuItem } from "@/features/ui/Menu";
+import { useToast } from "@/features/ui/Toast";
 
 // One user menu at the top right (S9-01..03): who you are, which space
 // you're in, switching space, Profile, Notifications, Sign-in and Help
-// (v1.7.1: Profile and Help live here, not in the sidebar), and signing out. Closes on a click outside,
-// Escape, or a page change.
+// (v1.7.1: Profile and Help live here, not in the sidebar), and signing out.
+// v1.72.2 (D-394, QA visual S4/G6): built on the shared menu (the same look,
+// layer and keys as every other menu); the View and Text size choices are
+// radio items of the menu.
 export interface SpaceLink {
   href: string;
   label: string;
@@ -41,26 +43,15 @@ export function ProfileMenu({
   view?: WorkspaceView | null; // D-210: Compact or Classic (My approvals space)
   textSize?: TextSize; // D-211: the Classic view's text size
 }) {
-  const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
-  const box = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const router = useRouter();
+  const toast = useToast();
+  const choice = useViewChoice(view ?? "COMPACT", textSize);
 
-  useEffect(() => setOpen(false), [pathname]);
   useEffect(() => {
-    if (!open) return;
-    const onClick = (event: MouseEvent) => {
-      if (box.current && !inside(event, box.current)) setOpen(false);
-    };
-    const onKey = (event: KeyboardEvent) => event.key === "Escape" && setOpen(false);
-    document.addEventListener("mousedown", onClick);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onClick);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
+    if (choice.message) toast({ tone: "error", title: "Your view wasn't saved.", body: choice.message });
+  }, [choice.message, toast]);
 
   async function signOut() {
     setBusy(true);
@@ -69,86 +60,73 @@ export function ProfileMenu({
     router.refresh();
   }
 
-  const item = "flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-label text-ink hover:bg-surface-muted";
+  const entries: MenuItem[] = [
+    ...(otherSpaces.length > 0 ? [{ kind: "heading" as const, label: "Switch space" }, ...otherSpaces.map((space) => ({ label: space.label, href: space.href }))] : []),
+    ...(view
+      ? [
+          { kind: "separator" as const, label: "view" },
+          { kind: "heading" as const, label: "View" },
+          ...WORKSPACE_VIEWS.map((option) => ({ kind: "radio" as const, label: VIEW_LABEL[option], checked: choice.view === option, disabled: choice.pending, onSelect: () => choice.choose(option), testId: `view-${option.toLowerCase()}` })),
+          ...(choice.view === "CLASSIC"
+            ? [
+                { kind: "heading" as const, label: "Text size" },
+                ...TEXT_SIZES.map((option) => ({ kind: "radio" as const, label: TEXT_SIZE_LABEL[option], hint: `${Math.round(TEXT_SCALE[option] * 100)}%`, checked: choice.text === option, onSelect: () => choice.chooseText(option), testId: `text-size-${option}` })),
+              ]
+            : []),
+        ]
+      : []),
+    { kind: "separator", label: "pages" },
+    { label: "Profile", href: "/users/profile" },
+    { label: "Inbox", href: "/users/inbox", badge: unread > 0 ? (unread > 99 ? "99+" : String(unread)) : undefined },
+    { label: "Sign-in & devices", href: "/users/security" },
+    { label: "Help", href: "/users/help" },
+    // v1.14.0 (D-167): the onboarding tour, from any space.
+    { label: "Take the tour", href: "/users?tour=1" },
+    { kind: "separator", label: "end" },
+    { label: busy ? "Signing out…" : "Sign out", tone: "danger", disabled: busy, onSelect: () => void signOut() },
+  ];
+  // No separator straight under the header (when there is nothing to switch to).
+  const items = entries[0]?.kind === "separator" ? entries.slice(1) : entries;
+
   return (
-    <div ref={box} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((value) => !value)}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-label={`Account menu for ${name}`}
-        className="flex items-center gap-3 rounded-full py-1 pl-1 pr-2 hover:bg-surface-muted sm:rounded-lg sm:pl-2"
-      >
-        <span className="hidden text-right sm:block">
-          <span className="block text-label font-semibold leading-tight text-ink">{name}</span>
-          <span className="mt-0.5 inline-block rounded-full bg-primary-50 px-2 py-px text-[length:calc(11px*var(--text-scale,1))] font-semibold leading-4 text-primary-700">{spaceLabel}</span>
-        </span>
-        {photo ? (
-          // eslint-disable-next-line @next/next/no-img-element -- the person's own small photo
-          <img src={photo} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" data-testid="menu-photo" />
-        ) : (
-          // v1.49.0 (owner): the brand's circular icon until a photo is uploaded.
-          // eslint-disable-next-line @next/next/no-img-element -- static brand image
-          <img src={defaultAvatar(approver)} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover ring-1 ring-line" data-testid="menu-photo-default" data-initials={initials} />
-        )}
-        <svg viewBox="0 0 20 20" className="hidden h-4 w-4 text-ink-faint sm:block" fill="currentColor" aria-hidden="true">
-          <path d="M5.3 7.3a1 1 0 0 1 1.4 0L10 10.6l3.3-3.3a1 1 0 1 1 1.4 1.4l-4 4a1 1 0 0 1-1.4 0l-4-4a1 1 0 0 1 0-1.4Z" />
-        </svg>
-      </button>
-      {open && (
-        <div role="menu" aria-label="Account" className="absolute right-0 z-40 mt-2 w-72 rounded-lg border border-line bg-surface p-2 shadow-lg">
-          <div className="border-b border-line px-3 pb-3 pt-1">
-            <p className="font-semibold leading-tight">{name}</p>
-            <p className="mt-0.5 break-all text-caption text-ink-muted">
-              <Email address={email} />
-            </p>
-            <p className="mt-2 text-caption text-ink-muted">
-              Space: <span className="rounded-full bg-primary-50 px-2 py-px font-semibold text-primary-700">{spaceLabel}</span>
-            </p>
-          </div>
-          {otherSpaces.length > 0 && (
-            <div className="border-b border-line py-2">
-              <p className="px-3 pb-1 text-caption font-semibold uppercase tracking-wider text-ink-faint">Switch space</p>
-              {otherSpaces.map((space) => (
-                <Link key={space.href} href={space.href} role="menuitem" className={item}>
-                  {space.label}
-                  <span aria-hidden="true" className="text-ink-faint">→</span>
-                </Link>
-              ))}
-            </div>
-          )}
-          {view && (
-            <div className="border-b border-line py-2">
-              <ViewSwitch initial={view} initialText={textSize} compact />
-            </div>
-          )}
-          <div className="py-2">
-            <Link href="/users/profile" role="menuitem" className={item}>
-              Profile
-            </Link>
-            <Link href="/users/inbox" role="menuitem" className={item}>
-              Inbox
-              {unread > 0 && <span className="rounded-full bg-danger-solid px-1.5 text-[length:calc(11px*var(--text-scale,1))] font-semibold leading-[18px] text-on-solid">{unread > 99 ? "99+" : unread}</span>}
-            </Link>
-            <Link href="/users/security" role="menuitem" className={item}>
-              Sign-in &amp; devices
-            </Link>
-            <Link href="/users/help" role="menuitem" className={item}>
-              Help
-            </Link>
-            {/* v1.14.0 (D-167): the onboarding tour, from any space. */}
-            <Link href="/users?tour=1" role="menuitem" className={item}>
-              Take the tour
-            </Link>
-          </div>
-          <div className="border-t border-line pt-2">
-            <button type="button" role="menuitem" onClick={signOut} disabled={busy} className={`${item} text-danger-600`}>
-              {busy ? "Signing out…" : "Sign out"}
-            </button>
-          </div>
+    <Menu
+      key={pathname} // a page change closes it
+      label={`Account menu for ${name}`}
+      menuLabel="Account"
+      align="right"
+      menuClass="w-72"
+      buttonClass="flex items-center gap-3 rounded-full py-1 pl-1 pr-2 hover:bg-surface-muted sm:rounded-lg sm:pl-2"
+      header={
+        <div className="border-b border-line px-3 pb-3 pt-2">
+          <p className="font-semibold leading-tight">{name}</p>
+          <p className="mt-0.5 break-all text-caption text-ink-muted">
+            <Email address={email} />
+          </p>
+          <p className="mt-2 text-caption text-ink-muted">
+            Space: <span className="rounded-full bg-primary-50 px-2 py-px font-semibold text-primary-700">{spaceLabel}</span>
+          </p>
         </div>
-      )}
-    </div>
+      }
+      items={items}
+      trigger={
+        <>
+          <span className="hidden text-right sm:block">
+            <span className="block text-label font-semibold leading-tight text-ink">{name}</span>
+            <span className="mt-0.5 inline-block rounded-full bg-primary-50 px-2 py-px text-[length:calc(11px*var(--text-scale,1))] font-semibold leading-4 text-primary-700">{spaceLabel}</span>
+          </span>
+          {photo ? (
+            // eslint-disable-next-line @next/next/no-img-element -- the person's own small photo
+            <img src={photo} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" data-testid="menu-photo" />
+          ) : (
+            // v1.49.0 (owner): the brand's circular icon until a photo is uploaded.
+            // eslint-disable-next-line @next/next/no-img-element -- static brand image
+            <img src={defaultAvatar(approver)} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover ring-1 ring-line" data-testid="menu-photo-default" data-initials={initials} />
+          )}
+          <svg viewBox="0 0 20 20" className="hidden h-4 w-4 text-ink-faint sm:block" fill="currentColor" aria-hidden="true">
+            <path d="M5.3 7.3a1 1 0 0 1 1.4 0L10 10.6l3.3-3.3a1 1 0 1 1 1.4 1.4l-4 4a1 1 0 0 1-1.4 0l-4-4a1 1 0 0 1 0-1.4Z" />
+          </svg>
+        </>
+      }
+    />
   );
 }

@@ -1085,7 +1085,7 @@ function DueInput({ task, toneClass }: { task: GridTask; toneClass: string }) {
             if (!result?.ok) input.value = before;
           });
       }}
-      className={`w-full border-0 bg-transparent text-label focus:outline-none ${toneClass} ${before ? "" : "text-ink-faint"}`}
+      className={`w-full rounded border-0 bg-transparent text-label focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600/40 ${toneClass} ${before ? "" : "text-ink-faint"}`}
     />
   );
 }

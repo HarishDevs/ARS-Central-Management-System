@@ -1,5 +1,4 @@
 import { APP_BRANDING } from "@/lib/branding";
-import { RoundLoader } from "@/features/ui/RoundLoader";
 
 // v1.42.0 (owner's "Application Loading & Skeleton System" sheet): the
 // loaders and the animated outcomes, in the brand's blues. Each one says
@@ -68,19 +67,7 @@ export function BarLoader({ label = "Loading ARS CMS…", tone = "color" }: { la
   );
 }
 
-// Three dots, for a part of a page that is loading.
-export function DotsLoader({ label = "Loading…", showLabel = true }: { label?: string; showLabel?: boolean }) {
-  return (
-    <span role="status" className="inline-flex flex-col items-center gap-2 text-label text-ink-muted" data-testid="dots-loader">
-      <span className="flex gap-1.5" aria-hidden="true">
-        {[0, 1, 2].map((dot) => (
-          <span key={dot} className="brand-dot h-2.5 w-2.5 rounded-full bg-[color:var(--brand-accent)]" style={{ animationDelay: `${dot * 0.15}s` }} />
-        ))}
-      </span>
-      <span className={showLabel ? "" : "sr-only"}>{label}</span>
-    </span>
-  );
-}
+// v1.72.2 (D-394, QA visual G7): DotsLoader retired (InlineLoading in Spinner.tsx).
 
 // A long job with a known share done.
 export function CircularProgress({ value, label = "Processing…", size = 88 }: { value: number; label?: string; size?: number }) {
@@ -154,19 +141,8 @@ export function StepLoader({ steps, current }: { steps: string[]; current: numbe
   );
 }
 
-// "Loading data… This won't take long." for an area fetching its contents.
-export function LoadingState({ title = "Loading data…", body = "This won't take long." }: { title?: string; body?: string }) {
-  return (
-    <div role="status" className="flex flex-col items-center px-4 py-8 text-center" data-testid="loading-state">
-      {/* v1.49.0: a round loader, ring or dotted ring at random (owner). */}
-      <span aria-hidden="true" className="mb-3">
-        <RoundLoader size={64} label={title} />
-      </span>
-      <p className="font-semibold">{title}</p>
-      <p className="text-label text-ink-muted">{body}</p>
-    </div>
-  );
-}
+// v1.72.2 (D-394, QA visual G7): LoadingState retired; areas load with their *Skeleton.
+// LogoSpinner, DotsRingLoader, RoundLoader and BarLoader stay for the brand splash only.
 
 // ---- Animated outcomes -------------------------------------------------------
 // A circle draws itself, then the tick (or cross). Used for a finished task,
