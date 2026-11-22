@@ -137,7 +137,8 @@ function AxisChart({ data, title }: { data: ChartData; title: string }) {
   const n = data.categories.length;
   const { active, setActive, onKeyDown } = useActive(n);
   const stacked = data.style === "stacked";
-  const grouped = data.style === "grouped";
+  // Bars and lollipops with several metrics sit side by side, like a grouped bar.
+  const grouped = data.style === "grouped" || ((data.style === "bar" || data.style === "lollipop") && data.series.length > 1);
   const lines = LINE_STYLES.has(data.style);
   const nums = data.values.map((list) => list.map((value) => value ?? 0));
   const totals = data.categories.map((_, c) => nums.reduce((sum, list) => sum + Math.max(0, list[c] ?? 0), 0));

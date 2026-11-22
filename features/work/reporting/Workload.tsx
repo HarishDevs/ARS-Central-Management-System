@@ -122,7 +122,7 @@ export function Workload({ projectId, data }: { projectId: number; data: Workloa
                     <>
                       <span className="block">{dayName(column.key)}</span>
                       <span className="block">{column.label}</span>
-                      {column.off && <span className="block text-ink-faint">{column.holiday ? "Holiday" : "Off"}</span>}
+                      {column.off && <span className="block">{column.holiday ? "Holiday" : "Off"}</span>}
                     </>
                   ) : (
                     <span>{column.label}</span>

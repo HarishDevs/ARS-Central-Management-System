@@ -27,7 +27,7 @@ async function axe(page: Page, include?: string) {
   let builder = new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]);
   if (include) builder = builder.include(include);
   const result = await builder.analyze();
-  return result.violations.filter((violation) => violation.impact === "serious" || violation.impact === "critical").map((violation) => `${violation.id}: ${violation.nodes.slice(0, 3).map((node) => node.target.join(" ")).join(" | ")}`);
+  return result.violations.filter((violation) => violation.impact === "serious" || violation.impact === "critical").map((violation) => `${violation.id}: ${violation.nodes.slice(0, 3).map((node) => `${node.target.join(" ")} (${node.failureSummary ?? ""})`).join(" | ")}`);
 }
 const indiaToday = () => new Date(Date.now() + 330 * 60_000).toISOString().slice(0, 10);
 const plus = (day: string, n: number) => new Date(Date.parse(`${day}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
@@ -128,6 +128,9 @@ test("the chart builder makes a chart of each family", async ({ page, context })
   // Every chart has a table.
   await widget(page, `Stacked bar ${stamp}`).getByTestId("widget-table-toggle").click();
   await expect(widget(page, `Stacked bar ${stamp}`).getByTestId("chart-table")).toBeVisible();
+  // Back to the top: a widget scrolled under the sticky app bar reads as "obscured" to axe.
+  await expect(page.getByText("Text added.")).toHaveCount(0, { timeout: 10_000 });
+  await page.evaluate(() => window.scrollTo(0, 0));
   expect(await axe(page, "[data-testid=dashboard]")).toEqual([]);
 });
 

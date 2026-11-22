@@ -206,7 +206,12 @@ export async function computeChart(config: ChartConfig, found: Pick<Access, "pro
     );
   } else groups = await reports.groupedFigures(spec);
 
-  const metricLabels = config.metrics.map((_, index) => metricLabel(config, index, fields));
+  // The same metric twice still gets two names in the legend.
+  const metricLabels = config.metrics.map((_, index, all) => {
+    const label = metricLabel(config, index, fields);
+    const before = all.slice(0, index).filter((__, at) => metricLabel(config, at, fields) === label).length;
+    return before ? `${label} (${before + 1})` : label;
+  });
   const formats = config.metrics.map((_, index) => metricFormat(config, index, fields));
   const xUnit = xBuckets?.unit ?? config.x?.unit ?? "week";
   const x = config.x
