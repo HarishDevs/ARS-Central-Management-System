@@ -1,5 +1,9 @@
 # Release notes
 
+## v1.66.3 (22 Nov 2026): Fix: a section's ⋯ menu was cut off (owner)
+- In a project's List, a section's **⋯** menu (Hide empty groups, Expand / Collapse all groups) opened inside the table: the next sections' icons showed through it and the table's edge cut it off. It now opens on top of the page, fully visible, and its choices respond to the first click. A custom field column's ▾ menu opens the same way.
+- **Owner steps:** none (no migration); publish v1.66.3.
+
 ## v1.66.2 (22 Nov 2026): Section names fit their words (owner)
 - In a project's List, a section's name box is now as long as its name (it grows as you type), with the task count, delete and ⋯ menu right beside it, instead of a box across the whole row.
 - **Owner steps:** none (no migration); publish v1.66.2.

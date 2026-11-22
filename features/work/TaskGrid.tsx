@@ -225,7 +225,7 @@ export function TaskGrid({
           <span className="truncate">{field.name}</span>
           <Icon aria-hidden="true" className={`h-3.5 w-3.5 shrink-0 ${state ? "" : "opacity-40"}`} />
         </button>
-        <Drop label={`Show options for ${field.name} column`} icon={<ChevronDown aria-hidden="true" className="h-3.5 w-3.5" />} buttonClass="rounded p-0.5 text-ink-muted hover:bg-surface-muted hover:text-ink" panelClass="left-0 w-56" testId="field-column-menu">
+        <Drop label={`Show options for ${field.name} column`} icon={<ChevronDown aria-hidden="true" className="h-3.5 w-3.5" />} buttonClass="rounded p-0.5 text-ink-muted hover:bg-surface-muted hover:text-ink" panelClass="left-0 w-56" testId="field-column-menu" floating>
           <div className="space-y-0.5 pt-5">
             <button type="button" className={item} onClick={(event) => { close(event); set({ sort: "none", sortField: field.id, dir: "asc" }); }}>
               Sort ascending
@@ -1139,7 +1139,7 @@ function GroupMenu({ name, hideEmpty, onHideEmpty, onFoldAll, subtasks }: { name
   };
   const item = "block w-full rounded px-2 py-1 text-left text-label hover:bg-surface-muted";
   return (
-    <Drop label={`More for ${name}`} icon={<MoreHorizontal aria-hidden="true" className="h-4 w-4" />} buttonClass="rounded p-1 text-ink-muted hover:bg-surface-muted hover:text-ink" panelClass="left-0 w-60" testId="group-menu-more">
+    <Drop label={`More for ${name}`} icon={<MoreHorizontal aria-hidden="true" className="h-4 w-4" />} buttonClass="rounded p-1 text-ink-muted hover:bg-surface-muted hover:text-ink" panelClass="left-0 w-60" testId="group-menu-more" floating>
       <div className="space-y-0.5 pt-5">
         <label className="flex items-center gap-2 rounded px-2 py-1 text-label hover:bg-surface-muted">
           <input type="checkbox" checked={hideEmpty} onChange={(event) => onHideEmpty(event.target.checked)} data-testid="hide-empty-groups" /> Hide empty groups

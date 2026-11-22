@@ -73,3 +73,24 @@ test("on a wide window the table fills the card (no empty area on the right)", a
   expect(countBox.x - (nameBox.x + nameBox.width)).toBeLessThan(40);
   await page.screenshot({ path: "test-results/v1641-list-wide.png" });
 });
+
+test("v1.66.3: a section's ⋯ menu opens on top, fully visible, and its items work", async ({ page, context }) => {
+  await as(context, "E2E_REQ");
+  await page.setViewportSize({ width: 1280, height: 640 });
+  await page.goto(projectUrl);
+  const last = page.getByTestId("group-menu-more").last();
+  await last.locator("summary").click();
+  const panel = last.locator("[data-floating]");
+  await expect(panel).toBeVisible();
+  await expect(panel).toBeInViewport({ ratio: 1 });
+  // Nothing else is drawn over the menu: the element at its centre belongs to it.
+  const onTop = await panel.evaluate((element) => {
+    const box = element.getBoundingClientRect();
+    const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+    return !!hit && element.contains(hit);
+  });
+  expect(onTop).toBe(true);
+  await panel.getByRole("button", { name: "Collapse all groups" }).click();
+  await expect(page.getByTestId("task-row")).toHaveCount(0);
+  await expect(panel).toBeHidden();
+});

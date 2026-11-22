@@ -9,7 +9,10 @@ import { inside } from "@/features/ui/inside";
 // v1.52.1 (owner): the panel opens where it is fully visible (above the button
 // when there is no room below, moved in from either screen edge), and has a
 // close button; a click outside or Escape still closes it.
-export function Drop({ label, icon, buttonClass, panelClass = "left-0 w-56", testId, children }: { label: string; icon: React.ReactNode; buttonClass: string; panelClass?: string; testId?: string; children: React.ReactNode }) {
+// v1.66.3 (owner's screenshot: a section's ⋯ menu cut off and drawn under the
+// next rows): `floating` places the panel against the window (position: fixed)
+// so a scrolling table around the button can't clip or cover it.
+export function Drop({ label, icon, buttonClass, panelClass = "left-0 w-56", testId, children, floating = false }: { label: string; icon: React.ReactNode; buttonClass: string; panelClass?: string; testId?: string; children: React.ReactNode; floating?: boolean }) {
   const box = useRef<HTMLDetailsElement>(null);
   const summary = useRef<HTMLElement>(null);
   const panel = useRef<HTMLDivElement>(null);
@@ -36,10 +39,31 @@ export function Drop({ label, icon, buttonClass, panelClass = "left-0 w-56", tes
       setEdge({});
       return;
     }
+    if (floating) {
+      const place = () => {
+        if (!panel.current || !summary.current) return;
+        const button = summary.current.getBoundingClientRect();
+        const width = panel.current.offsetWidth;
+        const height = panel.current.scrollHeight;
+        const below = window.innerHeight - button.bottom - 8;
+        const above = button.top - 8;
+        const up = below < Math.min(height, 240) && above > below;
+        const maxHeight = Math.max(120, (up ? above : below) - 4);
+        const left = Math.min(Math.max(8, button.left), window.innerWidth - width - 8);
+        setEdge({ position: "fixed", left, right: "auto", zIndex: 60, maxHeight, ...(up ? { top: "auto", bottom: window.innerHeight - button.top + 4 } : { top: button.bottom + 4, bottom: "auto" }) });
+      };
+      place();
+      window.addEventListener("resize", place);
+      window.addEventListener("scroll", place, true);
+      return () => {
+        window.removeEventListener("resize", place);
+        window.removeEventListener("scroll", place, true);
+      };
+    }
     const rect = panel.current.getBoundingClientRect();
     if (rect.left < 8) setEdge({ left: 0, right: "auto" });
     else if (rect.right > window.innerWidth - 8) setEdge({ right: 0, left: "auto" });
-  }, [open]);
+  }, [open, floating]);
   return (
     <details ref={box} className="relative" data-testid={testId} onToggle={(event) => setOpen((event.currentTarget as HTMLDetailsElement).open)}>
       <summary ref={summary} aria-label={label} className={`cursor-pointer list-none ${buttonClass}`}>
@@ -47,8 +71,9 @@ export function Drop({ label, icon, buttonClass, panelClass = "left-0 w-56", tes
       </summary>
       <div
         ref={panel}
-        className={`absolute z-30 overflow-y-auto rounded-lg border border-line bg-raised p-3 text-ink shadow-overlay ${fit.up ? "bottom-full mb-1" : "mt-1"} ${panelClass}`}
+        className={`absolute z-30 overflow-y-auto rounded-lg border border-line bg-raised p-3 text-ink shadow-overlay ${floating ? "" : fit.up ? "bottom-full mb-1" : "mt-1"} ${panelClass}`}
         style={{ maxHeight: fit.maxHeight, ...edge }}
+        data-floating={floating || undefined}
       >
         <button
           type="button"

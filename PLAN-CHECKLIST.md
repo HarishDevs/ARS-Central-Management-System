@@ -17,6 +17,8 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 **Multi-level approvals in any custom manner.** The engine must support any number of levels in any combination: sequential, parallel, any-one, any-N-of-M, conditional and hybrid. Approvers can come from any source, and levels can be added or skipped by rules. Build the engine for this from the first engine phase (P2). The drag-and-drop designer (P3) is only the screen for building it. Check every task against this.
 
 ## Now / Next
+- **Now (22 Nov 2026):** **v1.66.3** section ⋯ menu opens on top (D-378). **Owner:** publish (no migration).
+- [x] UI-94 (22 Nov 2026) List menus (section ⋯, field column ▾) float above the table
 - **Now (22 Nov 2026):** **v1.66.2** section name box fits its words (D-377). **Owner:** publish (no migration).
 - [x] UI-93 (22 Nov 2026) List section name box sized to its text
 - **Now (22 Nov 2026):** **v1.66.1** feature switch names (D-376). **Owner:** publish (no migration).
