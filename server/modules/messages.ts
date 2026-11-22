@@ -56,6 +56,9 @@ export const projectMessages = {
   added: (project: ProjectInfo, to: number, by: string, role: string) => message("WORK_PROJECT_MEMBER", to, `Added to project: ${project.name}`, `${by} added you to the project "${project.name}" as ${role.toLowerCase()}.`, projectPath(project), null),
   status: (project: ProjectInfo, to: number, by: string, status: string, title: string) =>
     message("WORK_PROJECT_STATUS", to, `${project.name}: ${status}`, `${by} posted a status update on "${project.name}": ${status}. ${title}`, `${projectPath(project)}?view=overview`, null),
+  // v1.65.0 (D-373): the weekly "time for a status update" reminder to the project's owner.
+  reminder: (project: ProjectInfo, to: number) =>
+    message("WORK_PROJECT_STATUS", to, `Status update due: ${project.name}`, `It's Friday: post this week's status update on "${project.name}".`, `${projectPath(project)}?view=overview`, null),
 };
 
 export interface InfoSummary {

@@ -61,8 +61,9 @@ export async function taskWorkView(task: TaskRecord, user: { id: number; roles: 
     links: links.map((link, index) => ({ projectId: link.projectId, projectName: link.projectName, color: link.color, sectionId: link.sectionId, sections: linkSections[index]!.map((section) => ({ id: section.id, name: section.name })) })),
     projectChoices: choices.map((project) => ({ id: project.id, name: project.name })),
     subtasks: subtasks.map((item) => ({ id: item.id, title: item.title, status: item.status, assigneeName: item.assigneeName, dueAt: item.dueAt?.toISOString() ?? null, subtasks: item.subtasks })),
-    blockedBy: deps.blockedBy,
-    blocking: deps.blocking,
+    // v1.65.0 (D-373): each link's type and lag, and the other task's due date.
+    blockedBy: deps.blockedBy.map((item) => ({ ...item, dueAt: item.dueAt?.toISOString() ?? null })),
+    blocking: deps.blocking.map((item) => ({ ...item, dueAt: item.dueAt?.toISOString() ?? null })),
     tags: workItem.items[0]?.tags.map((tag) => ({ id: tag.id, name: tag.name })) ?? [],
     followers,
     // v1.52.1: pickers show "Name - code" with the department; mentions keep the name.

@@ -1889,6 +1889,83 @@ The application audit (`application-audit/`) found these gaps between flows and 
 - **F-59 Bulk import:** the import doesn't apply the rule that only the Super Admin changes another IT Admin's contact details (AUD-01). Fix planned: V181-A2.
 - **F-121 Page access:** an action posted from an address that is no configured page isn't restricted (AUD-14). Fix planned: V181-A7.
 
+## F-PM-DEPS: Typed dependencies (v1.65.0, D-373; "pm_planning")
+```mermaid
+flowchart TD
+  A[Task pane: Add dependency] --> B{Blocked by or Blocking}
+  B --> C[Type part of a name or number → tasks from every project the person sees, with the project]
+  C --> D[Pick the type: FS default, SS, FF, SF]
+  D --> E[Server: switch on? planning right on the waiting task, sight of the other? same family? cap 30 each? loop?]
+  E -- refused --> X[Message: e.g. This would create a circular dependency]
+  E -- ok --> F[Link with type and lag 0; stories on both tasks]
+  F --> G[Pane lists, Gantt Blocked by chip 'Task · FS', connector on Timeline/Gantt]
+  F --> H[Type changed in place, or the link removed]
+  I[A predecessor is completed] --> J{Link type}
+  J -- SF --> K[Nobody is told]
+  J -- FS / FF / SS --> L{Anything still holding the task? FS/FF: open; SS: not started}
+  L -- no --> M[Assignee: Ready to start]
+```
+
+## F-PM-SHIFT: Dependent tasks move with their task (v1.65.0, D-373)
+```mermaid
+flowchart TD
+  A[Owner: Project settings → Dependencies: Off / Keep the gap / Use up the slack; Scheduling: skip weekly offs and holidays] --> B[(projects.shift_mode, shift_skip_off_days)]
+  C[Someone changes a task's start or due date: List, Calendar, Timeline/Gantt drag or keys, task page] --> D[setTaskFields: rights, holiday check, start ≤ due]
+  D --> E[One transaction: the task's new dates]
+  E --> F[Walk the links to every reachable task; each link uses a project both tasks share with shifting on]
+  F --> G{Mode}
+  G -- Keep the gap --> H[Move by the same working days as the date the link hangs on]
+  G -- Use up the slack --> I[Move only as far as the link's rule needs: FS start ≥ due, SS start ≥ start, FF due ≥ due, SF start ≤ due]
+  H --> J[Done tasks never move; length, due time and start ≤ due kept]
+  I --> J
+  J --> K[Write the dates; story by the mover where they may plan it, else by the system; assignees told]
+  K --> L[(task_shift_batches: dates before and after)]
+  L --> M[Toast: N dependent tasks moved · Undo]
+  M -- Undo within 15 min, by the mover --> N[Put back each task whose dates are still as moved; others left alone]
+```
+
+## F-PM-GANTT: Timeline and Gantt editing (v1.65.0, D-373)
+```mermaid
+flowchart TD
+  A[Project tab: Timeline, or + Add tab → Gantt] --> B[Scale Days/Weeks/Months/Quarters, zoom, Earlier/Today/Later; today line; shaded off days; rows by section; only visible rows drawn]
+  B --> C{Action}
+  C -- drag bar / its ends --> D[Preview dates] --> E[Release → save via F-PM-SHIFT]
+  C -- keys on a focused bar --> F[← / → move, Shift: due, Alt+Shift: start; announced] --> G{Enter or Escape}
+  G -- Enter --> E
+  G -- Escape --> H[Back as it was]
+  C -- drag the dot onto a bar, or L, or + in Blocked by --> I[Link dialog: direction, other task, type] --> J[F-PM-DEPS server checks]
+  E --> K[Connectors redrawn: grey open, green done, red clash]
+```
+
+## F-PM-CAL-WEEK: Calendar weeks and keyboard moves (v1.65.0, D-373)
+```mermaid
+flowchart LR
+  A[Calendar: Weeks or Months] --> B[Weeks: Mon–Fri + one Sat·Sun column; tasks from start to due]
+  B --> C[Drag a task to a day, or focus + Space, ←/→ a day, ↑/↓ a week, Enter; Escape cancels]
+  C --> D[Due day changes, due time kept, start moves too → F-PM-SHIFT]
+  A --> E[No start date: tasks with only a due date → set a start date]
+```
+
+## F-PM-STATUS: Status update composer and the Friday reminder (v1.65.0, D-373)
+```mermaid
+flowchart TD
+  A[Owner/editor: Overview → Post a status update] --> B[Headline, Status required, Owner, Dates, Summary, Next steps]
+  A --> C[Highlights: completed milestones and tasks of the last 7/14/30 days → tick]
+  A --> D[Recipients: members + extra people]
+  B --> E[Post] --> F[Server: rights, status, summary or next steps, highlights still in the period, recipients active with Projects]
+  F --> G[Frozen update + project status; members and extras told]
+  H[Remind the project owner every Friday] --> I[(projects.status_reminder)]
+  J[Job runner every 5 min] --> K{Friday 9 am+ India, switch not Off?}
+  K -- yes --> L[Claim each project once that day → message to the owner]
+```
+
+## F-PM-A14: Home widgets without the Approval module (v1.65.0, D-373; "pm_foundations")
+```mermaid
+flowchart LR
+  A[/users, desktop, no Approval module, Tasks on/] --> B[Widget board of F-PM-HOME: greeting, widgets, Customise]
+  B --> C[Your other modules below]
+```
+
 ## F-PM-FIELDS: Custom fields (v1.64.0, D-371; "pm_planning")
 ```mermaid
 flowchart TD

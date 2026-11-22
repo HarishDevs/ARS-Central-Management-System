@@ -14,6 +14,8 @@ import { featureOn } from "@/server/settings/features";
 import { goneFieldsFor, projectFieldsFor } from "@/server/work/fields-service";
 import { FieldsPanel } from "@/features/work/FieldsPanel";
 import { FieldDialogHost } from "@/features/work/FieldDialog";
+import { DependenciesPanel, SchedulingPanel } from "@/features/work/SchedulingPanel";
+import { projectSchedule } from "@/server/work/schedule-service";
 
 export const metadata: Metadata = { title: "Project settings" };
 export const dynamic = "force-dynamic";
@@ -43,6 +45,7 @@ const EVENT_WORD: Record<string, string> = {
   TEMPLATE_SAVED: "Made this template",
   FROM_TEMPLATE: "Made it from a template",
   COPIED: "Made it as a copy",
+  SCHEDULING: "Changed the scheduling",
 };
 
 // D-215: members and roles, details and privacy, archive and delete, history.
@@ -61,6 +64,8 @@ export default async function ProjectSettingsPage({ params }: { params: Promise<
   const planning = await featureOn("pm_planning", user);
   const actor = { id: user.id, name: user.name, roles: user.roles, modules: user.modules };
   const [planFields, gone] = planning ? await Promise.all([projectFieldsFor(project.id, actor), goneFieldsFor(project.id, actor)]) : [null, null];
+  // v1.65.0 (D-373): the Dependencies and Scheduling settings ("pm_planning").
+  const scheduling = planning ? await projectSchedule(project.id) : null;
   return (
     <>
       <Breadcrumbs items={[{ href: "/users/work/projects", label: "Projects" }, { href: `/users/work/projects/${project.id}`, label: project.name }, { label: "Members & settings" }]} />
@@ -95,6 +100,22 @@ export default async function ProjectSettingsPage({ params }: { params: Promise<
                 departments={activeDepartments}
                 myDepartmentId={viewer.departmentId}
               />
+            </section>
+          )}
+          {scheduling && (
+            <section className="card px-5 py-4" aria-labelledby="dependencies" id="dependencies-section">
+              <h2 id="dependencies" className="mb-1 font-semibold">
+                Dependencies
+              </h2>
+              <DependenciesPanel projectId={project.id} mode={scheduling.mode} canManage={can.manage} />
+            </section>
+          )}
+          {scheduling && (
+            <section className="card px-5 py-4" aria-labelledby="scheduling" id="scheduling-section">
+              <h2 id="scheduling" className="mb-1 font-semibold">
+                Scheduling
+              </h2>
+              <SchedulingPanel projectId={project.id} skipOffDays={scheduling.skipOffDays} canManage={can.manage} />
             </section>
           )}
           <section className="card px-5 py-4" aria-labelledby="permissions">

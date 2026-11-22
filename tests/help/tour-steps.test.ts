@@ -43,6 +43,12 @@ describe("onboarding tour steps", () => {
     expect(points).toContain("custom fields");
   });
 
+  it("the Projects step mentions the Gantt and dependencies (v1.65.0, D-373)", () => {
+    const points = TOUR_STEPS.find((step) => step.id === "projects")?.points.join(" ") ?? "";
+    expect(points).toContain("Gantt");
+    expect(points).toContain("Blocked by");
+  });
+
   it("Home mentions Customise and the private notepad, and My Tasks its own tabs (v1.63.0, D-369)", () => {
     const home = TOUR_STEPS.find((step) => step.id === "overview")?.points.join(" ") ?? "";
     expect(home).toContain("Customise");

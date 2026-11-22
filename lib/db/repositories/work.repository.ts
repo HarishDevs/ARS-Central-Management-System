@@ -315,13 +315,16 @@ export interface WorkTaskItem {
   approval?: { requestId: number; requestNo: string; workStep: boolean; linked?: boolean } | null;
 }
 
+// v1.65.0 (D-373): a link holds its successor back by its type (schedule.ts linkBlocks):
+// FS and FF while the predecessor is open; SS until it has started; SF never.
+export const BLOCKING_LINK = "((dp.dep_type IN ('FS', 'FF') AND bt.status IN ('OPEN', 'IN_PROGRESS', 'BLOCKED')) OR (dp.dep_type = 'SS' AND bt.status IN ('OPEN', 'BLOCKED')))";
 const ITEM_SELECT = `SELECT t.id, t.task_no, t.title, t.status, t.priority, t.assignee_id, a.name AS assignee_name, (SELECT dd.name FROM departments dd WHERE dd.id = a.department_id) AS assignee_department, t.created_by, c.name AS created_by_name, t.due_at, t.starts_on,
     t.completed_at, t.created_at, t.updated_at, t.is_milestone, t.parent_task_id, t.assigned_at, LEFT(t.description, 160) AS summary, t.related_request_id, (SELECT rq.request_no FROM approval_requests rq WHERE rq.id = t.related_request_id) AS related_request_no, JSON_CONTAINS_PATH(t.form_data_json, 'one', '$.__approvalWork') AS from_approval, JSON_CONTAINS_PATH(t.form_data_json, 'one', '$.__approvalLink') AS linked_work, (t.recurrence_json IS NOT NULL OR t.series_id IS NOT NULL) AS is_periodic,
     (SELECT COUNT(*) FROM tasks s WHERE s.parent_task_id = t.id AND s.deleted_at IS NULL) AS subtasks,
     (SELECT COUNT(*) FROM tasks s WHERE s.parent_task_id = t.id AND s.deleted_at IS NULL AND s.status IN ('OPEN', 'IN_PROGRESS', 'BLOCKED')) AS subtasks_open,
     (SELECT COUNT(*) FROM task_comments cm WHERE cm.task_id = t.id AND cm.deleted_at IS NULL) AS comments,
     (SELECT COUNT(*) FROM work_likes l WHERE l.target_type = 'TASK' AND l.target_id = t.id) AS likes,
-    (SELECT COUNT(*) FROM task_dependencies dp JOIN tasks bt ON bt.id = dp.blocker_task_id AND bt.deleted_at IS NULL WHERE dp.blocked_task_id = t.id AND bt.status IN ('OPEN', 'IN_PROGRESS', 'BLOCKED')) AS blocked_by`;
+    (SELECT COUNT(*) FROM task_dependencies dp JOIN tasks bt ON bt.id = dp.blocker_task_id AND bt.deleted_at IS NULL WHERE dp.blocked_task_id = t.id AND ${BLOCKING_LINK}) AS blocked_by`;
 
 async function decorate(rows: Row[], db: Queryable): Promise<WorkTaskItem[]> {
   const ids = rows.map((row) => num(row.id));
@@ -609,14 +612,24 @@ export async function likesOf(target: "TASK" | "COMMENT" | "STATUS", targetId: n
 }
 
 // ---- dependencies --------------------------------------------------------------------------
-export async function listDependencies(taskId: number, db: Queryable = getDbPool()): Promise<{ blockedBy: { id: number; taskNo: string; title: string; status: TaskStatus }[]; blocking: { id: number; taskNo: string; title: string; status: TaskStatus }[] }> {
+// v1.65.0 (D-373): each link with its type (FS/SS/FF/SF), lag (reserved, 0) and the other task's due date.
+export interface DependencyItem {
+  id: number;
+  taskNo: string;
+  title: string;
+  status: TaskStatus;
+  type: "FS" | "SS" | "FF" | "SF";
+  lag: number;
+  dueAt: Date | null;
+}
+export async function listDependencies(taskId: number, db: Queryable = getDbPool()): Promise<{ blockedBy: DependencyItem[]; blocking: DependencyItem[] }> {
   const pick = async (sql: string) => {
     const [rows] = await db.query<Row[]>(sql, [taskId]);
-    return rows.map((row) => ({ id: num(row.id), taskNo: String(row.task_no), title: String(row.title), status: row.status as TaskStatus }));
+    return rows.map((row) => ({ id: num(row.id), taskNo: String(row.task_no), title: String(row.title), status: row.status as TaskStatus, type: (row.dep_type ?? "FS") as DependencyItem["type"], lag: Number(row.lag_days ?? 0), dueAt: (row.due_at as Date | null) ?? null }));
   };
   return {
-    blockedBy: await pick("SELECT t.id, t.task_no, t.title, t.status FROM task_dependencies d JOIN tasks t ON t.id = d.blocker_task_id AND t.deleted_at IS NULL WHERE d.blocked_task_id = ? ORDER BY t.id"),
-    blocking: await pick("SELECT t.id, t.task_no, t.title, t.status FROM task_dependencies d JOIN tasks t ON t.id = d.blocked_task_id AND t.deleted_at IS NULL WHERE d.blocker_task_id = ? ORDER BY t.id"),
+    blockedBy: await pick("SELECT t.id, t.task_no, t.title, t.status, t.due_at, d.dep_type, d.lag_days FROM task_dependencies d JOIN tasks t ON t.id = d.blocker_task_id AND t.deleted_at IS NULL WHERE d.blocked_task_id = ? ORDER BY t.id"),
+    blocking: await pick("SELECT t.id, t.task_no, t.title, t.status, t.due_at, d.dep_type, d.lag_days FROM task_dependencies d JOIN tasks t ON t.id = d.blocked_task_id AND t.deleted_at IS NULL WHERE d.blocker_task_id = ? ORDER BY t.id"),
   };
 }
 // The dependency edges reachable from these tasks (enough for the loop check).
@@ -663,14 +676,50 @@ export interface StatusUpdate {
   createdAt: Date;
   projectId: number;
   projectName: string;
+  // v1.65.0 (D-373): the fuller composer's parts (null on older updates).
+  ownerName?: string | null;
+  startOn?: string | null;
+  dueOn?: string | null;
+  nextSteps?: string | null;
+  highlights?: { id: number; taskNo: string; title: string; milestone: boolean; completedOn: string }[];
+  recipients?: number;
 }
+const json = (value: unknown): unknown => {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== "string") return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+};
+const dayText = (value: unknown): string | null => (value instanceof Date ? value.toISOString().slice(0, 10) : typeof value === "string" && value ? value.slice(0, 10) : null);
 const toStatus = (row: Row): StatusUpdate => {
   const snapshot = (typeof row.snapshot_json === "string" ? JSON.parse(row.snapshot_json) : row.snapshot_json) as StatusUpdate["snapshot"];
-  return { id: num(row.id), status: row.status as ProjectStatusKind, title: String(row.title), body: str(row.body), snapshot, authorId: num(row.author_id), authorName: String(row.author_name), createdAt: row.created_at as Date, projectId: num(row.project_id), projectName: String(row.project_name) };
+  const highlights = json(row.highlights_json);
+  const recipients = json(row.recipients_json);
+  return {
+    id: num(row.id),
+    status: row.status as ProjectStatusKind,
+    title: String(row.title),
+    body: str(row.body),
+    snapshot,
+    authorId: num(row.author_id),
+    authorName: String(row.author_name),
+    createdAt: row.created_at as Date,
+    projectId: num(row.project_id),
+    projectName: String(row.project_name),
+    ownerName: row.owner_name === undefined ? null : str(row.owner_name),
+    startOn: dayText(row.start_on),
+    dueOn: dayText(row.due_on),
+    nextSteps: row.next_steps === undefined ? null : str(row.next_steps),
+    highlights: Array.isArray(highlights) ? (highlights as StatusUpdate["highlights"]) : [],
+    recipients: Array.isArray(recipients) ? recipients.length : 0,
+  };
 };
 export async function listStatusUpdates(projectId: number, db: Queryable = getDbPool()): Promise<StatusUpdate[]> {
   const [rows] = await db.query<Row[]>(
-    "SELECT s.*, u.name AS author_name, p.name AS project_name FROM project_status_updates s JOIN users u ON u.id = s.author_id JOIN projects p ON p.id = s.project_id WHERE s.project_id = ? AND s.deleted_at IS NULL ORDER BY s.id DESC LIMIT 50",
+    "SELECT s.*, u.name AS author_name, p.name AS project_name, (SELECT o.name FROM users o WHERE o.id = s.owner_id) AS owner_name FROM project_status_updates s JOIN users u ON u.id = s.author_id JOIN projects p ON p.id = s.project_id WHERE s.project_id = ? AND s.deleted_at IS NULL ORDER BY s.id DESC LIMIT 50",
     [projectId],
   );
   return rows.map(toStatus);

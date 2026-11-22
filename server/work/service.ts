@@ -38,11 +38,13 @@ import {
   type ProjectRole,
   type WorkViewer,
 } from "@/server/work/access";
-import { dependencyLoop, MAX_DEPENDENCIES, MAX_PROJECTS_PER_TASK, mentionedIds, needsRenumber, positionBetween, subtaskProblem } from "@/server/work/rules";
+import { dependencyLoop, indiaDay, MAX_DEPENDENCIES, MAX_PROJECTS_PER_TASK, mentionedIds, needsRenumber, positionBetween, subtaskProblem } from "@/server/work/rules";
 import { isAdminRoles, rightsOn, teamOf, workViewer } from "@/server/work/task-access";
 import type { NotifyInput } from "@/server/notifications/notify";
 import { checkHoliday, holidayMessage, nearestWorkingDay, type HolidayHit } from "@/server/work/holidays";
 import { departmentOf, holidayContext, openTasksDueOn } from "@/server/work/holiday-store";
+import { featureOn } from "@/server/settings/features";
+import { shiftDependents, type ShiftOutcome } from "@/server/work/schedule-service";
 
 // D-215: Task & Project Management. Each operation checks the person's
 // rights on the server (access.ts through task-access.ts), runs in one
@@ -486,7 +488,7 @@ export async function toggleComplete(taskId: number, actor: TaskActor): Promise<
 }
 
 // Quick field changes from lists, boards and the calendar.
-export async function setTaskFields(taskId: number, change: { dueDay?: string; startDay?: string; assigneeId?: number; priority?: string; title?: string; milestone?: boolean; holidayOk?: boolean }, actor: TaskActor): Promise<WorkResult> {
+export async function setTaskFields(taskId: number, change: { dueDay?: string; startDay?: string; assigneeId?: number; priority?: string; title?: string; milestone?: boolean; holidayOk?: boolean }, actor: TaskActor): Promise<WorkResult<{ shifted?: ShiftOutcome } | undefined>> {
   const loaded = await taskFor(taskId, actor);
   if (!loaded) return fail(NOT_FOUND);
   const { task, rights } = loaded;
@@ -551,6 +553,10 @@ export async function setTaskFields(taskId: number, change: { dueDay?: string; s
   const start = (changes.starts_on as string | null | undefined) === undefined ? task.startsOn : (changes.starts_on as string | null);
   const dueAt = changes.due_at === undefined ? task.dueAt : (changes.due_at as Date | null);
   if (start && dueAt && start > new Date(dueAt.getTime() + 330 * 60_000).toISOString().slice(0, 10)) return fail("The start date can't be after the due date.");
+  // v1.65.0 (D-373, "pm_planning"): a date change moves the dependent tasks its projects say to move, in the same transaction.
+  const datesChanged = changes.due_at !== undefined || changes.starts_on !== undefined || work.starts_on !== undefined;
+  const shifting = datesChanged && (await featureOn("pm_planning", actor).catch(() => false));
+  let shifted: ShiftOutcome | null = null;
   const outbox = await withTransaction(async (connection) => {
     const fresh = await findTask(taskId, connection, true);
     if (!fresh) return [];
@@ -558,10 +564,16 @@ export async function setTaskFields(taskId: number, change: { dueDay?: string; s
     if (Object.keys(work).length) await repo.setTaskWorkFields(taskId, work, connection);
     await appendTaskEvent(taskId, { actorId: actor.id, type: "EDIT", from: fresh.status, to: fresh.status, body: notes.join("; "), payload: changes.due_at !== undefined ? { dueChanged: true } : null }, connection);
     const messages = changes.due_at !== undefined && fresh.assigneeId !== actor.id ? [taskMessages.updated(info({ ...fresh, dueAt }), fresh.assigneeId, notes[0]!.toLowerCase())] : [];
+    if (shifting && fresh.dueAt) {
+      const result = await shiftDependents(connection, taskId, { start: fresh.startsOn ?? null, due: indiaDay(fresh.dueAt) }, fresh.dueAt, actor);
+      shifted = result.outcome;
+      messages.push(...result.messages);
+    }
     return insertOutbox(null, messages, connection);
   });
   await send(outbox);
-  return { ok: true, value: undefined, message: "Saved." };
+  const moved = (shifted as ShiftOutcome | null)?.moved ?? 0;
+  return { ok: true, value: shifted ? { shifted } : undefined, message: moved ? `Saved. ${moved} dependent ${moved === 1 ? "task" : "tasks"} moved.` : "Saved." };
 }
 
 // Make a task a subtask of another (or a top task again: parentId null).

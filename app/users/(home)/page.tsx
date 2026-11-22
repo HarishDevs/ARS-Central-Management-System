@@ -77,6 +77,40 @@ export default async function UsersHome({ searchParams }: { searchParams: Promis
   // and may open its pages.
   const tasksOn = (await featureOn("tasks", user).catch(() => false)) && !isHiddenHref("/users/work", (await navAccess(user)).hidden);
   // D-168: without the Approval module the page offers the person's other modules.
+  // v1.65.0 (D-373, PM-A14): with "pm_foundations" on, their Task home is the same
+  // widget board as Task Management's Home (D-369): greeting, widgets, Customise.
+  if (!hasModule(user, "APPROVAL") && tasksOn && (await featureOn("pm_foundations", user).catch(() => false))) {
+    const viewer = await workViewer(user);
+    const access = await homeAccess(user);
+    const [layout, note] = await Promise.all([homeLayoutFor(user, access), getHomeNote(user.id)]);
+    const widgets: HomeWidgetSetup = {
+      layout: layout.widgets,
+      version: layout.version,
+      addable: addableWidgets(layout.widgets, access).map((entry) => ({ kind: entry.kind, title: entry.title, description: entry.description })),
+      note,
+      given: layout.widgets.some((item) => item.kind === "assigned") ? (
+        <Suspense fallback={<p className="card px-5 py-4 text-label text-ink-muted" role="status">Loading…</p>}>
+          <TaskHome user={user} viewer={viewer} params={{ tab: query.tab, given: query.given, home: "tasks" }} basePath="/users" greet={false} part="given" />
+        </Suspense>
+      ) : null,
+    };
+    const board = (
+      <MyWorkOverview
+        user={user}
+        viewer={viewer}
+        query={query}
+        widgets={widgets}
+        greeting={<HomeGreeting name={user.name} />}
+        switcher={null}
+        others={
+          <Suspense fallback={<p className="mt-6 text-label text-ink-muted" role="status">Loading…</p>}>
+            <TaskHome user={user} viewer={viewer} params={{ tab: query.tab, given: query.given, home: "tasks" }} basePath="/users" greet={false} part="others" />
+          </Suspense>
+        }
+      />
+    );
+    return <ModulesHome name={displayName(user.name)} user={user} tasks={board} boardFirst />;
+  }
   if (!hasModule(user, "APPROVAL")) {
     const tasks = tasksOn ? (
       <Suspense
@@ -481,7 +515,7 @@ function HomeFocusSwitch({ focus, overview, choices, locked = [] }: { focus: Hom
 }
 
 // D-168: Home for someone without the Approval module.
-function ModulesHome({ name, user, tasks }: { name: string; user: Parameters<typeof hasModule>[0]; tasks: React.ReactNode }) {
+function ModulesHome({ name, user, tasks, boardFirst = false }: { name: string; user: Parameters<typeof hasModule>[0]; tasks: React.ReactNode; boardFirst?: boolean }) {
   const links = [
     hasModule(user, "TASK") && { href: "/users/tasks", label: "My tasks", body: "Tasks given to you, and tasks you give others." },
     hasModule(user, "MEETING") && { href: "/users/meetings", label: "Meetings", body: "Your meetings, approvals and action items." },
@@ -494,7 +528,9 @@ function ModulesHome({ name, user, tasks }: { name: string; user: Parameters<typ
   const soon = (["TASK", "PROJECT", "MEETING", "TICKET", "INFORMATION", "AI"] as const).filter((module) => !hasModule(user, module));
   return (
     <>
-      <PageHeader title={`Welcome, ${name}`} />
+      {/* v1.65.0 (PM-A14): the widget board (with its own greeting) comes first; the module links follow. */}
+      {boardFirst ? tasks : <PageHeader title={`Welcome, ${name}`} />}
+      {boardFirst && <h2 className="mb-2 mt-8 font-semibold">Your other modules</h2>}
       <ul className="grid gap-3 sm:grid-cols-2" data-testid="modules-home">
         {links.map((link) => (
           <li key={link.href}>
@@ -514,7 +550,7 @@ function ModulesHome({ name, user, tasks }: { name: string; user: Parameters<typ
           ))}
         </ul>
       )}
-      {tasks}
+      {!boardFirst && tasks}
     </>
   );
 }

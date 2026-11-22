@@ -565,6 +565,8 @@ erDiagram
     task_dependencies {
         bigint blocker_task_id PK, FK
         bigint blocked_task_id PK, FK
+        enum dep_type
+        smallint lag_days
     }
     work_tags {
         bigint id PK
@@ -935,17 +937,18 @@ Migration names are shortened to their date-time prefix; the full file is `datab
 | `ai_rules` | AI | Rules ("training") per chat mode, in Markdown | 202610251400 |
 | `notification_rules` | Notifications | Reminder and escalation rules built in Admin | 202610281200 |
 | `notification_rule_sends` | Notifications | Each rule send, once per record, stage and repeat | 202610281200 |
-| `projects` | Projects | Projects and project templates | 202610301000 |
+| `projects` | Projects | Projects and project templates; since v1.65.0 `shift_mode` (OFF / KEEP_GAP / CONSUME), `shift_skip_off_days`, `status_reminder` and `status_reminded_on` (the India day of the last Friday reminder) | 202610301000, 202611221400 |
 | `project_members` | Projects | Members (people or departments) with a role | 202610301000 |
 | `project_sections` | Projects | Sections of a project | 202610301000 |
 | `task_projects` | Projects | A task's place in each project | 202610301000 |
 | `task_followers` | Tasks | People following a task | 202610301000 |
 | `task_comments` | Tasks | Task comments with one level of replies | 202610301000 |
 | `work_likes` | Tasks | Likes on tasks, comments and status updates | 202610301000 |
-| `task_dependencies` | Tasks | Blocked-by links between tasks | 202610301000 |
+| `task_dependencies` | Tasks | Blocked-by links between tasks; since v1.65.0 `dep_type` (FS default, SS, FF, SF) and `lag_days` (reserved, 0) | 202610301000, 202611221400 |
+| `task_shift_batches` | Tasks | v1.65.0: one date change and the dependent tasks it moved (`undo_json`: every task's dates before and after), so its mover can Undo for 15 minutes (`undone_at`); removed after 7 days by the `statusReminders` step | 202611221400 |
 | `work_tags` | Tasks | Organisation-wide tags | 202610301000 |
 | `task_tags` | Tasks | Tags on each task | 202610301000 |
-| `project_status_updates` | Projects | Status posts, frozen when posted | 202610301000 |
+| `project_status_updates` | Projects | Status posts, frozen when posted; since v1.65.0 `owner_id`, `start_on`, `due_on`, `next_steps` (body = Summary), `highlights_json` (picked completed milestones/tasks, frozen) and `recipients_json` (who was told) | 202610301000, 202611221400 |
 | `project_events` | Projects | Project history (the app only inserts) | 202610301000 |
 | `work_favourites` | Personal | Starred projects and searches | 202610301000 |
 | `work_recent_projects` | Personal | Recently opened projects | 202610301000 |
@@ -959,7 +962,7 @@ Migration names are shortened to their date-time prefix; the full file is `datab
 | `task_field_timer_runs` | Projects | Timer field runs per person (one running run per person, task and field) | 202611221300 |
 | `work_digest_sends` | Tasks | Daily digests already sent | 202610301200 |
 | `department_holidays` | Calendar | Holidays of one department only | 202610301200 |
-| `work_views` | Tasks | Saved view tabs for My Tasks and projects; since v1.61.0 a project tab has a `view_type` (LIST, BOARD, CALENDAR, TIMELINE, OVERVIEW) and one tab per project `is_default` | 202610301400, 202611221000 |
+| `work_views` | Tasks | Saved view tabs for My Tasks and projects; since v1.61.0 a project tab has a `view_type` (LIST, BOARD, CALENDAR, TIMELINE, OVERVIEW; GANTT since v1.65.0) and one tab per project `is_default` | 202610301400, 202611221000 |
 | `schema_migrations` | Runner | Migration files already applied | `migrate.js` |
 | `schema_migration_progress` | Runner | Statements done in a file that failed halfway | `migrate.js` |
 

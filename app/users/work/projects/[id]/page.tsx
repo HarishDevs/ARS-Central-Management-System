@@ -7,6 +7,11 @@ import { SafeText } from "@/features/ui/SafeText";
 import { ProjectWorkspace } from "@/features/work/ProjectWorkspace";
 import { TaskCalendar } from "@/features/work/TaskCalendar";
 import { Timeline } from "@/features/work/Timeline";
+import { ScheduleView } from "@/features/work/ScheduleView";
+import { StatusComposer } from "@/features/work/StatusComposer";
+import { linksFor, projectSchedule } from "@/server/work/schedule-service";
+import { getWorkingDays } from "@/lib/db/repositories/calendar.repository";
+import { WEEKDAYS } from "@/server/workflows/calendar";
 import { paneLinks, paneTaskId, TaskPane, WithPane } from "@/features/work/TaskPane";
 import { toGridTask } from "@/server/work/grid-rows";
 import { DEFAULT_GRID, parseGridConfig, type GridConfig } from "@/server/work/grid";
@@ -46,7 +51,8 @@ const VIEWS = [
   { key: "timeline", label: "Timeline" },
   { key: "calendar", label: "Calendar" },
 ] as const;
-type ViewKey = (typeof VIEWS)[number]["key"];
+// v1.65.0 (D-373): a Gantt tab (from the tab catalogue, with "pm_planning" on).
+type ViewKey = (typeof VIEWS)[number]["key"] | "gantt";
 
 // D-215: one project. Only people with a role on it (members, its department
 // or everyone, by its privacy) can open it; anyone else gets "not found".
@@ -58,6 +64,8 @@ export default async function ProjectPage({
   searchParams: Promise<{
     view?: string;
     month?: string;
+    week?: string;
+    cal?: string;
     created?: string;
     task?: string;
     status?: string;
@@ -138,6 +146,12 @@ export default async function ProjectPage({
     projectFieldsFor(project.id, { id: user.id, name: user.name, roles: user.roles, modules: user.modules }),
   ]);
   const planning = await featureOn("pm_planning", user);
+  // v1.65.0 (D-373): the editable Timeline and the Gantt need the links, the working days and the holidays.
+  const scheduleView = planning && (view === "timeline" || view === "gantt");
+  const [scheduleLinks, workingWeekdays, scheduleHolidays] = scheduleView
+    ? await Promise.all([linksFor(tasks.map((task) => task.id)), getWorkingDays().then((days) => days.map((day) => WEEKDAYS.indexOf(day))), calendarHolidays(undefined, viewer.departmentId)])
+    : [[], [], {}];
+  const statusSetup = planning && view === "overview" && can.edit ? await projectSchedule(project.id) : null;
   // D-220: the project's saved tabs (List views with their filters, sort and groups).
   const savedTabs = pmOn ? [] : await listWorkViews("PROJECT", project.id);
   const currentTab = savedTabs.find((item) => String(item.id) === query.tab) ?? null;
@@ -198,7 +212,7 @@ export default async function ProjectPage({
       )}
       {project.archivedAt && <p className="mb-4 rounded-md bg-surface-muted px-3 py-2 text-label">This project is archived. Its tasks still work; it is hidden from the project list.</p>}
       <LiveRefresh />
-      {pmOn && <ViewTabs projectId={project.id} base={base} strip={strip} activeKey={activeTab?.key ?? null} canEdit={can.edit} />}
+      {pmOn && <ViewTabs projectId={project.id} base={base} strip={strip} activeKey={activeTab?.key ?? null} canEdit={can.edit} planning={planning} />}
       {!pmOn && (
       <nav aria-label="Project views" className="mb-3 flex flex-wrap gap-1 border-b border-line" data-testid="view-tabs">
         {VIEWS.map((item) => (
@@ -296,7 +310,9 @@ export default async function ProjectPage({
               dueAt: task.dueAt?.toISOString() ?? null,
               assigneeId: task.assigneeId,
               isMilestone: task.isMilestone,
+              startsOn: task.startsOn,
             }))}
+            planning={planning ? { unit: query.cal === "week" ? "week" : "month", week: /^\d{4}-\d{2}-\d{2}$/.test(query.week ?? "") ? query.week! : todayDay, href: activeTab?.id ? `${base}?tab=${activeTab.id}&` : `${base}?view=calendar&` } : undefined}
             month={month}
             todayDay={todayDay}
             canEdit={can.edit}
@@ -306,7 +322,35 @@ export default async function ProjectPage({
             holidays={await calendarHolidays(undefined, viewer.departmentId)}
           />
         )}
-        {view === "timeline" && (
+        {scheduleView && (
+          <ScheduleView
+            key={view}
+            mode={view === "gantt" ? "GANTT" : "TIMELINE"}
+            sections={sections.map((section) => ({ id: section.id, name: section.name }))}
+            tasks={tasks
+              .filter((task) => task.dueAt && task.status !== "CANCELLED")
+              .map((task) => ({
+                id: task.id,
+                taskNo: task.taskNo,
+                title: task.title,
+                status: task.status,
+                sectionId: task.sectionId ?? sections[0]?.id ?? 0,
+                startsOn: task.startsOn,
+                dueAt: task.dueAt!.toISOString(),
+                isMilestone: task.isMilestone,
+                assigneeId: task.assigneeId,
+                assigneeName: task.assigneeName,
+              }))}
+            links={scheduleLinks}
+            todayDay={todayDay}
+            holidays={scheduleHolidays}
+            workingWeekdays={workingWeekdays}
+            canEdit={can.edit}
+            meId={user.id}
+          />
+        )}
+        {view === "gantt" && !planning && <p className="card px-5 py-8 text-center text-ink-muted">The Gantt view isn&apos;t switched on yet.</p>}
+        {view === "timeline" && !planning && (
           <Timeline
             hrefFor={links.open}
             todayDay={todayDay}
@@ -378,13 +422,43 @@ export default async function ProjectPage({
                         </span>
                         {update.authorId === user.id && <RemoveStatusButton statusId={update.id} />}
                       </div>
-                      {update.body && (
-                        <p className="mt-2 whitespace-pre-wrap text-label">
-                          <RichText text={update.body} />
+                      {(update.ownerName || update.startOn || update.dueOn) && (
+                        <p className="mt-1 text-caption text-ink-muted">
+                          {update.ownerName ? `Owner ${update.ownerName}` : ""}
+                          {update.startOn || update.dueOn ? `${update.ownerName ? " · " : ""}Dates ${update.startOn ?? "—"} to ${update.dueOn ?? "—"}` : ""}
                         </p>
                       )}
+                      {update.body && (
+                        <>
+                          {update.nextSteps && <h3 className="mt-2 text-label font-semibold">Summary</h3>}
+                          <p className={`${update.nextSteps ? "" : "mt-2 "}whitespace-pre-wrap text-label`}>
+                            <RichText text={update.body} />
+                          </p>
+                        </>
+                      )}
+                      {update.nextSteps && (
+                        <>
+                          <h3 className="mt-2 text-label font-semibold">Next steps</h3>
+                          <p className="whitespace-pre-wrap text-label">
+                            <RichText text={update.nextSteps} />
+                          </p>
+                        </>
+                      )}
+                      {update.highlights && update.highlights.length > 0 && (
+                        <>
+                          <h3 className="mt-2 text-label font-semibold">Highlights</h3>
+                          <ul className="text-label" data-testid="status-highlights">
+                            {update.highlights.map((item) => (
+                              <li key={item.id}>
+                                {item.milestone ? "◆ " : "✓ "}
+                                {item.title} <span className="text-caption text-ink-muted">(done {item.completedOn})</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </>
+                      )}
                       <p className="mt-2 text-caption text-ink-muted">
-                        When posted: {update.snapshot.open} open, {update.snapshot.completed} completed, {update.snapshot.overdue} overdue.
+                        When posted: {update.snapshot.open} open, {update.snapshot.completed} completed, {update.snapshot.overdue} overdue.{update.recipients ? ` ${update.recipients} ${update.recipients === 1 ? "person" : "people"} told.` : ""}
                       </p>
                     </li>
                   ))}
@@ -392,11 +466,31 @@ export default async function ProjectPage({
               </section>
             </div>
             <aside className="space-y-4">
-              {can.edit && (
+              {can.edit && !statusSetup && (
                 <section className="card px-5 py-4" aria-label="Post a status update">
                   <h2 className="mb-3 font-semibold">Post a status update</h2>
                   {/* Keyed by the status chosen in the header, so choosing another one there selects it here. */}
                   <StatusForm key={typeof query.status === "string" ? query.status : "none"} projectId={project.id} initial={typeof query.status === "string" ? query.status : undefined} />
+                </section>
+              )}
+              {can.edit && statusSetup && (
+                <section className="card px-5 py-4" aria-label="Post a status update">
+                  <h2 className="mb-3 font-semibold">Post a status update</h2>
+                  {/* v1.65.0 (D-373): the fuller composer (sections, highlights, recipients, weekly reminder). */}
+                  <StatusComposer
+                    key={typeof query.status === "string" ? query.status : "none"}
+                    projectId={project.id}
+                    projectName={project.name}
+                    initial={typeof query.status === "string" ? query.status : undefined}
+                    todayDay={todayDay}
+                    owner={{ id: project.ownerId, name: project.ownerName }}
+                    members={members.filter((member) => member.type === "USER").map((member) => ({ id: member.id, name: member.name }))}
+                    people={sharePeople}
+                    startOn={project.startOn ?? ""}
+                    dueOn={project.dueOn ?? ""}
+                    reminder={statusSetup.statusReminder}
+                    meId={user.id}
+                  />
                 </section>
               )}
               <section className="card px-5 py-4" aria-labelledby="people">

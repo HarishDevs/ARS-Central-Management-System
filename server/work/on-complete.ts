@@ -1,3 +1,4 @@
+import { linkBlocks } from "@/server/work/schedule";
 import "server-only";
 import { workMirrorLink, WORK_MIRROR_KEY } from "@/server/approvals/work-mirror";
 import { afterResponse } from "@/lib/http/after-response";
@@ -47,8 +48,11 @@ async function tellUnblocked(taskId: number): Promise<void> {
   const messages: NotifyInput[] = [];
   for (const blocked of deps.blocking) {
     if (!OPEN_STATUSES.includes(blocked.status)) continue;
+    // v1.65.0 (D-373): per type: an SF link never held the task back, so its completion tells nobody;
+    // the task is ready when no link still holds it (FS/FF: predecessor open; SS: not started).
+    if (blocked.type === "SF") continue;
     const others = await repo.listDependencies(blocked.id);
-    if (others.blockedBy.every((item) => !OPEN_STATUSES.includes(item.status))) {
+    if (others.blockedBy.every((item) => !linkBlocks(item.type, item.status))) {
       const full = await findTask(blocked.id);
       if (full) messages.push(taskMessages.unblocked(info(full), full.assigneeId));
     }

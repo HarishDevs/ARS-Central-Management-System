@@ -15,6 +15,7 @@ import { FieldInput, RepeatEditor, type FieldView } from "@/features/work/MorePa
 import { FieldGlyph, FieldValueEditor } from "@/features/work/FieldControls";
 import type { FieldCell } from "@/server/work/custom-fields";
 import type { Recurrence } from "@/server/work/more-rules";
+import { DependencyEditor, type DependencyView } from "@/features/work/DependencyEditor";
 
 // D-215: what Task & Project Management adds to the task page: its projects
 // (and section in each), subtasks, what it waits for, tags, followers,
@@ -38,8 +39,8 @@ export interface PanelData {
   links: { projectId: number; projectName: string; color: string; sectionId: number; sections: { id: number; name: string }[] }[];
   projectChoices: { id: number; name: string }[];
   subtasks: { id: number; title: string; status: string; assigneeName: string; dueAt: string | null; subtasks: number }[];
-  blockedBy: { id: number; taskNo: string; title: string; status: string }[];
-  blocking: { id: number; taskNo: string; title: string; status: string }[];
+  blockedBy: DependencyView[];
+  blocking: DependencyView[];
   tags: { id: number; name: string }[];
   followers: { id: number; name: string }[];
   people: { id: number; label: string; detail?: string; name?: string }[];
@@ -237,10 +238,12 @@ export function TaskWorkPanel({ data }: { data: PanelData }) {
         <h2 id="work-deps" className="font-semibold">
           Waiting for
         </h2>
-        {data.blockedBy.length === 0 && <p className="text-label text-ink-muted">Nothing: it can start any time.</p>}
-        <DependencyList items={data.blockedBy} taskId={data.taskId} canChange={data.canProgress} />
-        {data.canProgress && <DependencyForm taskId={data.taskId} />}
-        {data.blocking.length > 0 && (
+        {/* v1.65.0 (D-373): typed links, found by name across projects ("pm_planning"). */}
+        {data.planning && <DependencyEditor taskId={data.taskId} title={data.title} blockedBy={data.blockedBy} blocking={data.blocking} canChange={data.canProgress} />}
+        {!data.planning && data.blockedBy.length === 0 && <p className="text-label text-ink-muted">Nothing: it can start any time.</p>}
+        {!data.planning && <DependencyList items={data.blockedBy} taskId={data.taskId} canChange={data.canProgress} />}
+        {!data.planning && data.canProgress && <DependencyForm taskId={data.taskId} />}
+        {!data.planning && data.blocking.length > 0 && (
           <div>
             <h3 className="text-label font-semibold">Tasks waiting for this one</h3>
             <ul className="mt-1 space-y-1 text-label">

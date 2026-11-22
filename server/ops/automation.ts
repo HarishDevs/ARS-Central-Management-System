@@ -308,6 +308,18 @@ export const AUTOMATIONS: readonly Automation[] = [
     owner: "IT team",
   },
   {
+    key: "statusReminders",
+    name: "Project status reminders",
+    what: "On Fridays (India) from 9 am, tells the owner of each project that has \"Remind the project owner every Friday\" on to post a status update (v1.65.0, D-373). Also removes Undo records of dependent-task moves older than 7 days.",
+    trigger: "Every job run, while the Projects phase B switch isn't Off; the reminder only on Fridays from 9 am.",
+    everyMinutes: 5,
+    retry: "A reminder whose message fails is retried by the delivery runner; up to 500 projects a run.",
+    idempotency: "Each project is claimed once per Friday (status_reminded_on = that day) before its message, so nobody is reminded twice.",
+    onFailure: "Recorded here; the next run tries the projects not yet claimed.",
+    recovery: "None needed; a missed Friday is not sent later.",
+    owner: "IT team",
+  },
+  {
     key: "ticketConfirmations",
     name: "Ticket confirmations",
     what: "Tickets whose work is done and wait for the requester: a reminder after 2 and after 3 working days, and the ticket closes by itself (Closed – auto closed) after 4 complete working days without an answer (Working Calendar: weekly offs and holidays skipped). v1.55.0.",
@@ -384,6 +396,10 @@ const STEPS: Record<string, () => Promise<StepResult>> = {
   workPurge: async () => {
     const { runWorkPurge } = await import("@/server/work/purge");
     return { ...(await runWorkPurge()) };
+  },
+  statusReminders: async () => {
+    const { runStatusReminders } = await import("@/server/work/schedule-service");
+    return { ...(await runStatusReminders()) };
   },
   ticketConfirmations: async () => {
     const { runTicketConfirmations } = await import("@/server/tickets/service");

@@ -4,6 +4,7 @@ import { Check, Link2, Plus } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { completeAction, deleteTaskAction } from "@/app/users/work/actions";
+import { undoShiftAction } from "@/app/users/work/schedule-actions";
 import { actionErrorMessage, guardCall, UNEXPECTED } from "@/features/ui/form";
 import { useToast } from "@/features/ui/Toast";
 import type { ActionResult } from "@/lib/http/action-result";
@@ -34,6 +35,17 @@ function askHoliday(info: HolidayInfo): Promise<HolidayChoice | null> {
 
 // Run a server action from a click: errors become a toast; success refreshes
 // the page so it shows what the server now holds.
+// Undo of a shift (v1.65.0): put the moved dates back, and say so.
+async function undoShiftOnce(batchId: number, toast: ReturnType<typeof useToast>, refresh: () => void) {
+  try {
+    const result = await undoShiftAction(batchId);
+    toast({ tone: result.ok ? "success" : "error", title: result.message || (result.ok ? "Dates put back." : "Couldn't undo.") });
+    if (result.ok) refresh();
+  } catch (error) {
+    toast({ tone: "error", title: actionErrorMessage(error) ?? UNEXPECTED });
+  }
+}
+
 export function useWorkCall() {
   const toast = useToast();
   const router = useRouter();
@@ -58,7 +70,15 @@ export function useWorkCall() {
         }
         // D-233 (partial success): some done and some not is a warning, not a green tick.
         const partial = Number((result as { value?: { failed?: number } }).value?.failed ?? 0) > 0;
-        if (partial) toast({ tone: "warning", title: result.message || "Some of them couldn't be changed." });
+        // v1.65.0 (D-373): a date change that moved dependent tasks says how many, with Undo.
+        const shifted = (result as { value?: { shifted?: { batchId: number; moved: number } } }).value?.shifted;
+        if (shifted && shifted.moved > 0)
+          toast({
+            tone: "success",
+            title: `${shifted.moved} dependent ${shifted.moved === 1 ? "task" : "tasks"} moved`,
+            action: { label: "Undo", onClick: () => void undoShiftOnce(shifted.batchId, toast, () => startTransition(() => router.refresh())) },
+          });
+        else if (partial) toast({ tone: "warning", title: result.message || "Some of them couldn't be changed." });
         else if (options.success !== false && (options.success || result.message)) toast({ tone: "success", title: options.success || result.message || "Saved." });
         startTransition(() => router.refresh());
         return result;

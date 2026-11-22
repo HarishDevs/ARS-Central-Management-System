@@ -30,7 +30,9 @@ const row = (over: Partial<TabRow>): TabRow => ({ id: 1, type: "LIST", name: "Ta
 describe("tab catalogue", () => {
   it("offers the five built views and hides the ones not built yet", () => {
     expect(addableViews().map((entry) => entry.type)).toEqual(["LIST", "BOARD", "CALENDAR", "TIMELINE", "OVERVIEW"]);
-    expect(VIEW_CATALOGUE.filter((entry) => !entry.available).map((entry) => entry.type)).toContain("GANTT");
+    // v1.65.0 (D-373): Gantt is offered only with the planning switch on.
+    expect(VIEW_CATALOGUE.filter((entry) => entry.planning).map((entry) => entry.type)).toEqual(["GANTT"]);
+    expect(addableViews("PROJECT", true).map((entry) => entry.type)).toContain("GANTT");
     expect(VIEW_CATALOGUE.every((entry) => !/asana/i.test(`${entry.label} ${entry.description}`))).toBe(true);
   });
 });
