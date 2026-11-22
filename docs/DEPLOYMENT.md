@@ -209,6 +209,11 @@ Stops anyone reaching the GoDaddy server directly, around Cloudflare (and faking
 1. https://approval.arssteels.net → **Continue with Google** → **itsupport@arsenergy.co.in** (D-082). The seed created this Super Admin, User ID `itadmin`. `itadmin@arssteels.co.in` can't be used: it's only an alias, and Google reports the main address.
 2. You land on **My approvals**. Your name at the top right opens a menu whose **Switch space** section shows Admin and Super Admin.
 
+### G0r. Comment history and the 30-day clean-up (v1.71.1)
+1. Publish v1.71.1. The migration `202611222100_comment_versions_purge.sql` is optional-only (the hosted database skips it with a warning).
+2. Once, in cPanel → phpMyAdmin → the app database → SQL, paste the whole of `database/optional/v1600_comment_triggers.sql` → Go (also if you ran an earlier copy: this one fixes the clean-up and runs as pasted thanks to its DELIMITER lines). Safe to run again.
+3. Check: Database → Triggers lists trg_request_comments_keep_identity, trg_comment_versions_no_update and trg_comment_versions_no_delete; editing one of your request comments shows "(edited)".
+
 ### G0q. Files, Messages and Page tabs, time tracking (v1.71.0)
 1. Back up the database. Publish v1.71.0; on start the runner applies `database/migrations/202611222000_pm_e_collab.sql` (after 202611221900; no triggers, no special rights). It adds the tables `project_messages`, `project_message_versions`, `project_message_reactions`, `project_pages`, `project_page_versions` and `task_time_entries`, the column `tasks.time_estimate_minutes`, FILES / MESSAGES / PAGE as tab types (`work_views.view_type`) and PROJECT_MESSAGE as a file owner (`record_files.entity_type`). Nothing existing changes. Rollback inside.
 2. Everything new is behind the existing **Super Admin → Features → "Projects E, templates and extras"**. With it on for IT: in a test project **Add tab → Messages**, send a message with a PDF and @mention someone (they get a notice), reply, edit and **Show edits**; **Add tab → Page**, write a brief, **Link a task**, save twice and restore the first version; **Add tab → Files** and check the PDF is there; open a task, **Time → Log time** and **Start timer / Stop**, set an estimate, then **Overview → Download time entries (CSV)**. Then On.

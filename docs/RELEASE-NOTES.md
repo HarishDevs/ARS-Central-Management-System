@@ -1,5 +1,10 @@
 # Release notes
 
+## v1.71.1 (22 Nov 2026): Fix: the 30-day clean-up and edited task comments
+- Where IT had added the comment-history guard in phpMyAdmin (v1.63.1), a deleted task with an edited comment stopped the 30-day clean-up. The guard now lets the clean-up remove the edit history of a task deleted more than 30 days ago; everything else stays locked.
+- The phpMyAdmin file `database/optional/v1600_comment_triggers.sql` is rewritten so it runs in phpMyAdmin as pasted (its triggers need the DELIMITER lines it now has).
+- **Owner steps:** publish v1.71.1, then run `database/optional/v1600_comment_triggers.sql` once in phpMyAdmin (again, if you ran it before).
+
 ## v1.71.0 (22 Nov 2026): Files, Messages and Page tabs, and time tracking (Project Management phase E, part 2)
 Behind the switch **Projects E, templates and extras** (from v1.70.0). With it Off nothing changes. This completes the Project Management plan (phases A to E).
 - **Fix: a task's ⋯ menu beside a project view.** On a narrow pane the task's action bar wraps and the ⋯ menu ran out of the pane, where the list behind it took the clicks ("Run by hand" couldn't be chosen). The menu now always opens inside the pane, above ⋯ when there is no room below.

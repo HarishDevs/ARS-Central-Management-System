@@ -249,6 +249,22 @@ describe("purge after 30 days in Deleted (D-368)", () => {
     expect(await count("SELECT COUNT(*) AS n FROM tasks WHERE id = ? AND deleted_at IS NULL AND source_form_id IS NULL", [madeKept])).toBe(1);
   });
 
+  // v1.71.1 (D-385, Q-035): with the comment-history guard trigger installed, a
+  // deleted task whose comment was edited is purged; living history stays locked.
+  it("purges an old deleted task whose comment was edited; a living task's comment history can't be deleted", async () => {
+    const edited = await task(`Edited ${tag}`, openProject);
+    const posted = await work.addComment(edited, "First words", null, who(owner));
+    if (!posted.ok) throw new Error(posted.message);
+    expect((await work.changeComment(posted.value.id, { body: "Second words" }, who(owner))).ok).toBe(true);
+    expect(await count("SELECT COUNT(*) AS n FROM comment_versions WHERE target = 'TASK' AND comment_id = ?", [posted.value.id])).toBe(1);
+    await expect(db().query("DELETE FROM comment_versions WHERE target = 'TASK' AND comment_id = ?", [posted.value.id])).rejects.toThrow(/append-only/);
+    expect((await work.deleteTask(edited, who(owner))).ok).toBe(true);
+    await db().query("UPDATE tasks SET deleted_at = DATE_SUB(UTC_TIMESTAMP(), INTERVAL 40 DAY) WHERE id = ?", [edited]);
+    await runWorkPurge({ force: true });
+    expect(await count("SELECT COUNT(*) AS n FROM tasks WHERE id = ?", [edited])).toBe(0);
+    expect(await count("SELECT COUNT(*) AS n FROM comment_versions WHERE target = 'TASK' AND comment_id = ?", [posted.value.id])).toBe(0);
+  });
+
   it("a living (or recently deleted) task's history still can't be deleted", async () => {
     const living = await task(`History ${tag}`, openProject);
     await expect(db().query("DELETE FROM task_events WHERE task_id = ?", [living])).rejects.toThrow(/append-only/);
