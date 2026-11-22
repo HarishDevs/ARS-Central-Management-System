@@ -1,15 +1,29 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Copy, Link2, MoreHorizontal, Pencil, Plus, Star, Trash2 } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Copy, FileText, GanttChart, Info, LayoutDashboard, LayoutList, Link2, MessagesSquare, MoreHorizontal, Paperclip, Pencil, Plus, SquareKanban, Star, Trash2, Users } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { myTasksTabAction, projectTabAction } from "@/app/users/work/actions";
-import { Drop } from "@/features/ui/Drop";
+import { Menu, type MenuItem } from "@/features/ui/Menu";
 import { useToast } from "@/features/ui/Toast";
 import { COPY_BLOCKED, copyText } from "@/features/ui/clipboard";
 import { useWorkCall } from "@/features/work/client";
-import { addableViews, maxTabs, moveKey, placeKey, tabHref, tabMenu, TAB_NAME_MAX, type StripTab, type TabScope } from "@/server/work/view-tabs";
+import { addableViews, catalogueGroups, maxTabs, moveKey, placeKey, tabHref, tabMenuEntries, TAB_NAME_MAX, type StripTab, type TabScope } from "@/server/work/view-tabs";
+
+const VIEW_ICON: Record<string, React.ReactNode> = {
+  LIST: <LayoutList className="h-4 w-4" />,
+  PAGE: <FileText className="h-4 w-4" />,
+  GANTT: <GanttChart className="h-4 w-4" />,
+  BOARD: <SquareKanban className="h-4 w-4" />,
+  CALENDAR: <CalendarDays className="h-4 w-4" />,
+  TIMELINE: <GanttChart className="h-4 w-4 -scale-x-100" />,
+  WORKLOAD: <Users className="h-4 w-4" />,
+  DASHBOARD: <LayoutDashboard className="h-4 w-4" />,
+  FILES: <Paperclip className="h-4 w-4" />,
+  MESSAGES: <MessagesSquare className="h-4 w-4" />,
+  OVERVIEW: <Info className="h-4 w-4" />,
+};
 
 // v1.61.0 (D-367, spec PRJ-15): the project's tab strip. Every tab is a view
 // (List, Board, Calendar, Timeline, Overview) with its own saved state. Owners
@@ -49,17 +63,12 @@ export function ViewTabs({ projectId = 0, scope = "PROJECT", base, strip, active
     const url = `${window.location.origin}${tabHref(base, tab)}`;
     void copyText(url).then((done) => toast(done ? { tone: "success", title: "Link copied." } : { tone: "error", title: `${COPY_BLOCKED} ${url}` }));
   };
-  const closeMenu = (event: React.SyntheticEvent) => {
-    const details = (event.currentTarget as HTMLElement).closest("details");
-    if (details) details.open = false;
-  };
 
   return (
     <div className="mb-3 border-b border-line">
       <nav aria-label={label} className="flex flex-wrap items-end gap-0.5" data-testid="view-tabs">
-        {tabs.map((tab, index) => {
+        {tabs.map((tab) => {
           const active = tab.key === activeKey;
-          const menu = tabMenu(tab, tabs, canEdit, maxTabs(scope));
           return (
             <span
               key={tab.key}
@@ -106,145 +115,80 @@ export function ViewTabs({ projectId = 0, scope = "PROJECT", base, strip, active
                 </Link>
               )}
               {renaming !== tab.key && (
-                <Drop
+                // v1.72.0 (D-387, spec PM §3.7.3): the tab's menu is an ARIA menu in the spec's order.
+                <Menu
                   label={`Tab menu: ${tab.name}`}
-                  icon={<MoreHorizontal aria-hidden="true" className="h-4 w-4" />}
-                  buttonClass={`mr-1 inline-flex h-6 w-6 items-center justify-center rounded text-ink-faint hover:bg-surface-muted hover:text-ink ${active ? "" : "sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100"}`}
-                  panelClass="left-0 w-56"
+                  trigger={<MoreHorizontal aria-hidden="true" className="h-4 w-4" />}
+                  buttonClass={`mr-1 inline-flex h-6 w-6 items-center justify-center rounded text-ink-faint hover:bg-surface-muted hover:text-ink aria-expanded:opacity-100 ${active ? "" : "sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100"}`}
+                  align="left"
+                  menuClass="w-56"
                   testId="tab-menu"
-                >
-                  <div role="menu" aria-label={`${tab.name} tab`} className="space-y-0.5 pt-5">
-                    {menu.includes("rename") && (
-                      <MenuItem
-                        icon={<Pencil className="h-4 w-4" />}
-                        onClick={(event) => {
-                          closeMenu(event);
-                          setRenaming(tab.key);
-                        }}
-                      >
-                        Rename
-                      </MenuItem>
-                    )}
-                    {menu.includes("default") && (
-                      <MenuItem
-                        icon={<Star className="h-4 w-4" />}
-                        onClick={(event) => {
-                          closeMenu(event);
-                          void run({ op: "default", key: tab.key });
-                        }}
-                      >
-                        Set as default
-                      </MenuItem>
-                    )}
-                    {menu.includes("duplicate") && (
-                      <MenuItem
-                        icon={<Copy className="h-4 w-4" />}
-                        onClick={(event) => {
-                          closeMenu(event);
-                          void run({ op: "duplicate", key: tab.key }).then((result) => result?.value?.id && router.push(`${base}?tab=${result.value.id}`));
-                        }}
-                      >
-                        Duplicate
-                      </MenuItem>
-                    )}
-                    <MenuItem
-                      icon={<Link2 className="h-4 w-4" />}
-                      onClick={(event) => {
-                        closeMenu(event);
-                        copyLink(tab);
-                      }}
-                    >
-                      Copy link
-                    </MenuItem>
-                    {canEdit && index > 0 && (
-                      <MenuItem
-                        icon={<ChevronLeft className="h-4 w-4" />}
-                        onClick={(event) => {
-                          closeMenu(event);
-                          void reorder(moveKey(order, tab.key, -1), tab.key);
-                        }}
-                      >
-                        Move left
-                      </MenuItem>
-                    )}
-                    {canEdit && index < tabs.length - 1 && (
-                      <MenuItem
-                        icon={<ChevronRight className="h-4 w-4" />}
-                        onClick={(event) => {
-                          closeMenu(event);
-                          void reorder(moveKey(order, tab.key, 1), tab.key);
-                        }}
-                      >
-                        Move right
-                      </MenuItem>
-                    )}
-                    {menu.includes("remove") && (
-                      <MenuItem
-                        danger
-                        icon={<Trash2 className="h-4 w-4" />}
-                        onClick={(event) => {
-                          closeMenu(event);
-                          if (!window.confirm(`Remove the tab "${tab.name}"? Its saved filters and sort go with it; tasks are not touched.`)) return;
-                          void run({ op: "remove", key: tab.key }).then((result) => result && active && router.push(base));
-                        }}
-                      >
-                        Remove
-                      </MenuItem>
-                    )}
-                  </div>
-                </Drop>
+                  items={tabMenuEntries(tab, tabs, canEdit, maxTabs(scope)).map((entry): MenuItem => {
+                    switch (entry.key) {
+                      case "separator":
+                        return { kind: "separator", label: "" };
+                      case "rename":
+                        return { label: "Rename", icon: <Pencil className="h-4 w-4" />, onSelect: () => setRenaming(tab.key) };
+                      case "default":
+                        return { label: "Set as default", icon: <Star className="h-4 w-4" />, disabled: entry.disabled, hint: entry.disabled ? "This tab opens first" : undefined, onSelect: () => void run({ op: "default", key: tab.key }) };
+                      case "duplicate":
+                        return { label: "Make a copy", icon: <Copy className="h-4 w-4" />, onSelect: () => void run({ op: "duplicate", key: tab.key }).then((result) => result?.value?.id && router.push(`${base}?tab=${result.value.id}`)) };
+                      case "copy":
+                        return { label: "Copy link", icon: <Link2 className="h-4 w-4" />, onSelect: () => copyLink(tab) };
+                      case "left":
+                        return { label: "Move left", icon: <ChevronLeft className="h-4 w-4" />, shortcut: "Alt+←", onSelect: () => void reorder(moveKey(order, tab.key, -1), tab.key) };
+                      case "right":
+                        return { label: "Move right", icon: <ChevronRight className="h-4 w-4" />, shortcut: "Alt+→", onSelect: () => void reorder(moveKey(order, tab.key, 1), tab.key) };
+                      case "remove":
+                        return {
+                          label: "Remove",
+                          tone: "danger",
+                          icon: <Trash2 className="h-4 w-4" />,
+                          onSelect: () => {
+                            if (!window.confirm(`Remove the tab "${tab.name}"? Its saved filters and sort go with it; tasks are not touched.`)) return;
+                            void run({ op: "remove", key: tab.key }).then((result) => result && active && router.push(base));
+                          },
+                        };
+                    }
+                  })}
+                />
               )}
             </span>
           );
         })}
         {canEdit && (
-          <Drop
+          // v1.72.0 (D-387, spec PM §3.7.2): the Add tab menu, Popular then Other, an icon and a line for each view.
+          <Menu
             label="Add tab"
-            icon={
+            trigger={
               <span className="inline-flex items-center gap-1">
                 <Plus aria-hidden="true" className="h-4 w-4" /> <span className="sr-only sm:not-sr-only">Add tab</span>
               </span>
             }
             buttonClass="mb-1 ml-1 inline-flex items-center rounded px-2 py-1 text-label text-ink-muted hover:bg-surface-muted hover:text-ink"
-            panelClass="left-0 w-72"
+            align="left"
+            menuClass="w-80"
             testId="add-tab"
-          >
-            <p className="mb-2 font-semibold">Add a tab</p>
-            <ul className="space-y-0.5" aria-label="Views">
-              {addableViews(scope, planning, reporting, extras).map((entry) => (
-                <li key={entry.type}>
-                  <button
-                    type="button"
-                    disabled={pending}
-                    className="block w-full rounded px-2 py-1.5 text-left hover:bg-surface-muted disabled:opacity-60"
-                    onClick={(event) => {
-                      closeMenu(event);
-                      void run({ op: "add", type: entry.type }).then((result) => result?.value?.id && router.push(`${base}?tab=${result.value.id}`));
-                    }}
-                    data-testid={`add-tab-${entry.type.toLowerCase()}`}
-                  >
-                    <span className="block text-label font-medium">{entry.label}</span>
-                    <span className="block text-caption text-ink-muted">{entry.description}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </Drop>
+            items={catalogueGroups(addableViews(scope, planning, reporting, extras)).flatMap((group): MenuItem[] => [
+              { kind: "heading", label: group.name },
+              ...group.entries.map(
+                (entry): MenuItem => ({
+                  label: entry.label,
+                  hint: entry.description,
+                  icon: VIEW_ICON[entry.type] ?? <LayoutList className="h-4 w-4" />,
+                  disabled: pending,
+                  testId: `add-tab-${entry.type.toLowerCase()}`,
+                  onSelect: () => void run({ op: "add", type: entry.type }).then((result) => result?.value?.id && router.push(`${base}?tab=${result.value.id}`)),
+                }),
+              ),
+            ])}
+          />
         )}
       </nav>
       <span role="status" aria-live="polite" className="sr-only" data-testid="tabs-live">
         {live}
       </span>
     </div>
-  );
-}
-
-function MenuItem({ icon, danger, onClick, children }: { icon: React.ReactNode; danger?: boolean; onClick: (event: React.MouseEvent) => void; children: React.ReactNode }) {
-  return (
-    <button type="button" role="menuitem" onClick={onClick} className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-label ${danger ? "text-danger-600 hover:bg-danger-50" : "hover:bg-surface-muted"}`}>
-      <span aria-hidden="true">{icon}</span>
-      {children}
-    </button>
   );
 }
 

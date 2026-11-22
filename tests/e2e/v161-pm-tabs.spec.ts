@@ -25,7 +25,7 @@ async function axe(page: Page) {
 const tabNames = (page: Page) => page.getByTestId("view-tabs").getByTestId("view-tab").locator("a").allInnerTexts();
 async function openTabMenu(page: Page, name: string) {
   const tab = page.getByTestId("view-tab").filter({ has: page.getByRole("link", { name, exact: false }) });
-  await tab.getByTestId("tab-menu").locator("summary").click();
+  await tab.getByTestId("tab-menu").locator("button[aria-haspopup]").click(); // v1.72.0 (D-387): menus are ARIA menus (button[aria-haspopup]), not <details>.
   return tab.getByTestId("tab-menu");
 }
 
@@ -45,7 +45,7 @@ test("a project starts with the five views; an editor adds, renames, sets defaul
   await expect(page.getByTestId("view-tabs").getByRole("link", { name: /List/ })).toHaveAttribute("aria-current", "page");
 
   // Add a Board tab from the catalogue: it opens, last in the strip, with a unique name.
-  await page.getByTestId("add-tab").locator("summary").click();
+  await page.getByTestId("add-tab").locator("button[aria-haspopup]").click();
   await page.getByTestId("add-tab-board").click();
   await expect(page).toHaveURL(/\?tab=\d+/);
   await expect(page.getByTestId("board")).toBeVisible();
@@ -101,18 +101,19 @@ test("view changes stay unsaved until Save view; Reset goes back", async ({ page
   await expect(grid.getByTestId("unsaved-view")).toHaveCount(0);
   // Group by assignee → unsaved; Reset → back to sections.
   await grid.getByTestId("group-menu").locator("summary").click();
-  await grid.getByTestId("group-menu").getByLabel("Assignee").check();
+  await grid.getByTestId("group-by").selectOption("assignee");
   await expect(grid.getByTestId("unsaved-view")).toContainText("Unsaved changes");
   await grid.getByTestId("reset-view").click();
   await expect(grid.getByTestId("unsaved-view")).toHaveCount(0);
   await expect(grid.getByRole("rowgroup", { name: "To do" })).toBeVisible();
   // Sort by Last modified and save: it stays after a reload.
-  await grid.locator("summary", { hasText: "Sort" }).click();
-  await grid.getByLabel("Last modified").check();
+  await grid.getByTestId("sort-menu").locator("button[aria-haspopup]").click();
+  await grid.getByRole("menuitemradio", { name: "Last modified" }).click();
+  await page.keyboard.press("Escape");
   await grid.getByTestId("save-view").click();
   await expect(page.getByText("View saved.")).toBeVisible();
   await page.reload();
-  await expect(page.getByTestId("project-grid").locator("summary", { hasText: "Sort: Last modified" })).toBeVisible();
+  await expect(page.getByTestId("project-grid").getByTestId("sort-menu")).toContainText("Sort: Last modified");
   await expect(page.getByTestId("project-grid").getByTestId("unsaved-view")).toHaveCount(0);
 });
 
@@ -217,11 +218,13 @@ test("row density: Compact is remembered for the person", async ({ page, context
   await page.goto("/users/work/my-tasks?view=list");
   const grid = page.getByTestId("my-grid");
   await grid.locator("summary", { hasText: "Options" }).click();
+  await grid.getByTestId("options-rows-row").click();
   await grid.getByTestId("density-compact").check();
   await expect(page.locator('[data-density="compact"]')).toHaveCount(1);
   await page.reload();
   await expect(page.locator('[data-density="compact"]')).toHaveCount(1);
   await page.getByTestId("my-grid").locator("summary", { hasText: "Options" }).click();
+  await page.getByTestId("my-grid").getByTestId("options-rows-row").click();
   await page.getByTestId("my-grid").getByTestId("density-comfortable").check();
   await expect(page.locator('[data-density="compact"]')).toHaveCount(0);
 });

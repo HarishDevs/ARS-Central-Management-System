@@ -4,6 +4,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { navigationHeld } from "@/features/ui/UnsavedGuard";
 import { MobileSkeleton, type MobileScreen } from "@/features/mobile/MobileSkeletons";
+import { ProjectSettingsSkeleton, ProjectSkeleton } from "@/features/ui/Skeleton";
 
 // D-233 (UI states: loading; Doherty threshold). Every page change says it
 // heard the click: a thin bar slides along the top until the new page is
@@ -26,6 +27,15 @@ const SCREENS: [RegExp, MobileScreen][] = [
   [/^\/users\/requests\/\d+$/, "request"],
   [/^\/users\/tasks\/\d+$/, "task"],
 ];
+// v1.72.0 (D-387, COMPONENT_SPECS §8): on a wide screen, opening a project or
+// its settings lays that page's skeleton (header, tabs, toolbar, rows; or the
+// section list and cards) over the content until the page arrives.
+export function desktopSkeletonFor(pathname: string): "project" | "settings" | null {
+  if (/^\/users\/work\/projects\/\d+$/.test(pathname)) return "project";
+  if (/^\/users\/work\/projects\/\d+\/settings$/.test(pathname)) return "settings";
+  return null;
+}
+
 export function skeletonFor(pathname: string): MobileScreen | null {
   if (!/^\/users(\/|$)/.test(pathname) || ROUTE_LOADERS.some((pattern) => pattern.test(pathname))) return null;
   return SCREENS.find(([pattern]) => pattern.test(pathname))?.[1] ?? "page";
@@ -86,8 +96,10 @@ export function NavigationProgress({ mobile = false }: { mobile?: boolean }) {
 
   if (!visible || started === null) return null;
   const screen = mobile && target && target !== pathname ? skeletonFor(target) : null;
+  const wide = !mobile && target && target !== pathname ? desktopSkeletonFor(target) : null;
   return (
     <>
+      {wide && <DesktopSkeleton kind={wide} />}
       {screen && (
         <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] top-[calc(3.5rem+env(safe-area-inset-top))] z-[29] overflow-hidden bg-[color:var(--m-bg)] px-4 pt-4" data-testid="nav-skeleton">
           <MobileSkeleton screen={screen} label="Loading the page…" />
@@ -95,6 +107,24 @@ export function NavigationProgress({ mobile = false }: { mobile?: boolean }) {
       )}
       <NavBar />
     </>
+  );
+}
+
+// Laid exactly over the page's <main> (below the top bar, beside the sidebar).
+function DesktopSkeleton({ kind }: { kind: "project" | "settings" }) {
+  const [box, setBox] = useState<React.CSSProperties | null>(null);
+  useEffect(() => {
+    const main = document.querySelector("main");
+    if (!main) return;
+    const rect = main.getBoundingClientRect();
+    const top = Math.max(rect.top, 0);
+    setBox({ top, left: rect.left, width: rect.width, height: Math.max(0, window.innerHeight - top) });
+  }, []);
+  if (!box) return null;
+  return (
+    <div className="fixed z-[29] overflow-hidden bg-page px-4 pt-6 sm:px-6 lg:px-8" style={box} data-testid="nav-skeleton">
+      {kind === "project" ? <ProjectSkeleton /> : <ProjectSettingsSkeleton />}
+    </div>
   );
 }
 

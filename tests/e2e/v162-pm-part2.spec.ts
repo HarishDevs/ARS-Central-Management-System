@@ -192,7 +192,7 @@ test("deleting a task from the pane offers Undo, which brings it back", async ({
   await addOnBoard(page, `Echo ${stamp}`);
   await card(page, `Echo ${stamp}`).getByRole("link").click();
   const pane = page.getByTestId("task-pane");
-  await pane.getByTestId("pane-more").locator("summary").click();
+  await pane.getByTestId("pane-more").locator("button[aria-haspopup]").click(); // v1.72.0 (D-387): menus are ARIA menus (button[aria-haspopup]), not <details>.
   await pane.getByTestId("pane-delete").click();
   await pane.getByTestId("pane-delete-confirm").click();
   const toast = page.getByRole("status").filter({ hasText: `Deleted: Echo ${stamp}` });
@@ -204,7 +204,7 @@ test("deleting a task from the pane offers Undo, which brings it back", async ({
 
   // Deleted again: the Deleted page says when it is removed for good.
   await card(page, `Echo ${stamp}`).getByRole("link").click();
-  await page.getByTestId("task-pane").getByTestId("pane-more").locator("summary").click();
+  await page.getByTestId("task-pane").getByTestId("pane-more").locator("button[aria-haspopup]").click();
   await page.getByTestId("pane-delete").click();
   await page.getByTestId("pane-delete-confirm").click();
   await expect(page.getByRole("status").filter({ hasText: `Deleted: Echo ${stamp}` })).toBeVisible();

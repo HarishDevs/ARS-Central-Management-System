@@ -19,11 +19,11 @@ type RailProject = { id: number; name: string; color: string };
 type Person = { id: number; label: string; detail?: string };
 
 export function TaskCreator({ projects, people, meId, ai = false }: { projects: RailProject[]; people: Person[]; meId: number; ai?: boolean }) {
-  const [open, setOpen] = useState<{ projectId: number | null; parentId?: number | null; parentLabel?: string; at?: number } | null>(null);
+  const [open, setOpen] = useState<{ projectId: number | null; parentId?: number | null; parentLabel?: string; milestone?: boolean; at?: number } | null>(null);
   useEffect(() => {
     const onCreate = (event: Event) => {
       const detail = (event as CustomEvent<CreateTaskDetail | null>).detail;
-      setOpen({ projectId: detail?.projectId ?? null, parentId: detail?.parentId ?? null, parentLabel: detail?.parentLabel, at: Date.now() });
+      setOpen({ projectId: detail?.projectId ?? null, parentId: detail?.parentId ?? null, parentLabel: detail?.parentLabel, milestone: Boolean(detail?.milestone), at: Date.now() });
     };
     window.addEventListener(CREATE_TASK_EVENT, onCreate);
     return () => window.removeEventListener(CREATE_TASK_EVENT, onCreate);
@@ -51,6 +51,7 @@ export function TaskCreator({ projects, people, meId, ai = false }: { projects: 
       defaultProject={open.projectId}
       parentId={open.parentId ?? null}
       parentLabel={open.parentLabel}
+      milestone={Boolean(open.milestone)}
       ai={ai}
     />
   ) : null;
@@ -89,6 +90,7 @@ function CreateTaskDialog({
   defaultProject,
   parentId = null,
   parentLabel,
+  milestone = false,
   ai,
 }: {
   onClose: () => void;
@@ -98,6 +100,7 @@ function CreateTaskDialog({
   defaultProject: number | null;
   parentId?: number | null;
   parentLabel?: string;
+  milestone?: boolean;
   ai: boolean;
 }) {
   const router = useRouter();
@@ -217,6 +220,7 @@ function CreateTaskDialog({
     const id = result.value.id;
     if (periodic) await call(() => recurrenceAction(id, { kind, every, weekdays: kind === "WEEKLY" ? weekdays : [] }), { success: false });
     if (priority !== "NORMAL") for (const one of (result.value as { ids?: number[] }).ids ?? [id]) await call(() => taskFieldsAction(one, { priority }), { success: false });
+    if (milestone) for (const one of (result.value as { ids?: number[] }).ids ?? [id]) await call(() => taskFieldsAction(one, { milestone: true }), { success: false });
     // D-238: files and collaborators follow once the task exists (its own checks apply).
     if (files.length) {
       const data = new FormData();
@@ -261,7 +265,7 @@ function CreateTaskDialog({
     >
       <header className="draft-head flex items-center gap-2 border-b border-line px-4 py-2.5">
         <h2 id="draft-task-title" className="flex-1 font-semibold">
-          {parentId !== null ? "Create subtask" : "Create task"} <span className="text-caption font-normal text-ink-muted">· draft</span>
+          {parentId !== null ? "Create subtask" : milestone ? "Create milestone" : "Create task"} <span className="text-caption font-normal text-ink-muted">· draft</span>
           {parentId !== null && (
             <span className="ml-2 text-caption font-normal text-ink-muted" data-testid="create-parent">
               under {parentLabel ?? "this task"}

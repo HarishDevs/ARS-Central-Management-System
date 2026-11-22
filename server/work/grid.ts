@@ -25,6 +25,15 @@ export const COLUMN_LABEL: Record<GridColumn, string> = {
 // v1.61.0 (D-367, spec PRJ-04): + "modified" (last changed).
 export const SORTS = ["none", "due", "start", "assignee", "createdBy", "createdOn", "modified", "completedOn", "likes", "alpha", "priority", "collaborators", "projects", "visibility", "tags"] as const;
 export type GridSort = (typeof SORTS)[number];
+// v1.72.0 (D-387, spec PM §3.8.2): the Sort menu's order: None, then Start
+// date, Due date, Assignee, Created by, Created on, Last modified, Completed on,
+// Likes, Alphabetical, then the built-in fields (custom fields follow them),
+// Project last. Only the sorts a table offers are kept.
+export const SORT_MENU_ORDER: readonly GridSort[] = ["none", "start", "due", "assignee", "createdBy", "createdOn", "modified", "completedOn", "likes", "alpha", "priority", "collaborators", "tags", "visibility", "projects"];
+export function sortMenu(offered: readonly GridSort[]): { before: GridSort[]; after: GridSort[] } {
+  const ordered = SORT_MENU_ORDER.filter((sort) => offered.includes(sort));
+  return { before: ordered.filter((sort) => sort !== "projects"), after: ordered.filter((sort) => sort === "projects") };
+}
 export const SORT_LABEL: Record<GridSort, string> = {
   none: "None",
   due: "Due date",

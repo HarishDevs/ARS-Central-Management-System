@@ -136,8 +136,8 @@ test("a \"Run by hand\" rule from the task pane's ⋯ menu", async ({ page, cont
   await page.goto(projectUrl);
   await page.getByTestId("task-row").filter({ hasText: `Alpha ${stamp}` }).getByRole("link").first().click();
   const pane = page.getByTestId("task-pane");
-  await pane.getByTestId("pane-more").locator("summary").click();
-  await pane.getByTestId("pane-more").getByRole("button", { name: `Run “By hand ${stamp}”` }).click();
+  await pane.getByTestId("pane-more").locator("button[aria-haspopup]").click(); // v1.72.0 (D-387): menus are ARIA menus (button[aria-haspopup]), not <details>.
+  await pane.getByTestId("pane-more").getByRole("menuitem", { name: `Run “By hand ${stamp}”` }).click();
   await expect(page.getByText(`“By hand ${stamp}” ran.`)).toBeVisible();
   await page.reload();
   await expect(page.getByTestId("task-pane")).toContainText("Check the drawings");

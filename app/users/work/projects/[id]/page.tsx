@@ -50,6 +50,8 @@ import { MessagesTab } from "@/features/work/extras/MessagesTab";
 import { PageTab } from "@/features/work/extras/PageTab";
 import { loadMessages, loadPage, loadProjectFiles, mentionPeople } from "@/server/work/collab";
 import { projectTime } from "@/server/work/time-tracking";
+import { projectFormsFor } from "@/server/work/intake-forms";
+import { projectRulesFor } from "@/server/work/automations";
 import { formatMinutes } from "@/server/work/collab-rules";
 
 export const metadata: Metadata = { title: "Project" };
@@ -68,6 +70,21 @@ const VIEWS = [
 // v1.71.0 (D-384): Files, Messages and Page tabs (with "pm_extras" on).
 type ViewKey = (typeof VIEWS)[number]["key"] | "gantt" | "dashboard" | "workload" | "files" | "messages" | "page";
 
+type ProjectQuery = {
+  view?: string;
+  month?: string;
+  week?: string;
+  cal?: string;
+  created?: string;
+  task?: string;
+  status?: string;
+  tab?: string;
+  wfrom?: string;
+  wunit?: string;
+  wmetric?: string;
+  thread?: string;
+};
+
 // D-215: one project. Only people with a role on it (members, its department
 // or everyone, by its privacy) can open it; anyone else gets "not found".
 export default async function ProjectPage({
@@ -75,20 +92,7 @@ export default async function ProjectPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{
-    view?: string;
-    month?: string;
-    week?: string;
-    cal?: string;
-    created?: string;
-    task?: string;
-    status?: string;
-    tab?: string;
-    wfrom?: string;
-    wunit?: string;
-    wmetric?: string;
-    thread?: string;
-  }>;
+  searchParams: Promise<ProjectQuery>;
 }) {
   const { user, viewer } = await workPage();
   const { id } = await params;
@@ -104,7 +108,7 @@ export default async function ProjectPage({
     }
   }
   if (!found) notFound();
-  const { project, members, role } = found;
+  const { project, role } = found;
   const can = projectAbilities(role);
   // D-218: a template shows what it holds and makes projects.
   if (project.isTemplate) {
@@ -145,6 +149,17 @@ export default async function ProjectPage({
       </>
     );
   }
+  // v1.72.0 (D-387): the project's skeleton is drawn on the way here by
+  // NavigationProgress, not by a Suspense boundary or loading.tsx here: both
+  // made the page miss its refresh after an action (KNOWN_ISSUES V6-D06; seen
+  // again with a Suspense boundary in v1.72.0 development).
+  return <ProjectView found={found} user={user} viewer={viewer} searchParams={searchParams} />;
+}
+
+type WorkPage = Awaited<ReturnType<typeof workPage>>;
+async function ProjectView({ found, user, viewer, searchParams }: { found: NonNullable<Awaited<ReturnType<typeof projectFor>>>; user: WorkPage["user"]; viewer: WorkPage["viewer"]; searchParams: Promise<ProjectQuery> }) {
+  const { project, members, role } = found;
+  const can = projectAbilities(role);
   const query = await searchParams;
   // v1.61.0 (D-367): with "pm_foundations" on, every view is a tab of the
   // project's own strip (server/work/view-tabs.ts); off, the fixed views as before.
@@ -193,6 +208,12 @@ export default async function ProjectPage({
     extras && (view === "messages" || view === "page") ? mentionPeople() : Promise.resolve([]),
     extras && view === "overview" ? projectTime(project.id, actor) : Promise.resolve(null),
   ]);
+  // v1.72.0 (D-387): the Customize panel's counts (editors only; null = that feature is off).
+  const [customForms, customRules, portfoliosOn] = await Promise.all([
+    can.edit ? projectFormsFor(project.id, actor) : Promise.resolve(null),
+    can.edit ? projectRulesFor(project.id, actor) : Promise.resolve(null),
+    featureOn("pm_portfolios", user),
+  ]);
   // D-220: the project's saved tabs (List views with their filters, sort and groups).
   const savedTabs = pmOn ? [] : await listWorkViews("PROJECT", project.id);
   const currentTab = savedTabs.find((item) => String(item.id) === query.tab) ?? null;
@@ -231,6 +252,10 @@ export default async function ProjectPage({
         members={members.filter((member) => member.type === "USER").map((member) => ({ id: member.id, name: member.name }))}
         canEdit={can.edit}
         canManage={can.manage}
+        archived={Boolean(project.archivedAt)}
+        extras={extras}
+        portfolios={portfoliosOn}
+        customize={can.edit ? { counts: { fields: fields?.views.length ?? 0, forms: customForms ? customForms.rows.length : null, automations: customRules ? customRules.rows.length : null }, fieldDialog: Boolean(planning && fields?.customise) } : undefined}
         share={{
           privacy: project.privacy,
           departmentId: project.departmentId,
@@ -328,6 +353,7 @@ export default async function ProjectPage({
             values={values}
             planning={planning}
             customise={Boolean(planning && fields?.customise)}
+            automations={Boolean(customRules?.build)}
             grid={
               view === "list"
                 ? {
@@ -388,6 +414,7 @@ export default async function ProjectPage({
             workingWeekdays={workingWeekdays}
             canEdit={can.edit}
             meId={user.id}
+            projectId={project.id}
           />
         )}
         {dashboard?.ok && <Dashboard key={activeTab?.key ?? "dashboard"} projectId={project.id} {...dashboard.value} />}

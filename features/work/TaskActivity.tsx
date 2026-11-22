@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowUpDown, Check } from "lucide-react";
+import { ArrowUpDown, Check, ChevronDown } from "lucide-react";
+import { Menu } from "@/features/ui/Menu";
 import { RichText } from "@/features/work/RichText";
 
 // v1.52.1 (owner: "activity of the task shown separately", Asana's task
@@ -122,22 +123,34 @@ export function TaskActivity({ comments, commentCount, activity }: { comments: R
   const tabClass = (on: boolean) => `rounded-md px-3 py-1.5 text-label font-medium ${on ? "bg-primary-50 text-primary-700" : "text-ink-muted hover:text-ink"}`;
   return (
     <div className="space-y-3" data-testid="task-activity">
-      <div className="flex flex-wrap items-center gap-1 border-b border-line pb-2" role="tablist" aria-label="Comments and activity">
+      <div className="flex flex-wrap items-center gap-1 border-b border-line pb-2">
+      <div className="flex flex-wrap items-center gap-1" role="tablist" aria-label="Comments and activity">
         <button type="button" role="tab" aria-selected={tab === "comments"} className={tabClass(tab === "comments")} onClick={() => setTab("comments")}>
           Comments{commentCount > 0 ? ` (${commentCount})` : ""}
         </button>
         <button type="button" role="tab" aria-selected={tab === "activity"} className={tabClass(tab === "activity")} onClick={() => setTab("activity")}>
           All activity
         </button>
+      </div>
+        {/* v1.72.0 (D-387, spec PV §13.2 "Oldest" sort options): a dropdown. */}
         {tab === "activity" && (
-          <button
-            type="button"
-            onClick={() => setOldest((value) => !value)}
-            className="ml-auto inline-flex items-center gap-1 rounded px-2 py-1 text-label text-ink-muted hover:bg-surface-muted hover:text-ink"
-            aria-label={oldest ? "Oldest first: show newest first" : "Newest first: show oldest first"}
-          >
-            <ArrowUpDown aria-hidden="true" className="h-4 w-4" /> {oldest ? "Oldest" : "Newest"}
-          </button>
+          <span className="ml-auto">
+            <Menu
+              label={`Order of activity: ${oldest ? "oldest first" : "newest first"}`}
+              trigger={
+                <span className="inline-flex items-center gap-1 text-ink-muted">
+                  <ArrowUpDown aria-hidden="true" className="h-4 w-4" /> {oldest ? "Oldest first" : "Newest first"} <ChevronDown aria-hidden="true" className="h-3.5 w-3.5" />
+                </span>
+              }
+              buttonClass="rounded px-2 py-1 text-label hover:bg-surface-muted"
+              menuClass="w-44"
+              testId="activity-order"
+              items={[
+                { kind: "radio", label: "Oldest first", checked: oldest, onSelect: () => setOldest(true) },
+                { kind: "radio", label: "Newest first", checked: !oldest, onSelect: () => setOldest(false) },
+              ]}
+            />
+          </span>
         )}
       </div>
       <div role="tabpanel" hidden={tab !== "comments"}>

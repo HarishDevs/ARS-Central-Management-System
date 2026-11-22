@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight, Link2, Lock, Plus, ZoomIn, ZoomOut } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Filter, Link2, Lock, Plus, ZoomIn, ZoomOut } from "lucide-react";
+import { Menu } from "@/features/ui/Menu";
+import { AddTaskSplit } from "@/features/work/ViewToolbar";
 import { taskFieldsAction } from "@/app/users/work/actions";
 import { typedDependencyAction } from "@/app/users/work/schedule-actions";
 import { TaskCheck, usePaneLink, useWorkCall } from "@/features/work/client";
@@ -55,14 +57,16 @@ type LinkDialog = { taskId: number; role: "BLOCKED_BY" | "BLOCKING"; otherId: nu
 export function ScheduleView({
   mode,
   sections,
-  tasks,
+  tasks: allTasks,
   links,
   todayDay,
   holidays,
   workingWeekdays,
   canEdit,
   meId,
+  projectId,
 }: {
+  projectId?: number;
   mode: "TIMELINE" | "GANTT";
   sections: { id: number; name: string }[];
   tasks: ScheduleTask[];
@@ -74,6 +78,10 @@ export function ScheduleView({
   meId: number;
 }) {
   const gantt = mode === "GANTT";
+  // v1.72.0 (D-387, spec PV §4 "filter Incomplete/Complete/All"): the view's Filter menu.
+  const [show, setShow] = useState<"all" | "incomplete" | "completed">("all");
+  const [mineOnly, setMineOnly] = useState(false);
+  const tasks = useMemo(() => allTasks.filter((task) => (show === "all" || (show === "completed") === (task.status === "COMPLETED")) && (!mineOnly || task.assigneeId === meId)), [allTasks, show, mineOnly, meId]);
   const storageKey = `work.schedule.${mode.toLowerCase()}.zoom`;
   const [zoom, setZoom] = useState<Zoom>(gantt ? "months" : "weeks");
   useEffect(() => {
@@ -335,45 +343,76 @@ export function ScheduleView({
     return map;
   }, [links]);
 
-  if (!tasks.length) return <p className="card px-5 py-8 text-center text-ink-muted">Add tasks to see them here.</p>;
+  if (!allTasks.length) return <p className="card px-5 py-8 text-center text-ink-muted">Add tasks to see them here.</p>;
+  const filters = Number(show !== "all") + Number(mineOnly);
   const todayX = at(todayDay) * px + px / 2;
   const jump = (sign: number) => scroller.current?.scrollBy({ left: sign * STEP_DAYS[zoom] * 4 * px, behavior: "auto" });
   const visible = rows.slice(first, last + 1);
   return (
     <div data-testid={gantt ? "gantt" : "timeline"} className="space-y-2">
+      {/* v1.72.0 (D-387, spec PV §4-§5, S-09/S-11): Add task ▾ · ‹ Today › · the unit dropdown · − ＋ · Filter. */}
       <div className="flex flex-wrap items-center gap-2" role="toolbar" aria-label={gantt ? "Gantt tools" : "Timeline tools"}>
-        <button type="button" className="btn-secondary btn-compact" aria-label="Earlier" onClick={() => jump(-1)}>
-          <ChevronLeft aria-hidden="true" className="h-4 w-4" />
-        </button>
-        <button
-          type="button"
-          className="btn-secondary btn-compact"
-          onClick={() => {
-            if (scroller.current) scroller.current.scrollLeft = Math.max(0, todayX - 160);
-          }}
-        >
-          Today
-        </button>
-        <button type="button" className="btn-secondary btn-compact" aria-label="Later" onClick={() => jump(1)}>
-          <ChevronRight aria-hidden="true" className="h-4 w-4" />
-        </button>
-        <label className="ml-2 flex items-center gap-1 text-label">
-          <span>Scale</span>
-          <select className="field-input h-8 w-auto py-0" value={zoom} onChange={(event) => chooseZoom(event.target.value as Zoom)} data-testid="schedule-zoom">
-            {ZOOMS.map((item) => (
-              <option key={item} value={item}>
-                {ZOOM_LABEL[item]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button type="button" className="btn-secondary btn-compact" aria-label="Zoom out" disabled={zoom === "quarters"} onClick={() => chooseZoom(zoomOut(zoom))}>
-          <ZoomOut aria-hidden="true" className="h-4 w-4" />
-        </button>
-        <button type="button" className="btn-secondary btn-compact" aria-label="Zoom in" disabled={zoom === "days"} onClick={() => chooseZoom(zoomIn(zoom))}>
-          <ZoomIn aria-hidden="true" className="h-4 w-4" />
-        </button>
-        <p id={hintId} className="text-caption text-ink-muted">
+        {canEdit && projectId ? <AddTaskSplit projectId={projectId} /> : null}
+        <span className="inline-flex items-center gap-1">
+          <button type="button" className="btn-secondary btn-compact" aria-label="Previous period" title="Previous period" onClick={() => jump(-1)}>
+            <ChevronLeft aria-hidden="true" className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            className="btn-secondary btn-compact"
+            onClick={() => {
+              if (scroller.current) scroller.current.scrollLeft = Math.max(0, todayX - 160);
+            }}
+          >
+            Today
+          </button>
+          <button type="button" className="btn-secondary btn-compact" aria-label="Next period" title="Next period" onClick={() => jump(1)}>
+            <ChevronRight aria-hidden="true" className="h-4 w-4" />
+          </button>
+        </span>
+        <span className="ml-auto inline-flex flex-wrap items-center gap-1">
+          <Menu
+            label={`Zoom unit: ${ZOOM_LABEL[zoom]}`}
+            trigger={
+              <span className="inline-flex items-center gap-1">
+                {ZOOM_LABEL[zoom]} <ChevronDown aria-hidden="true" className="h-4 w-4" />
+              </span>
+            }
+            buttonClass="btn-secondary btn-compact"
+            menuClass="w-44"
+            testId="schedule-zoom"
+            items={ZOOMS.map((item) => ({ kind: "radio" as const, label: ZOOM_LABEL[item], checked: zoom === item, onSelect: () => chooseZoom(item), testId: `zoom-${item}` }))}
+          />
+          <button type="button" className="btn-secondary btn-compact" aria-label="Zoom out" disabled={zoom === "quarters"} onClick={() => chooseZoom(zoomOut(zoom))}>
+            <ZoomOut aria-hidden="true" className="h-4 w-4" />
+          </button>
+          <button type="button" className="btn-secondary btn-compact" aria-label="Zoom in" disabled={zoom === "days"} onClick={() => chooseZoom(zoomIn(zoom))}>
+            <ZoomIn aria-hidden="true" className="h-4 w-4" />
+          </button>
+          <span className={filters ? "tb-pill" : "inline-flex items-center"}>
+            <Menu
+              label={filters ? `Filters: ${filters}` : "Filter"}
+              trigger={
+                <>
+                  <Filter aria-hidden="true" className="h-4 w-4" /> {filters ? `Filters: ${filters}` : "Filter"}
+                </>
+              }
+              buttonClass="tb-btn"
+              menuClass="w-56"
+              testId="schedule-filter"
+              items={[
+                { kind: "heading", label: "Show" },
+                { kind: "radio", label: "Incomplete tasks", checked: show === "incomplete", onSelect: () => setShow("incomplete") },
+                { kind: "radio", label: "Completed tasks", checked: show === "completed", onSelect: () => setShow("completed") },
+                { kind: "radio", label: "All tasks", checked: show === "all", onSelect: () => setShow("all") },
+                { kind: "separator", label: "" },
+                { kind: "checkbox", label: "Just my tasks", checked: mineOnly, onSelect: () => setMineOnly((value) => !value) },
+              ]}
+            />
+          </span>
+        </span>
+        {!tasks.length && <p className="w-full text-label text-ink-muted">No tasks match this filter.</p>}
+        <p id={hintId} className="w-full text-caption text-ink-muted">
           {canEdit ? `Drag a bar to move it, its ends to change the dates, its dot to link it. Keys: ← / → move by ${STEP_LABEL[zoom]}, Shift + ← / → the due date, Alt + Shift + ← / → the start, Enter saves, L links.` : "Bars show each task's dates."}
         </p>
         <p className="sr-only" role="status" aria-live="polite" data-testid="schedule-live">
@@ -384,6 +423,8 @@ export function ScheduleView({
         ref={scroller}
         role="region"
         aria-label={gantt ? "Gantt chart" : "Timeline"}
+        // v1.72.0 (D-387): reachable by keyboard to scroll even when a filter leaves no bars (axe scrollable-region-focusable).
+        tabIndex={tasks.length ? undefined : 0}
         className="card relative max-h-[70vh] overflow-auto"
         style={{ height: Math.min(HEAD + rows.length * ROW + 2, 2000) }}
         onPointerMove={(event) => {

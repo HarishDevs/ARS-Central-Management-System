@@ -1,15 +1,14 @@
 "use client";
 
-import { Heart, Maximize2, MoreHorizontal, Trash2, Link2 } from "lucide-react";
-import Link from "next/link";
+import { FolderPlus, Heart, ListPlus, Maximize2, MoreHorizontal, Paperclip, Printer, Tag, Trash2, Link2, Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { likeAction, paneWidthAction } from "@/app/users/work/actions";
-import { inside } from "@/features/ui/inside";
 import { useToast } from "@/features/ui/Toast";
 import { COPY_BLOCKED, copyText } from "@/features/ui/clipboard";
 import { useDeleteWithUndo, useWorkCall } from "@/features/work/client";
-import { RunAutomationButtons } from "@/features/work/automations/RunAutomationButtons";
+import { Menu, type MenuItem } from "@/features/ui/Menu";
+import { runAutomationOnTaskAction } from "@/app/users/work/automation-actions";
 import { clampPaneWidth, PANE_DEFAULT, PANE_MAX, PANE_MIN } from "@/server/work/pm-rules";
 
 // v1.62.0 (D-368, spec CMP-27 / PRJ views §13): the parts of the task pane
@@ -108,89 +107,77 @@ export function TaskLikeButton({ taskId, liked, count, names }: { taskId: number
 }
 
 // More actions: copy link, open full page, delete (with Undo).
+// v1.72.0 (D-387, spec PV §13.3): an ARIA menu in the spec's order with the
+// actions ARS has: Add to another project, Add subtask, Add tags, Attach
+// files, then Copy task link, Open full page, Print, the project's "by hand"
+// automations, then Delete task (asks first, in a small dialog). The menu is
+// placed against the window, so the pane's scrolling body never clips it.
 export function PaneMoreMenu({ taskId, title, canDelete, closeHref, automations = [] }: { taskId: number; title: string; canDelete: boolean; closeHref: string; automations?: { id: number; name: string; projectName: string }[] }) {
-  const box = useRef<HTMLDetailsElement>(null);
   const toast = useToast();
   const router = useRouter();
+  const { call } = useWorkCall();
   const { remove, pending } = useDeleteWithUndo();
   const [confirming, setConfirming] = useState(false);
-  const summary = useRef<HTMLElement>(null);
-  const panel = useRef<HTMLDivElement>(null);
-  const [open, setOpen] = useState(false);
-  const [place, setPlace] = useState<React.CSSProperties>({});
+  const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
-    const close = (event: MouseEvent) => {
-      if (box.current?.open && !inside(event, box.current)) box.current.open = false;
-    };
-    document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
-  }, []);
-  // v1.71.0 (D-384): the pane's action bar wraps on a narrow pane, which put
-  // ⋯ at the pane's left edge; the menu (right-aligned to it) then ran out of
-  // the pane, was clipped by the pane's scrolling body, and the view behind
-  // took the clicks. The menu is now placed against the window (position:
-  // fixed escapes the clipping), right-aligned to ⋯ but kept inside the pane
-  // and the screen, and above ⋯ when there is no room below.
-  useLayoutEffect(() => {
-    if (!open) return;
-    const measure = () => {
-      const button = summary.current?.getBoundingClientRect();
-      const element = panel.current;
-      if (!button || !element) return;
-      const host = box.current?.closest("[data-task-pane]")?.getBoundingClientRect();
-      const width = element.offsetWidth;
-      const minLeft = Math.max(8, (host?.left ?? 0) + 8);
-      const maxLeft = Math.max(minLeft, Math.min(window.innerWidth, host?.right ?? window.innerWidth) - width - 8);
-      const left = Math.min(Math.max(button.right - width, minLeft), maxLeft);
-      const below = window.innerHeight - button.bottom - 8;
-      const up = below < Math.min(element.scrollHeight, 240) && button.top - 8 > below;
-      setPlace({ position: "fixed", left, right: "auto", marginTop: 0, maxHeight: Math.max(120, (up ? button.top - 8 : below) - 4), ...(up ? { top: "auto", bottom: window.innerHeight - button.top + 4 } : { top: button.bottom + 4, bottom: "auto" }) });
-    };
-    measure();
-    window.addEventListener("resize", measure);
-    window.addEventListener("scroll", measure, true);
-    return () => {
-      window.removeEventListener("resize", measure);
-      window.removeEventListener("scroll", measure, true);
-    };
-  }, [open, confirming]);
+    if (confirming && dialog.current && !dialog.current.open) dialog.current.showModal();
+  }, [confirming]);
   const path = `/users/tasks/${taskId}`;
+  const pane = () => document.querySelector<HTMLElement>("[data-task-pane]") ?? document.body;
+  // Moves to a part of the pane (and opens it when folded), else says where it is.
+  const goTo = (selector: string, fallback: string, then?: (element: HTMLElement) => void) =>
+    requestAnimationFrame(() => {
+      const element = pane().querySelector<HTMLElement>(selector);
+      if (!element) {
+        toast({ tone: "info", title: fallback });
+        return;
+      }
+      const folded = element.closest("details");
+      if (folded && !folded.open) folded.open = true;
+      element.scrollIntoView({ block: "center" });
+      if (then) then(element);
+      else element.focus();
+    });
+  const items: MenuItem[] = [
+    { label: "Add to another project", icon: <FolderPlus className="h-4 w-4" />, onSelect: () => goTo("#add-to-project", "This task can't be added to another project from here."), testId: "pane-add-project" },
+    { label: "Add subtask", icon: <ListPlus className="h-4 w-4" />, onSelect: () => goTo('[data-testid="add-subtask"]', "Subtasks can't be added to this task.", (element) => element.click()), testId: "pane-add-subtask" },
+    { label: "Add tags", icon: <Tag className="h-4 w-4" />, onSelect: () => goTo("#new-tag", "Tags can't be changed on this task."), testId: "pane-add-tags" },
+    { label: "Attach files", icon: <Paperclip className="h-4 w-4" />, onSelect: () => goTo('input[type="file"]:not([aria-hidden="true"])', "Files are added with a comment.", (element) => element.click()), testId: "pane-attach" },
+    { kind: "separator", label: "" },
+    {
+      label: "Copy task link",
+      icon: <Link2 className="h-4 w-4" />,
+      onSelect: () => void copyText(`${window.location.origin}${path}`).then((done) => toast(done ? { tone: "success", title: "Link copied." } : { tone: "error", title: `${COPY_BLOCKED} ${window.location.origin}${path}` })),
+    },
+    { label: "Open full page", icon: <Maximize2 className="h-4 w-4" />, href: path },
+    { label: "Print", icon: <Printer className="h-4 w-4" />, onSelect: () => window.print() },
+    ...(automations.length
+      ? [
+          { kind: "separator" as const, label: "" },
+          { kind: "heading" as const, label: "Run automation" },
+          ...automations.map((rule) => ({ label: `Run “${rule.name}”`, hint: `From ${rule.projectName}`, icon: <Zap className="h-4 w-4 text-warning-600" />, onSelect: () => void call(() => runAutomationOnTaskAction(rule.id, taskId)) })),
+        ]
+      : []),
+    ...(canDelete ? [{ kind: "separator" as const, label: "" }, { label: "Delete task", icon: <Trash2 className="h-4 w-4" />, tone: "danger" as const, onSelect: () => setConfirming(true), testId: "pane-delete" }] : []),
+  ];
   return (
-    <details
-      ref={box}
-      className="relative"
-      data-testid="pane-more"
-      onToggle={(event) => {
-        const isOpen = (event.currentTarget as HTMLDetailsElement).open;
-        setOpen(isOpen);
-        if (!isOpen) setConfirming(false);
-      }}
-    >
-      <summary ref={summary} aria-label="More actions for this task" title="More actions" className="grid h-8 w-8 cursor-pointer list-none place-items-center rounded-md text-ink-muted hover:bg-surface-muted hover:text-ink [&::-webkit-details-marker]:hidden">
-        <MoreHorizontal aria-hidden="true" className="h-5 w-5" />
-      </summary>
-      <div ref={panel} style={place} className="absolute right-0 z-popover mt-1 w-56 overflow-y-auto rounded-lg border border-line bg-raised p-1 text-label shadow-overlay" role="group" aria-label="More actions" data-testid="pane-more-panel">
-        <button
-          type="button"
-          className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-surface-muted"
-          onClick={() => void copyText(`${window.location.origin}${path}`).then((done) => toast(done ? { tone: "success", title: "Link copied." } : { tone: "error", title: `${COPY_BLOCKED} ${window.location.origin}${path}` }))}
-        >
-          <Link2 aria-hidden="true" className="h-4 w-4" /> Copy task link
-        </button>
-        <Link href={path} className="flex w-full items-center gap-2 rounded px-2 py-1.5 hover:bg-surface-muted">
-          <Maximize2 aria-hidden="true" className="h-4 w-4" /> Open full page
-        </Link>
-        <RunAutomationButtons taskId={taskId} rules={automations} compact />
-        {canDelete &&
-          (confirming ? (
-            <div className="space-y-1 rounded bg-danger-50 p-2">
-              <p>Delete this task and its subtasks? You can undo, or restore it for 30 days.</p>
+    <>
+      <Menu label="More actions for this task" title="More actions" trigger={<MoreHorizontal aria-hidden="true" className="h-5 w-5" />} buttonClass="grid h-8 w-8 place-items-center rounded-md text-ink-muted hover:bg-surface-muted hover:text-ink" menuClass="w-60" items={items} testId="pane-more" />
+      {confirming && (
+        <dialog ref={dialog} onClose={() => setConfirming(false)} aria-labelledby="pane-delete-title" className="w-[calc(100%-2rem)] max-w-sm rounded-xl border border-line bg-raised p-0 text-ink shadow-overlay backdrop:bg-overlay" data-testid="pane-delete-dialog">
+          <div className="space-y-3 p-5">
+            <h2 id="pane-delete-title" className="font-semibold">
+              Delete this task?
+            </h2>
+            <p className="text-label text-ink-muted">“{title}” and its subtasks go to Deleted. You can undo, or restore it for 30 days.</p>
+            <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 disabled={pending}
                 className="btn-danger btn-compact"
                 onClick={() =>
                   void remove([taskId], `Deleted: ${title}`).then((result) => {
+                    dialog.current?.close();
                     if (result?.ok) router.push(closeHref, { scroll: false });
                   })
                 }
@@ -198,13 +185,13 @@ export function PaneMoreMenu({ taskId, title, canDelete, closeHref, automations 
               >
                 Yes, delete
               </button>
+              <button type="button" className="btn-secondary btn-compact" onClick={() => dialog.current?.close()}>
+                Keep it
+              </button>
             </div>
-          ) : (
-            <button type="button" className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-danger-600 hover:bg-danger-50" onClick={() => setConfirming(true)} data-testid="pane-delete">
-              <Trash2 aria-hidden="true" className="h-4 w-4" /> Delete task
-            </button>
-          ))}
-      </div>
-    </details>
+          </div>
+        </dialog>
+      )}
+    </>
   );
 }

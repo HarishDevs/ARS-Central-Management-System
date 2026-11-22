@@ -35,6 +35,9 @@ describe("onboarding tour steps", () => {
     const points = TOUR_STEPS.find((step) => step.id === "projects")?.points.join(" ") ?? "";
     expect(points).toContain("Starred");
     expect(points).toContain("Undo");
+    // v1.72.0 (D-387): the dropdown menus and the Customize panel.
+    expect(points).toContain("dropdown menu");
+    expect(points).toContain("Customize");
   });
 
   it("the Projects step mentions custom fields and Add field (v1.64.0, D-371)", () => {

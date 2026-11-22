@@ -228,6 +228,41 @@ export function materialisePlan(strip: readonly StripTab[]): { key: string; id: 
   });
 }
 
+// v1.72.0 (D-387, spec PM §3.7.2): the Add tab menu in two groups, each in
+// the spec's order: Popular (List, Page, Gantt, Board, Calendar, Timeline),
+// then Other (Workload, Dashboard, Files, Messages, Overview).
+const POPULAR_ORDER = ["LIST", "PAGE", "GANTT", "BOARD", "CALENDAR", "TIMELINE"];
+const OTHER_ORDER = ["WORKLOAD", "DASHBOARD", "FILES", "MESSAGES", "OVERVIEW"];
+export function catalogueGroups(entries: readonly CatalogueEntry[]): { name: "Popular" | "Other"; entries: CatalogueEntry[] }[] {
+  const pick = (order: string[]) => order.map((type) => entries.find((entry) => entry.type === type)).filter((entry): entry is CatalogueEntry => Boolean(entry));
+  const known = new Set([...POPULAR_ORDER, ...OTHER_ORDER]);
+  const groups = [
+    { name: "Popular" as const, entries: pick(POPULAR_ORDER) },
+    { name: "Other" as const, entries: [...pick(OTHER_ORDER), ...entries.filter((entry) => !known.has(entry.type))] },
+  ];
+  return groups.filter((group) => group.entries.length > 0);
+}
+
+// v1.72.0 (D-387, spec PM §3.7.3): the tab menu's entries in the spec's order
+// (Rename, Set as default, Make a copy, Copy link, then our Move left / right,
+// then Remove). "Set as default" stays listed, disabled, on the default tab.
+export type TabMenuEntry = { key: "rename" | "default" | "duplicate" | "copy" | "left" | "right" | "remove"; disabled?: boolean } | { key: "separator" };
+export function tabMenuEntries(tab: StripTab, strip: readonly StripTab[], canEdit: boolean, max: number = MAX_PROJECT_TABS): TabMenuEntry[] {
+  const allowed = tabMenu(tab, strip, canEdit, max);
+  const index = strip.findIndex((one) => one.key === tab.key);
+  const out: TabMenuEntry[] = [];
+  if (allowed.includes("rename")) out.push({ key: "rename" });
+  if (canEdit) out.push({ key: "default", disabled: tab.isDefault });
+  if (allowed.includes("duplicate")) out.push({ key: "duplicate" });
+  out.push({ key: "copy" });
+  const moves: TabMenuEntry[] = [];
+  if (canEdit && index > 0) moves.push({ key: "left" });
+  if (canEdit && index >= 0 && index < strip.length - 1) moves.push({ key: "right" });
+  if (moves.length) out.push({ key: "separator" }, ...moves);
+  if (allowed.includes("remove")) out.push({ key: "separator" }, { key: "remove" });
+  return out;
+}
+
 // The last tab can't be removed (a project always shows at least one view).
 export const canRemoveTab = (strip: readonly StripTab[]) => strip.length > 1;
 

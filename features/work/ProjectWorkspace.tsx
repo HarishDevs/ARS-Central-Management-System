@@ -1,21 +1,23 @@
 "use client";
 
 import { ApprovalBadge, approvalRowClass } from "@/features/work/ApprovalLink";
-import { ArrowDown, ArrowUp, ArrowUpDown, CalendarClock, ChevronDown, ChevronRight, GitBranch, GripVertical, Heart, Lock, MessageSquare, Plus, Repeat, Trash2, Diamond } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, CalendarClock, ChevronDown, ChevronRight, Filter, GitBranch, GripVertical, Heart, Layers, ListPlus, Lock, MessageSquare, MoreHorizontal, Pencil, Plus, Repeat, Settings2, Trash2, Diamond, X, Zap } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { dropTarget, focusNeighbour, lift, moveLifted, positionText, previewColumn, type Lifted } from "@/features/work/board-keys";
 import { addSectionAction, fieldValueAction, projectTabAction, moveTaskAction, quickAddAction, quickAddManyAction, sectionAction, taskFieldsAction } from "@/app/users/work/actions";
-import { TaskCheck, usePaneLink, useWorkCall } from "@/features/work/client";
+import { CREATE_TASK_EVENT, TaskCheck, usePaneLink, useWorkCall } from "@/features/work/client";
 import { dueLabel, indiaDayOf, TONE_TEXT } from "@/features/work/format";
 import { columnAccent, initialsOf } from "@/features/work/kanban";
 import { BulkBar, FieldInput, type FieldView } from "@/features/work/MoreParts";
-import { TaskGrid, type GridView } from "@/features/work/TaskGrid";
+import { OptionsPanel, TaskGrid, type GridView } from "@/features/work/TaskGrid";
+import { AddTaskSplit, ADD_SECTION_EVENT, SortMenu, ViewSearch } from "@/features/work/ViewToolbar";
+import { Drop } from "@/features/ui/Drop";
+import { Menu, type MenuItem } from "@/features/ui/Menu";
 import { TaskPriorityPill, priorityControlProps } from "@/features/ui/ChoicePill";
 import { PersonSelect } from "@/features/ui/PersonSelect";
 import type { GridConfig, GridTask } from "@/server/work/grid";
-import { inside } from "@/features/ui/inside";
 import { FoldAllButtons } from "@/features/ui/GroupFold";
 import { sortRows, type SortDir } from "@/server/lists/sorting";
 import { ColumnResizer } from "@/features/work/ColumnResizer";
@@ -84,7 +86,10 @@ export function ProjectWorkspace({
   board,
   planning = false,
   customise = false,
+  automations = false,
 }: {
+  // v1.72.0 (D-387): "Add automation to section" in a section's ⋯ menu (automations on, editors).
+  automations?: boolean;
   // v1.64.0 (D-371): "pm_planning" on (every field type, field filters and
   // columns), and whether this person may add and change the project's fields.
   planning?: boolean;
@@ -265,7 +270,6 @@ export function ProjectWorkspace({
       </span>
     );
   };
-  const focusAdd = () => document.querySelector<HTMLInputElement>("[data-work-add]")?.focus();
 
   // A move: into `sectionId`, before `beforeId` (null: at the end).
   const move = async (taskId: number, sectionId: number, beforeId: number | null) => {
@@ -294,131 +298,176 @@ export function ProjectWorkspace({
     if (!up && index < list.length - 1) void move(task.id, task.sectionId, list[index + 2]?.id ?? null);
   };
 
+  // v1.72.0 (D-387, spec PM §3.8, PV §3): the Board's toolbar has the List's
+  // shape: [＋ Add task │▾] on the left; Filter, Sort (a menu), Group (columns
+  // by sections or a field), Options and Search on the right.
+  const toolRoot = useRef<HTMLDivElement>(null);
+  const sortEntries = [
+    { key: "manual", label: "None" },
+    { key: "due", label: "Due date" },
+    { key: "assignee", label: "Assignee" },
+    { key: "title", label: "Alphabetical" },
+    { key: "priority", label: "Priority" },
+    ...fields.map((field) => ({ key: `f${field.id}`, label: field.name })),
+  ];
+  const grouped = layout === "BOARD" ? groupField !== null : group !== "section";
+  const groupText = layout === "BOARD" ? (groupField !== null ? (fields.find((field) => field.id === groupField)?.name ?? "Field") : "Sections") : ({ section: "Sections", assignee: "Assignee", department: "Department", due: "Due date", priority: "Priority" } as const)[group];
+  const clearFilters = () => {
+    setIncomplete(true);
+    setShowDone(false);
+    setMine(false);
+    setDueWithin("");
+    setFieldFilters([]);
+  };
   const toolbar = (
-    <div className="mb-3 flex flex-wrap items-center gap-2 border-b border-line pb-3" role="toolbar" aria-label="View options">
-      {canEdit && (
-        <button type="button" onClick={focusAdd} className="btn-primary btn-compact inline-flex items-center gap-1">
-          <Plus aria-hidden="true" className="h-4 w-4" /> Add task
-        </button>
-      )}
-      <span className="ml-auto" />
-      <Popover label={filterCount ? `Filters: ${filterCount}` : "Filter"} active={filterCount > 0} testId="filter-menu">
-        <p className="mb-2 flex items-center justify-between text-label font-semibold">
-          Filters
+    <div ref={toolRoot} className="mb-3 flex flex-wrap items-center gap-2" role="toolbar" aria-label="View options">
+      {canEdit && <AddTaskSplit projectId={projectId} onSection={() => window.dispatchEvent(new Event(ADD_SECTION_EVENT))} />}
+      <span className="ml-auto flex flex-wrap items-center gap-0.5">
+        <span className={filterCount ? "tb-pill" : "inline-flex items-center"}>
+          <Drop
+            label={filterCount ? `Filters: ${filterCount}` : "Filter"}
+            icon={
+              <>
+                <Filter aria-hidden="true" className="h-4 w-4" /> {filterCount ? `Filters: ${filterCount}` : "Filter"}
+              </>
+            }
+            buttonClass="tb-btn"
+            panelClass="right-0 w-72"
+            testId="filter-menu"
+          >
+            <p className="mb-2 flex items-center justify-between pr-6 text-label font-semibold">
+              Filters
+              <button type="button" className="link text-caption font-normal disabled:opacity-50" disabled={filterCount === 0} onClick={clearFilters}>
+                Clear
+              </button>
+            </p>
+            <p className="mb-1 text-caption font-semibold text-ink-muted">Quick filters</p>
+            <div className="space-y-1.5 text-label">
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={incomplete} onChange={(event) => setIncomplete(event.target.checked)} /> Incomplete tasks
+              </label>
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={showDone} onChange={(event) => setShowDone(event.target.checked)} data-testid="show-completed" /> Completed tasks
+              </label>
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={mine} onChange={(event) => setMine(event.target.checked)} /> Just my tasks
+              </label>
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={dueWithin === "this"} onChange={(event) => setDueWithin(event.target.checked ? "this" : "")} /> Due this week
+              </label>
+              <label className="flex items-center gap-2">
+                <input type="checkbox" checked={dueWithin === "next"} onChange={(event) => setDueWithin(event.target.checked ? "next" : "")} /> Due next week
+              </label>
+            </div>
+            {planning && fields.length > 0 && (
+              <div className="mt-3 border-t border-line pt-3">
+                <FieldFilterRows fields={fields} filters={fieldFilters} onChange={setFieldFilters} people={people} />
+              </div>
+            )}
+          </Drop>
           {filterCount > 0 && (
-            <button
-              type="button"
-              className="link text-caption font-normal"
-              onClick={() => {
-                setIncomplete(true);
-                setShowDone(false);
-                setMine(false);
-                setDueWithin("");
-                setFieldFilters([]);
-              }}
-            >
-              Clear
+            <button type="button" aria-label="Clear filters" onClick={clearFilters} className="tb-x">
+              <X aria-hidden="true" className="h-3.5 w-3.5" />
             </button>
           )}
-        </p>
-        <div className="space-y-1.5 text-label">
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={incomplete} onChange={(event) => setIncomplete(event.target.checked)} /> Incomplete tasks
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={showDone} onChange={(event) => setShowDone(event.target.checked)} data-testid="show-completed" /> Completed tasks
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={mine} onChange={(event) => setMine(event.target.checked)} /> Just my tasks
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={dueWithin === "this"} onChange={(event) => setDueWithin(event.target.checked ? "this" : "")} /> Due this week
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" checked={dueWithin === "next"} onChange={(event) => setDueWithin(event.target.checked ? "next" : "")} /> Due next week
-          </label>
-        </div>
-        {planning && fields.length > 0 && (
-          <div className="mt-3 border-t border-line pt-3">
-            <FieldFilterRows fields={fields} filters={fieldFilters} onChange={setFieldFilters} people={people} />
-          </div>
-        )}
-      </Popover>
-      {planning && layout === "BOARD" && fields.length > 0 && (
-        <label className="flex items-center gap-1.5 text-label">
-          <span className="text-ink-muted">Columns</span>
-          <select aria-label="Columns" value={groupField ?? ""} onChange={(event) => setGroupField(event.target.value ? Number(event.target.value) : null)} className="field-input h-8 w-auto py-0 text-label" data-testid="board-columns">
-            <option value="">Sections</option>
-            {fields.map((field) => (
-              <option key={field.id} value={field.id}>
-                {field.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
-      <label className="flex items-center gap-1.5 text-label">
-        <span className="text-ink-muted">Sort</span>
-        <select
-          aria-label="Sort"
-          value={sortField !== null ? `f${sortField}` : sort}
-          onChange={(event) => {
-            const value = event.target.value;
-            if (value.startsWith("f")) {
-              setSortField(Number(value.slice(1)));
+        </span>
+        <SortMenu
+          entries={sortEntries}
+          current={sortField !== null ? `f${sortField}` : sort}
+          dir={dir}
+          onPick={(key) => {
+            if (/^f\d+$/.test(key)) {
+              setSortField(Number(key.slice(1)));
               setSort("manual");
             } else {
               setSortField(null);
-              setSort(value as Sort);
+              setSort(key as Sort);
             }
           }}
-          className="field-input h-8 w-auto py-0 text-label"
-        >
-          <option value="manual">None (manual order)</option>
-          <option value="due">Due date</option>
-          <option value="priority">Priority</option>
-          <option value="assignee">Assignee</option>
-          <option value="title">Alphabetical</option>
-          {fields.map((field) => (
-            <option key={field.id} value={`f${field.id}`}>
-              {field.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      {/* v1.58.0 (D-354): ascending or descending. */}
-      {(sort !== "manual" || sortField !== null) && (
-        <label className="flex items-center gap-1.5 text-label">
-          <span className="sr-only">Order</span>
-          <select aria-label="Order" value={dir} onChange={(event) => setDir(event.target.value as SortDir)} className="field-input h-8 w-auto py-0 text-label">
-            <option value="asc">Ascending</option>
-            <option value="desc">Descending</option>
-          </select>
-        </label>
-      )}
-      {layout === "LIST" && (
-        <label className="flex items-center gap-1.5 text-label">
-          <span className="text-ink-muted">Group</span>
-          <select aria-label="Group" value={group} onChange={(event) => setGroup(event.target.value as GroupBy)} className="field-input h-8 w-auto py-0 text-label">
-            <option value="section">Sections</option>
-            <option value="assignee">Assignee</option>
-            <option value="department">Department</option>
-            <option value="due">Due date</option>
-            <option value="priority">Priority</option>
-          </select>
-        </label>
-      )}
-      <label className="ml-auto flex items-center" htmlFor="project-filter">
-        <span className="sr-only">Search this view</span>
-        <input id="project-filter" type="search" value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="Search this view" className="field-input h-8 w-52 text-label" />
-      </label>
-      {board && boardDirty && (
-        <UnsavedView
-          canSave={board.canSave}
-          onReset={resetBoard}
-          onSave={() => void call(() => projectTabAction(projectId, { op: "save", key: board.tabKey, config: boardNow })).then((result) => result?.ok && setSavedBoard(boardNow))}
+          onDir={setDir}
+          onClear={() => {
+            setSort("manual");
+            setSortField(null);
+            setDir("asc");
+          }}
         />
-      )}
+        {(layout === "LIST" || (planning && fields.length > 0)) && (
+          <span className={grouped ? "tb-pill" : "inline-flex items-center"}>
+            <Drop
+              label="Group"
+              icon={
+                <>
+                  <Layers aria-hidden="true" className="h-4 w-4" /> {grouped ? `Group: ${groupText}` : "Group"}
+                </>
+              }
+              buttonClass="tb-btn"
+              panelClass="right-0 w-64"
+              testId="board-group"
+            >
+              <p className="mb-2 flex items-center justify-between pr-6 text-label font-semibold">
+                Groups
+                <button type="button" className="link text-caption font-normal disabled:opacity-50" disabled={!grouped} onClick={() => (layout === "BOARD" ? setGroupField(null) : setGroup("section"))}>
+                  Clear
+                </button>
+              </p>
+              {layout === "BOARD" ? (
+                <label className="block text-caption text-ink-muted">
+                  Columns by
+                  <select aria-label="Columns" value={groupField ?? ""} onChange={(event) => setGroupField(event.target.value ? Number(event.target.value) : null)} className="field-input mt-1 h-9 w-full text-label" data-testid="board-columns">
+                    <option value="">Sections</option>
+                    {fields.map((field) => (
+                      <option key={field.id} value={field.id}>
+                        {field.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : (
+                <label className="block text-caption text-ink-muted">
+                  Group by
+                  <select aria-label="Group" value={group} onChange={(event) => setGroup(event.target.value as GroupBy)} className="field-input mt-1 h-9 w-full text-label">
+                    <option value="section">Sections</option>
+                    <option value="assignee">Assignee</option>
+                    <option value="department">Department</option>
+                    <option value="due">Due date</option>
+                    <option value="priority">Priority</option>
+                  </select>
+                </label>
+              )}
+            </Drop>
+          </span>
+        )}
+        <span aria-hidden="true" className="tb-sep" />
+        <Drop
+          label="Options"
+          icon={
+            <>
+              <Settings2 aria-hidden="true" className="h-4 w-4" /> Options
+            </>
+          }
+          buttonClass="tb-btn"
+          panelClass="right-0 w-72"
+          testId="options-menu"
+        >
+          <OptionsPanel
+            title={board?.tabName ?? (layout === "BOARD" ? "Board" : "List")}
+            hiddenCount={0}
+            filters={filterCount}
+            sortText={sortField !== null || sort !== "manual" ? (sortEntries.find((entry) => entry.key === (sortField !== null ? `f${sortField}` : sort))?.label ?? "") : "None"}
+            groupText={groupText}
+            open={(target) => requestAnimationFrame(() => toolRoot.current?.querySelector<HTMLElement>(target === "sort" ? '[data-testid="sort-menu"] > button' : target === "group-menu" ? '[data-testid="board-group"] > summary' : `[data-testid="${target}"] > summary`)?.click())}
+            footer={null}
+          />
+        </Drop>
+        <ViewSearch value={filter} onChange={setFilter} />
+        {board && boardDirty && (
+          <UnsavedView
+            canSave={board.canSave}
+            onReset={resetBoard}
+            onSave={() => void call(() => projectTabAction(projectId, { op: "save", key: board.tabKey, config: boardNow })).then((result) => result?.ok && setSavedBoard(boardNow))}
+          />
+        )}
+      </span>
       {canEdit && !manual && <span className="w-full text-caption text-ink-muted">Dragging is off while a sort, filter or grouping is on.</span>}
       <span role="status" aria-live="polite" className="sr-only">
         {live}
@@ -540,7 +589,7 @@ export function ProjectWorkspace({
                 data-testid="board-column"
               >
                 {section ? (
-                  <SectionHeader section={section} sections={sections} count={count} canEdit={canEdit} />
+                  <SectionHeader section={section} sections={sections} count={count} canEdit={canEdit} projectId={projectId} automations={automations} />
                 ) : (
                   <h3 className="flex items-center gap-2 px-3 pb-2 pt-3 text-card-title font-semibold">
                     {boardCol.name} <span className="text-caption font-normal text-ink-muted">{count}</span>
@@ -580,6 +629,12 @@ export function ProjectWorkspace({
                             <span className={task.status === "COMPLETED" ? "text-ink-muted line-through" : ""}>{task.title}</span>
                           </Link>
                         </div>
+                        {/* v1.47.0: the same priority pill as every task table (Low too). */}
+                        {task.priority !== "NORMAL" && (
+                          <div className="mt-2 flex flex-wrap gap-1" data-testid="card-priority">
+                            <TaskPriorityPill priority={task.priority} />
+                          </div>
+                        )}
                         <FieldChips fields={fields} values={values[task.id]} planning={planning} />
                         <TaskMeta task={task} now={now} />
                       </li>
@@ -608,7 +663,7 @@ export function ProjectWorkspace({
           columns={["assignee", "due", "priority", "collaborators", "createdBy", "tags"]}
           groupsAllowed={["section", "assignee", "createdBy", "due", "priority", "kind"]}
           sections={sections}
-          sectionHeader={(section, count) => <SectionHeader section={section} sections={sections} count={count} canEdit={canEdit} plain />}
+          sectionHeader={(section, count, viewItems) => <SectionHeader section={section} sections={sections} count={count} canEdit={canEdit} plain projectId={projectId} automations={automations} viewItems={viewItems} />}
           onMove={canEdit ? (taskId, sectionId, beforeId) => void move(taskId, sectionId, beforeId) : undefined}
           addTo={canEdit ? { projectId } : undefined}
           people={people}
@@ -686,7 +741,7 @@ export function ProjectWorkspace({
                     {closed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                   </button>
                   {section ? (
-                    <SectionHeader section={section} sections={sections} count={rows.length} canEdit={canEdit} plain />
+                    <SectionHeader section={section} sections={sections} count={rows.length} canEdit={canEdit} plain projectId={projectId} automations={automations} />
                   ) : (
                     <h3 className="flex items-center gap-2 pb-1 font-semibold">
                       {entry.name} <span className="text-caption font-normal text-ink-muted">{rows.length}</span>
@@ -908,25 +963,53 @@ function TaskMeta({ task, now }: { task: BoardTask; now: Date }) {
           {due.text}
         </span>
       )}
-      {/* v1.47.0: the same priority pill as every task table (Low too). */}
-      <TaskPriorityPill priority={task.priority} />
-      <RowBadges task={task} />
+      {/* v1.72.0 (D-387, spec PV §3 card): the priority sits with the field chips; counts go right. */}
+      <span className="ml-auto">
+        <RowBadges task={task} />
+      </span>
     </div>
   );
 }
 
-function SectionHeader({ section, sections, count, canEdit, plain }: { section: BoardSection; sections: BoardSection[]; count: number; canEdit: boolean; plain?: boolean }) {
+// v1.72.0 (D-387, spec PM §3.9, PV §3, COMPONENT_SPECS §4): a section's
+// heading: name, count, ＋ (add a task to this section) and one ⋯ menu in the
+// spec's order: Add automation to section, Rename section, Add section, the
+// view's entries (subtasks, groups, empty groups), then Delete section.
+function SectionHeader({ section, sections, count, canEdit, plain, projectId, automations = false, viewItems = [] }: { section: BoardSection; sections: BoardSection[]; count: number; canEdit: boolean; plain?: boolean; projectId: number; automations?: boolean; viewItems?: MenuItem[] }) {
   const { call, pending } = useWorkCall();
   const [name, setName] = useState(section.name);
   const [deleting, setDeleting] = useState(false);
   const [moveTo, setMoveTo] = useState<number>(sections.find((item) => item.id !== section.id)?.id ?? 0);
+  const nameBox = useRef<HTMLInputElement>(null);
   useEffect(() => setName(section.name), [section.name]);
+  const addTask = () => {
+    const box = document.querySelector<HTMLInputElement>(`[data-section-add="${section.id}"]`);
+    if (box) box.focus();
+    else window.dispatchEvent(new CustomEvent(CREATE_TASK_EVENT, { detail: { projectId } }));
+  };
+  const items: MenuItem[] = [
+    ...(canEdit && automations ? [{ label: "Add automation to section", icon: <Zap className="h-4 w-4" />, href: `/users/work/projects/${projectId}/settings#automations`, testId: "section-automation" }] : []),
+    ...(canEdit
+      ? [
+          { label: "Rename section", icon: <Pencil className="h-4 w-4" />, onSelect: () => requestAnimationFrame(() => nameBox.current?.select()), testId: "section-rename" },
+          { label: "Add section", icon: <ListPlus className="h-4 w-4" />, onSelect: () => window.dispatchEvent(new Event(ADD_SECTION_EVENT)), testId: "section-add" },
+        ]
+      : []),
+    ...viewItems,
+    ...(canEdit
+      ? [
+          { kind: "separator" as const, label: "" },
+          { label: "Delete section", icon: <Trash2 className="h-4 w-4" />, tone: "danger" as const, disabled: sections.length <= 1, hint: sections.length <= 1 ? "A project keeps one section" : undefined, onSelect: () => setDeleting(true), testId: "section-delete" },
+        ]
+      : []),
+  ];
   return (
     // v1.66.2 (owner: "reduce the box length based on the available words"): in the
     // List the name box fits its text, and the count and buttons sit beside it.
-    <div className={`flex min-w-0 flex-wrap items-center gap-2 ${plain ? "pb-1" : "flex-1 px-3 py-2"}`}>
+    <div className={`flex min-w-0 flex-wrap items-center gap-1.5 ${plain ? "pb-1" : "px-3 py-2"}`}>
       {canEdit ? (
         <input
+          ref={nameBox}
           aria-label={`Section name: ${section.name}`}
           value={name}
           size={Math.max(4, Math.min(60, name.length + 1))}
@@ -937,14 +1020,15 @@ function SectionHeader({ section, sections, count, canEdit, plain }: { section: 
           className={`min-w-0 max-w-full rounded border border-transparent bg-transparent px-1 font-semibold text-ink [field-sizing:content] hover:border-line focus:border-primary-600 focus:outline-none ${plain ? "" : "flex-1"}`}
         />
       ) : (
-        <h3 className="font-semibold">{section.name}</h3>
+        <h3 className={`font-semibold ${plain ? "" : "flex-1"}`}>{section.name}</h3>
       )}
       <span className="rounded-full bg-surface px-2 py-0.5 text-caption font-semibold tabular-nums text-ink-muted">{count}</span>
-      {canEdit && sections.length > 1 && (
-        <button type="button" aria-label={`Delete section ${section.name}`} title="Delete section" onClick={() => setDeleting((value) => !value)} className="rounded p-1 text-ink-faint hover:bg-danger-50 hover:text-danger-600">
-          <Trash2 aria-hidden="true" className="h-3.5 w-3.5" />
+      {canEdit && (
+        <button type="button" aria-label={`Add task to ${section.name}`} title="Add a task to this section" onClick={addTask} className="rounded p-1 text-ink-muted hover:bg-surface-muted hover:text-ink" data-testid="section-add-task">
+          <Plus aria-hidden="true" className="h-4 w-4" />
         </button>
       )}
+      {items.length > 0 && <Menu label={`More actions for section ${section.name}`} trigger={<MoreHorizontal aria-hidden="true" className="h-4 w-4" />} buttonClass="rounded p-1 text-ink-muted hover:bg-surface-muted hover:text-ink" align="left" menuClass="w-64" items={items} testId="section-menu" />}
       {deleting && (
         <div className="flex w-full flex-wrap items-center gap-2 rounded-md bg-danger-50 p-2 text-label" role="group" aria-label="Delete section">
           <span>Move its tasks to</span>
@@ -1033,15 +1117,40 @@ export function AddTask({
         aria-label={placeholder ?? "Add a task"}
         placeholder={placeholder ?? "Add a task… (Enter to add)"}
         data-work-add
+        data-section-add={sectionId}
         className={compact ? "field-input h-8 w-full text-label" : "h-8 w-full bg-transparent text-label focus:outline-none"}
       />
     </div>
   );
 }
 
+// v1.72.0 (D-387, spec PV §2.1, §3): a "＋ Add section" button at the end of
+// the List and after the Board's last column; it opens the name box (so does
+// "Section" in the Add task ▾ menu and "Add section" in a section's ⋯ menu).
 function AddSection({ projectId, afterId, board }: { projectId: number; afterId: number | null; board?: boolean }) {
   const { call, pending: busy } = useWorkCall();
   const [name, setName] = useState("");
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const onAsk = () => {
+      setOpen(true);
+      requestAnimationFrame(() => {
+        box.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
+        box.current?.focus();
+      });
+    };
+    window.addEventListener(ADD_SECTION_EVENT, onAsk);
+    return () => window.removeEventListener(ADD_SECTION_EVENT, onAsk);
+  }, []);
+  if (!open)
+    return (
+      <div className={board ? "w-64 shrink-0" : "px-3 py-3"}>
+        <button type="button" onClick={() => { setOpen(true); requestAnimationFrame(() => box.current?.focus()); }} className={board ? "flex w-full items-center gap-1 rounded-lg border border-dashed border-line px-3 py-2 text-label text-ink-muted hover:border-line-strong hover:text-ink" : "inline-flex items-center gap-1 rounded px-2 py-1 text-label text-ink-muted hover:bg-surface-muted hover:text-ink"} data-testid="add-section-button">
+          <Plus aria-hidden="true" className="h-4 w-4" /> Add section
+        </button>
+      </div>
+    );
   return (
     <form
       className={board ? "w-64 shrink-0 rounded-lg border border-dashed border-line p-2" : "flex items-center gap-2 px-3 py-3"}
@@ -1053,7 +1162,17 @@ function AddSection({ projectId, afterId, board }: { projectId: number; afterId:
       <label className="sr-only" htmlFor={`add-section-${board ? "b" : "l"}`}>
         New section name
       </label>
-      <input id={`add-section-${board ? "b" : "l"}`} value={name} onChange={(event) => setName(event.target.value)} placeholder="New section…" className="field-input h-8 text-label" />
+      <input
+        ref={box}
+        id={`add-section-${board ? "b" : "l"}`}
+        value={name}
+        onChange={(event) => setName(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Escape" && !name) setOpen(false);
+        }}
+        placeholder="New section…"
+        className="field-input h-8 text-label"
+      />
       <button type="submit" disabled={busy} aria-busy={busy || undefined} className="btn-secondary btn-compact mt-0 shrink-0">
         Add section
       </button>
@@ -1065,22 +1184,4 @@ function AddSection({ projectId, afterId, board }: { projectId: number; afterId:
 // refresher (every 15 s while visible, on focus, after every change).
 export function useAutoRefresh() {
   useLiveRefresh();
-}
-
-// A small toolbar popover (the catalog's Filter): a button that opens a panel.
-function Popover({ label, active, testId, children }: { label: string; active?: boolean; testId?: string; children: React.ReactNode }) {
-  const box = useRef<HTMLDetailsElement>(null);
-  useEffect(() => {
-    const close = (event: MouseEvent) => {
-      if (box.current?.open && !inside(event, box.current)) box.current.open = false;
-    };
-    document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
-  }, []);
-  return (
-    <details ref={box} className="relative" data-testid={testId}>
-      <summary className={`btn-secondary btn-compact cursor-pointer list-none ${active ? "border-primary-600 text-primary-700" : ""}`}>{label}</summary>
-      <div className="absolute left-0 z-30 mt-1 w-60 rounded-lg border border-line bg-raised p-3 shadow-overlay">{children}</div>
-    </details>
-  );
 }

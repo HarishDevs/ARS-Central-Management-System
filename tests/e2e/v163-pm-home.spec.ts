@@ -50,7 +50,7 @@ test("My Tasks: the person's own tabs, added, renamed, reordered by keyboard, sa
   await expect(page.getByRole("rowgroup", { name: "Recently assigned" })).toBeVisible();
 
   // Add a Board tab: it opens, last, with a unique name.
-  await page.getByTestId("add-tab").locator("summary").click();
+  await page.getByTestId("add-tab").locator("button[aria-haspopup]").click(); // v1.72.0 (D-387): menus are ARIA menus (button[aria-haspopup]), not <details>.
   await expect(page.getByTestId("add-tab-timeline")).toHaveCount(0);
   await page.getByTestId("add-tab-board").click();
   await expect(page).toHaveURL(/my-tasks\?tab=\d+/);
@@ -59,7 +59,7 @@ test("My Tasks: the person's own tabs, added, renamed, reordered by keyboard, sa
 
   // Rename it, then move it left with Alt + ← (announced, kept after reload).
   const tab = page.getByTestId("view-tab").filter({ has: page.getByRole("link", { name: "Board (2)" }) });
-  await tab.getByTestId("tab-menu").locator("summary").click();
+  await tab.getByTestId("tab-menu").locator("button[aria-haspopup]").click();
   await tab.getByRole("menuitem", { name: "Rename" }).click();
   await page.getByTestId("tab-rename").fill(`Mine ${stamp}`);
   await page.getByTestId("tab-rename").press("Enter");
@@ -78,16 +78,17 @@ test("My Tasks: the person's own tabs, added, renamed, reordered by keyboard, sa
   await expect(grid).toBeVisible();
   await expect(grid.getByTestId("unsaved-view")).toHaveCount(0);
   await grid.getByTestId("group-menu").locator("summary").click();
-  await grid.getByTestId("group-menu").getByLabel("Priority").check();
+  await grid.getByTestId("group-by").selectOption("priority");
   await expect(grid.getByTestId("unsaved-view")).toContainText("Unsaved changes");
   await grid.getByTestId("reset-view").click();
   await expect(grid.getByTestId("unsaved-view")).toHaveCount(0);
-  await grid.locator("summary", { hasText: "Sort" }).click();
-  await grid.getByLabel("Last modified").check();
+  await grid.getByTestId("sort-menu").locator("button[aria-haspopup]").click();
+  await grid.getByRole("menuitemradio", { name: "Last modified" }).click();
+  await page.keyboard.press("Escape");
   await grid.getByTestId("save-view").click();
   await expect(page.getByText("View saved.")).toBeVisible();
   await page.reload();
-  await expect(page.getByTestId("my-grid").locator("summary", { hasText: "Sort: Last modified" })).toBeVisible();
+  await expect(page.getByTestId("my-grid").getByTestId("sort-menu")).toContainText("Sort: Last modified");
   expect(await axe(page)).toEqual([]);
 
   // Someone else sees only their own three tabs.

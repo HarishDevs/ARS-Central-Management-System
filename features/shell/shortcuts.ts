@@ -2,6 +2,9 @@
 export function isTyping(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
   if (target.isContentEditable) return true;
+  // v1.72.0 (D-387): an open dropdown menu (letters jump, Escape closes it) and
+  // a panel that handles its own Escape (Customize) keep their keys.
+  if (target.closest('[role="menu"], [data-own-escape]')) return true;
   const tag = target.tagName;
   if (tag === "TEXTAREA" || tag === "SELECT") return true;
   if (tag === "INPUT") {

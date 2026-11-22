@@ -45,4 +45,10 @@ describe("shortcuts never fire while typing (WS-02)", () => {
     expect(isTyping(make("<a href='/x'>x</a>"))).toBe(false);
     expect(isTyping(null)).toBe(false);
   });
+  it("v1.72.0 (D-387): keys inside an open menu or a panel with its own Escape stay with them", () => {
+    document.body.innerHTML = '<div role="menu"><button role="menuitem" id="item">Rename</button></div><aside data-own-escape><a id="row" href="/x">Fields</a></aside><button id="plain">Go</button>';
+    expect(isTyping(document.getElementById("item"))).toBe(true);
+    expect(isTyping(document.getElementById("row"))).toBe(true);
+    expect(isTyping(document.getElementById("plain"))).toBe(false);
+  });
 });

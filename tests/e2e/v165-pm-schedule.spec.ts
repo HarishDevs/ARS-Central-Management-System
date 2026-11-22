@@ -89,7 +89,7 @@ test("settings, a dependency by name in the pane, and the Gantt tab with connect
 
   // Add a Gantt tab from the catalogue.
   await page.goto(projectUrl);
-  await page.getByTestId("add-tab").locator("summary").click();
+  await page.getByTestId("add-tab").locator("button[aria-haspopup]").click(); // v1.72.0 (D-387): menus are ARIA menus (button[aria-haspopup]), not <details>.
   await page.getByTestId("add-tab-gantt").click();
   await expect(page).toHaveURL(/tab=\d+/);
   ganttUrl = page.url();
@@ -105,7 +105,9 @@ test("settings, a dependency by name in the pane, and the Gantt tab with connect
 test("Gantt: keyboard and drag rescheduling move dependents (Undo), and a link by dragging", async ({ page, context }) => {
   await as(context, "E2E_REQ");
   await page.goto(ganttUrl);
-  await page.getByTestId("schedule-zoom").selectOption("days");
+  await page.getByTestId("schedule-zoom").locator("button[aria-haspopup]").click();
+  await page.getByTestId("zoom-days").click();
+  await page.keyboard.press("Escape");
   await expect(ganttRow(page, B).getByTestId("gantt-due")).toHaveText(short(plus(monday, 3)));
 
   // Keyboard: focus Alpha's bar, → moves it a day, Enter saves; Bravo keeps the gap.
@@ -177,6 +179,7 @@ test("Calendar: a week view, a keyboard move, the No start date panel (axe)", as
   await expect(page.getByTestId("no-start-panel")).toContainText(A);
   expect(await axe(page, "[data-testid=task-calendar]")).toEqual([]);
   // Months still works.
+  await page.getByTestId("calendar-unit").locator("button[aria-haspopup]").click();
   await page.getByTestId("calendar-months").click();
   await expect(page.getByTestId("calendar-week")).toHaveCount(0);
 });

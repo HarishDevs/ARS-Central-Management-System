@@ -2,7 +2,7 @@
 
 import { TaskPriorityPill, priorityControlProps } from "@/features/ui/ChoicePill";
 import { ApprovalBadge, approvalRowClass } from "@/features/work/ApprovalLink";
-import { ArrowDown, ArrowUp, ArrowUpDown, CalendarDays, ChevronDown, ChevronRight, Filter, GitBranch, Layers, Lock, MessageSquare, MoreHorizontal, Plus, Repeat, Search, Settings2, Users, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ChevronsDownUp, ChevronsUpDown, EyeOff, Filter, GitBranch, Layers, Lock, MessageSquare, MoreHorizontal, Pencil, Plus, Repeat, Settings2, Users, X } from "lucide-react";
 import Link from "next/link";
 import { useProjectsOn } from "@/features/work/projects-access";
 import { LockedProjectName } from "@/features/ui/ComingSoon";
@@ -16,12 +16,14 @@ import { expandableIds, flattenGrid, keyMove } from "@/server/work/tree";
 import { initials } from "@/features/ui/Display";
 import { Drop } from "@/features/ui/Drop";
 import { PersonSelect } from "@/features/ui/PersonSelect";
-import { CREATE_TASK_EVENT, COLOR_HEX, TaskCheck, usePaneLink, useWorkCall } from "@/features/work/client";
+import { COLOR_HEX, TaskCheck, usePaneLink, useWorkCall } from "@/features/work/client";
 import { dueLabel, indiaDayOf, TONE_TEXT } from "@/features/work/format";
 import { BulkBar, FieldInput, type FieldView } from "@/features/work/MoreParts";
 import { FieldFilterRows, FieldGlyph, FieldValueEditor, openFieldDialog } from "@/features/work/FieldControls";
 import type { CellMap } from "@/server/work/custom-fields";
 import { AddTask } from "@/features/work/ProjectWorkspace";
+import { AddTaskSplit, ADD_SECTION_EVENT, SortMenu, ViewSearch } from "@/features/work/ViewToolbar";
+import { Menu, type MenuItem } from "@/features/ui/Menu";
 import { CollaboratorsCell, TagsCell } from "@/features/work/GridCellEditors";
 import { ColumnResizer } from "@/features/work/ColumnResizer";
 import { useColumnWidths, type ColumnDefault } from "@/features/work/useColumnWidths";
@@ -39,6 +41,7 @@ import {
   nextColumnSort,
   SORT_LABEL,
   SORTS,
+  sortMenu,
   type FilterField,
   type GridColumn,
   type GridConfig,
@@ -109,7 +112,8 @@ export function TaskGrid({
   columns: GridColumn[];
   groupsAllowed: GridGroup[];
   sections?: { id: number; name: string }[];
-  sectionHeader?: (section: { id: number; name: string }, count: number) => React.ReactNode;
+  // v1.72.0 (D-387): the view's group entries come third, for the section's own ⋯ menu.
+  sectionHeader?: (section: { id: number; name: string }, count: number, viewItems: MenuItem[]) => React.ReactNode;
   onMove?: (taskId: number, sectionId: number, beforeId: number | null) => void;
   addTo?: { projectId?: number; mySections?: boolean };
   people?: { id: number; label: string }[];
@@ -150,7 +154,6 @@ export function TaskGrid({
   const [fold, setFold] = useState(() => ({ group: `${initial.group}:${initial.groupField ?? ""}`, closed: groupsStartFolded(initial.group, initial.groupField), toggled: new Set<string>() }));
   const [selected, setSelected] = useState<number[]>([]);
   const [dragging, setDragging] = useState<number | null>(null);
-  const [searching, setSearching] = useState(Boolean(initial.search));
   const openTask = useSearchParams().get("task");
   const lastInitial = useRef(JSON.stringify(initial));
   // v1.61.0 (D-367): keyed by the saved view's text, not the object, so the
@@ -213,11 +216,6 @@ export function TaskGrid({
   const fieldHead = (field: FieldView) => {
     const state = columnSortState(config, field.id);
     const Icon = state === "asc" ? ArrowUp : state === "desc" ? ArrowDown : ArrowUpDown;
-    const item = "block w-full rounded px-2 py-1 text-left text-label hover:bg-surface-muted";
-    const close = (event: React.SyntheticEvent) => {
-      const details = (event.currentTarget as HTMLElement).closest("details");
-      if (details) details.open = false;
-    };
     return (
       <span key={field.id} role="columnheader" aria-sort={state === "asc" ? "ascending" : state === "desc" ? "descending" : "none"} className="relative flex min-w-0 items-center gap-1 border-r border-line px-2 py-2" data-column={`f${field.id}`}>
         <button type="button" onClick={() => set(nextColumnSort(config, field.id))} title={`Sort by ${field.name}, ${state === "asc" ? "descending" : "ascending"}`} className={`inline-flex min-w-0 items-center gap-1 hover:text-ink ${state ? "text-ink" : ""}`} data-testid="grid-sort">
@@ -225,30 +223,22 @@ export function TaskGrid({
           <span className="truncate">{field.name}</span>
           <Icon aria-hidden="true" className={`h-3.5 w-3.5 shrink-0 ${state ? "" : "opacity-40"}`} />
         </button>
-        <Drop label={`Show options for ${field.name} column`} icon={<ChevronDown aria-hidden="true" className="h-3.5 w-3.5" />} buttonClass="rounded p-0.5 text-ink-muted hover:bg-surface-muted hover:text-ink" panelClass="left-0 w-56" testId="field-column-menu" floating>
-          <div className="space-y-0.5 pt-5">
-            <button type="button" className={item} onClick={(event) => { close(event); set({ sort: "none", sortField: field.id, dir: "asc" }); }}>
-              Sort ascending
-            </button>
-            <button type="button" className={item} onClick={(event) => { close(event); set({ sort: "none", sortField: field.id, dir: "desc" }); }}>
-              Sort descending
-            </button>
-            <button type="button" className={item} onClick={(event) => { close(event); set({ fieldFilters: [...(config.fieldFilters ?? []), { fieldId: field.id, op: "notEmpty" as const, value: "" }].slice(0, 10) }); }}>
-              Filter by this field
-            </button>
-            <button type="button" className={item} onClick={(event) => { close(event); set({ groupField: field.id }); }}>
-              Group by this field
-            </button>
-            <button type="button" className={item} onClick={(event) => { close(event); set({ hiddenFields: [...(config.hiddenFields ?? []), field.id] }); }}>
-              Hide column
-            </button>
-            {field.canEdit && (
-              <button type="button" className={item} onClick={(event) => { close(event); openFieldDialog({ fieldId: field.id }); }}>
-                Edit field
-              </button>
-            )}
-          </div>
-        </Drop>
+        <Menu
+          label={`Show options for ${field.name} column`}
+          trigger={<ChevronDown aria-hidden="true" className="h-3.5 w-3.5" />}
+          buttonClass="rounded p-0.5 text-ink-muted hover:bg-surface-muted hover:text-ink"
+          align="left"
+          menuClass="w-56"
+          testId="field-column-menu"
+          items={[
+            { label: "Sort ascending", icon: <ArrowUp className="h-4 w-4" />, onSelect: () => set({ sort: "none", sortField: field.id, dir: "asc" }) },
+            { label: "Sort descending", icon: <ArrowDown className="h-4 w-4" />, onSelect: () => set({ sort: "none", sortField: field.id, dir: "desc" }) },
+            { label: "Filter by this field", icon: <Filter className="h-4 w-4" />, onSelect: () => set({ fieldFilters: [...(config.fieldFilters ?? []), { fieldId: field.id, op: "notEmpty" as const, value: "" }].slice(0, 10) }) },
+            { label: "Group by this field", icon: <Layers className="h-4 w-4" />, onSelect: () => set({ groupField: field.id }) },
+            { label: "Hide column", icon: <EyeOff className="h-4 w-4" />, onSelect: () => set({ hiddenFields: [...(config.hiddenFields ?? []), field.id] }) },
+            ...(field.canEdit ? [{ label: "Edit field", icon: <Pencil className="h-4 w-4" />, onSelect: () => openFieldDialog({ fieldId: field.id }) }] : []),
+          ]}
+        />
         {resizer(`f${field.id}`, field.name)}
       </span>
     );
@@ -395,6 +385,17 @@ export function TaskGrid({
     }
   };
 
+  const toolbar = useRef<HTMLDivElement>(null);
+  const viewGroupItems = gridGroupItems({ hideEmpty: config.hideEmpty, onHideEmpty: (on) => set({ hideEmpty: on }), onFoldAll: foldAll, subtasks: hasSubtasks ? onSubtasksAll : undefined });
+  const grouping = config.group !== "none" || Boolean(config.groupField);
+  const groupName = config.groupField ? (fields.find((field) => field.id === config.groupField)?.name ?? "Field") : GROUP_LABEL[config.group];
+  // v1.72.0 (D-387, spec PM §3.8.2): the Sort menu in the spec's order, custom fields after the built-in ones, Project last.
+  const sortOrder = sortMenu(SORTS);
+  const sortEntries = [
+    ...sortOrder.before.map((sort) => ({ key: sort as string, label: SORT_LABEL[sort] })),
+    ...(planning ? fields.map((field) => ({ key: `f${field.id}`, label: field.name })) : []),
+    ...sortOrder.after.map((sort) => ({ key: sort as string, label: SORT_LABEL[sort] })),
+  ];
   const saveTab = async () => {
     if (!view) return;
     const name = window.prompt("Name of the new tab", "")?.trim();
@@ -410,20 +411,10 @@ export function TaskGrid({
 
   return (
     <div data-testid={testId}>
-      <div className="mb-2 flex flex-wrap items-center gap-2" role="toolbar" aria-label="View options">
-        <span className="inline-flex">
-          <button type="button" onClick={() => window.dispatchEvent(new CustomEvent(CREATE_TASK_EVENT, { detail: { projectId: addTo?.projectId ?? null } }))} className={addTo?.projectId ? "tb-split rounded-l-md" : "tb-split rounded-md"}>
-            <Plus aria-hidden="true" className="h-4 w-4" /> Add task
-          </button>
-          {/* v1.49.0 (owner: "drop this task-from-templates part"): Add task opens the Create task window; only a project's "Add section" stays here. */}
-          {addTo?.projectId && (
-            <Drop label="More ways to add" icon={<ChevronDown aria-hidden="true" className="h-4 w-4" />} buttonClass="tb-split rounded-r-md border-l-0 px-1.5">
-              <button type="button" className="block w-full rounded px-2 py-1.5 text-left text-label hover:bg-surface-muted" onClick={() => document.querySelector<HTMLInputElement>("#add-section-l")?.focus()}>
-                Add section
-              </button>
-            </Drop>
-          )}
-        </span>
+      {/* v1.72.0 (D-387, spec PM §3.8, CMP-10): [＋ Add task │▾] on the left; Filter, Sort (a menu in the
+          spec's order), Group (a "Group by" dropdown), Options (rows that open their own pages) and Search on the right. */}
+      <div ref={toolbar} className="mb-2 flex flex-wrap items-center gap-2" role="toolbar" aria-label="View options">
+        <AddTaskSplit projectId={addTo?.projectId ?? null} onSection={addTo?.projectId ? () => window.dispatchEvent(new Event(ADD_SECTION_EVENT)) : undefined} />
         <span className="ml-auto flex flex-wrap items-center gap-0.5">
           <span className={count ? "tb-pill" : "inline-flex items-center"}>
             <Drop
@@ -445,69 +436,67 @@ export function TaskGrid({
               </button>
             )}
           </span>
-          <span className={sorting ? "tb-pill" : "inline-flex items-center"}>
-            <Drop
-              label="Sort"
-              icon={
-                <>
-                  <ArrowUpDown aria-hidden="true" className="h-4 w-4" /> {sorting ? `Sort: ${sortName}${config.dir === "desc" ? " (descending)" : ""}` : "Sort"}
-                </>
-              }
-              buttonClass="tb-btn"
-              panelClass="right-0 w-52"
-            >
-              {SORTS.map((sort) => (
-                <label key={sort} className="flex items-center gap-2 rounded px-2 py-1 text-label hover:bg-surface-muted">
-                  <input type="radio" name={`${testId}-sort`} checked={!config.sortField && config.sort === sort} onChange={() => set({ sort, sortField: null })} /> {SORT_LABEL[sort]}
-                </label>
-              ))}
-              {/* v1.58.0 (D-354): the direction of the chosen sort. */}
-              {sorting && (
-                <div className="mt-1 border-t border-line pt-1" role="radiogroup" aria-label="Order">
-                  <label className="flex items-center gap-2 rounded px-2 py-1 text-label hover:bg-surface-muted">
-                    <input type="radio" name={`${testId}-dir`} checked={config.dir === "asc"} onChange={() => set({ dir: "asc" })} /> <ArrowUp aria-hidden="true" className="h-3.5 w-3.5" /> Ascending
-                  </label>
-                  <label className="flex items-center gap-2 rounded px-2 py-1 text-label hover:bg-surface-muted">
-                    <input type="radio" name={`${testId}-dir`} checked={config.dir === "desc"} onChange={() => set({ dir: "desc" })} /> <ArrowDown aria-hidden="true" className="h-3.5 w-3.5" /> Descending
-                  </label>
-                </div>
-              )}
-            </Drop>
-            {sorting && (
-              <button type="button" aria-label="Default order" onClick={() => set({ sort: "none", sortField: null, dir: "asc" })} className="tb-x">
-                <X aria-hidden="true" className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </span>
-          <span className={config.group !== "none" || config.groupField ? "tb-pill" : "inline-flex items-center"}>
+          <SortMenu
+            entries={sortEntries}
+            current={config.sortField ? `f${config.sortField}` : config.sort}
+            dir={config.dir}
+            onPick={(key) => (key.startsWith("f") && /^f\d+$/.test(key) ? set({ sort: "none", sortField: Number(key.slice(1)) }) : set({ sort: key as GridConfig["sort"], sortField: null }))}
+            onDir={(dir) => set({ dir })}
+            onClear={() => set({ sort: "none", sortField: null, dir: "asc" })}
+          />
+          <span className={grouping ? "tb-pill" : "inline-flex items-center"}>
             <Drop
               label="Group"
               icon={
                 <>
-                  <Layers aria-hidden="true" className="h-4 w-4" /> {config.group === "none" && !config.groupField ? "Group" : "Groups: 1"}
+                  <Layers aria-hidden="true" className="h-4 w-4" /> {grouping ? `Group: ${groupName}` : "Group"}
                 </>
               }
               buttonClass="tb-btn"
-              panelClass="right-0 w-56"
+              panelClass="right-0 w-72"
               testId="group-menu"
             >
-              <p className="mb-1 px-2 text-label font-semibold">Groups</p>
-              {(["none", ...groupsAllowed] as GridGroup[]).map((group) => (
-                <label key={group} className="flex items-center gap-2 rounded px-2 py-1 text-label hover:bg-surface-muted">
-                  <input type="radio" name={`${testId}-group`} checked={config.group === group && !config.groupField} onChange={() => set({ group, groupField: null })} /> {GROUP_LABEL[group]}
-                </label>
-              ))}
-              {/* v1.64.0 (D-371): group by any custom field. */}
-              {planning && fields.length > 0 && <p className="mt-2 border-t border-line px-2 pt-2 text-caption font-semibold text-ink-muted">Custom fields</p>}
-              {planning &&
-                fields.map((field) => (
-                  <label key={field.id} className="flex items-center gap-2 rounded px-2 py-1 text-label hover:bg-surface-muted">
-                    <input type="radio" name={`${testId}-group`} checked={config.groupField === field.id} onChange={() => set({ groupField: field.id })} /> {field.name}
-                  </label>
+              <p className="mb-2 flex items-center justify-between pr-6 text-label font-semibold">
+                Groups
+                {grouping && (
+                  <button type="button" className="link text-caption font-normal" onClick={() => set({ group: "none", groupField: null })}>
+                    Clear
+                  </button>
+                )}
+              </p>
+              <label className="block text-caption text-ink-muted" htmlFor={`${testId}-group-by`}>
+                Group by
+              </label>
+              <select
+                id={`${testId}-group-by`}
+                value={config.groupField ? `f${config.groupField}` : config.group}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  if (/^f\d+$/.test(value)) set({ groupField: Number(value.slice(1)) });
+                  else set({ group: value as GridGroup, groupField: null });
+                }}
+                className="field-input mt-1 h-9 w-full text-label"
+                data-testid="group-by"
+              >
+                {(["none", ...groupsAllowed] as GridGroup[]).map((group) => (
+                  <option key={group} value={group}>
+                    {GROUP_LABEL[group]}
+                  </option>
                 ))}
+                {/* v1.64.0 (D-371): group by any custom field. */}
+                {planning && fields.length > 0 && (
+                  <optgroup label="Custom fields">
+                    {fields.map((field) => (
+                      <option key={field.id} value={`f${field.id}`}>
+                        {field.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+              </select>
               {/* v1.58.0 (D-354, owner's screenshot "Expand or collapse groups"): both choices, plainly. */}
-              {(config.group !== "none" || config.groupField) && (
-                <div className="mt-2 border-t border-line pt-2">
+              {grouping && (
+                <div className="mt-3 border-t border-line pt-2">
                   <p className="mb-1 px-2 text-caption font-semibold text-ink-muted">Expand or collapse groups</p>
                   <button type="button" className="block w-full rounded px-2 py-1 text-left text-label hover:bg-surface-muted" onClick={() => foldAll(true)} data-testid="grid-expand-all">
                     Expand all groups
@@ -518,7 +507,7 @@ export function TaskGrid({
                 </div>
               )}
             </Drop>
-            {(config.group !== "none" || config.groupField) && (
+            {grouping && (
               <button type="button" aria-label="Remove grouping" onClick={() => set({ group: "none", groupField: null })} className="tb-x">
                 <X aria-hidden="true" className="h-3.5 w-3.5" />
               </button>
@@ -533,89 +522,71 @@ export function TaskGrid({
               </>
             }
             buttonClass="tb-btn"
-            panelClass="right-0 w-60"
+            panelClass="right-0 w-72"
+            testId="options-menu"
           >
-            <p className="mb-1 px-2 text-label font-semibold">Columns</p>
-            {columns.map((column) => (
-              <label key={column} className="flex items-center gap-2 rounded px-2 py-1 text-label hover:bg-surface-muted">
-                <input
-                  type="checkbox"
-                  checked={!config.hidden.includes(column)}
-                  onChange={(event) => set({ hidden: event.target.checked ? config.hidden.filter((item) => item !== column) : [...config.hidden, column] })}
-                />{" "}
-                {COLUMN_LABEL[column]}
-              </label>
-            ))}
-            {planning && fields.length > 0 && (
-              <div className="mt-2 border-t border-line pt-2" data-testid="field-columns">
-                <p className="mb-1 px-2 text-label font-semibold">Fields</p>
-                {fields.map((field) => (
-                  <label key={field.id} className="flex items-center gap-2 rounded px-2 py-1 text-label hover:bg-surface-muted">
-                    <input
-                      type="checkbox"
-                      checked={!(config.hiddenFields ?? []).includes(field.id)}
-                      onChange={(event) => set({ hiddenFields: event.target.checked ? (config.hiddenFields ?? []).filter((id) => id !== field.id) : [...(config.hiddenFields ?? []), field.id] })}
-                    />{" "}
-                    {field.name}
-                  </label>
-                ))}
-              </div>
-            )}
-            {hasSubtasks && (
-              <div className="mt-2 space-y-1 border-t border-line pt-2">
-                <p className="mb-1 px-2 text-label font-semibold">Subtasks</p>
-                <button type="button" className="block w-full rounded px-2 py-1 text-left text-label hover:bg-surface-muted" onClick={() => onSubtasksAll(true)} data-testid="subtasks-expand-all">
-                  Expand all subtasks
-                </button>
-                <button type="button" className="block w-full rounded px-2 py-1 text-left text-label hover:bg-surface-muted" onClick={() => onSubtasksAll(false)} data-testid="subtasks-collapse-all">
-                  Collapse all subtasks
-                </button>
-              </div>
-            )}
-            {density && (
-              <div className="mt-2 border-t border-line pt-2" role="radiogroup" aria-label="Row density">
-                <p className="mb-1 px-2 text-label font-semibold">Rows</p>
-                {(["COMFORTABLE", "COMPACT"] as const).map((choice) => (
-                  <label key={choice} className="flex items-center gap-2 rounded px-2 py-1 text-label hover:bg-surface-muted">
-                    <input type="radio" name={`${testId}-density`} checked={rowDensity === choice} onChange={() => { setRowDensity(choice); void call(() => densityAction(choice), { success: false }); }} data-testid={`density-${choice.toLowerCase()}`} />{" "}
-                    {choice === "COMPACT" ? "Compact" : "Comfortable"}
-                  </label>
-                ))}
-              </div>
-            )}
-            {view?.canSave && (
-              <div className="mt-2 space-y-1 border-t border-line pt-2">
-                <button type="button" className="block w-full rounded px-2 py-1 text-left text-label hover:bg-surface-muted" onClick={() => void saveTab()}>
-                  Save as a new tab…
-                </button>
-                {view.current && !view.phaseA && (
-                  <button
-                    type="button"
-                    className="block w-full rounded px-2 py-1 text-left text-label text-danger-600 hover:bg-danger-50"
-                    onClick={() => void call(() => deleteViewAction(view.current!.id)).then((result) => result?.ok && router.push(window.location.pathname))}
-                  >
-                    Delete tab “{view.current.name}”
-                  </button>
-                )}
-              </div>
-            )}
-          </Drop>
-          {searching ? (
-            <input
-              autoFocus
-              type="search"
-              aria-label="Search this view"
-              placeholder="Search this view"
-              value={config.search}
-              onChange={(event) => set({ search: event.target.value })}
-              onBlur={() => !config.search && setSearching(false)}
-              className="field-input h-7 w-48 text-label"
+            <OptionsPanel
+              title={view?.tabName ?? view?.current?.name ?? "This view"}
+              hiddenCount={config.hidden.length + (planning ? (config.hiddenFields ?? []).filter((id) => fields.some((field) => field.id === id)).length : 0)}
+              filters={count}
+              sortText={sortName && sorting ? sortName : "None"}
+              groupText={grouping ? groupName : "None"}
+              open={(target) => {
+                const root = toolbar.current;
+                requestAnimationFrame(() => root?.querySelector<HTMLElement>(target === "sort" ? '[data-testid="sort-menu"] > button' : `[data-testid="${target}"] > summary`)?.click());
+              }}
+              subtasks={hasSubtasks ? onSubtasksAll : undefined}
+              density={density ? { value: rowDensity ?? "COMFORTABLE", set: (choice) => { setRowDensity(choice); void call(() => densityAction(choice), { success: false }); }, name: testId } : undefined}
+              columns={
+                <>
+                  {columns.map((column) => (
+                    <label key={column} className="flex items-center gap-2 rounded px-2 py-1 text-label hover:bg-surface-muted">
+                      <input
+                        type="checkbox"
+                        checked={!config.hidden.includes(column)}
+                        onChange={(event) => set({ hidden: event.target.checked ? config.hidden.filter((item) => item !== column) : [...config.hidden, column] })}
+                      />{" "}
+                      {COLUMN_LABEL[column]}
+                    </label>
+                  ))}
+                  {planning && fields.length > 0 && (
+                    <div className="mt-2 border-t border-line pt-2" data-testid="field-columns">
+                      <p className="mb-1 px-2 text-caption font-semibold text-ink-muted">Fields</p>
+                      {fields.map((field) => (
+                        <label key={field.id} className="flex items-center gap-2 rounded px-2 py-1 text-label hover:bg-surface-muted">
+                          <input
+                            type="checkbox"
+                            checked={!(config.hiddenFields ?? []).includes(field.id)}
+                            onChange={(event) => set({ hiddenFields: event.target.checked ? (config.hiddenFields ?? []).filter((id) => id !== field.id) : [...(config.hiddenFields ?? []), field.id] })}
+                          />{" "}
+                          {field.name}
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </>
+              }
+              footer={
+                view?.canSave ? (
+                  <div className="mt-2 space-y-1 border-t border-line pt-2">
+                    <button type="button" className="block w-full rounded px-2 py-1 text-left text-label hover:bg-surface-muted" onClick={() => void saveTab()}>
+                      Save as a new tab…
+                    </button>
+                    {view.current && !view.phaseA && (
+                      <button
+                        type="button"
+                        className="block w-full rounded px-2 py-1 text-left text-label text-danger-600 hover:bg-danger-50"
+                        onClick={() => void call(() => deleteViewAction(view.current!.id)).then((result) => result?.ok && router.push(window.location.pathname))}
+                      >
+                        Delete tab “{view.current.name}”
+                      </button>
+                    )}
+                  </div>
+                ) : null
+              }
             />
-          ) : (
-            <button type="button" aria-label="Search this view" onClick={() => setSearching(true)} className="tb-btn">
-              <Search aria-hidden="true" className="h-4 w-4" />
-            </button>
-          )}
+          </Drop>
+          <ViewSearch value={config.search} onChange={(search) => set({ search })} />
           {dirty && view?.phaseA && view.tabKey && (
             <UnsavedView
               canSave={view.canSave}
@@ -631,7 +602,7 @@ export function TaskGrid({
         </span>
       </div>
 
-      {(config.group !== "none" || config.groupField) && groups.length > 0 && <FoldAllButtons onAll={foldAll} testId={`${testId}-fold-all`} />}
+      {(config.group !== "none" || config.groupField) && groups.length > 0 && !(config.group === "section" && !config.groupField && sectionHeader) && <FoldAllButtons onAll={foldAll} testId={`${testId}-fold-all`} />}
       <div ref={scroller} className="overflow-x-auto rounded-lg border border-line bg-surface" data-density={rowDensity === "COMPACT" ? "compact" : undefined}>
         {/* v1.61.0 (D-367, spec PRJ-03): an ARIA treegrid. Group headings are level 1,
             tasks level 2 (1 without groups), subtasks one deeper; one line takes Tab
@@ -708,13 +679,13 @@ export function TaskGrid({
                           </button>
                           {group.person && <PersonDot name={group.person} size="md" />}
                           {section && sectionHeader ? (
-                            sectionHeader(section, group.rows.length)
+                            sectionHeader(section, group.rows.length, view?.phaseA ? viewGroupItems : [])
                           ) : (
                             <h3 className="flex items-center gap-2 text-card-title font-semibold">
                               {group.name} <span className="text-caption font-normal text-ink-muted">{group.rows.length}</span>
                             </h3>
                           )}
-                          {view?.phaseA && <GroupMenu name={group.name} hideEmpty={config.hideEmpty} onHideEmpty={(on) => set({ hideEmpty: on })} onFoldAll={foldAll} subtasks={hasSubtasks ? onSubtasksAll : undefined} />}
+                          {view?.phaseA && !(section && sectionHeader) && <GroupMenu name={group.name} items={viewGroupItems} />}
                         </div>
                       </div>
                     );
@@ -1132,35 +1103,110 @@ export function PersonDot({ name, size = "sm", ring }: { name: string; size?: "s
 }
 
 // v1.61.0 (D-367, spec PRJ-17 section menu): a group heading's own menu.
-function GroupMenu({ name, hideEmpty, onHideEmpty, onFoldAll, subtasks }: { name: string; hideEmpty: boolean; onHideEmpty: (on: boolean) => void; onFoldAll: (open: boolean) => void; subtasks?: (open: boolean) => void }) {
+// v1.72.0 (D-387): an ARIA menu; the view's entries (subtasks, groups, empty
+// groups) are shared with a project section's own ⋯ menu (gridGroupItems).
+export function gridGroupItems({ hideEmpty, onHideEmpty, onFoldAll, subtasks }: { hideEmpty: boolean; onHideEmpty: (on: boolean) => void; onFoldAll: (open: boolean) => void; subtasks?: (open: boolean) => void }): MenuItem[] {
+  return [
+    ...(subtasks
+      ? [
+          { label: "Expand all subtasks", icon: <ChevronsUpDown className="h-4 w-4" />, onSelect: () => subtasks(true), testId: "section-subtasks-expand" },
+          { label: "Collapse all subtasks", icon: <ChevronsDownUp className="h-4 w-4" />, onSelect: () => subtasks(false), testId: "section-subtasks-collapse" },
+        ]
+      : []),
+    { label: "Expand all groups", icon: <ChevronsUpDown className="h-4 w-4" />, onSelect: () => onFoldAll(true), testId: "section-groups-expand" },
+    { label: "Collapse all groups", icon: <ChevronsDownUp className="h-4 w-4" />, onSelect: () => onFoldAll(false), testId: "section-groups-collapse" },
+    { kind: "checkbox", label: "Hide empty groups", checked: hideEmpty, onSelect: () => onHideEmpty(!hideEmpty), testId: "hide-empty-groups" },
+  ];
+}
+
+function GroupMenu({ name, items }: { name: string; items: MenuItem[] }) {
+  return <Menu label={`More for ${name}`} trigger={<MoreHorizontal aria-hidden="true" className="h-4 w-4" />} buttonClass="rounded p-1 text-ink-muted hover:bg-surface-muted hover:text-ink" align="left" menuClass="w-60" items={items} testId="group-menu-more" />;
+}
+
+// v1.72.0 (D-387, spec PM §3.7.4 "Options"): the Options panel's rows in the
+// spec's order. Show/hide columns, Subtasks and Rows open their own page (with
+// ← Back); Filters, Sorts and Groups open the toolbar's own control.
+export function OptionsPanel({
+  title,
+  hiddenCount,
+  filters,
+  sortText,
+  groupText,
+  open,
+  columns,
+  subtasks,
+  density,
+  footer,
+}: {
+  title: string;
+  hiddenCount: number;
+  filters: number;
+  sortText: string;
+  groupText: string;
+  open: (target: "filter-menu" | "sort" | "group-menu") => void;
+  columns?: React.ReactNode;
+  subtasks?: (open: boolean) => void;
+  density?: { value: "COMFORTABLE" | "COMPACT"; set: (value: "COMFORTABLE" | "COMPACT") => void; name: string };
+  footer: React.ReactNode;
+}) {
+  const [page, setPage] = useState<"main" | "columns" | "subtasks" | "rows">("main");
   const close = (event: React.SyntheticEvent) => {
     const details = (event.currentTarget as HTMLElement).closest("details");
     if (details) details.open = false;
   };
-  const item = "block w-full rounded px-2 py-1 text-left text-label hover:bg-surface-muted";
-  return (
-    <Drop label={`More for ${name}`} icon={<MoreHorizontal aria-hidden="true" className="h-4 w-4" />} buttonClass="rounded p-1 text-ink-muted hover:bg-surface-muted hover:text-ink" panelClass="left-0 w-60" testId="group-menu-more" floating>
-      <div className="space-y-0.5 pt-5">
-        <label className="flex items-center gap-2 rounded px-2 py-1 text-label hover:bg-surface-muted">
-          <input type="checkbox" checked={hideEmpty} onChange={(event) => onHideEmpty(event.target.checked)} data-testid="hide-empty-groups" /> Hide empty groups
-        </label>
-        {subtasks && (
-          <>
-            <button type="button" className={item} onClick={(event) => { close(event); subtasks(true); }}>
-              Expand all subtasks
-            </button>
-            <button type="button" className={item} onClick={(event) => { close(event); subtasks(false); }}>
-              Collapse all subtasks
-            </button>
-          </>
-        )}
-        <button type="button" className={item} onClick={(event) => { close(event); onFoldAll(true); }}>
-          Expand all groups
+  const row = "flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-label hover:bg-surface-muted";
+  const back = (label: string) => (
+    <button type="button" className="mb-1 inline-flex items-center gap-1 rounded px-1 py-0.5 text-label font-semibold hover:bg-surface-muted" onClick={() => setPage("main")} data-testid="options-back">
+      <ChevronLeft aria-hidden="true" className="h-4 w-4" /> {label}
+    </button>
+  );
+  if (page === "columns")
+    return (
+      <div className="pt-1" data-testid="options-columns">
+        {back("Show/hide columns")}
+        {columns}
+      </div>
+    );
+  if (page === "subtasks" && subtasks)
+    return (
+      <div className="space-y-1 pt-1">
+        {back("Subtasks")}
+        <button type="button" className={row} onClick={() => subtasks(true)} data-testid="subtasks-expand-all">
+          Expand all subtasks
         </button>
-        <button type="button" className={item} onClick={(event) => { close(event); onFoldAll(false); }}>
-          Collapse all groups
+        <button type="button" className={row} onClick={() => subtasks(false)} data-testid="subtasks-collapse-all">
+          Collapse all subtasks
         </button>
       </div>
-    </Drop>
+    );
+  if (page === "rows" && density)
+    return (
+      <div className="pt-1" role="radiogroup" aria-label="Row density">
+        {back("Rows")}
+        {(["COMFORTABLE", "COMPACT"] as const).map((choice) => (
+          <label key={choice} className="flex items-center gap-2 rounded px-2 py-1 text-label hover:bg-surface-muted">
+            <input type="radio" name={`${density.name}-density`} checked={density.value === choice} onChange={() => density.set(choice)} data-testid={`density-${choice.toLowerCase()}`} /> {choice === "COMPACT" ? "Compact" : "Comfortable"}
+          </label>
+        ))}
+      </div>
+    );
+  const entry = (label: string, value: string | number | null, onClick: (event: React.MouseEvent) => void, testId: string) => (
+    <button type="button" className={row} onClick={onClick} data-testid={testId}>
+      <span className="flex-1">{label}</span>
+      {value !== null && value !== "" && <span className="text-caption text-ink-muted">{value}</span>}
+      <ChevronRight aria-hidden="true" className="h-4 w-4 text-ink-faint" />
+    </button>
+  );
+  return (
+    <div className="space-y-0.5 pt-1">
+      <p className="mb-1 truncate px-2 pr-6 text-label font-semibold">{title}</p>
+      {columns && entry("Show/hide columns", hiddenCount ? `${hiddenCount} hidden` : null, () => setPage("columns"), "options-columns-row")}
+      {entry("Filters", filters || null, (event) => { close(event); open("filter-menu"); }, "options-filters-row")}
+      {entry("Sorts", sortText, (event) => { close(event); open("sort"); }, "options-sorts-row")}
+      {entry("Groups", groupText, (event) => { close(event); open("group-menu"); }, "options-groups-row")}
+      {subtasks && entry("Subtasks", null, () => setPage("subtasks"), "options-subtasks-row")}
+      {density && entry("Rows", density.value === "COMPACT" ? "Compact" : "Comfortable", () => setPage("rows"), "options-rows-row")}
+      {footer}
+    </div>
   );
 }

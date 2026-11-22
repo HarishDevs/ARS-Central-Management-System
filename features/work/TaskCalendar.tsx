@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { quickAddAction, taskFieldsAction } from "@/app/users/work/actions";
 import { TaskCheck, usePaneLink, useWorkCall } from "@/features/work/client";
+import { ChevronDown } from "lucide-react";
+import { Menu } from "@/features/ui/Menu";
+import { AddTaskSplit } from "@/features/work/ViewToolbar";
 import { indiaDayOf } from "@/features/work/format";
 import { addDays, dayDiff } from "@/server/work/schedule";
 
@@ -218,50 +221,63 @@ export function TaskCalendar({
   const badge = (day: string, text: string) => (
     <span className={`inline-flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-caption ${day === todayDay ? "bg-primary-solid font-bold text-on-solid" : "text-ink-muted"}`}>{text}</span>
   );
+  // v1.72.0 (D-387, spec PV §6, S-12): the unit is a dropdown (Weeks · Months) instead of two side-by-side links.
+  const weeksHref = planning ? `${planning.href}cal=week&week=${week ? weekStart : todayDay.slice(0, 7) === month ? todayDay : `${month}-01`}` : "";
+  const monthsHref = planning ? `${planning.href}cal=month&month=${week ? weekStart.slice(0, 7) : month}` : "";
   const unitLinks = planning && (
-    <div className="ml-auto flex overflow-hidden rounded-md border border-line text-label" role="group" aria-label="Calendar unit">
-      <Link href={`${planning.href}cal=week&week=${week ? weekStart : todayDay.slice(0, 7) === month ? todayDay : `${month}-01`}`} aria-current={week ? "page" : undefined} className={`px-3 py-1 ${week ? "bg-primary-solid text-on-solid" : "hover:bg-surface-muted"}`} data-testid="calendar-weeks">
-        Weeks
-      </Link>
-      <Link href={`${planning.href}cal=month&month=${week ? weekStart.slice(0, 7) : month}`} aria-current={!week ? "page" : undefined} className={`px-3 py-1 ${!week ? "bg-primary-solid text-on-solid" : "hover:bg-surface-muted"}`} data-testid="calendar-months">
-        Months
-      </Link>
-    </div>
+    <span className="ml-auto">
+      <Menu
+        label={`Calendar unit: ${week ? "Weeks" : "Months"}`}
+        trigger={
+          <span className="inline-flex items-center gap-1">
+            {week ? "Weeks" : "Months"} <ChevronDown aria-hidden="true" className="h-4 w-4" />
+          </span>
+        }
+        buttonClass="btn-secondary btn-compact"
+        menuClass="w-40"
+        testId="calendar-unit"
+        items={[
+          { kind: "radio", label: "Weeks", checked: week, href: weeksHref, testId: "calendar-weeks" },
+          { kind: "radio", label: "Months", checked: !week, href: monthsHref, testId: "calendar-months" },
+        ]}
+      />
+    </span>
   );
   const weekEnd = addDays(weekStart, 6);
   return (
     <div className={`grid gap-4 ${planning && !showNoStart ? "" : "lg:grid-cols-[minmax(0,1fr)_240px]"}`} data-testid="task-calendar">
       <div>
-        <div className="mb-2 flex flex-wrap items-center gap-2">
+        <div className="mb-2 flex flex-wrap items-center gap-2" role="toolbar" aria-label="Calendar tools">
+          {canEdit && projectId ? <AddTaskSplit projectId={projectId} /> : null}
           {week ? (
             <>
               <Link href={`${planning!.href}cal=week&week=${addDays(weekStart, -7)}`} className="btn-secondary btn-compact" aria-label="Previous week">
                 ‹
               </Link>
-              <h2 className="min-w-0 text-center font-semibold sm:min-w-52" data-testid="calendar-week-title">
-                {dayLabel(weekStart)} – {dayLabel(weekEnd)} {weekEnd.slice(0, 4)}
-              </h2>
-              <Link href={`${planning!.href}cal=week&week=${addDays(weekStart, 7)}`} className="btn-secondary btn-compact" aria-label="Next week">
-                ›
-              </Link>
               <Link href={`${planning!.href}cal=week&week=${todayDay}`} className="btn-secondary btn-compact">
                 Today
               </Link>
+              <Link href={`${planning!.href}cal=week&week=${addDays(weekStart, 7)}`} className="btn-secondary btn-compact" aria-label="Next week">
+                ›
+              </Link>
+              <h2 className="min-w-0 font-semibold sm:min-w-52" data-testid="calendar-week-title">
+                {dayLabel(weekStart)} – {dayLabel(weekEnd)} {weekEnd.slice(0, 4)}
+              </h2>
             </>
           ) : (
             <>
               <Link href={hrefFor(shift(-1))} className="btn-secondary btn-compact" aria-label="Previous month">
                 ‹
               </Link>
-              <h2 className="min-w-0 text-center font-semibold sm:min-w-40">
-                {MONTH_NAMES[monthIndex - 1]} {year}
-              </h2>
-              <Link href={hrefFor(shift(1))} className="btn-secondary btn-compact" aria-label="Next month">
-                ›
-              </Link>
               <Link href={hrefFor(todayDay.slice(0, 7))} className="btn-secondary btn-compact">
                 Today
               </Link>
+              <Link href={hrefFor(shift(1))} className="btn-secondary btn-compact" aria-label="Next month">
+                ›
+              </Link>
+              <h2 className="min-w-0 font-semibold sm:min-w-40">
+                {MONTH_NAMES[monthIndex - 1]} {year}
+              </h2>
             </>
           )}
           {planning && (

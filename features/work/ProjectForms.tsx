@@ -116,8 +116,10 @@ export function ProjectForm({ values, departments, myDepartmentId }: { values?: 
             {PROJECT_COLORS.map((option) => (
               <label key={option} className="cursor-pointer">
                 <input type="radio" name="color" value={option} checked={color === option} onChange={() => setColor(option)} className="peer sr-only" />
+                {/* v1.72.0 (D-387): the colour's name is the radio's label (aria-label on a plain span is not allowed). */}
+                <span className="sr-only">{option}</span>
                 <span
-                  aria-label={option}
+                  aria-hidden="true"
                   title={option}
                   className="block h-7 w-7 rounded-md ring-offset-2 peer-checked:ring-2 peer-checked:ring-primary-600 peer-focus-visible:ring-2"
                   style={{ backgroundColor: COLOR_HEX[option] }}

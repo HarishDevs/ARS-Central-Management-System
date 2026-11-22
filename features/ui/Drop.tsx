@@ -24,7 +24,12 @@ export function Drop({ label, icon, buttonClass, panelClass = "left-0 w-56", tes
       if (box.current?.open && !inside(event, box.current)) box.current.open = false;
     };
     const escape = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && box.current?.open) box.current.open = false;
+      if (event.key === "Escape" && box.current?.open) {
+        // v1.72.0 (D-387): focus goes back to the button that opened the panel.
+        const within = box.current.contains(document.activeElement);
+        box.current.open = false;
+        if (within) summary.current?.focus();
+      }
     };
     document.addEventListener("mousedown", close);
     document.addEventListener("keydown", escape);

@@ -2306,6 +2306,24 @@ flowchart TD
 ```
 - Kinds: My Tasks, Projects (Recent / Starred), Latest status updates, Private notepad, My weekly workload, Tasks I've assigned, People; Forms waits for phase C. Each once, at most 20; the server refuses kinds of modules the person lacks. Without Projects, the locked "coming soon" card stays after the widgets (D-307).
 
+## F-PM-MENUS: Project screens' dropdown menus and Customize panel (v1.72.0, D-387)
+```mermaid
+flowchart LR
+  B[▾ or ⋯ button] -->|click, Enter, Space, ↓ or ↑| M[Menu opens on the first or last item, placed in the window]
+  M -->|↓ ↑ Home End, a letter| M
+  M -->|→ on an item with ›| S[Submenu, first item focused] -->|← or Escape| M
+  M -->|Enter on an item| A[Action or link; menu closes; focus back on the button]
+  M -->|Enter on a radio or checkbox item| R[Choice made; menu stays open]
+  M -->|Escape| F[Menu closes; focus back on the button]
+  M -->|Tab or a click outside| C[Menu closes]
+  H[Header: Customize] --> P[Customize panel: + Add field / form / automation; Automations, Fields, Forms with counts; Project settings]
+  P -->|a row| T[Project settings at that section]
+  P -->|Escape or ✕| H
+```
+- One menu component (`features/ui/MenuCore.tsx`) for the project header (actions with Import and Export or sync submenus, status), the tab menu, Add tab (Popular / Other), Add task ▾ (Task, Milestone, Section), Sort, the section ⋯ (List and Board), the field column ▾, the Timeline/Gantt unit and Filter, the Calendar unit, the task pane's ⋯ and the activity order. Filter, Group and Options stay popovers (Options has pages with ← Back).
+- Global shortcuts (Escape closes the task pane, Q, G, J, K, X, ?) are ignored while focus is in an open menu or the Customize panel (`isTyping`).
+- Loading: a click towards a project or its settings lays that page's skeleton over the content (NavigationProgress, `desktopSkeletonFor`) until the page arrives; no route-level loading.tsx and no Suspense boundary on these pages (KNOWN_ISSUES V6-D06: lost refreshes after actions, reproduced with Suspense in v1.72.0 work).
+
 ## F-PM-TABS: Project tabs for every view (v1.61.0, D-367; extends F-162)
 ```mermaid
 flowchart LR
@@ -2317,7 +2335,7 @@ flowchart LR
   V -->|owner or editor: + Add tab| A{Strip stored?}
   A -->|no| M[Write the five built-in views as rows] --> N[New tab last, unique name, opens]
   A -->|yes| N
-  V -->|tab menu| X[Rename / Set as default / Duplicate / Copy link / Move left-right / Remove]
+  V -->|tab menu| X[Rename / Set as default / Make a copy / Copy link / Move left-right / Remove]
   V -->|Alt + arrow or drag| R[Reorder, announced]
 ```
 - Owners and editors change tabs; commenters, viewers and everyone else only open them and copy links; anyone who can't see the project gets "Not found". One tab always stays; at most 50.

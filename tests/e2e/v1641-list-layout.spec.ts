@@ -78,9 +78,10 @@ test("v1.66.3: a section's ⋯ menu opens on top, fully visible, and its items w
   await as(context, "E2E_REQ");
   await page.setViewportSize({ width: 1280, height: 640 });
   await page.goto(projectUrl);
-  const last = page.getByTestId("group-menu-more").last();
-  await last.locator("summary").click();
-  const panel = last.locator("[data-floating]");
+  // v1.72.0 (D-387): a project section has one ⋯ menu (an ARIA menu placed against the window).
+  const last = page.getByTestId("section-menu").last();
+  await last.locator("button[aria-haspopup]").click();
+  const panel = last.getByRole("menu");
   await expect(panel).toBeVisible();
   await expect(panel).toBeInViewport({ ratio: 1 });
   // Nothing else is drawn over the menu: the element at its centre belongs to it.
@@ -90,7 +91,7 @@ test("v1.66.3: a section's ⋯ menu opens on top, fully visible, and its items w
     return !!hit && element.contains(hit);
   });
   expect(onTop).toBe(true);
-  await panel.getByRole("button", { name: "Collapse all groups" }).click();
+  await panel.getByRole("menuitem", { name: "Collapse all groups" }).click();
   await expect(page.getByTestId("task-row")).toHaveCount(0);
   await expect(panel).toBeHidden();
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Copy, Settings2 } from "lucide-react";
+import { Archive, CalendarSync, ChevronDown, Copy, Download, FileJson, FileSpreadsheet, FileUp, FolderPlus, LayoutTemplate, Link2, Palette, Printer, Settings, ShieldCheck, Timer, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { SaveTemplateForm } from "@/features/work/MoreParts";
@@ -10,12 +10,17 @@ import { useToast } from "@/features/ui/Toast";
 import { COLOR_HEX } from "@/features/work/client";
 import { StarButton } from "@/features/work/ProjectForms";
 import { ProjectShareButton } from "@/features/work/ShareDialogs";
+import { CustomizeButton, type CustomizeCounts } from "@/features/work/CustomizePanel";
 import type { ProjectRole } from "@/server/work/access";
 import { STATUS_KIND_LABEL, STATUS_KINDS, type ProjectStatusKind } from "@/server/work/access";
 import { COPY_BLOCKED, copyText } from "@/features/ui/clipboard";
 
 // D-219 (screen catalog S-06): the project header: icon, name, the actions
 // menu, star, the "Set status" pill, then member avatars, Share and Customize.
+// v1.72.0 (D-387, spec PM §3.6, §3.10, §3.20, §3.22): the tile and the avatars
+// are links (colour, members), the actions menu follows the spec's order with
+// Import and Export submenus, the status menu shows each status's colour and
+// Customize opens the Customize panel.
 const STATUS_DOT: Record<ProjectStatusKind, string> = {
   ON_TRACK: "bg-success-600",
   AT_RISK: "bg-warning-600",
@@ -36,6 +41,10 @@ export function ProjectHeader({
   canEdit,
   canManage,
   share,
+  archived = false,
+  extras = false,
+  portfolios = false,
+  customize,
 }: {
   projectId: number;
   name: string;
@@ -46,6 +55,10 @@ export function ProjectHeader({
   members: { id: number; name: string }[];
   canEdit: boolean;
   canManage: boolean;
+  archived?: boolean;
+  extras?: boolean; // "pm_extras": Import and Export or sync
+  portfolios?: boolean; // "pm_portfolios": Add to portfolio
+  customize?: { counts: CustomizeCounts; fieldDialog: boolean };
   share: { privacy: string; departmentId: number | null; departments: { id: number; name: string }[]; members: { type: "USER" | "DEPARTMENT"; id: number; name: string; role: ProjectRole }[]; people: { id: number; label: string }[]; canShare: boolean };
 }) {
   const toast = useToast();
@@ -59,23 +72,64 @@ export function ProjectHeader({
     const link = `${window.location.origin}${base}`;
     void copyText(link).then((done) => toast(done ? { tone: "success", title: "Project link copied." } : { tone: "error", title: `${COPY_BLOCKED} ${link}` }));
   };
+  const exportBase = `/api/work/projects/${projectId}/export?format=`;
   const actions: MenuItem[] = [
-    { label: "Edit project settings", href: `${base}/settings#details` },
-    { label: "Manage members", href: `${base}/settings#members` },
-    { label: "Copy project link", onSelect: copyLink },
-    ...(canEdit ? [{ label: "Duplicate", href: `${base}/settings#reuse` }, { label: "Save as template", onSelect: () => setSaving(true) }] : []),
-    ...(canManage ? [{ label: "Archive or delete", href: `${base}/settings#lifecycle`, tone: "danger" as const }] : []),
+    { label: "Edit project settings", icon: <Settings className="h-4 w-4" />, href: `${base}/settings#details` },
+    { label: "Manage project permissions", icon: <ShieldCheck className="h-4 w-4" />, href: `${base}/settings#permissions` },
+    ...(canManage ? [{ label: "Set colour", icon: <Palette className="h-4 w-4" style={{ color: COLOR_HEX[color] ?? COLOR_HEX.gray }} />, href: `${base}/settings#details` }] : []),
+    { label: "Copy project link", icon: <Link2 className="h-4 w-4" />, onSelect: copyLink },
+    ...(canEdit
+      ? [
+          { label: "Duplicate", icon: <Copy className="h-4 w-4" />, href: `${base}/settings#reuse` },
+          { label: "Save as template", icon: <LayoutTemplate className="h-4 w-4" />, onSelect: () => setSaving(true) },
+        ]
+      : []),
+    ...(portfolios ? [{ label: "Add to portfolio", icon: <FolderPlus className="h-4 w-4" />, hint: "Open a portfolio, then add projects", href: "/users/work/portfolios" }] : []),
+    ...(extras && canEdit ? [{ kind: "submenu" as const, label: "Import", icon: <FileUp className="h-4 w-4" />, testId: "project-import", items: [{ label: "CSV or Excel file", icon: <FileSpreadsheet className="h-4 w-4" />, href: `${base}/settings#import-export` }] }] : []),
+    {
+      kind: "submenu" as const,
+      label: extras ? "Export or sync" : "Export",
+      icon: <Download className="h-4 w-4" />,
+      testId: "project-export",
+      items: [
+        ...(extras
+          ? [
+              { kind: "heading" as const, label: "Export" },
+              { label: "Project tasks (CSV)", icon: <FileSpreadsheet className="h-4 w-4" />, href: `${exportBase}csv`, download: true },
+              { label: "Project tasks (Excel)", icon: <FileSpreadsheet className="h-4 w-4" />, href: `${exportBase}xlsx`, download: true },
+              { label: "Time entries (CSV)", icon: <Timer className="h-4 w-4" />, href: `/api/work/projects/${projectId}/time`, download: true },
+              ...(canEdit ? [{ label: "JSON", icon: <FileJson className="h-4 w-4" />, href: `${exportBase}json`, download: true }] : []),
+              { kind: "heading" as const, label: "Sync" },
+              { label: "Calendar feed", icon: <CalendarSync className="h-4 w-4" />, href: `${base}/settings#calendar-feed` },
+            ]
+          : []),
+        { label: "Print", icon: <Printer className="h-4 w-4" />, onSelect: () => window.print() },
+      ],
+    },
+    ...(canManage
+      ? [
+          { kind: "separator" as const, label: "" },
+          { label: archived ? "Unarchive" : "Archive", icon: <Archive className="h-4 w-4" />, href: `${base}/settings#lifecycle` },
+          { label: "Delete project", icon: <Trash2 className="h-4 w-4" />, href: `${base}/settings#lifecycle`, tone: "danger" as const },
+        ]
+      : []),
   ];
-  const statuses: MenuItem[] = STATUS_KINDS.map((kind) => ({ label: STATUS_KIND_LABEL[kind], href: `${base}?view=overview&status=${kind}#post-status` }));
+  const statuses: MenuItem[] = STATUS_KINDS.map((kind) => ({ label: STATUS_KIND_LABEL[kind], hint: status === kind ? "Current status" : undefined, icon: <span aria-hidden="true" className={`inline-block h-2.5 w-2.5 rounded-full ${STATUS_DOT[kind]}`} />, href: `${base}?view=overview&status=${kind}#post-status` }));
   return (
     <header className="mb-4 flex flex-wrap items-center gap-3" data-testid="project-header">
-      <span aria-hidden="true" className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-caption font-bold text-on-solid" style={{ backgroundColor: COLOR_HEX[color] ?? COLOR_HEX.gray }}>
-        {initials(name)}
-      </span>
+      {canManage ? (
+        <Link href={`${base}/settings#details`} aria-label={`Change colour of ${name}`} title="Change colour" className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-caption font-bold text-on-solid hover:ring-2 hover:ring-line-strong" style={{ backgroundColor: COLOR_HEX[color] ?? COLOR_HEX.gray }}>
+          <span aria-hidden="true">{initials(name)}</span>
+        </Link>
+      ) : (
+        <span aria-hidden="true" className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-caption font-bold text-on-solid" style={{ backgroundColor: COLOR_HEX[color] ?? COLOR_HEX.gray }}>
+          {initials(name)}
+        </span>
+      )}
       <div className="min-w-0">
         <div className="flex items-center gap-1">
           <h1 className="truncate text-title font-semibold tracking-tight">{name}</h1>
-          <Menu label={`Actions for ${name}`} trigger={<ChevronDown aria-hidden="true" className="h-4 w-4" />} items={actions} align="left" />
+          <Menu label={`Actions for ${name}`} trigger={<ChevronDown aria-hidden="true" className="h-4 w-4" />} items={actions} align="left" menuClass="w-64" testId="project-actions" />
           <StarButton projectId={projectId} starred={starred} name={name} />
           {canEdit ? (
             <Menu
@@ -88,6 +142,7 @@ export function ProjectHeader({
               }
               items={statuses}
               align="left"
+              testId="status-menu"
             />
           ) : (
             status && (
@@ -101,23 +156,16 @@ export function ProjectHeader({
         <p className="text-caption text-ink-muted">{meta}</p>
       </div>
       <div className="ml-auto flex items-center gap-2">
-        <span className="flex -space-x-1.5" aria-label={`${members.length} member${members.length === 1 ? "" : "s"}`}>
+        <Link href={`${base}/settings#members`} className="flex -space-x-1.5 rounded-full hover:opacity-90" aria-label={`Manage project members (${members.length} member${members.length === 1 ? "" : "s"})`} title="Manage project members" data-testid="member-stack">
           {members.slice(0, 5).map((member) => (
             <span key={member.id} title={member.name} className="inline-flex h-7 w-7 items-center justify-center rounded-full border-2 border-surface bg-primary-50 text-[length:calc(10px*var(--text-scale,1))] font-semibold text-primary-700">
               {initials(member.name)}
             </span>
           ))}
           {members.length > 5 && <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-full border-2 border-surface bg-surface-muted px-1 text-caption">+{members.length - 5}</span>}
-        </span>
+        </Link>
         <ProjectShareButton projectId={projectId} name={name} privacy={share.privacy} departmentId={share.departmentId} departments={share.departments} members={share.members} people={share.people} canShare={share.canShare} canManage={canManage} />
-        {canEdit && (
-          <Link href={`${base}/settings#fields`} className="btn-secondary btn-compact inline-flex items-center gap-1">
-            <Settings2 aria-hidden="true" className="h-4 w-4" /> Customize
-          </Link>
-        )}
-        <button type="button" onClick={copyLink} aria-label="Copy project link" title="Copy project link" className="btn-secondary btn-compact">
-          <Copy aria-hidden="true" className="h-4 w-4" />
-        </button>
+        {canEdit && customize && <CustomizeButton base={base} counts={customize.counts} fieldDialog={customize.fieldDialog} />}
       </div>
       {saving && (
         <dialog ref={dialog} onClose={() => setSaving(false)} aria-labelledby="save-template-title" className="w-[calc(100%-2rem)] max-w-md rounded-xl border border-line bg-raised p-0 text-ink shadow-overlay backdrop:bg-overlay" data-testid="save-template-dialog">

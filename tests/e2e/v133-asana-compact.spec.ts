@@ -56,7 +56,7 @@ test("the table: Filters with quick filters, Groups by assignee, a saved tab", a
   await expect(grid.getByTestId("task-row")).toHaveCount(2);
   // Groups: by assignee, with the person's group header.
   await grid.getByTestId("group-menu").locator("summary").click();
-  await grid.getByTestId("group-menu").getByLabel("Assignee").check();
+  await grid.getByTestId("group-by").selectOption("assignee"); // v1.72.0 (D-387): a "Group by" dropdown
   await expect(grid.getByRole("rowgroup", { name: "Ravi Requester" })).toBeVisible();
   await page.screenshot({ path: "test-results/compact-grid.png" });
   // Options → Save as a new tab.

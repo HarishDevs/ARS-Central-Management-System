@@ -145,3 +145,102 @@ export function PageSkeleton({ kind = "list", label = "Loading…" }: { kind?: "
     </div>
   );
 }
+
+// v1.72.0 (D-387, COMPONENT_SPECS §8, PV §2.5): a project page while it loads,
+// shaped like the real one: the header row (tile, name, ▾, star, status;
+// avatars, Share, Customize), the tabs strip, the toolbar (Add task │▾ on the
+// left; Filter, Sort, Group, Options, Search on the right), then the List's
+// column header, a section heading and task rows (circle, name, columns).
+// The sweep stops under prefers-reduced-motion (.skeleton in globals.css).
+export function ProjectSkeleton({ label = "Loading the project…" }: { label?: string }) {
+  return (
+    <div aria-busy="true" data-testid="project-skeleton">
+      <Announce label={label} />
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <SkeletonBlock className="h-7 w-7 shrink-0" />
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <SkeletonBlock className="h-6 w-48" />
+            <SkeletonBlock className="h-4 w-4" />
+            <SkeletonBlock className="h-4 w-4" />
+            <SkeletonBlock className="h-5 w-20 rounded-full" />
+          </div>
+          <SkeletonBlock className="h-3 w-64 max-w-[60vw]" />
+        </div>
+        <div className="ml-auto hidden items-center gap-2 sm:flex">
+          <SkeletonBlock className="h-7 w-7 rounded-full" />
+          <SkeletonBlock className="h-7 w-7 rounded-full" />
+          <SkeletonBlock className="h-8 w-20" />
+          <SkeletonBlock className="h-8 w-24" />
+        </div>
+      </div>
+      <div className="mb-3 flex items-end gap-5 border-b border-line pb-2">
+        {[64, 36, 44, 56, 60].map((width, index) => (
+          <SkeletonBlock key={index} className="h-4" style={{ width }} />
+        ))}
+        <SkeletonBlock className="h-4 w-16" />
+      </div>
+      <div className="mb-2 flex items-center gap-2">
+        <SkeletonBlock className="h-8 w-28" />
+        <div className="ml-auto flex items-center gap-3">
+          {[48, 40, 48, 60].map((width, index) => (
+            <SkeletonBlock key={index} className="h-4" style={{ width }} />
+          ))}
+          <SkeletonBlock className="h-4 w-4" />
+        </div>
+      </div>
+      <div className="overflow-hidden rounded-lg border border-line bg-surface">
+        <div className="grid grid-cols-[40px_minmax(0,1fr)_repeat(3,minmax(0,140px))] gap-3 border-b border-line px-2 py-2.5 max-sm:grid-cols-[40px_minmax(0,1fr)]">
+          <SkeletonBlock className="h-3 w-3" />
+          <SkeletonBlock className="h-3 w-16" />
+          {[0, 1, 2].map((index) => (
+            <SkeletonBlock key={index} className="h-3 w-16 max-sm:hidden" />
+          ))}
+        </div>
+        {[0, 1].map((section) => (
+          <div key={section}>
+            <div className="flex items-center gap-2 border-b border-line px-2 pb-2 pt-5">
+              <SkeletonBlock className="h-4 w-4" />
+              <SkeletonBlock className="h-4 w-28" />
+              <SkeletonBlock className="h-4 w-6 rounded-full" />
+            </div>
+            {Array.from({ length: section === 0 ? 4 : 2 }, (_, row) => (
+              <div key={row} className="grid min-h-row grid-cols-[40px_minmax(0,1fr)_repeat(3,minmax(0,140px))] items-center gap-3 border-b border-line px-2 max-sm:grid-cols-[40px_minmax(0,1fr)]">
+                <SkeletonBlock className="h-3 w-3" />
+                <div className="flex items-center gap-2">
+                  <SkeletonBlock className="h-4 w-4 shrink-0 rounded-full" />
+                  <SkeletonBlock className="h-4" style={{ width: `${45 + ((row * 23 + section * 11) % 40)}%` }} />
+                </div>
+                {[0, 1, 2].map((column) => (
+                  <SkeletonBlock key={column} className="h-4 w-20 max-sm:hidden" />
+                ))}
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// v1.72.0 (D-387): the project settings page while it loads: the section list
+// beside one column of cards.
+export function ProjectSettingsSkeleton() {
+  return (
+    <div aria-busy="true" data-testid="settings-skeleton">
+      <Announce label="Loading the project's settings…" />
+      <HeaderSkeleton />
+      <div className="grid gap-6 lg:grid-cols-[200px_minmax(0,1fr)]">
+        <div className="hidden space-y-2 lg:block">
+          {[80, 110, 90, 70, 100, 84, 96].map((width, index) => (
+            <SkeletonBlock key={index} className="h-4" style={{ width }} />
+          ))}
+        </div>
+        <div className="max-w-4xl space-y-6">
+          <FormSkeleton fields={4} />
+          <ListSkeleton rows={3} />
+        </div>
+      </div>
+    </div>
+  );
+}

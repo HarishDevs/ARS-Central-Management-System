@@ -161,11 +161,12 @@ test("values change inline in the List; formula, ID and timer; filter, sort and 
   await page.getByRole("button", { name: "Clear filters" }).click();
   await expect(row(page, beta)).toBeVisible();
   // The column menu: sort descending, then group by this field.
-  await page.getByRole("columnheader", { name: /Cost/ }).locator("summary").click();
-  await page.getByRole("button", { name: "Sort descending" }).click();
+  // v1.72.0 (D-387): the column ▾ is an ARIA menu.
+  await page.getByRole("button", { name: "Show options for Cost column" }).click();
+  await page.getByRole("menuitem", { name: "Sort descending" }).click();
   await expect(page.getByTestId("task-row").first()).toContainText(alpha);
-  await page.getByRole("columnheader", { name: /Stage/ }).locator("summary").click();
-  await page.getByRole("button", { name: "Group by this field" }).click();
+  await page.getByRole("button", { name: "Show options for Stage column" }).click();
+  await page.getByRole("menuitem", { name: "Group by this field" }).click();
   await expect(page.getByRole("rowgroup", { name: "Done" })).toBeVisible();
   await expect(page.getByRole("rowgroup", { name: "No Stage" })).toBeVisible();
   // Saved with the tab: Save view, reload, still grouped.
@@ -179,7 +180,9 @@ test("values change inline in the List; formula, ID and timer; filter, sort and 
 test("Board columns by a field: a keyboard move sets the option; the task pane edits values", async ({ page, context }) => {
   await as(context, "E2E_REQ");
   await page.goto(`${projectUrl}?view=board`);
+  await page.getByTestId("board-group").locator("summary").click(); // v1.72.0 (D-387): columns are chosen in the Group popover
   await page.getByTestId("board-columns").selectOption({ label: "Stage" });
+  await page.keyboard.press("Escape");
   await expect(page.getByRole("region", { name: /^Done, 1 task$/ })).toBeVisible();
   const card = page.getByTestId("board-card").filter({ hasText: beta });
   await card.focus();
