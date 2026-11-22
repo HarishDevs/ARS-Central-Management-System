@@ -172,7 +172,7 @@ export const EVENT_LABEL: Record<string, string> = {
   WORK_FORM_SUBMITTED: "Someone submits a project form",
   WORK_FORM_RECEIVED: "Confirmation of a form you submit",
   WORK_AUTOMATION: "A project automation tells you something",
-  WORK_AUTOMATION_NOTICE: "A project automation fails or pauses",
+  WORK_AUTOMATION_NOTICE: "A project automation fails, pauses or is taken over",
   WORK_PORTFOLIO_MEMBER: "You're added to a portfolio",
   WORK_PORTFOLIO_STATUS: "Portfolio status updates",
   WORK_PROJECT_MESSAGE: "Project messages, and mentions on a project page",

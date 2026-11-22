@@ -96,6 +96,9 @@ export const automationMessages = {
     message("WORK_AUTOMATION_NOTICE", to, `Automation failed: ${ruleName}`, `The automation "${ruleName}" in the project "${project.name}" couldn't finish: ${error.slice(0, 300)} You won't be told again until it has run without a problem. Its run log has the details.`, `${projectPath(project)}/settings#automations`, null),
   paused: (project: ProjectInfo, to: number, ruleName: string, reason: string) =>
     message("WORK_AUTOMATION_NOTICE", to, `Automation paused: ${ruleName}`, `The automation "${ruleName}" in the project "${project.name}" has stopped: ${reason} An owner or editor of the project can open it and choose Become owner to start it again.`, `${projectPath(project)}/settings#automations`, null),
+  // D-392 (owner): someone else edited or published your automation, so it is theirs now.
+  newOwner: (project: ProjectInfo, to: number, ruleName: string, by: string) =>
+    message("WORK_AUTOMATION_NOTICE", to, `Automation taken over: ${ruleName}`, `${by} changed the automation "${ruleName}" in the project "${project.name}", so it now belongs to them and runs with their rights, not yours.`, `${projectPath(project)}/settings#automations`, null),
 };
 
 // v1.69.0 (D-382): portfolios. Added to a portfolio; a status update on it

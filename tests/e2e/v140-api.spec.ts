@@ -23,7 +23,12 @@ function notMeToken(userId: number): string {
 }
 
 test("health check: 200 with the version, database and job runner state", async ({ request }) => {
-  const response = await request.get("/api/health");
+  // D-389 (QA L-4): anonymous callers get only the status and the version.
+  const anonymous = await request.get("/api/health");
+  expect(anonymous.status()).toBe(200);
+  expect(Object.keys(await anonymous.json()).sort()).toEqual(["status", "version"]);
+  const secret = { "x-health-secret": E2E_ENV.HEALTH_SECRET };
+  const response = await request.get("/api/health", { headers: secret });
   expect(response.status()).toBe(200);
   const body = await response.json();
   expect(body).toMatchObject({ status: "ok", database: "ok" });
@@ -33,9 +38,13 @@ test("health check: 200 with the version, database and job runner state", async 
   // check answers 503 when degraded (here: no backup, no job runner yet).
   expect(body).toHaveProperty("backupAgeHours");
   expect(typeof body.degraded).toBe("boolean");
-  const deep = await request.get("/api/health/deep");
+  const deep = await request.get("/api/health/deep", { headers: secret });
   expect(deep.status()).toBe(body.degraded ? 503 : 200);
   expect((await deep.json()).database).toBe("ok");
+  // Without the secret the same status code, but only "ok" or "degraded".
+  const deepAnonymous = await request.get("/api/health/deep");
+  expect(deepAnonymous.status()).toBe(deep.status());
+  expect(await deepAnonymous.json()).toEqual({ status: body.degraded ? "degraded" : "ok" });
 });
 
 test("WhatsApp receipt webhook: refuses without the secret, records delivered and read with it", async ({ request }) => {

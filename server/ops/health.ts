@@ -11,6 +11,20 @@ import { backupStatus } from "@/server/ops/backup";
 // The health checks' report (/api/health and /api/health/deep, D-103, D-246).
 const BACKUP_MAX_AGE_HOURS = 26;
 
+// D-389: the anonymous /api/health answer. Only "does the database answer";
+// no storage probe. It still reads the runner heartbeat so an uptime monitor
+// polling it keeps the "job runner stopped" alert working (A5).
+export async function basicHealth(): Promise<boolean> {
+  try {
+    const heartbeat = await getRunnerHeartbeat();
+    if (heartbeat !== null && heartbeat.minutesAgo > 15) after(() => checkJobRunnerStopped().then(() => undefined));
+    return true;
+  } catch (error) {
+    logError("health: database check failed", error);
+    return false;
+  }
+}
+
 export async function healthReport() {
   const started = Date.now();
   let database = false;

@@ -27,6 +27,16 @@ export function getDbPool(): mysql.Pool {
     dateStrings: false,
     timezone: "Z",
   });
+  // V181-A4 / Q-020 (D-391, QA logic #4): every pooled connection runs in UTC,
+  // so CURRENT_TIMESTAMP and column defaults equal UTC_TIMESTAMP() and the
+  // times the app writes (UTC). Live already reports a 0-minute offset, so
+  // there this changes nothing; on a non-UTC database it stops reminders,
+  // expiry notices and the automation cap from firing at the wrong time.
+  // mysql2 runs a connection's commands in order, so this SET always comes
+  // before the first query on a new connection.
+  globalForDb.dbPool.on("connection", (connection) => {
+    connection.query("SET time_zone = '+00:00'");
+  });
   return globalForDb.dbPool;
 }
 

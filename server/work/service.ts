@@ -38,7 +38,7 @@ import {
   type ProjectRole,
   type WorkViewer,
 } from "@/server/work/access";
-import { dependencyLoop, indiaDay, MAX_DEPENDENCIES, MAX_PROJECTS_PER_TASK, mentionedIds, needsRenumber, positionBetween, subtaskProblem } from "@/server/work/rules";
+import { dependencyLoop, indiaDay, realDay, MAX_DEPENDENCIES, MAX_PROJECTS_PER_TASK, mentionedIds, needsRenumber, positionBetween, subtaskProblem } from "@/server/work/rules";
 import { isAdminRoles, rightsOn, teamOf, workViewer } from "@/server/work/task-access";
 import type { NotifyInput } from "@/server/notifications/notify";
 import { checkHoliday, holidayMessage, nearestWorkingDay, type HolidayHit } from "@/server/work/holidays";
@@ -523,7 +523,9 @@ export async function setTaskFields(taskId: number, change: { dueDay?: string; s
   }
   if (change.startDay !== undefined) {
     if (task.isMilestone && change.startDay) return fail("A milestone has no start date.");
-    const start = /^\d{4}-\d{2}-\d{2}$/.test(change.startDay) ? change.startDay : null;
+    // D-393 (QA logic #8): a real calendar day or nothing ("2026-02-31" used to reach the database).
+    const start = change.startDay ? realDay(change.startDay) : null;
+    if (change.startDay && !start) return fail("Choose a valid start date.");
     changes.starts_on = start;
     notes.push(start ? `Start date set to ${start}` : "Start date removed");
   }

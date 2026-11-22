@@ -49,7 +49,11 @@ export async function discardStaged(staged: readonly StagedFile[]): Promise<void
 }
 
 // Inside the business transaction. Returns how many were stored.
-export async function insertRecordFiles(entity: FileEntity, entityId: number, staged: readonly StagedFile[], uploadedBy: number, purpose: "GENERAL" | "EVIDENCE", db: Queryable): Promise<number> {
+// D-388 (QA security M-1): INTERNAL = attached to an internal ticket remark;
+// shown and served only to people who see internal remarks.
+export type RecordFilePurpose = "GENERAL" | "EVIDENCE" | "INTERNAL";
+
+export async function insertRecordFiles(entity: FileEntity, entityId: number, staged: readonly StagedFile[], uploadedBy: number, purpose: RecordFilePurpose, db: Queryable): Promise<number> {
   if (staged.length === 0) return 0;
   const [rows] = await db.query<(RowDataPacket & { total: number })[]>("SELECT COUNT(*) AS total FROM record_files WHERE entity_type = ? AND entity_id = ?", [entity, entityId]);
   if (Number(rows[0]?.total ?? 0) + staged.length > MAX_FILES_PER_REQUEST) throw new RecordFileError(`At most ${MAX_FILES_PER_REQUEST} files can be kept on one record.`);
@@ -69,7 +73,7 @@ export interface RecordFile {
   entityType: FileEntity;
   entityId: number;
   fieldKey: string | null;
-  purpose: "GENERAL" | "EVIDENCE";
+  purpose: RecordFilePurpose;
   uploadedByName: string;
   name: string;
   contentType: string;
@@ -78,7 +82,7 @@ export interface RecordFile {
   createdAt: Date;
 }
 
-type FileRow = RowDataPacket & { id: number; entity_type: FileEntity; entity_id: number; field_key: string | null; purpose: "GENERAL" | "EVIDENCE"; uploaded_by_name: string; original_name: string; content_type: string; size_bytes: number; stored_path: string; created_at: Date };
+type FileRow = RowDataPacket & { id: number; entity_type: FileEntity; entity_id: number; field_key: string | null; purpose: RecordFilePurpose; uploaded_by_name: string; original_name: string; content_type: string; size_bytes: number; stored_path: string; created_at: Date };
 const toFile = (row: FileRow): RecordFile => ({
   id: row.id,
   entityType: row.entity_type,
@@ -94,9 +98,16 @@ const toFile = (row: FileRow): RecordFile => ({
 });
 const SELECT = "SELECT f.*, u.name AS uploaded_by_name FROM record_files f JOIN users u ON u.id = f.uploaded_by";
 
-export async function listRecordFiles(entity: FileEntity, entityId: number, db: Queryable = getDbPool()): Promise<RecordFile[]> {
-  const [rows] = await db.query<FileRow[]>(`${SELECT} WHERE f.entity_type = ? AND f.entity_id = ? ORDER BY f.id`, [entity, entityId]);
+// D-388: files of internal remarks are left out unless `internal` is true
+// (the viewer sees internal remarks).
+export async function listRecordFiles(entity: FileEntity, entityId: number, options: { internal?: boolean } = {}, db: Queryable = getDbPool()): Promise<RecordFile[]> {
+  const [rows] = await db.query<FileRow[]>(`${SELECT} WHERE f.entity_type = ? AND f.entity_id = ?${options.internal ? "" : " AND f.purpose <> 'INTERNAL'"} ORDER BY f.id`, [entity, entityId]);
   return rows.map(toFile);
+}
+
+// D-388: may this viewer open this file of a record they can see?
+export function recordFileVisible(file: Pick<RecordFile, "purpose">, seesInternal: boolean): boolean {
+  return file.purpose !== "INTERNAL" || seesInternal;
 }
 
 export async function findRecordFile(id: number, db: Queryable = getDbPool()): Promise<RecordFile | null> {

@@ -88,7 +88,7 @@ describe("ask for information (EN-05)", () => {
     const { state } = startInstance(oneLevel, ctx(), directory);
     const taskId = pending(state)[0]!.id;
     const asked = askForInformation(state, { taskId, actorId: 2, question: "Q?" }, ctx(), directory);
-    expect(resume(asked.state, { actorId: 2 }, directory).state.status).toBe("IN_PROGRESS");
+    expect(resume(asked.state, { actorId: 2, requesterId: 1 }, directory).state.status).toBe("IN_PROGRESS");
     expect(code(() => askForInformation(state, { taskId, actorId: 2, question: "" }, ctx(), directory))).toBe("COMMENT_REQUIRED");
     expect(code(() => askForInformation(state, { taskId, actorId: 9, question: "Q?" }, ctx(), directory))).toBe("NOT_AUTHORISED");
   });

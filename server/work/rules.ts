@@ -92,6 +92,13 @@ export function indiaDay(value: Date): string {
   return new Date(value.getTime() + 330 * 60_000).toISOString().slice(0, 10);
 }
 
+// D-393: "YYYY-MM-DD" when it is a real calendar day (not 2026-02-31), else null.
+export function realDay(text: string): string | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return null;
+  const date = new Date(`${text}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === text ? text : null;
+}
+
 // ---- mentions ---------------------------------------------------------------------------
 // Comments keep mentions as @[Name](user:12). Only ids are trusted; the name
 // shown is looked up again when the comment is drawn.

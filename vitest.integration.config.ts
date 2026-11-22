@@ -8,7 +8,7 @@ import path from "node:path";
 const DB = {
   DB_HOST: process.env.TEST_DB_HOST ?? "127.0.0.1",
   DB_PORT: process.env.TEST_DB_PORT ?? "3307",
-  DB_NAME: "ars_approvals_test",
+  DB_NAME: process.env.TEST_DB_NAME ?? "ars_approvals_test",
   DB_USER: process.env.TEST_DB_USER ?? "ars_dev",
   DB_PASSWORD: process.env.TEST_DB_PASSWORD ?? "ars_dev_password",
 };

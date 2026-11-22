@@ -184,10 +184,12 @@ export async function insertRule(input: { projectId: number; name: string; owner
   ]);
   return result.insertId;
 }
-export async function saveDraft(id: number, rowVersion: number, input: { name: string; draft: RuleDefinition }, by: number, db: Queryable): Promise<boolean> {
+// D-392: `ownerId` set when someone else's rule is edited: the editor becomes its owner.
+export async function saveDraft(id: number, rowVersion: number, input: { name: string; draft: RuleDefinition; ownerId?: number }, by: number, db: Queryable): Promise<boolean> {
+  const owner = input.ownerId === undefined ? "" : ", owner_id = ?, paused_reason = NULL";
   const [result] = await db.query<ResultSetHeader>(
-    "UPDATE project_automations SET name = ?, draft_json = ?, draft_changed = TRUE, row_version = row_version + 1, updated_by = ? WHERE id = ? AND row_version = ?",
-    [input.name, JSON.stringify(input.draft), by, id, rowVersion],
+    `UPDATE project_automations SET name = ?, draft_json = ?, draft_changed = TRUE${owner}, row_version = row_version + 1, updated_by = ? WHERE id = ? AND row_version = ?`,
+    [input.name, JSON.stringify(input.draft), ...(input.ownerId === undefined ? [] : [input.ownerId]), by, id, rowVersion],
   );
   return result.affectedRows === 1;
 }

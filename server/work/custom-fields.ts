@@ -229,7 +229,9 @@ export interface FieldDef {
 // name); MULTI_SELECT option ids; DATE "YYYY-MM-DD" or "YYYY-MM-DDTHH:MM";
 // PEOPLE user ids; REFERENCE task ids (checked against what the person sees
 // by the service).
-export function checkValue(field: FieldDef, value: unknown): { ok: true; stored: StoredValue | null } | { ok: false; message: string } {
+// keep (D-393, QA logic #11): MULTI_SELECT options the task already has; an
+// archived option may stay chosen but can't be newly added (as for SELECT).
+export function checkValue(field: FieldDef, value: unknown, keep: readonly number[] = []): { ok: true; stored: StoredValue | null } | { ok: false; message: string } {
   if (READ_ONLY_TYPES.includes(field.type)) return { ok: false, message: `${field.name} is worked out by the app; it can't be typed.` };
   if (field.type === "TIMER") return { ok: false, message: "Start and stop the timer instead." };
   const empty = value === null || value === undefined || (typeof value === "string" && !value.trim()) || (Array.isArray(value) && value.length === 0);
@@ -241,7 +243,10 @@ export function checkValue(field: FieldDef, value: unknown): { ok: true; stored:
     }
     case "NUMBER": {
       // D-234 (Postel): "₹ 1,200", "1 200" and "12.5%" are read as numbers.
-      const number = typeof value === "number" ? value : Number(String(value).replace(/[,\s₹%]/g, ""));
+      // D-393 (QA logic #7): only symbols ("₹", "%") is not a number (Number("") would be 0).
+      const cleaned = typeof value === "number" ? null : String(value).replace(/[,\s₹%]/g, "");
+      if (cleaned === "") return { ok: false, message: "Enter a number." };
+      const number = typeof value === "number" ? value : Number(cleaned);
       if (!Number.isFinite(number) || Math.abs(number) >= 1e15) return { ok: false, message: "Enter a number." };
       const factor = 10 ** 6;
       return { ok: true, stored: { ...EMPTY_STORED, number: Math.round(number * factor) / factor } };
@@ -257,6 +262,8 @@ export function checkValue(field: FieldDef, value: unknown): { ok: true; stored:
       const ids = [...new Set(value.map(Number))];
       const options = ids.map((id) => field.options.find((item) => item.id === id));
       if (options.some((item) => !item)) return { ok: false, message: "Choose from the field's options." };
+      const archived = options.find((item) => item!.archived && !keep.includes(item!.id));
+      if (archived) return { ok: false, message: `“${archived.name}” is archived; choose another option.` };
       return { ok: true, stored: { ...EMPTY_STORED, ids: options.map((item) => item!.id) } };
     }
     case "DATE": {

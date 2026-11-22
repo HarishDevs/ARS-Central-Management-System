@@ -9,6 +9,11 @@ import { findTask } from "@/lib/db/repositories/tasks.repository";
 import * as repo from "@/lib/db/repositories/work.repository";
 import * as fieldsRepo from "@/lib/db/repositories/fields.repository";
 import { findUserById } from "@/lib/db/repositories/users.repository";
+import { insertOutbox } from "@/lib/db/repositories/outbox.repository";
+import { afterResponse } from "@/lib/http/after-response";
+import { deliverOutbox } from "@/server/approvals/service";
+import { automationMessages } from "@/server/modules/messages";
+import type { Queryable } from "@/lib/db/client";
 import { appBaseUrl } from "@/lib/http/app-url";
 import { decryptSecret, encryptSecret } from "@/lib/security/encryption";
 import type { TaskActor } from "@/server/modules/tasks";
@@ -200,11 +205,14 @@ export async function builderData(ruleId: number, actor: TaskActor): Promise<Bui
   const found = await ruleFor(ruleId, actor, "see");
   if ("error" in found) return null;
   const { rule, access } = found;
+  // D-392: a builder who saves becomes the owner, so they choose from (and are
+  // checked against) their own projects.
+  const checkAs = { projectId: rule.projectId, ownerId: access.build ? actor.id : rule.ownerId };
   const [sections, fields, forms, targets, runs, deliveries, limits, ownerCanRun] = await Promise.all([
     repo.listSections(rule.projectId),
     fieldInfo(rule.projectId),
     formIds(rule.projectId),
-    targetProjects(rule.ownerId),
+    targetProjects(checkAs.ownerId),
     autoRepo.listRuns(rule.id),
     autoRepo.listDeliveries(rule.id),
     automationLimits(),
@@ -220,7 +228,7 @@ export async function builderData(ruleId: number, actor: TaskActor): Promise<Bui
     fields,
     forms,
     projects: [...targets].filter(([id]) => id !== rule.projectId).map(([id, project]) => ({ id, ...project })),
-    problems: await problemsFor(rule, rule.name, rule.draft),
+    problems: await problemsFor(checkAs, rule.name, rule.draft),
     webhookUrl: rule.webhookToken ? webhookUrl(rule.webhookToken) : null,
     runs,
     deliveries,
@@ -239,19 +247,40 @@ export function readRuleInput(raw: unknown): { ok: true; value: { name: string; 
   return { ok: true, value: { name, draft: draft.data, rowVersion } };
 }
 
+// D-392 (owner; QA security L-1): a rule acts with its owner's rights, so
+// whoever edits or publishes someone else's rule becomes its owner (as with
+// Become owner) and the previous owner is told. The draft is then checked
+// against the new owner's projects.
+async function takeOver(rule: RuleRecord, actor: TaskActor, connection: Queryable, name = rule.name): Promise<number[]> {
+  if (rule.ownerId === actor.id) return [];
+  await repo.appendProjectEvent(rule.projectId, actor.id, "AUTOMATION_OWNER", name, connection);
+  await recordAudit(audit(actor, "PROJECT_AUTOMATION_OWNER", rule.id, { from: rule.ownerId, to: actor.id, by: "EDIT" }), connection);
+  const [project, previous] = await Promise.all([repo.findProject(rule.projectId), findUserById(rule.ownerId)]);
+  if (!project || !previous?.active) return [];
+  return insertOutbox(null, [automationMessages.newOwner({ id: project.id, name: project.name }, previous.id, name, actor.name)], connection);
+}
+async function sendLater(ids: number[]): Promise<void> {
+  if (ids.length) await afterResponse("automation owner notice", () => deliverOutbox(ids));
+}
+const takenOverNote = (rule: RuleRecord, actor: TaskActor) => (rule.ownerId === actor.id ? "" : " You own this automation now; it acts with your rights.");
+
 export async function saveRule(ruleId: number, raw: unknown, actor: TaskActor): Promise<Result<{ rowVersion: number; problems: RuleProblem[] }>> {
   const found = await ruleFor(ruleId, actor, "build");
   if ("error" in found) return fail(found.error);
   const input = readRuleInput(raw);
   if (!input.ok) return fail(input.message);
   const { name, draft, rowVersion } = input.value;
+  const takingOver = found.rule.ownerId !== actor.id;
+  let outbox: number[] = [];
   const saved = await withTransaction(async (connection) => {
-    if (!(await autoRepo.saveDraft(ruleId, rowVersion, { name: name || found.rule.name, draft }, actor.id, connection))) return null;
+    if (!(await autoRepo.saveDraft(ruleId, rowVersion, { name: name || found.rule.name, draft, ...(takingOver ? { ownerId: actor.id } : {}) }, actor.id, connection))) return null;
     await recordAudit(audit(actor, "PROJECT_AUTOMATION_SAVED", ruleId, { steps: allSteps(draft).length }), connection);
+    outbox = await takeOver(found.rule, actor, connection, name || found.rule.name);
     return rowVersion + 1;
   });
   if (saved === null) return fail("Someone else changed this automation. Reload the page to see the latest, then try again.");
-  return { ok: true, value: { rowVersion: saved, problems: await problemsFor(found.rule, name || found.rule.name, draft) }, message: "Draft saved." };
+  await sendLater(outbox);
+  return { ok: true, value: { rowVersion: saved, problems: await problemsFor({ projectId: found.rule.projectId, ownerId: actor.id }, name || found.rule.name, draft) }, message: `Draft saved.${takenOverNote(found.rule, actor)}` };
 }
 
 // Publish: the draft is checked as a whole (with the owner's rights for other
@@ -260,13 +289,20 @@ export async function publishRule(ruleId: number, actor: TaskActor): Promise<Res
   const found = await ruleFor(ruleId, actor, "build");
   if ("error" in found) return fail(found.error);
   const { rule } = found;
-  const problems = await problemsFor(rule, rule.name, rule.draft);
+  // D-392: checked as the rule will run: with the publisher's rights.
+  const asPublisher = { ...rule, ownerId: actor.id };
+  const problems = await problemsFor(asPublisher, rule.name, rule.draft);
   if (problems.length) return fail(`Fix ${problems.length === 1 ? "this" : `these ${problems.length} things`} first: ${problems[0]!.message}`, problems);
-  if (!(await ownerMayRun(rule))) return fail(`The rule's owner can't run it: ${OWNER_LOST} Choose Become owner first.`);
+  if (!(await ownerMayRun(asPublisher))) return fail(`You can't run this automation: ${OWNER_LOST}`);
   let secret: string | null = null;
+  let outbox: number[] = [];
   const version = await withTransaction(async (connection) => {
     const locked = await autoRepo.findRule(ruleId, connection, true);
     if (!locked || locked.rowVersion !== rule.rowVersion) return null;
+    if (locked.ownerId !== actor.id) {
+      await autoRepo.setOwner(ruleId, actor.id, actor.id, connection);
+      outbox = await takeOver(locked, actor, connection);
+    }
     await autoRepo.publishRule(ruleId, rule.draft, actor.id, connection);
     // A webhook rule gets its address and secret the first time (the secret is shown once).
     if (rule.draft.trigger?.type === "WEBHOOK" && !locked.webhookToken) {
@@ -278,7 +314,8 @@ export async function publishRule(ruleId: number, actor: TaskActor): Promise<Res
     return locked.publishedVersion + 1;
   });
   if (version === null) return fail("Someone else changed this automation. Reload the page, then publish again.");
-  return { ok: true, value: { version, secret }, message: `Published (version ${version}). It runs on new activity from now on.` };
+  await sendLater(outbox);
+  return { ok: true, value: { version, secret }, message: `Published (version ${version}). It runs on new activity from now on.${takenOverNote(rule, actor)}` };
 }
 
 export async function discardDraft(ruleId: number, actor: TaskActor): Promise<Result> {

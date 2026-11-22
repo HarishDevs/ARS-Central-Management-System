@@ -303,7 +303,8 @@ export async function commentOnTicket(input: { ticketId: number; body: string; i
       // Only coordinators and the assignee may keep a remark internal.
       const internal = input.internal && seesInternal(ticket, viewer) && ticket.requesterId !== actor.id;
       if (body) await insertTicketComment(ticket.id, actor.id, body, internal, connection);
-      await insertRecordFiles("TICKET", ticket.id, input.files, actor.id, "GENERAL", connection);
+      // D-388 (QA security M-1): an internal remark's files are internal too.
+      await insertRecordFiles("TICKET", ticket.id, input.files, actor.id, internal ? "INTERNAL" : "GENERAL", connection);
       await appendTicketEvent(ticket.id, { actorId: actor.id, action: input.files.length && !body ? "FILES_ADDED" : "REMARK", internal, detail: input.files.length ? { files: input.files.length } : null }, connection);
       const people = new Set<number>([...(await coordinatorsOf(ticket.typeId, connection)).map((person) => person.id), ...(ticket.assigneeId ? [ticket.assigneeId] : []), ...(internal ? [] : [ticket.requesterId])]);
       people.delete(actor.id);
@@ -333,16 +334,23 @@ export async function runTicketConfirmations(now = new Date()): Promise<{ remind
   let closed = 0;
   for (const item of await awaitingTickets()) {
     const requestedDay = indiaDate(item.requestedAt);
-    for (const { stage, days } of CONFIRM_STAGES) {
+    // Reminders on the working day itself; closing only once the 4th working day is over.
+    const isDue = ({ stage, days }: (typeof CONFIRM_STAGES)[number]) => {
       const dueDay = addWorkingDays(requestedDay, days, calendar);
-      // Reminders on the working day itself; closing only once the 4th working day is over.
-      const due = stage === "CLOSE" ? today > dueDay : today >= dueDay;
-      if (!due) continue;
+      return stage === "CLOSE" ? today > dueDay : today >= dueDay;
+    };
+    for (const [index, { stage, days }] of CONFIRM_STAGES.entries()) {
+      if (!isDue(CONFIRM_STAGES[index]!)) continue;
+      // D-393 (QA logic #9): after a runner outage only the latest due stage is
+      // sent; earlier ones are claimed silently (no "reminder 2", "reminder 3"
+      // and "closed" at the same moment).
+      const overtaken = CONFIRM_STAGES.slice(index + 1).some(isDue);
       try {
         const outcome = await withTransaction(async (connection) => {
           const ticket = await findTicket(item.id, connection, true);
           if (!ticket || ticket.status !== "AWAITING_CONFIRMATION" || ticket.reopenCount !== item.reopenCount) return null;
           if (!(await claimConfirmStep(ticket.id, ticket.reopenCount, stage, connection))) return null;
+          if (overtaken) return { kind: "skipped", outbox: [] as number[] } as const;
           const lastDay = addWorkingDays(requestedDay, CONFIRM_STAGES.at(-1)!.days, calendar);
           if (stage !== "CLOSE") {
             await appendTicketEvent(ticket.id, { actorId: null, action: "CONFIRM_REMINDER", detail: { workingDay: days } }, connection);
@@ -355,7 +363,7 @@ export async function runTicketConfirmations(now = new Date()): Promise<{ remind
           const to = [ticket.requesterId, ticket.assigneeId, ...(await coordinatorsOf(ticket.typeId, connection)).map((person) => person.id)].filter((id): id is number => id !== null);
           return { kind: "closed", outbox: await insertOutbox(null, [...new Set(to)].map((id) => ticketMessages.closed(info(ticket), id, "closed automatically: no answer in 4 working days")), connection) } as const;
         });
-        if (!outcome) continue;
+        if (!outcome || outcome.kind === "skipped") continue;
         if (outcome.kind === "closed") closed += 1;
         else reminded += 1;
         await deliverOutbox(outcome.outbox).catch((error: unknown) => logError("ticket confirmations: delivery", error));

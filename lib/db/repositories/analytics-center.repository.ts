@@ -1,6 +1,7 @@
 import "server-only";
 import type { RowDataPacket } from "mysql2/promise";
 import { getDbPool } from "@/lib/db/client";
+import { likeEscape } from "@/server/search/filters";
 import { requestScopeSql, type Scope, type Viewer } from "@/server/analytics/scope";
 import { averageOf, countBuckets, lastMonths, medianOf, p90Of, rate, type AgeBucket } from "@/server/analytics/center";
 import type { Period } from "@/server/analytics/periods";
@@ -554,7 +555,7 @@ export async function employeeRows(scope: Scope, viewer: Viewer, period: Period,
   const [from, to] = range(period);
   const people = peopleScopeSql(scope, viewer, "u");
   const where = `u.active = TRUE AND u.is_break_glass = FALSE AND ${people.sql}${options.search ? " AND (u.name LIKE ? OR u.login_id LIKE ?)" : ""}`;
-  const params = [...people.params, ...(options.search ? [`%${options.search}%`, `%${options.search}%`] : [])];
+  const params = [...people.params, ...(options.search ? [likeEscape(options.search), likeEscape(options.search)] : [])];
   const [[count]] = (await getDbPool().query<Row[]>(`SELECT COUNT(*) AS n FROM users u WHERE ${where}`, params)) as unknown as [Row[]];
   const rows = await query(
     `SELECT u.id, u.name, d.name AS department,

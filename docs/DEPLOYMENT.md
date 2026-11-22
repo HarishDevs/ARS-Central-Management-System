@@ -209,6 +209,12 @@ Stops anyone reaching the GoDaddy server directly, around Cloudflare (and faking
 1. https://approval.arssteels.net → **Continue with Google** → **itsupport@arsenergy.co.in** (D-082). The seed created this Super Admin, User ID `itadmin`. `itadmin@arssteels.co.in` can't be used: it's only an alias, and Google reports the main address.
 2. You land on **My approvals**. Your name at the top right opens a menu whose **Switch space** section shows Admin and Super Admin.
 
+### G0s. Review fixes, health checks and the task-history triggers (v1.71.2)
+1. Publish v1.71.2. **No migration**; nothing to switch on.
+2. **If you ever ran `database/optional/v190_append_only_triggers.sql` in phpMyAdmin** (or the trigger blocks of `202611221100_pm_a_reactions_sidebar.sql`): once, in cPanel → phpMyAdmin → the app database → SQL, paste the whole of the new `database/optional/v190_append_only_triggers.sql` → Go. It replaces the four task/information history guards; the task-history one now lets the 30-day clean-up remove the history of tasks deleted more than 30 days ago (the old one stopped the clean-up on every run, shown as a job-runner failure alert). Safe to run again. Check: Database → Triggers lists trg_task_events_no_update, trg_task_events_no_delete, trg_info_events_no_update, trg_info_events_no_delete; Super Admin → Automation shows the clean-up step without errors after its next run.
+3. **Uptime monitor:** nothing to change. `/api/health` and `/api/health/deep` keep their 200 / 503 answers; their body is now only `{"status":"ok","version":…}` (or `{"status":"degraded"}`) for anyone not signed in as the Super Admin, and each address may check 60 times a minute (a monitor every 1-5 minutes is far below that). Optional: to let the monitor see the details, set a GoDaddy environment variable `HEALTH_SECRET` (24+ random characters), restart, and add the request header `x-health-secret: <that value>` in the monitor (only on monitors that support custom headers; never put it in the address). Signed in as the Super Admin, opening `/api/health` in the browser shows every field.
+4. **Database clock:** the app now sets each database connection to UTC. Live already reported `dbClockOffsetMinutes` 0, so nothing changes there (Q-020 closed). Check: signed in as the Super Admin, `/api/health/deep` shows `"dbClockOffsetMinutes":0`.
+
 ### G0r. Comment history and the 30-day clean-up (v1.71.1)
 1. Publish v1.71.1. The migration `202611222100_comment_versions_purge.sql` is optional-only (the hosted database skips it with a warning).
 2. Once, in cPanel → phpMyAdmin → the app database → SQL, paste the whole of `database/optional/v1600_comment_triggers.sql` → Go (also if you ran an earlier copy: this one fixes the clean-up and runs as pasted thanks to its DELIMITER lines). Safe to run again.
@@ -267,7 +273,7 @@ Stops anyone reaching the GoDaddy server directly, around Cloudflare (and faking
 2. Publish v1.63.0. Everything new is behind the same switch as v1.61.0 and v1.62.0 (**"Projects: tabs for every view, faster list and row density (phase A)"**): the Home greeting and widgets, the notepad, Task Summary tabs and Recently assigned. With it Off, Home and Task Summary are as before.
 
 ### G0g. Reactions, task pane, sidebar and the 30-day clean-up (v1.62.0)
-1. Back up the database, then run `database/migrations/202611221100_pm_a_reactions_sidebar.sql`. It adds `comment_reactions` and `work_project_order` and replaces the `task_events` delete trigger so the clean-up can remove the history of a task deleted more than 30 days ago (nothing else may delete it). If the migration skips the two trigger blocks for lack of rights, run them once in phpMyAdmin. Rollback inside.
+1. Back up the database, then run `database/migrations/202611221100_pm_a_reactions_sidebar.sql`. It adds `comment_reactions` and `work_project_order` and replaces the `task_events` delete trigger so the clean-up can remove the history of a task deleted more than 30 days ago (nothing else may delete it). If the migration skips the two trigger blocks for lack of rights, run `database/optional/v190_append_only_triggers.sql` once in phpMyAdmin instead (v1.71.2: the same trigger, written so phpMyAdmin accepts it; pasting the migration's blocks fails there). Rollback inside.
 2. Publish v1.62.0. Everything new is behind the same switch as v1.61.0 (**"Projects: tabs for every view, faster list and row density (phase A)"**), except Undo after deleting a task.
 3. **Before switching it on (IT only or On):** the job runner starts removing tasks and projects that have been in Deleted for more than 30 days at its next run. Restore anything you want to keep first, or untick **Admin → Task settings → Deleted tasks and projects** to keep them. The default celebrations (Occasional) are set on the same page.
 
@@ -362,7 +368,7 @@ Message deliveries can then show **DELIVERED** and **READ** for WhatsApp, not on
 3. Send a test WhatsApp (G3). Within a minute its row on **Message deliveries** should change to DELIVERED, then READ. If it stays SENT, send CEOITBox's sample payload to IT: the app reads Meta's format and a flat `{ id, status }` one.
 
 ### G7. Uptime monitor (v1.4.0, D-103)
-`https://approval.arssteels.net/api/health` answers `200 {"status":"ok"…}` when the app and the database are up, and `503` when the database isn't. It also says whether the job runner ran in the last 15 minutes. Point any uptime monitor at it (e.g. UptimeRobot, free: HTTP(s) monitor, every 5 minutes, alert to itadmin@ by email or WhatsApp). With the origin lock on (E2), monitor the public address only.
+`https://approval.arssteels.net/api/health` answers `200 {"status":"ok"…}` when the app and the database are up, and `503` when the database isn't. It also says whether the job runner ran in the last 15 minutes (v1.71.2: only to a signed-in Super Admin or a monitor sending `x-health-secret`; anyone else sees status and version, at most 60 checks a minute; G0s). Point any uptime monitor at it (e.g. UptimeRobot, free: HTTP(s) monitor, every 5 minutes, alert to itadmin@ by email or WhatsApp). With the origin lock on (E2), monitor the public address only.
 
 ## Part H: WhatsApp templates
 "Approval needed" (`ars_approval_needed_v1`) is already approved at CEOITBox: it was created during testing on the same account.
@@ -566,7 +572,7 @@ To rebuild a full import file for a brand-new environment: apply the migrations 
 | "Your app is redirecting" warning | Root `/` redirects to `/login` | Settings → General → root path `/login` |
 | Import SQL shows "Unauthorized" | GoDaddy's import service refused the session | Skip the import: the first start creates the database (B1) |
 | Runtime log: `Migration failed: … TRIGGER command denied` | Hosted DB user can't create triggers | GoDaddy support ticket: the triggers protect the audit log and are required |
-| Runtime log: `WARNING: skipped optional statement … (CREATE TRIGGER …): You do not have the SUPER privilege and binary logging is enabled` | Binary logging is on and the app's user has no SUPER (v1.9.0+) | Nothing breaks. To add the optional history guards: cPanel → phpMyAdmin → app database → SQL → paste `database/optional/v190_append_only_triggers.sql` → Go |
+| Runtime log: `WARNING: skipped optional statement … (CREATE TRIGGER …): You do not have the SUPER privilege and binary logging is enabled` | Binary logging is on and the app's user has no SUPER (v1.9.0+) | Nothing breaks. To add the optional history guards: cPanel → phpMyAdmin → app database → SQL → paste `database/optional/v190_append_only_triggers.sql` (v1.71.2 copy: it lets the 30-day clean-up through and has the DELIMITER lines phpMyAdmin needs; also run `database/optional/v1600_comment_triggers.sql`) → Go |
 | No reminders or escalations | Cron missing, or wrong secret (the job answers 404) | Part I |
 | Build fails: `ENOENT … rename '/app/.next/export/500.html'` | GoDaddy reused the old `.next` folder | Fixed in v1.0.3 (the build cleans `.next` first): **Retry build** / **Update Preview** |
 | `Cannot find module 'mysql2/promise'` for a minute during Publish | The platform restarted the app before its packages were in place | Recovers by itself; if it repeats for more than 2 minutes, **Restart Published App** |
@@ -843,7 +849,7 @@ Job step `securityRetention`, once a day. Deletes sign-in attempts, WhatsApp cod
 
 ### W5. After publishing v1.46.0
 1. Runtime log: `Applied 1 migration(s)`, then `Ready`. `/api/health` shows 1.46.0.
-2. `/api/health/deep`: `dbClockOffsetMinutes` = 0 (QA-DB-02).
+2. `/api/health/deep`: `dbClockOffsetMinutes` = 0 (QA-DB-02; since v1.71.2 shown only to a signed-in Super Admin or with `x-health-secret`).
 3. Super Admin home: **Origin lock** and **WhatsApp templates** tiles.
 4. Super Admin → Automation: 21 automations, including **Security records clean-up** and **Google Drive backup copy** ("OFF" until set up is normal).
 5. The go-live list for this release is `docs/GO_LIVE_READINESS_CHECKLIST.md` (top section).

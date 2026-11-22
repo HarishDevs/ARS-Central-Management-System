@@ -351,7 +351,8 @@ export async function setFieldValue(taskId: number, fieldId: number, value: unkn
   if (!rights.planning) return fail(rights.adhoc ? "Only its creator can change an ad hoc task's details." : "You can't change this task.");
   const blocked = await fieldBlockedBy(taskId, `field:${fieldId}`, viewer);
   if (blocked) return fail(`In ${blocked}, only some people may change ${field.name} (Project permissions).`);
-  const checked = checkValue(field, value);
+  const current = field.type === "MULTI_SELECT" ? (fields.storedOf(field, (await fields.valueRows([taskId])).get(taskId)?.get(fieldId))?.ids ?? []) : [];
+  const checked = checkValue(field, value, current);
   if (!checked.ok) return fail(`${field.name}: ${checked.message}`);
   const stored = checked.stored;
   const names: { people?: Map<number, string>; tasks?: Map<number, string> } = {};

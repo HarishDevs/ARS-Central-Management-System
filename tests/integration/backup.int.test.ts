@@ -74,7 +74,7 @@ describe("backup and restore drill", () => {
       throw new Error(`restore failed: ${(error as { stderr?: Buffer }).stderr?.toString() ?? String(error)}`);
     }
 
-    const source = await mysql.createConnection({ host, port, user: appUser, password: appPassword, database: "ars_approvals_test" });
+    const source = await mysql.createConnection({ host, port, user: appUser, password: appPassword, database: process.env.DB_NAME ?? "ars_approvals_test" });
     const restored = await mysql.createConnection({ host, port, user: appUser, password: appPassword, database: target });
     try {
       const [tables] = await source.query<mysql.RowDataPacket[]>("SHOW FULL TABLES WHERE Table_type = 'BASE TABLE'");

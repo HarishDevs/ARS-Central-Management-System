@@ -5,7 +5,8 @@ import { defineConfig, devices } from "@playwright/test";
 // End-to-end tests (S5-05, P0-44): a real production build against the
 // throw-away ars_approvals_test database. Run: npm run test:e2e (Docker up).
 // The values below are test-only; nothing real is used.
-const PORT = 3100;
+// E2E_PORT and TEST_DB_NAME let a second checkout (e.g. a git worktree) run its own server and database.
+const PORT = Number(process.env.E2E_PORT ?? 3100);
 export const E2E_ENV = {
   NODE_ENV: "production",
   // V181-A8: the demo load's "real people" limit, raised for the shared e2e database only.
@@ -13,12 +14,13 @@ export const E2E_ENV = {
   APP_BASE_URL: `http://localhost:${PORT}`,
   DB_HOST: process.env.TEST_DB_HOST ?? "127.0.0.1",
   DB_PORT: process.env.TEST_DB_PORT ?? "3307",
-  DB_NAME: "ars_approvals_test",
+  DB_NAME: process.env.TEST_DB_NAME ?? "ars_approvals_test",
   DB_USER: process.env.TEST_DB_USER ?? "ars_dev",
   DB_PASSWORD: process.env.TEST_DB_PASSWORD ?? "ars_dev_password",
   SESSION_SECRET: "e2e-session-secret-that-is-only-for-tests-0123456789",
   ENCRYPTION_KEY: Buffer.alloc(32, 9).toString("base64"),
   JOB_RUNNER_SECRET: "e2e-job-runner-secret-only-for-tests",
+  HEALTH_SECRET: "e2e-health-secret-only-for-tests-0123",
   UPLOAD_DIR: path.join(os.tmpdir(), "ars-approvals-e2e-uploads"),
   // D-172: Pic bot talks to a local mock provider in tests (tests/e2e/mock-provider.ts).
   AI_CLAUDE_BASE_URL: "http://127.0.0.1:4011",

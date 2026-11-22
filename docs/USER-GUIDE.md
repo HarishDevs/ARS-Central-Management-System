@@ -226,7 +226,7 @@ While it's open: **Withdraw** on the request. The approvers are told.
   - **Paths:** **Add paths** for if / otherwise: each path has conditions (section, assignee, priority, due date status, completion, task name or a custom field; all or any must match) and its own steps; the first path that matches runs, else **Otherwise**.
   - **Keyboard:** every card is added with a button, moved with **↑ / ↓** and removed with its bin; all settings are ordinary boxes and lists. Cards that need something say **Requires setup**; **Publish** stays off until none do.
   - **Draft and publish:** **Save draft** keeps your changes without changing what runs; **Publish** makes the draft the version that runs, for new activity only. **Switched on** pauses or resumes it. In the Automations list: Edit, Duplicate, Delete and the last run.
-  - **Whose rights:** a rule acts with its **owner's** rights (never more) and its changes read "<rule name> (automation)" in the task's activity. If the owner can no longer edit the project, the rule pauses and the project's owners are told; **Become owner** takes it over with your rights. If a rule fails, its owner is told once until it works again.
+  - **Whose rights:** a rule acts with its **owner's** rights (never more) and its changes read "<rule name> (automation)" in the task's activity. If the owner can no longer edit the project, the rule pauses and the project's owners are told; **Become owner** takes it over with your rights. Saving or publishing someone else's rule also makes you its owner (v1.71.2), and they are told. If a rule fails, its owner is told once until it works again.
   - **Run log:** the rule's page lists its last 200 runs: when, what started it, the task, each step and the result or error.
   - **Safety:** a rule's own changes never start it again; at most 3 rules run one after another; a rule runs at most 500 times an hour. Admin → Task settings sets how many rules a project may have (50) and steps a rule (20).
   - **Webhook:** publishing a web-request rule shows its address and a **secret** (shown once; **Make a new secret** replaces it). The other system sends a POST with JSON (`title`, `description`, `dueDate`, `priority`; or `task` with the task number or ID field value to update), signed with the secret (see API_REFERENCE). Calls are logged on the rule; at most 60 a minute.
@@ -317,7 +317,7 @@ Ask for help: a software problem, a hardware fault, an Admin request. Tickets ap
   If you don't answer, you're reminded after 2 and 3 working days, and the ticket closes by itself after 4 complete working days ("Closed – auto closed"). Weekly offs and company holidays don't count.
 - **My tickets** lists the tickets you raised, and those assigned to you; on **Assigned to me**, the **Update** column has **Start work** and **Mark resolved** for each ticket (v1.59.3).
 - **Tickets from before v1.59.3** that had a task: the ticket still shows that task's comments and activity, and links to it as history; the work now continues on the ticket.
-- **Remarks:** anyone on the ticket can add a remark or files. Coordinators and the assignee may mark a remark **Internal**; you don't see those.
+- **Remarks:** anyone on the ticket can add a remark or files. Coordinators and the assignee may mark a remark **Internal**; you don't see those, or the files attached to them (v1.71.2; coordinators and the assignee see such files marked *internal*).
 - **Assigned a ticket?** (v1.59.3: no task is made.) Open it from **My tickets → Assigned to me** (or the bell). Press **Start work** (In progress), add remarks and documents on the ticket, then **Mark resolved** with **what was done** (the requester reads it). Resolving asks the requester to confirm; it doesn't close the ticket. You can also Start and Resolve from the Assigned to me row.
 - **Coordinators:**
   - open a new ticket, choose **Assign to**, a **Target date** and remarks, then **Assign** (the assignee updates the ticket itself; no task is made);
@@ -348,7 +348,7 @@ One page with tabs. You see only the dashboards for your modules and role.
 Open it from the account menu (your name, top right). It has five tabs:
 - **Profile:** your details, photo and About me, and what IT holds about you (manager, head of department, team, access, modules). Only IT can change your details.
 - **Notifications:** choose, kind by kind, what reaches you in the app, by email and on WhatsApp; the morning summary; **Do not disturb** (pause, quiet hours, days off). Approvals waiting for you and security messages always come. The notices themselves are in the **Inbox**.
-- **Out of office:** name someone to approve for you between two dates (up to 90 days, India dates, whole days). They see what is already waiting and anything new. Both names are recorded on every decision.
+- **Out of office:** name someone to approve for you between two dates (up to 90 days, India dates, whole days). They see what is already waiting and anything new. Both names are recorded on every decision. They can't act on requests they raised themselves.
 - **Sign-in & devices:** how you sign in, your last 10 sign-ins, and **Sign out everywhere** if a phone or laptop was lost.
 - **Calendar:** connect your own Google Calendar.
   - Your approvals and tasks with due times, information marked for calendars and your personal entries then appear in Google, and your Google events appear in ARS. Changes follow both ways.
@@ -371,6 +371,7 @@ If you get a *new sign-in* alert that wasn't you, use its **This wasn't me** lin
 - **Approve.**
 - **Ask for changes:** say what to change.
 - **Put on hold:** the time on hold doesn't count against your response time.
+- **Never your own request (v1.71.2):** if a request you raised shows in Waiting for me because you cover for its approver, you can't decide, pass on, hold or ask a question on it; the approver or IT does.
 - **Reject:** give a reason. It asks before it rejects; rejection is final.
 
 After a decision, **Next waiting for you** opens the next one. Budget warnings show right above the decision buttons.
@@ -399,7 +400,7 @@ If you don't act in time: you get a **due soon** heads-up first, then reminders 
 Switch to it from the account menu → **Switch space**.
 - **Overview, Needs attention, Analytics, Reports, Insights, Dashboards, Workload:** how approvals are flowing; CSV downloads.
 - **Records:** every approval request, task and information item, with filters; requests show their **Amount** (also in the CSV), or *Hidden* when the amount field is confidential and you may not see it.
-- **Users & roles:** tick several people (or Select all on this page) to Re-invite, Send set-password link, Deactivate or Activate them together, or press **Modules** to give modules, take them away, or make the chosen ones their only modules (your own access and other IT Admins' are left as they are, unless you are the Super Admin). Every new person, added here or by import, is emailed a welcome with a set-password link valid 12 hours. Add people, set department, designation, reporting manager, roles, modules and sign-in method (Google, User ID and password, or Both). **Re-invite** emails their User ID and a set-password link. Deactivate leavers: *Deactivate user* asks to confirm, then signs them out everywhere. *Hand over* moves someone's pending approvals to another person.
+- **Users & roles:** tick several people (or Select all on this page) to Re-invite, Send set-password link, Deactivate or Activate them together, or press **Modules** to give modules, take them away, or make the chosen ones their only modules (your own access and other IT Admins' are left as they are, unless you are the Super Admin). Every new person, added here or by import, is emailed a welcome with a set-password link valid 12 hours. Add people, set department, designation, reporting manager, roles, modules and sign-in method (Google, User ID and password, or Both). **Re-invite** emails their User ID and a set-password link. Deactivate leavers: *Deactivate user* asks to confirm, then signs them out everywhere. *Hand over* moves someone's pending approvals to another person (never those of a request you raised yourself: another IT person moves them). Only the Super Admin removes the IT Admin role from another IT Admin (v1.71.2).
 - **Departments:** departments (with HOD) and designations. Tick **Approver** on designations of Manager and above. Only approver designations can be chosen to approve.
 - **Approver groups:** e.g. Finance team, for "any one of the group".
 - **Approval types & workflows** was removed in v1.54.0: requests use New request with the requester's own approval templates. Requests raised earlier from an approval type still finish as they were set up.

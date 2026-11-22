@@ -80,6 +80,13 @@ export function checkRoleChange(
   const grantsSuper = !before.includes("SUPER_ADMIN") && nextRoles.includes("SUPER_ADMIN");
   const removesSuper = before.includes("SUPER_ADMIN") && !nextRoles.includes("SUPER_ADMIN");
   if ((grantsSuper || removesSuper) && !isSuperAdmin(actor)) return deny("Only the Super Admin can grant or remove the Super Admin role.");
+  // D-388 (QA security M-2): demoting another IT Admin first would let an IT
+  // Admin then change that account's contact details (P-04 only protects
+  // current admins), so only the Super Admin removes IT_ADMIN from someone else.
+  const removesItAdmin = before.includes("IT_ADMIN") && !nextRoles.includes("IT_ADMIN");
+  if (removesItAdmin && target && target.id !== actor.id && !isSuperAdmin(actor)) {
+    return deny("Only the Super Admin can remove the IT Admin role from another IT Admin.");
+  }
 
   if (target && target.id === actor.id) {
     if (removesSuper) return deny("You can't remove your own Super Admin role.");

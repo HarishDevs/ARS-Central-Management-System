@@ -17,6 +17,22 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 **Multi-level approvals in any custom manner.** The engine must support any number of levels in any combination: sequential, parallel, any-one, any-N-of-M, conditional and hybrid. Approvers can come from any source, and levels can be added or skipped by rules. Build the engine for this from the first engine phase (P2). The drag-and-drop designer (P3) is only the screen for building it. Check every task against this.
 
 ## Now / Next
+- **Now (22 Nov 2026):** **v1.71.2** fixes from the QA security and logic reviews (D-388 to D-393): nobody moves approvals of their own request (delegates and IT), only the Super Admin demotes an IT Admin, internal ticket remark files hidden from the requester, editing someone's automation takes it over, DR-02 HOD check survives resubmit, no handover to someone who already voted, DB session in UTC (Q-020 closed), the phpMyAdmin task-history trigger file fixed, minimal and rate-limited health checks, and the Low items. **Owner:** publish (no migration); if you ever ran `database/optional/v190_append_only_triggers.sql`, run the new copy once (DEPLOYMENT G0s); optional `HEALTH_SECRET`.
+- [x] QA-1712-M1 (22 Nov 2026) Internal ticket remark files hidden from the requester (page, task pane, /api/files)
+- [x] QA-1712-M2 (22 Nov 2026) Only the Super Admin removes IT_ADMIN from another IT Admin
+- [x] QA-1712-L1 (22 Nov 2026) Editing or publishing someone else's automation takes it over; old owner told
+- [x] QA-1712-L2 (22 Nov 2026) File routes keep their sandbox CSP (files, form cover, photo)
+- [x] QA-1712-L3 (22 Nov 2026) LIKE wildcards escaped in Analytics Center and Meetings searches
+- [x] QA-1712-L4 (22 Nov 2026) Health checks: minimal for anonymous callers, details for Super Admin / HEALTH_SECRET, 60 a minute
+- [x] QA-1712-L5 (22 Nov 2026) Calendar feeds limited per caller address too
+- [ ] QA-1712-I1 Route uploads through route handlers with a streaming limit and lower the global 102 MB Server Action body limit (deferred: larger change, D-389)
+- [~] QA-1712-I2 saveListColumnsAction as a read: not a bug (Try as refused centrally; personal preference) (22 Nov 2026, D-389)
+- [x] QA-1712-W1 (22 Nov 2026) Requester-as-delegate and IT can't move, hold, resume or ask on their own request (engine)
+- [x] QA-1712-W2 (22 Nov 2026) DR-02 HOD check kept through changes, recall and change of details
+- [x] QA-1712-W3 (22 Nov 2026) Optional task_events trigger file: D-368 version with DELIMITER, verified with the mysql client
+- [x] QA-1712-W4 (22 Nov 2026) DB session time zone UTC on every pooled connection (V181-A4)
+- [x] QA-1712-W6 (22 Nov 2026) No handover to someone who already decided the step
+- [x] QA-1712-W7 (22 Nov 2026) Low logic items #7, #8, #9, #11, #12, #13 fixed; #10 kept as designed (D-393)
 - **Now (22 Nov 2026):** **v1.71.1** comment history and the 30-day clean-up (D-385). **Owner:** publish, then run database/optional/v1600_comment_triggers.sql once in phpMyAdmin. Phases A–E of the PM plan are complete (deferred items: PM-E10).
 - [x] OPS-34 (22 Nov 2026) Comment-version trigger allows the 30-day purge; phpMyAdmin file with DELIMITER
 - **Now (22 Nov 2026):** **v1.71.0** PM phase E part 2: Files, Messages and Page tabs, time tracking on tasks (log by hand or Start/Stop, estimates, project totals, CSV, Dashboard and Workload), and the task pane's ⋯ menu fix (D-384). **The Project Management plan (phases A-E) is complete**; what was left for later is listed under PM-E10. **Owner:** back up, publish (migration 202611222000_pm_e_collab.sql runs on start), with "Projects E" on for IT try the new tabs and a task's Time section (DEPLOYMENT G0q), then On. **Next:** owner's choice from PM-E10 (deferred items) and C-1 (public forms) when decided.
@@ -1248,7 +1264,7 @@ Phase A of the roadmap, planned here and not started (details in `application-au
 - [x] V181-A1 Re-route on resubmit when routing values change; readiness checks on resubmit (AUD-02, AUD-11; needs Q-022) (checked 31 Oct 2026 against v1.39.0: the re-route half (AUD-02) was done in v1.9.0 under V190-06 / D-147, `resubmitRequest` restarts from the beginning when `routeChanged`; the readiness half (AUD-11) was then open; done 1 Nov 2026 under D-248: resubmit runs the duplicate, unique and budget checks inside the transaction and re-syncs the budget there)
 - [x] V181-A2 CSV import enforces the contact-change rule (AUD-01) (done 16 Oct 2026 as V1100-02, v1.10.0: `checkContactChange` in `server/import/plan.ts`; ticked 31 Oct 2026)
 - [x] V181-A3 Bootstrap seed stops re-granting Super Admin (AUD-03) (done 16 Oct 2026 as V1100-03, v1.10.0: `database/seeds/003_bootstrap_super_admin.sql` grants roles only when the user has none; ticked 31 Oct 2026)
-- [ ] V181-A4 Pin the DB session time zone to UTC; health reports it (AUD-04; after Q-020)
+- [x] V181-A4 Pin the DB session time zone to UTC; health reports it (AUD-04; after Q-020) (done 22 Nov 2026, v1.71.2, D-391)
 - [x] V181-A5 One person, one vote per step (AUD-05) (done 16 Oct 2026 as V190-06, v1.9.0, D-147: `server/engine/engine.ts`; ticked 31 Oct 2026)
 - [x] V181-A6 Outbox honours notify's result; job steps report soft failures (AUD-08, AUD-17) (checked 31 Oct 2026 against v1.39.0: the outbox half (AUD-08) was done in v1.9.0, `deliverOutbox` retries when nothing was recorded; the job-step half (AUD-17) is still open: `runAutomations` treats only a backup "FAILED" value as a failure, so a template sync that returns "failed: …" was recorded OK; done 1 Nov 2026 under D-248: `softFailure` records any FAILED / "failed…" step value as an error)
 - [x] V181-A7 Page access bound to actions; fail closed on unknown pages; security page exempt (AUD-14) (2 Nov 2026: done in v1.46.0, D-278)

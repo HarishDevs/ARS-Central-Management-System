@@ -666,6 +666,7 @@ erDiagram
         bigint id PK
         enum entity_type "TASK INFO"
         bigint entity_id
+        varchar purpose "GENERAL EVIDENCE INTERNAL (v1.71.2: internal ticket remark)"
         bigint uploaded_by FK
         varchar stored_path UK
         char sha256
@@ -920,7 +921,7 @@ Migration names are shortened to their date-time prefix; the full file is `datab
 | `info_targets` | Information | Who an item was addressed to, as chosen | 202610160900 |
 | `info_recipients` | Information | People it reached, with read and acknowledged times | 202610160900 |
 | `info_events` | Information | Append-only item history | 202610160900 |
-| `record_files` | Tasks / Information | Files on tasks and information items | 202610160900 |
+| `record_files` | Tasks / Information | Files on tasks and information items (later tickets and project messages). `purpose` GENERAL / EVIDENCE (work-step "done") / INTERNAL (v1.71.2, D-388: on an internal ticket remark; hidden from people who don't see internal remarks; no migration, the column is VARCHAR) | 202610160900 |
 | `gcal_settings` | Calendar | Google Calendar set-up (one row) | 202610170900 |
 | `gcal_connections` | Calendar | A person's Google Calendar connection | 202610170900 |
 | `calendar_items` | Calendar | Personal calendar entries | 202610170900 |

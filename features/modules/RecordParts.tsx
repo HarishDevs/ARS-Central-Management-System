@@ -52,6 +52,7 @@ export function FileLinks({ files, label = "Files" }: { files: readonly RecordFi
               {" "}
               · {formatSize(file.size)} · {file.uploadedByName}
               {file.purpose === "EVIDENCE" ? " · completion evidence" : ""}
+              {file.purpose === "INTERNAL" ? " · internal (not shown to the requester)" : ""}
             </span>
           </li>
         ))}

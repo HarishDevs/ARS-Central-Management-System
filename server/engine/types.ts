@@ -211,7 +211,9 @@ export interface InstanceState {
   hold?: { nodeId: string; by: number; at: string; reason?: string; kind?: "HOLD" | "INFO" };
   // openNodeIds: every step that was still open when changes were asked, so
   // a restart "at the requesting step" also restarts parallel branches.
-  changesRequested?: { nodeId: string; by: number; at: string; comment: string; openNodeIds: string[] };
+  // humanCheck (D-390, QA logic #2): the DR-02 human check that was open, so a
+  // resubmit gives it back to the HOD instead of waking the anchor step's own approvers.
+  changesRequested?: { nodeId: string; by: number; at: string; comment: string; openNodeIds: string[]; humanCheck?: { nodeId: string; endNodeId: string } };
   // DR-01: join id → incoming edges whose branch was rejected (WHEN_UNREACHABLE joins).
   failedJoinEdges?: Record<string, string[]>;
   // DR-02: stamped at submit from the type's setting (absent = a human must approve).

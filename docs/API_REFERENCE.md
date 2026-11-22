@@ -95,8 +95,8 @@ Routes that answer differently are noted below.
 | `/api/jobs/run` | POST | `x-job-secret` header | Cron entry point: run all automations |
 | `/api/webhooks/ceoitbox` | POST | `x-webhook-secret` header | WhatsApp delivery/read receipts |
 | `/api/webhooks/google-calendar` | POST | Google channel headers | Calendar change notification |
-| `/api/health` | GET | Public | Uptime check: 200 while the app and database answer; also `jobRunner`, `storage`, `backupAgeHours`, `degraded` |
-| `/api/health/deep` | GET | Public | Alerting check (D-246): 503 when `degraded` (job runner late, backup over 26 h old, files can't be written, database down) |
+| `/api/health` | GET | Public | Uptime check: 200 while the app and database answer. Anyone: `{ status, version }`; the details for a signed-in Super Admin or the `x-health-secret` header (v1.71.2, D-389). 60 a minute per address |
+| `/api/health/deep` | GET | Public | Alerting check (D-246): 503 when `degraded` (job runner late, backup over 26 h old, files can't be written, database down). Anyone: `{ status: "ok" | "degraded" }`; the details as for `/api/health` (v1.71.2) |
 | `/robots.txt`, `/sitemap.xml` | GET | Public | Crawlers: only `/`, `/privacy` and `/terms` (D-246) |
 
 ---
@@ -382,10 +382,11 @@ These are called by machines. The middleware's cross-site check doesn't apply to
 
 ### GET `/api/health`
 - Public, cheap, says nothing private. For an uptime monitor.
+- **v1.71.2 (D-389, QA L-4):** an anonymous caller gets only `{ status, version }` (same 200 / 503), and at most 60 checks a minute per address (`429` after). The full body below is for a signed-in Super Admin, or a caller sending `x-health-secret` equal to the env var `HEALTH_SECRET` (24+ characters; compared in constant time; unset = Super Admin only). Signed-in people are not counted per address.
 - `200` when the database answers, `503` when it doesn't. Body (no envelope): `{ status: "ok" | "error", version, database: "ok" | "down", dbClockOffsetMinutes, jobRunner: "OK" | "LATE" | "NEVER" | "UNKNOWN", storage: "ok" | "failed", backupAgeHours, degraded, ms }`. `LATE` means no run in the last 15 minutes and also alerts the Super Admin after the answer is sent. `dbClockOffsetMinutes` (v1.43.0, QA-DB-02): the database session clock minus UTC; anything but `0` means some times are stored in two clocks.
 
 ### GET `/api/health/deep`
-- Public (D-246), for an uptime monitor that should alert on more than "the site answers". Same body as `/api/health`; `503` when `degraded` (database down, job runner late or never run, files can't be written, or the newest backup older than 26 hours).
+- Public (D-246), for an uptime monitor that should alert on more than "the site answers". v1.71.2: anyone gets `{ status: "ok" | "degraded" }` with the same status code; the full body (as `/api/health`) only with the Super Admin session or `x-health-secret`; 60 a minute per address. Full body: `503` when `degraded` (database down, job runner late or never run, files can't be written, or the newest backup older than 26 hours).
 
 ---
 

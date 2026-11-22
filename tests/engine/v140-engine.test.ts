@@ -150,7 +150,7 @@ describe("event details used for messages and due times", () => {
     let state = startInstance(definition, ctx(), directory).state;
     const task = pending(state, "mgr")[0]!;
     state = putOnHold(state, { taskId: task.id, actorId: 2 }, { ...ctx(), now: "2026-09-28T11:00:00.000Z" }, directory).state;
-    const resumed = resume(state, { actorId: 2 }, directory);
+    const resumed = resume(state, { actorId: 2, requesterId: 1 }, directory);
     expect(resumed.events[0]).toMatchObject({ type: "RESUMED", heldSince: "2026-09-28T11:00:00.000Z", pendingApproverIds: [2] });
 
     const back = decide(definition, resumed.state, { taskId: task.id, actorId: 2, decision: "REQUEST_CHANGES", comment: "fix" }, ctx(), directory).state;

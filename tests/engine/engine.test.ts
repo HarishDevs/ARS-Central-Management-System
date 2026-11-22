@@ -316,8 +316,8 @@ describe("reject, changes, hold, resubmit", () => {
     state = putOnHold(state, { taskId: task.id, actorId: 3, reason: "Waiting for vendor" }, ctx(), directory).state;
     expect(state.status).toBe("ON_HOLD");
     expect(() => decide(definition, state, { taskId: task.id, actorId: 3, decision: "APPROVE" }, ctx(), directory)).toThrowError(/on hold/);
-    expect(() => resume(state, { actorId: 8 }, directory)).toThrowError(EngineError);
-    state = resume(state, { actorId: 3 }, directory).state;
+    expect(() => resume(state, { actorId: 8, requesterId: 1 }, directory)).toThrowError(EngineError);
+    state = resume(state, { actorId: 3, requesterId: 1 }, directory).state;
     expect(state.status).toBe("IN_PROGRESS");
     state = approveAll(definition, state, "hod");
     expect(state.nodes.ed!.status).toBe("ACTIVE");

@@ -48,6 +48,13 @@ describe("role changes", () => {
     expect(checkRoleChange(superAdmin, target({ id: 1, roles: superAdmin.roles }), ["USER", "IT_ADMIN"], 2).ok).toBe(false);
   });
 
+  it("only the Super Admin removes IT_ADMIN from another IT Admin (D-388, QA M-2)", () => {
+    const otherAdmin = target({ id: 30, roles: ["USER", "IT_ADMIN"] });
+    expect(checkRoleChange(itAdmin, otherAdmin, ["USER"], 1)).toMatchObject({ ok: false, message: expect.stringMatching(/Super Admin/) });
+    expect(checkRoleChange(itAdmin, otherAdmin, ["USER", "IT_ADMIN", "EXPORTER"], 1).ok).toBe(true);
+    expect(checkRoleChange(superAdmin, otherAdmin, ["USER"], 1).ok).toBe(true);
+  });
+
   it("the last active Super Admin can't be demoted", () => {
     const other = target({ id: 20, roles: ["USER", "SUPER_ADMIN"] });
     expect(checkRoleChange(superAdmin, other, ["USER"], 1).ok).toBe(false);

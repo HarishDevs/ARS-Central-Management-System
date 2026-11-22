@@ -374,12 +374,14 @@ class Run {
     });
   }
 
-  routeToHuman(endNodeId: string): void {
+  // anchorId (D-390): a resubmit puts the human check back on the same step.
+  routeToHuman(endNodeId: string, anchorId?: string): void {
     const approvals = [...this.graph.nodes.values()].filter((node): node is ApprovalNode => node.kind === "APPROVAL" && !isWork(node));
     const status = (node: ApprovalNode) => this.state.nodes[node.id]?.status;
     // The step that stands for "the approval": the last one skipped on the
     // way, else the last one not used (validation guarantees one exists).
     const anchor =
+      (anchorId !== undefined ? approvals.find((node) => node.id === anchorId) : undefined) ??
       approvals.filter((node) => status(node) === "SKIPPED").at(-1) ??
       approvals.filter((node) => status(node) === "WAITING" || status(node) === "CANCELLED").at(-1) ??
       approvals.at(-1);
@@ -615,7 +617,7 @@ export function decide(
       .filter(([, nodeState]) => nodeState.status === "ACTIVE" || nodeState.status === "BLOCKED")
       .map(([id]) => id)
       .filter((id) => graph.node(id).kind === "APPROVAL");
-    state.changesRequested = { nodeId: node.id, by: input.actorId, at: context.now, comment: comment!, openNodeIds };
+    state.changesRequested = { nodeId: node.id, by: input.actorId, at: context.now, comment: comment!, openNodeIds, ...keptHumanCheck(state) };
     run.closeTasks(null, "CANCELLED");
     run.endActiveSteps();
     run.events.push({ type: "CHANGES_REQUESTED", nodeId: node.id, actorId: input.actorId, comment: comment! });
@@ -632,7 +634,8 @@ export function putOnHold(
 ): EngineResult {
   if (previous.status !== "IN_PROGRESS") throw new EngineError("NOT_IN_PROGRESS", "Only a request waiting for approval can be put on hold.");
   const task = previous.tasks.find((candidate) => candidate.id === input.taskId);
-  if (!task || task.status !== "PENDING" || (task.approverId !== input.actorId && !directory.canActFor(input.actorId, task.approverId))) {
+  // D-388 (QA logic #1): nobody pauses (or asks a question on) their own request, even as a delegate.
+  if (!task || task.status !== "PENDING" || input.actorId === context.requesterId || (task.approverId !== input.actorId && !directory.canActFor(input.actorId, task.approverId))) {
     throw new EngineError("NOT_AUTHORISED", "You are not allowed to put this request on hold.");
   }
   const state = clone(previous);
@@ -641,9 +644,11 @@ export function putOnHold(
   return { state, events: [{ type: "PUT_ON_HOLD", nodeId: task.nodeId, actorId: input.actorId, ...(input.reason ? { reason: input.reason } : {}) }] };
 }
 
-export function resume(previous: InstanceState, input: { actorId: number; isAdmin?: boolean }, directory: Directory): EngineResult {
+// D-388: requesterId: nobody resumes their own request (not as a delegate, not as IT).
+export function resume(previous: InstanceState, input: { actorId: number; isAdmin?: boolean; requesterId: number }, directory: Directory): EngineResult {
   if (previous.status !== "ON_HOLD" || !previous.hold) throw new EngineError("NOT_ON_HOLD", "This request is not on hold.");
   const hold = previous.hold;
+  if (input.actorId === input.requesterId) throw new EngineError("NOT_AUTHORISED", "You can't resume your own request. The approver or another IT person can.");
   const canResume =
     input.isAdmin === true ||
     previous.tasks.some(
@@ -705,7 +710,7 @@ export function resubmit(
     const restartIds = [...new Set([restartNodeId, ...previous.changesRequested.openNodeIds])];
     for (const id of restartIds) {
       if (state.status !== "IN_PROGRESS") break;
-      run.activate(graph.node(id));
+      restartPoint(run, graph, id, previous.changesRequested.humanCheck);
     }
   } else {
     run.activate(graph.node(restartNodeId));
@@ -783,9 +788,23 @@ function resubmitFromAffected(
   run.events.push({ type: "ROUTE_CHANGED", added: reroute.added, removed: reroute.removed, approverChanged: reroute.approverChanged, restartNodeIds: earliest, fromBeginning: false });
   for (const id of earliest) {
     if (state.status !== "IN_PROGRESS") break;
-    run.activate(graph.node(id));
+    restartPoint(run, graph, id, asked.humanCheck);
   }
   return { state, events: run.events };
+}
+
+// D-390 (QA logic #2): the DR-02 human check survives "changes required",
+// a recall and an approver's change of details.
+function keptHumanCheck(state: InstanceState): { humanCheck?: { nodeId: string; endNodeId: string } } {
+  return state.humanCheck ? { humanCheck: { ...state.humanCheck } } : {};
+}
+
+// Start a restart point again. The step that stood in for the DR-02 human
+// check goes back to the HOD (or IT), never to its own approvers: the route
+// did not take that step, it only lent its place to the check.
+function restartPoint(run: Run, graph: Graph, nodeId: string, humanCheck: { nodeId: string; endNodeId: string } | undefined): void {
+  if (humanCheck?.nodeId === nodeId && graph.nodes.has(humanCheck.endNodeId)) run.routeToHuman(humanCheck.endNodeId, nodeId);
+  else run.activate(graph.node(nodeId));
 }
 
 // Longest distance from Start, to start restart points in route order.
@@ -883,8 +902,15 @@ export function reassignTask(
   if (input.toUserId === task.approverId) throw new EngineError("INVALID_REASSIGN", "That person already has this approval.");
   if (!directory.isActive(input.toUserId)) throw new EngineError("INVALID_REASSIGN", "The new approver must be an active person.");
   if (input.toUserId === context.requesterId) throw new EngineError("INVALID_REASSIGN", "The requester can't approve their own request.");
+  // D-388 (QA logic #1, #5; owner): nobody moves an approval of their own request,
+  // not as a delegate ("pass it on") and not as IT (hand over, bulk reassign).
+  if (input.actorId === context.requesterId) throw new EngineError("INVALID_REASSIGN", "You can't move an approval of your own request. Ask another IT person.");
   const clash = state.tasks.some((other) => other.nodeId === task.nodeId && other.round === task.round && other.approverId === input.toUserId && other.status !== "CANCELLED");
   if (clash) throw new EngineError("INVALID_REASSIGN", "That person is already an approver on this step.");
+  // D-390 (QA logic #6): one person, one vote per step (D-147). Someone who
+  // already decided this step (e.g. as a delegate) could never decide it again.
+  const voted = state.tasks.some((other) => other.id !== task.id && other.nodeId === task.nodeId && other.round === task.round && other.decidedBy === input.toUserId);
+  if (voted) throw new EngineError("INVALID_REASSIGN", "That person has already decided this step, so they can't take another part of it.");
   const fromId = task.approverId;
   task.previousApprovers = [...(task.previousApprovers ?? []), fromId];
   task.approverId = input.toUserId;
@@ -930,7 +956,9 @@ export function resolveBlocked(
   if (previous.nodes[input.nodeId]?.status !== "BLOCKED") throw new EngineError("NOT_BLOCKED", "This step isn't blocked any more. Reload the page.");
   // D-245 (audit DB-004): nobody moves a step of their own request past its
   // approvers. Skipping it or choosing its path is for another IT person.
-  if ((input.action === "SKIP" || input.action === "TAKE_PATH") && input.actorId === context.requesterId) {
+  // D-388 (owner): choosing who approves it (ASSIGN) too; only RETRY (look
+  // for the approvers again by the rules) stays open to the requester.
+  if ((input.action === "SKIP" || input.action === "TAKE_PATH" || input.action === "ASSIGN") && input.actorId === context.requesterId) {
     throw new EngineError("INVALID_ACTION", "You can't move a step of your own request on. Ask another IT person.");
   }
   const graph = new Graph(definition);
@@ -1013,7 +1041,7 @@ export function recall(definition: WorkflowDefinition, previous: InstanceState, 
   const pending = state.tasks.filter((task) => task.status === "PENDING");
   state.status = "CHANGES_REQUIRED";
   delete state.hold;
-  state.changesRequested = { nodeId: openNodeIds[0]!, by: input.actorId, at: context.now, comment: reason, openNodeIds };
+  state.changesRequested = { nodeId: openNodeIds[0]!, by: input.actorId, at: context.now, comment: reason, openNodeIds, ...keptHumanCheck(state) };
   run.closeTasks(null, "CANCELLED");
   run.endActiveSteps();
   run.events.push({ type: "RECALLED", actorId: input.actorId, reason, closedTaskIds: pending.map((task) => task.id), approverIds: [...new Set(pending.map((task) => task.approverId))] });
@@ -1079,7 +1107,7 @@ export function changeByApprover(
     .filter((id) => graph.node(id).kind === "APPROVAL");
   state.status = "CHANGES_REQUIRED";
   delete state.hold;
-  state.changesRequested = { nodeId: task.nodeId, by: input.actorId, at: context.now, comment: reason, openNodeIds: openNodeIds.includes(task.nodeId) ? openNodeIds : [task.nodeId, ...openNodeIds] };
+  state.changesRequested = { nodeId: task.nodeId, by: input.actorId, at: context.now, comment: reason, openNodeIds: openNodeIds.includes(task.nodeId) ? openNodeIds : [task.nodeId, ...openNodeIds], ...keptHumanCheck(state) };
   run.closeTasks(null, "CANCELLED");
   run.endActiveSteps();
   const again = resubmit(definition, state, "REQUESTING_STEP", context, directory, options.previousFormData ? { previousFormData: options.previousFormData } : {});

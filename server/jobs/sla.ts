@@ -66,8 +66,6 @@ export async function runDueSoon(): Promise<number> {
   const base = appBaseUrl();
   let sent = 0;
   for (const row of rows) {
-    const [claim] = await getDbPool().query<ResultSetHeader>("INSERT IGNORE INTO task_reminders (task_id, kind) VALUES (?, 'DUE_SOON')", [row.id]);
-    if (claim.affectedRows !== 1) continue;
     const link = requestLink(base, row.request_id);
     const ref = `${row.request_no} · ${row.title}`;
     const due = new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(row.due_at);
@@ -76,6 +74,9 @@ export async function runDueSoon(): Promise<number> {
         `SELECT delegate_id FROM delegations WHERE user_id = ? AND ended_at IS NULL AND ${INDIA_TODAY_SQL} BETWEEN starts_on AND ends_on`,
         [row.approver_id],
       );
+      // D-393: claimed only once the people are known (a failed lookup is retried next run).
+      const [claim] = await getDbPool().query<ResultSetHeader>("INSERT IGNORE INTO task_reminders (task_id, kind) VALUES (?, 'DUE_SOON')", [row.id]);
+      if (claim.affectedRows !== 1) continue;
       for (const userId of [row.approver_id, ...delegates.map((d) => d.delegate_id)]) {
         await notify({
           eventType: "APPROVAL_DUE_SOON",
@@ -146,18 +147,34 @@ export async function runSlaChecks(): Promise<{ reminders: number; escalations: 
     const sent = (row.sent ? row.sent.split(",") : []) as SlaKind[];
     const actions = slaActions({ taskId: row.id, isDue: true, isEscalationDue: false, reminded: false, escalated: false, levelsDue: Math.max(0, Number(row.levels_due)), levelsAllowed, sent });
     for (const kind of actions) {
-      // Claim first: only one runner ever sends a given notice.
-      const [claim] = await getDbPool().query<ResultSetHeader>("INSERT IGNORE INTO task_reminders (task_id, kind) VALUES (?, ?)", [row.id, kind]);
-      if (claim.affectedRows !== 1) continue;
       const link = requestLink(base, row.request_id);
       const ref = `${row.request_no} · ${row.title}`;
       try {
+        // D-393 (QA logic #12): who gets it is worked out before the claim, so
+        // a failed lookup leaves the notice unclaimed and the next run sends it.
+        const level = kind === "REMINDER" ? 0 : ESCALATIONS.indexOf(kind) + 1;
+        let recipients: number[];
         if (kind === "REMINDER") {
           const [delegates] = await getDbPool().query<(RowDataPacket & { delegate_id: number })[]>(
             `SELECT delegate_id FROM delegations WHERE user_id = ? AND ended_at IS NULL AND ${INDIA_TODAY_SQL} BETWEEN starts_on AND ends_on`,
             [row.approver_id],
           );
-          for (const userId of [row.approver_id, ...delegates.map((d) => d.delegate_id)]) {
+          recipients = [row.approver_id, ...delegates.map((d) => d.delegate_id)];
+        } else {
+          const manager = [row.manager_1, row.manager_2, row.manager_3][level - 1] ?? null;
+          const people = new Set<number>(manager ? [manager] : []);
+          if (level === 1) {
+            adminIds ??= await listUserIdsWithRole("IT_ADMIN");
+            adminIds.forEach((id) => people.add(id));
+          }
+          people.delete(row.approver_id);
+          recipients = [...people];
+        }
+        // Claim: only one runner ever sends a given notice.
+        const [claim] = await getDbPool().query<ResultSetHeader>("INSERT IGNORE INTO task_reminders (task_id, kind) VALUES (?, ?)", [row.id, kind]);
+        if (claim.affectedRows !== 1) continue;
+        if (kind === "REMINDER") {
+          for (const userId of recipients) {
             await notify({
               eventType: "APPROVAL_REMINDER",
               userId,
@@ -170,14 +187,6 @@ export async function runSlaChecks(): Promise<{ reminders: number; escalations: 
           }
           result.reminders += 1;
         } else {
-          const level = ESCALATIONS.indexOf(kind) + 1;
-          const manager = [row.manager_1, row.manager_2, row.manager_3][level - 1] ?? null;
-          const recipients = new Set<number>(manager ? [manager] : []);
-          if (level === 1) {
-            adminIds ??= await listUserIdsWithRole("IT_ADMIN");
-            adminIds.forEach((id) => recipients.add(id));
-          }
-          recipients.delete(row.approver_id);
           const times = level + 1;
           for (const userId of recipients) {
             await notify({

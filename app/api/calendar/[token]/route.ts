@@ -1,3 +1,4 @@
+import { clientIpFrom } from "@/lib/http/client-ip";
 import { logError } from "@/lib/logging/logger";
 import { overLimit } from "@/server/security/limits";
 import { feedCalendar } from "@/server/work/calendar-feeds";
@@ -9,11 +10,16 @@ import { feedCalendar } from "@/server/work/calendar-feeds";
 // today. Read-only. Unknown, stopped or no longer allowed: 404.
 const notFound = () => new Response("Not found.", { status: 404, headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" } });
 
-export async function GET(_request: Request, { params }: { params: Promise<{ token: string }> }) {
+// D-389 (QA security L-5): also 120 a minute per calling address, so made-up
+// addresses (each with a fresh per-address count) can't cost unlimited lookups.
+const CALENDAR_PER_IP_PER_MINUTE = 120;
+
+export async function GET(request: Request, { params }: { params: Promise<{ token: string }> }) {
   const { token: raw } = await params;
   const token = raw.replace(/\.ics$/i, "");
   if (!/^[A-Za-z0-9_-]{43}$/.test(token)) return notFound();
-  if (await overLimit(`calendar:${token.slice(0, 12)}`, 30)) return new Response("Too many requests.", { status: 429, headers: { "Retry-After": "60", "Content-Type": "text/plain; charset=utf-8" } });
+  const ip = clientIpFrom((name) => request.headers.get(name)) ?? "unknown";
+  if ((await overLimit(`calendar-ip:${ip}`, CALENDAR_PER_IP_PER_MINUTE)) || (await overLimit(`calendar:${token.slice(0, 12)}`, 30))) return new Response("Too many requests.", { status: 429, headers: { "Retry-After": "60", "Content-Type": "text/plain; charset=utf-8" } });
   try {
     const body = await feedCalendar(token);
     if (body === null) return notFound();

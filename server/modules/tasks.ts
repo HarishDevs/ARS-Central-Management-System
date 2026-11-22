@@ -11,6 +11,7 @@ import { findLiveType, versionWithType } from "@/lib/db/repositories/module-type
 import { appendTaskEvent, findTask, findTaskBySubmissionKey, insertTask, personFacts, updateTask } from "@/lib/db/repositories/tasks.repository";
 import { emitAutomationEvent } from "@/lib/db/repositories/automations.repository";
 import { kickAutomations } from "@/lib/automation/kick";
+import { logError } from "@/lib/logging/logger";
 import { countEvidence, discardStaged, insertRecordFiles, RecordFileError, type StagedFile } from "@/server/modules/files";
 import { taskMessages } from "@/server/modules/messages";
 import { indiaLocalToUtc, mayCreate, parseTaskSettings, TASK_PRIORITIES, type TaskPriority, type TaskSettings } from "@/server/modules/settings";
@@ -256,13 +257,27 @@ export async function actOnTask(input: TaskActionInput, actor: TaskActor): Promi
           return fail(`Only ${mirrored.assigneeName} can mark this work done (a step of ${where}).`);
         }
         // QA-WF-05 (v1.42.1): files sent with "done" are kept as the task's evidence.
-        if (input.files.length) await withTransaction((connection) => insertRecordFiles("TASK", mirrored.id, input.files, actor.id, "EVIDENCE", connection));
+        // D-393 (QA logic #13): only once "done" was recorded; if the request
+        // refuses it (on hold, changed meanwhile), the files are not kept.
         const { decideTask } = await import("@/server/approvals/service");
         const done = await decideTask({ requestId: link.requestId, taskKey: link.taskKey, decision: "APPROVE", comment: reason || "Done (ticked in Task Management)." }, { id: actor.id, roles: actor.roles as never });
-        if (!done.ok) return fail(done.message);
+        if (!done.ok) {
+          await discardStaged(input.files);
+          return fail(done.message);
+        }
+        let filesNote = "";
+        if (input.files.length) {
+          try {
+            await withTransaction((connection) => insertRecordFiles("TASK", mirrored.id, input.files, actor.id, "EVIDENCE", connection));
+          } catch (error) {
+            await discardStaged(input.files);
+            if (!(error instanceof RecordFileError)) logError("work step evidence not kept", error, { taskId: mirrored.id });
+            filesNote = error instanceof RecordFileError ? ` The files weren't kept: ${error.message}` : " The files couldn't be kept; add them to the task again.";
+          }
+        }
         // The task is now completed (by the request); tasks waiting for it are told, as for any task.
         await afterTaskCompleted(mirrored.id, actor);
-        return { ok: true, value: { message: `Done. ${where} moves on.` } };
+        return { ok: true, value: { message: `Done. ${where} moves on.${filesNote}` } };
       }
       if (input.action === "REASSIGN" || input.action === "CANCEL" || input.action === "REOPEN") {
         await discardStaged(input.files);

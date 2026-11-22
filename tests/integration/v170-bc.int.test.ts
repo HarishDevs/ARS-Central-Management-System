@@ -257,7 +257,7 @@ describe("C03 backup check script", () => {
   const target = "ars_verify_check_test";
   const work = fs.mkdtempSync(path.join(os.tmpdir(), "ars-verify-"));
   const script = path.resolve(__dirname, "../../scripts/database/verify-backup.js");
-  const env = { ...process.env, DB_HOST: host, DB_PORT: String(port), DB_NAME: "ars_approvals_test", DB_USER: appUser, DB_PASSWORD: appPassword };
+  const env = { ...process.env, DB_HOST: host, DB_PORT: String(port), DB_NAME: process.env.DB_NAME ?? "ars_approvals_test", DB_USER: appUser, DB_PASSWORD: appPassword };
 
   it("restores into an empty database and proves every table and trigger; refuses the live or a used database", async () => {
     const backup = await createBackup({ dir: path.join(work, "backups"), uploadDir: path.join(work, "uploads") });
@@ -276,7 +276,7 @@ describe("C03 backup check script", () => {
       // The same database again: it now has tables, so the check refuses.
       expect(() => execFileSync(process.execPath, [script, backup.file, `--into=${target}`], { env, stdio: "pipe" })).toThrow();
       // Never the app's own database.
-      expect(() => execFileSync(process.execPath, [script, backup.file, "--into=ars_approvals_test"], { env, stdio: "pipe" })).toThrow();
+      expect(() => execFileSync(process.execPath, [script, backup.file, `--into=${process.env.DB_NAME ?? "ars_approvals_test"}`], { env, stdio: "pipe" })).toThrow();
     } finally {
       await root.query(`DROP DATABASE IF EXISTS \`${target}\``);
       await root.end();

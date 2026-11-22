@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { SESSION_COOKIE_NAME } from "@/lib/session/constants";
 import { buildCsp, createNonce } from "@/lib/security/csp";
+import { FILE_ROUTE } from "@/lib/security/file-routes";
 import { pickRequestId, REQUEST_ID_HEADER } from "@/lib/logging/request-id";
 import { PATH_HEADER, PATH_SIGNATURE_HEADER, signPath, WRITE_HEADER, NEXT_HEADER } from "@/lib/security/path-signature";
 import { sessionCookieLooksValid } from "@/lib/security/session-cookie-edge";
@@ -43,9 +44,8 @@ function sameSecret(given: string | null, expected: string): boolean {
 }
 
 const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
-// Routes that send files set their own, stricter policy (a sandbox for
-// attachments and the PDF summary, RD-02); the page policy mustn't replace it.
-const FILE_ROUTE = /^\/api\/(attachments\/\d+|requests\/\d+\/summary\.pdf)$/;
+// Routes that send files set their own, stricter policy (RD-02, D-389):
+// FILE_ROUTE in lib/security/file-routes.ts.
 // Called by machines, not browsers: the cron job and the provider webhook.
 // v1.70.0 (D-383): calendar apps fetching a feed (GET only, secret address).
 const MACHINE_APIS = ["/api/jobs/", "/api/webhooks/", "/api/calendar/"];

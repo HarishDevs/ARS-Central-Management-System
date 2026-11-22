@@ -220,6 +220,7 @@ export function AutomationBuilder(props: BuilderProps) {
               Become owner
             </button>
           )}
+          {props.build && !props.owner.isMe && <span data-testid="owner-on-save">If you save or publish a change, you become its owner and {props.owner.name} is told.</span>}
         </p>
         {(props.paused || !props.owner.canRun) && (
           <p className="flex items-start gap-2 rounded-md bg-warning-50 px-3 py-2 text-label text-warning-600" role="status">

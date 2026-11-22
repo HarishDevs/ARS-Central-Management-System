@@ -43,7 +43,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   const [events, comments, files, taskFiles, people, lookupNames, feedback] = await Promise.all([
     listTicketEvents(ticket.id, internal),
     listTicketComments(ticket.id, internal),
-    listRecordFiles("TICKET", ticket.id),
+    listRecordFiles("TICKET", ticket.id, { internal }),
     ticket.taskId ? listRecordFiles("TASK", ticket.taskId) : Promise.resolve([]),
     listPeopleFacts(),
     loadLookupNames(),

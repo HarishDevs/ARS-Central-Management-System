@@ -34,6 +34,10 @@ export default function TermsPage() {
             As the approver a request is waiting on, change its details or the levels after yours only when the change is right for the company, and say why. The change, its reason and your name are
             recorded, and the requester and earlier approvers are told.
           </li>
+          <li>
+            Nobody approves, passes on, holds or otherwise moves an approval of a request they raised, including as someone&apos;s out-of-office delegate or as a member of the IT team: another person
+            does it. Only the Super Admin removes the IT Admin role from another IT Admin.
+          </li>
           <li>Don&apos;t try to access records you aren&apos;t given, get around security, or disrupt the service.</li>
           <li>Tasks, projects, comments, mentions and notices are work records: keep them to work, and mention or add people only where they need to know.</li>
           <li>Deleting a task or project is undone with Undo or restored from Deleted within 30 days. After 30 days it is removed for good and can&apos;t be brought back, so restore anything you still need in time.</li>
@@ -55,7 +59,7 @@ export default function TermsPage() {
             Project automations: only a project&apos;s owners and editors (or only its owners, if the project says so) build its automations. An automation acts on other people&apos;s tasks
             on its owner&apos;s behalf, with the owner&apos;s rights (never more): its changes, comments and messages are recorded as &ldquo;ARS-CMS Automation&rdquo; for the rule, and its owner is
             responsible for what it does. Build rules for genuine work, check them before publishing, and switch off or fix a rule that misbehaves. If its owner can no longer edit the project
-            the rule stops until someone becomes its owner. A rule&apos;s webhook secret is a password for that rule: give it only to the system that needs it, never put it in a link or message, and
+            the rule stops until someone becomes its owner. Saving or publishing someone else&apos;s rule makes you its owner (they are told), so you answer for it from then on. A rule&apos;s webhook secret is a password for that rule: give it only to the system that needs it, never put it in a link or message, and
             make a new one if it may have been seen. Web requests must carry only the work data the rule needs.
           </li>
           <li>

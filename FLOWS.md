@@ -621,7 +621,7 @@ The approver (or the Super Admin) sets a date range, a delegate and a scope (all
   - the delegate can open those requests and act; the task records the actor and "on behalf of".
 - **Limits:**
   - No chains: a delegate can only act for the person who named them.
-  - A delegate can never approve their own request (the engine refuses the requester as actor).
+  - A delegate can never approve their own request (the engine refuses the requester as actor). v1.71.2 (D-388): nor pass it on, hold it, resume it or ask a question on it.
 - **Alerts:** starting or ending a delegation alerts both people.
 
 ## F-31 SLA, reminder, escalation
@@ -723,6 +723,7 @@ flowchart LR
   F -- No --> H["Deactivate: sign-in blocked, sessions end"]
 ```
 - The replacement can't be the requester of that request, and can't already be an approver on the same step; those tasks are listed as needing IT.
+- v1.71.2 (D-388, D-390): the IT person can't move the approvals of a request they raised (listed as skipped), and the replacement can't be someone who already decided another part of that step.
 - Only pending tasks move. Decisions already taken stay with the person who took them.
 
 ## F-40 Notification pipeline
@@ -1032,7 +1033,7 @@ To move requests:
 ## F-109 Move pending tasks (v1.7.0, IT)
 1. **Workload → Move pending tasks.** Narrow by who has them and by approval type.
 2. Tick tasks (up to 100), choose who takes them, give a reason, confirm.
-3. Each task is moved through the normal locked path (timeline, both told) and gets its own result line. Approval steps need someone who can approve; work steps anyone active; never the requester.
+3. Each task is moved through the normal locked path (timeline, both told) and gets its own result line. Approval steps need someone who can approve; work steps anyone active; never the requester; never by the requester (v1.71.2: an IT person's own request is moved by another IT person).
 
 ## F-110 Form preview (v1.7.0, IT)
 Workflow builder → **Preview the form**: the form as requesters see it, including unsaved changes, with rules and formulas working. Submitting it only says "Preview only: nothing was submitted."
@@ -1228,6 +1229,7 @@ Roles: one **Meeting Owner** (approves the points and the MOM) and one **Coordin
 1. A request reaches the end with no human approval.
 2. Predefined type ticked *May finish without an approver* → Approved (as before, D-245 rule).
 3. Otherwise → one approval step for the requester's HOD (`HUMAN_APPROVAL_ROUTED`); no HOD → the step blocks and IT is told (existing fallback).
+4. v1.71.2 (D-390): changes asked, a recall or a change of details keep the check: the resubmit goes back to the HOD (F-HUMAN-CHECK-RESUBMIT).
 
 ## F-208 Reusing an expired approval (v1.46.0, D-279; DR-05)
 1. An approved request past `valid_until` shows **Expired** everywhere (status stays APPROVED).
@@ -1888,6 +1890,41 @@ The application audit (`application-audit/`) found these gaps between flows and 
 - **F-31 SLA, reminder, escalation** and **F-79 FYI steps:** escalation managers and FYI recipients receive links they can't open (AUD-09). Planned for Phase B.
 - **F-59 Bulk import:** the import doesn't apply the rule that only the Super Admin changes another IT Admin's contact details (AUD-01). Fix planned: V181-A2.
 - **F-121 Page access:** an action posted from an address that is no configured page isn't restricted (AUD-14). Fix planned: V181-A7.
+
+## F-OWN-REQUEST: Nobody moves an approval of their own request (v1.71.2, D-388)
+```mermaid
+flowchart TD
+  A[Someone acts on a pending approval: decide, pass it on, hold, ask a question, resume, change details] --> B{Actor raised this request?}
+  I[IT: Hand over, Move pending tasks, a stuck step's Give it to people / Skip / Pick a path] --> B
+  B -- no --> C[Usual rules: approver or their delegate; IT for handover and stuck steps]
+  B -- yes --> D{Work step being done by its own assignee?}
+  D -- yes, Mark as done --> C
+  D -- anything else --> X[Refused: another person or another IT person does it; Waiting for me hides own approvals]
+  R[IT stuck step: Try again] --> C
+```
+- The engine refuses it (reassignTask, putOnHold, resume, askForInformation, resolveBlocked ASSIGN/SKIP/TAKE_PATH, decide, changeByApprover), so every screen and bulk action follows. A handover list reports such items as skipped.
+- A handover is also refused to someone who already decided another part of the same level this round (one person, one vote, D-147), so a level can't be left with a task nobody may decide.
+
+## F-HUMAN-CHECK-RESUBMIT: The HOD check survives changes (v1.71.2, D-390; extends F-207)
+```mermaid
+flowchart LR
+  E[Route reaches End with no human approval] --> H[HOD asked on an anchor level: humanCheck]
+  H -->|HOD asks for changes / requester recalls / HOD changes details| C[Changes required: changesRequested.humanCheck kept]
+  C --> R[Requester resubmits]
+  R --> Q{Restart point is the anchor level?}
+  Q -- yes --> H
+  Q -- no: new values change the route --> N[Route runs again from the earliest affected step; a level on the new path asks its own approvers; End without a human approval asks the HOD again]
+```
+
+## F-AUTO-OWNER: Editing someone else's automation (v1.71.2, D-392; extends F-PM-AUTO)
+1. An owner or editor opens a rule owned by someone else: the builder says "If you save or publish a change, you become its owner".
+2. **Save draft** or **Publish** → the rule's owner becomes the editor (paused rule starts again), the project's history and the audit log say so, and the previous owner gets "Automation taken over: <rule>".
+3. The draft is checked against the new owner's projects; from now on it runs with the new owner's rights.
+
+## F-HEALTH: Health checks (v1.71.2, D-389; supersedes the body of D-103/D-246)
+1. Monitor or person → `GET /api/health` (or `/deep`).
+2. `x-health-secret` = HEALTH_SECRET, or signed in as Super Admin → full body. Signed in otherwise → status only. Anonymous → status only, 60 a minute per address (429 after).
+3. Status codes as before: `/api/health` 503 when the database is down; `/deep` 503 when degraded.
 
 ## F-PM-FILES: The project's Files tab (v1.71.0, D-384; "pm_extras")
 ```mermaid

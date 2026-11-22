@@ -26,6 +26,8 @@ const envSchema = z.object({
   SESSION_SECRET: z.string().min(32, "SESSION_SECRET must be at least 32 characters"),
   ENCRYPTION_KEY: z.string().min(1),
   JOB_RUNNER_SECRET: optional(z.string().min(24)),
+  // D-389: an uptime monitor that sends this as `x-health-secret` sees the health checks' details.
+  HEALTH_SECRET: optional(z.string().min(24, "HEALTH_SECRET must be at least 24 characters")),
   // D-102: read by middleware.ts; listed here so a too-short value fails clearly.
   ORIGIN_SECRET: optional(z.string().min(24, "ORIGIN_SECRET must be at least 24 characters")),
   // Where request attachments are kept (D-072): outside the web root, on

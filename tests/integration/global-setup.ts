@@ -11,7 +11,9 @@ export default async function setup(): Promise<void> {
   const appUser = process.env.TEST_DB_USER ?? "ars_dev";
   const appPassword = process.env.TEST_DB_PASSWORD ?? "ars_dev_password";
   const rootPassword = process.env.TEST_DB_ROOT_PASSWORD ?? "ars_root_password";
-  const database = "ars_approvals_test";
+  // TEST_DB_NAME lets a second checkout (e.g. a git worktree) use its own database.
+  const database = process.env.TEST_DB_NAME ?? "ars_approvals_test";
+  if (!/^[A-Za-z0-9_]+$/.test(database)) throw new Error("TEST_DB_NAME may only contain letters, digits and _");
 
   const root = await mysql.createConnection({ host, port, user: "root", password: rootPassword });
   try {

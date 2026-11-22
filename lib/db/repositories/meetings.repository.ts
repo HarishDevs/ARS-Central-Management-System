@@ -1,6 +1,7 @@
 import "server-only";
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { getDbPool, type Queryable } from "@/lib/db/client";
+import { likeEscape } from "@/server/search/filters";
 import type { Attendance, Confidentiality, MeetingMode, MeetingPriority, MeetingStatus, PointsPolicy, PointsStatus } from "@/server/meetings/rules";
 import { meetingOrderSql, type MeetingSortColumn } from "@/server/meetings/list-sort";
 import type { SortDir } from "@/server/lists/sorting";
@@ -732,7 +733,7 @@ export async function listMeetings(scope: MeetingScope, filter: MeetingListFilte
   if (filter.tab === "past") where.push("(m.status NOT IN ('SCHEDULED', 'IN_PROGRESS') OR m.scheduled_end < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 DAY))");
   if (filter.q) {
     where.push("(m.title LIKE ? OR m.meeting_no LIKE ?)");
-    params.push(`%${filter.q}%`, `%${filter.q}%`);
+    params.push(likeEscape(filter.q), likeEscape(filter.q));
   }
   if (filter.typeId) {
     where.push("m.type_id = ?");
@@ -814,7 +815,7 @@ export async function listFollowUps(scope: MeetingScope, filter: { ownerOnly: nu
   }
   if (filter.q) {
     where.push("(a.title LIKE ? OR m.title LIKE ? OR m.meeting_no LIKE ?)");
-    params.push(`%${filter.q}%`, `%${filter.q}%`, `%${filter.q}%`);
+    params.push(likeEscape(filter.q), likeEscape(filter.q), likeEscape(filter.q));
   }
   const [rows] = await db.query<Row[]>(
     `SELECT a.*, u.name AS owner_name, t.task_no, t.status AS task_status, t.due_at AS task_due_at, t.completed_at AS task_completed_at, cb.name AS confirmed_by_name,

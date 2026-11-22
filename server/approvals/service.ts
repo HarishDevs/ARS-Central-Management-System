@@ -720,7 +720,7 @@ export function holdTask(input: { requestId: number; taskKey: string; reason?: s
 }
 
 export function resumeRequest(requestId: number, actor: Actor) {
-  return mutate(requestId, actor, (request, _definition, directory) => resume(request.state, { actorId: actor.id, isAdmin: isAdmin(actor) }, directory));
+  return mutate(requestId, actor, (request, _definition, directory) => resume(request.state, { actorId: actor.id, isAdmin: isAdmin(actor), requesterId: request.requesterId }, directory));
 }
 
 // Only the requester resubmits, on the same request number (G-04). New

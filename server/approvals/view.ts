@@ -246,7 +246,8 @@ export async function loadRequestView(requestId: number, viewer: Actor): Promise
     canFollowUp: state.status === "APPROVED",
     submissionCheck,
     budgetDepartment: submissionCheck?.budget.departmentId ? ((await departmentNameOf(submissionCheck.budget.departmentId)) ?? null) : null,
-    canResume: state.status === "ON_HOLD" && (isAdmin(viewer) || myPending.some((task) => task.nodeId === holdNode)),
+    // D-388: never on your own request (not even as IT).
+    canResume: state.status === "ON_HOLD" && request.requesterId !== viewer.id && (isAdmin(viewer) || myPending.some((task) => task.nodeId === holdNode)),
     canResubmit: state.status === "CHANGES_REQUIRED" && request.requesterId === viewer.id,
     canWithdraw: ["IN_PROGRESS", "ON_HOLD", "CHANGES_REQUIRED"].includes(state.status) && request.requesterId === viewer.id,
     canReopen: state.status === "APPROVED" && viewer.roles.includes("SUPER_ADMIN"),

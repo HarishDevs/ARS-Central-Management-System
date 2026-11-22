@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { requireApiArea } from "@/server/authorization/guards";
-import { findRecordFile, readRecordFile } from "@/server/modules/files";
+import { findRecordFile, readRecordFile, recordFileVisible } from "@/server/modules/files";
 import { loadTaskFor } from "@/server/modules/tasks";
 import { loadInfoFor } from "@/server/modules/information";
 import { loadTicketFor } from "@/server/tickets/service";
@@ -27,7 +27,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     // v1.55.0: ticket files follow the ticket page's rule; a ticket task's files
     // (the assignee's supporting documents) may also be opened by those who see the ticket.
     let allowed: unknown = null;
-    if (file.entityType === "TICKET") allowed = await loadTicketFor(file.entityId, viewer);
+    if (file.entityType === "TICKET") {
+      // D-388 (QA security M-1): an internal remark's file only for those who see internal remarks.
+      const ticket = await loadTicketFor(file.entityId, viewer);
+      allowed = ticket && recordFileVisible(file, ticket.internal) ? ticket : null;
+    }
     // v1.71.0 (D-384): a project message's file: anyone who sees the project (the message not deleted).
     else if (file.entityType === "PROJECT_MESSAGE") allowed = (await messageFileVisible(file.entityId, { id: session.user.id, name: session.user.name, roles: session.user.roles, modules: session.user.modules })) || null;
     else if (file.entityType === "TASK") {
