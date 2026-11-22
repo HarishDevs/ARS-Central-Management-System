@@ -64,12 +64,13 @@ export function AuthLayout({ children, landing = false }: { children: React.Reac
           </span>
           <div className="auth-enter">{children}</div>
           {!landing && (
-            <p className="mt-8 text-center text-body text-ink-muted">
+            <p className="mt-8 text-center text-body text-ink-muted lg:text-left">
               Need access? Contact IT Support: <span className="select-all font-medium text-ink"><MailLink address="itadmin@arssteels.co.in" /></span>
             </p>
           )}
           {/* v1.12.2 (D-161): the policies, reachable before signing in. */}
-          <p className={`${landing ? "mt-8" : "mt-3"} flex gap-4 text-caption`}>
+          {/* v1.74.1 (D-397): lined up with the "Need access?" line (centred on a phone, left on a computer). */}
+          <p className={`${landing ? "mt-8" : "mt-3"} flex justify-center gap-4 text-caption lg:justify-start`}>
             <a href="/privacy" className="link">
               Privacy policy
             </a>

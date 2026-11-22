@@ -27,9 +27,10 @@ export default async function SignedOutPage({ searchParams }: { searchParams: Pr
   const canSignIn = params.reason !== "deactivated";
   return (
     <AuthLayout>
-      <div className="w-full max-w-md" data-testid="signed-out">
-        <h1 className="text-title font-semibold">{reason.title}</h1>
-        <p className="mt-3 text-[length:calc(15px*var(--text-scale,1))] text-ink-muted">{reason.body(minutes)}</p>
+      {/* v1.74.1 (D-397): the same spacing and heading size as the other sign-in screens. */}
+      <div className="mt-8 w-full max-w-md" data-testid="signed-out">
+        <h1 className="text-display font-bold">{reason.title}</h1>
+        <p className="mt-2 text-[length:calc(15px*var(--text-scale,1))] text-ink-muted">{reason.body(minutes)}</p>
         {canSignIn && (
           <a href={`/login?next=${encodeURIComponent(next)}`} className="btn-primary mt-6 inline-flex">
             Sign in again

@@ -352,6 +352,10 @@ body {
   .data-table td {
     @apply border-b border-line px-4 py-3 align-top;
   }
+  /* v1.74.1 (D-397): a row's heading cell lines up with the rest of the row (it sat in the middle of tall rows). */
+  .data-table tbody th {
+    @apply align-top;
+  }
   .data-table tbody tr {
     @apply transition-colors hover:bg-surface-muted;
   }
@@ -878,7 +882,7 @@ main {
   --m-navy: #173b63; /* ARS Navy: hero cards, headings */
   --m-navy-text: #173b63;
   --m-red: #d92d20; /* ARS Red: accent, critical */
-  --m-red-text: #d92d20;
+  --m-red-text: #b42318; /* v1.74.1 (D-397): red as text, 6:1 on the light grey page (#d92d20 fell under 4.5:1 there) */
   --m-bg: #f2f4f7;
   --m-hero-text: #ffffff;
   background-color: var(--m-bg);

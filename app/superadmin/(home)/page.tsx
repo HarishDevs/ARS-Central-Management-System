@@ -46,10 +46,11 @@ export default async function SuperAdminHome() {
         </div>
         <ul className="divide-y divide-line">
           {secrets.map((setting) => (
-            <li key={setting.key} className="flex items-center justify-between px-5 py-3">
+            <li key={setting.key} className="flex items-center justify-between gap-3 px-5 py-3">
               <span>{setting.label}</span>
+              {/* v1.74.1 (D-397): the badge stays on one line (it broke in two on a phone). */}
               <span
-                className={`rounded-full px-2.5 py-0.5 text-caption font-semibold ${
+                className={`badge shrink-0 ${
                   setting.status === "CONFIGURED" ? "bg-success-50 text-success-600" : "bg-warning-50 text-warning-600"
                 }`}
               >

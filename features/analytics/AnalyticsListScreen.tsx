@@ -1,6 +1,6 @@
 import { requireFeature } from "@/server/settings/feature-guard";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import { requireArea } from "@/server/authorization/guards";
 import { PageHeader } from "@/features/shell/PageHeader";
 import { Breadcrumbs } from "@/features/ui/Display";
@@ -30,7 +30,8 @@ export async function AnalyticsListScreen({ searchParams, base }: { searchParams
   await requireFeature("analytics", user);
   const query = searchParams;
   const kind = (query.kind && query.kind in DRILL_LABEL ? query.kind : null) as DrillKind | null;
-  if (!kind) notFound();
+  // v1.74.1 (D-397): an address without a (known) number opens the dashboard, not a 404.
+  if (!kind) redirect(base);
   const viewer = { id: user.id, roles: user.roles };
   const { scope } = await resolveScope(query.scope, viewer);
   const period = resolvePeriod({ key: query.period, from: query.from, to: query.to }, indiaToday(new Date()));

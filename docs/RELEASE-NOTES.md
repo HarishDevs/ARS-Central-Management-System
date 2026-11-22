@@ -1,5 +1,17 @@
 # Release notes
 
+## v1.74.1 (22 Nov 2026): Fixes from a click-through of every screen
+Every page was opened as each kind of person (requester, approver, HOD, staff, coordinator, IT, Super Admin, someone without Tasks and Projects, and signed out), in light and dark, on a computer, a tablet and a phone, and the menus, tabs and back links were tried both ways. No new data, no migration, nothing to switch on.
+- **Analytics:** opening the "requests behind a number" address on its own (without a number chosen) now opens the Analytics dashboard instead of "This page isn't available".
+- **Phones:** on Task search, "Save this search as" fits the card (its Save button ran off the edge); on the Calendar list a long title takes its own line (up to two lines) instead of a few letters and "…"; the Super Admin overview's "Not configured" labels stay on one line.
+- **Tablets:** Home's My Tasks box shows cards below 1024 px (its table ran past the box); the Completed tile's change sits under its note (the word "Completed" broke in two); Admin → Ticket categories uses two columns, so the name box can be typed in; the status cards on Task Summary can be scrolled with the keyboard.
+- **Tables:** in every list table the first column (the name or number) now lines up with the rest of the row at the top (it sat in the middle of tall rows); on Users & roles the names line up whether or not a row has a tick box; on Admin → Insights the number columns line up on the right and the month table uses the full width.
+- **Empty states:** a meeting with nobody invited says "Nobody is invited yet."; a ticket's empty Timeline says "Nothing has happened yet.".
+- **Sign-in screens:** "Signed out" and "Wasn't you?" use the same heading size and spacing as the other sign-in screens; "Need access?" and the Privacy / Terms links line up with the form.
+- **Easier to tap and read aloud:** a project's "Who can see it" choices, the meeting form's "If the points aren't approved in time" choices, the broadcast form's role ticks and a reminder rule's "Send to" ticks have more room between them; a ticket remark's file picker has a spoken name.
+- **Wording and colour:** Admin overview says "1 department", "1 open request" (not "1 departments"); **Sign out** on the phone's More page is a darker red in light mode, so it is easy to read.
+- **For IT:** a new end-to-end check opens every page in each role, theme and width and records errors, accessibility problems, sideways scrolling and controls hidden under bars (`npx playwright test -c playwright.crawl.config.ts`; `CRAWL_FULL=1` for all six combinations).
+- **Owner steps:** publish v1.74.1 (no migration).
 ## v1.74.0 (22 Nov 2026): Project dates as From and To, estimated time from dates, and the Gantt's critical path
 Comes with the planning features (Super Admin → Features → "Projects B, planning"). No migration.
 - **From and To:** a project's start and due dates now read as **From** and **To**. The project shows its **working days** between them (both days counted, weekly offs and holidays skipped) and its **estimated hours** (working days × hours per working day): in the header ("Dates: From 7 Dec To 18 Dec · 10 working days · 80 h"; owners click it to change the dates), on Overview, in Settings, as a new **Duration** column in a portfolio's list, and as a **Project dates** bar at the top of the Timeline and Gantt. A To date before the From date is refused.

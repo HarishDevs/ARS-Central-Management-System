@@ -272,7 +272,8 @@ export async function MyWorkOverview({
               </p>
             ) : (
               <>
-                <table className="hidden w-full text-label md:table" data-testid="mw-table">
+                {/* v1.74.1 (D-397): the table from 1024 px; on a tablet with the menu open it ran past the card (cards instead). */}
+                <table className="hidden w-full text-label lg:table" data-testid="mw-table">
                   <caption className="sr-only">My tasks: {tab}</caption>
                   <thead className="text-left text-caption text-ink-muted">
                     <tr className="border-b border-line">
@@ -323,8 +324,8 @@ export async function MyWorkOverview({
                     ))}
                   </tbody>
                 </table>
-                {/* Phones: cards instead of a squeezed table. */}
-                <ul className="divide-y divide-line md:hidden" data-testid="mw-cards">
+                {/* Phones and tablets: cards instead of a squeezed table. */}
+                <ul className="divide-y divide-line lg:hidden" data-testid="mw-cards">
                   {list.items.map((task) => (
                     <li key={task.id} className={`flex gap-3 py-3 ${approvalRowClass(task.approval)}`}>
                       <TaskCheck taskId={task.id} done={task.status === "COMPLETED"} disabled={task.assigneeId !== user.id || task.status === "CANCELLED"} label={task.title} />
@@ -628,8 +629,13 @@ export async function MyWorkOverview({
               <span className="block text-card-title font-bold tabular-nums leading-tight">{card.value}</span>
               <span className="block text-label font-medium">{card.label}</span>
               <span className="block truncate text-caption text-ink-muted">{card.note}</span>
+              {/* v1.74.1 (D-397): the change sits under the note; beside it, it squeezed "Completed" into two lines on a tablet. */}
+              {card.key === "completed" && (
+                <span className="mt-0.5 block">
+                  <Change value={card.change} label={PREVIOUS_LABEL[period.key]} />
+                </span>
+              )}
             </span>
-            {card.key === "completed" && <Change value={card.change} label={PREVIOUS_LABEL[period.key]} />}
           </Link>
         ))}
       </div>
@@ -670,20 +676,20 @@ function QuickLink({ href, icon, label }: { href: string; icon: React.ReactNode;
 function Change({ value, label }: { value: number | null; label: string }) {
   if (value === null)
     return (
-      <span className="hidden shrink-0 text-right text-caption text-ink-faint sm:block">
-        <Minus aria-hidden="true" className="ml-auto h-3.5 w-3.5" />
+      <span className="hidden items-center gap-1 text-caption text-ink-faint sm:flex">
+        <Minus aria-hidden="true" className="h-3.5 w-3.5" />
         {label}
       </span>
     );
   const up = value >= 0;
   return (
-    <span className="hidden shrink-0 text-right sm:block">
+    <span className="hidden flex-wrap items-center gap-1 sm:flex">
       <span className={`inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-caption font-semibold ${up ? "bg-success-50 text-success-600" : "bg-danger-50 text-danger-600"}`}>
         {up ? <ArrowUpRight aria-hidden="true" className="h-3.5 w-3.5" /> : <ArrowDownRight aria-hidden="true" className="h-3.5 w-3.5" />}
         {up ? "+" : ""}
         {value}%
       </span>
-      <span className="block text-caption text-ink-muted">{label}</span>
+      <span className="text-caption text-ink-muted">{label}</span>
     </span>
   );
 }

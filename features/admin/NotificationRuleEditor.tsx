@@ -217,7 +217,7 @@ export function NotificationRuleEditor({
                 <legend className="field-label">Send to</legend>
                 <div className="grid gap-x-4 gap-y-1 sm:grid-cols-2 lg:grid-cols-4">
                   {RECIPIENTS.map((kind) => (
-                    <label key={kind} className="flex items-center gap-2 text-label">
+                    <label key={kind} className="flex min-h-6 items-center gap-2 text-label">
                       <input type="checkbox" checked={stage.recipients.includes(kind)} onChange={(event) => setStage(index, { recipients: event.target.checked ? [...stage.recipients, kind] : stage.recipients.filter((item) => item !== kind) })} />
                       {RECIPIENT_LABEL[kind]}
                     </label>

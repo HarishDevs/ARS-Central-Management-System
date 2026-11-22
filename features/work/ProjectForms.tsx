@@ -51,7 +51,8 @@ export function ProjectForm({ values, departments, myDepartmentId, fromTo }: { v
         <legend className="field-label">Who can see it</legend>
         <div className="space-y-1.5">
           {PRIVACY.map((option) => (
-            <label key={option} className="flex items-center gap-2 text-body">
+            // v1.74.1 (D-397): each choice is at least 24 px tall (axe target-size; the radios sat 22 px apart).
+            <label key={option} className="flex min-h-7 flex-wrap items-center gap-x-2 text-body">
               <input type="radio" name="privacy" value={option} checked={privacy === option} onChange={() => setPrivacy(option)} />
               {PRIVACY_LABEL[option]}
               <span className="text-caption text-ink-muted">

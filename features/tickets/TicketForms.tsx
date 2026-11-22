@@ -225,7 +225,7 @@ export function TicketRemarkForm({ ticketId, canInternal }: { ticketId: number; 
       <input type="hidden" name="ticketId" value={ticketId} />
       <RichEditor key={editorKey} id="ticket-remark" name="body" label="Remark" minHeight={70} maxLength={4000} testId="ticket-remark-editor" />
       <FieldError result={result} name="body" />
-      <FileListInput id="ticket-remark-files" name="attachments" accept={ACCEPT} maxFiles={10} />
+      <FileListInput id="ticket-remark-files" name="attachments" accept={ACCEPT} maxFiles={10} ariaLabel="Attach files to the remark" />
       <div className="flex flex-wrap items-center gap-3">
         {canInternal && (
           <label className="flex items-center gap-2 text-label">

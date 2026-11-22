@@ -11,6 +11,8 @@ export const metadata: Metadata = { title: "Admin overview" };
 // Admin space overview (S9-13): every module is live, so each card links to
 // it with a live count. Equal heights; 3 columns on wide screens.
 const n = (value: unknown) => Number(value ?? 0).toLocaleString("en-IN");
+// v1.74.1 (D-397): "1 department", not "1 departments".
+const count = (value: unknown, one: string, many: string) => `${n(value)} ${Number(value ?? 0) === 1 ? one : many}`;
 
 export default async function AdminHome() {
   // Pages re-check the space themselves: a layout check alone does not stop
@@ -23,10 +25,10 @@ export default async function AdminHome() {
     { title: "Task types", href: "/admin/task-types", stat: `${n(live(taskTypes))} live`, extra: null, body: "The kinds of task people can create: form, who may create and be assigned, steps, completion evidence and reminders." },
     { title: "Information types", href: "/admin/information-types", stat: `${n(live(infoTypes))} live`, extra: null, body: "The kinds of information people can send: form, recipients, acknowledgement, expiry and reminders." },
     { title: "Users & roles", href: "/admin/users", stat: `${n(c.users)} active`, extra: null, body: "Add or deactivate people, set how they sign in, their manager and department, and their roles." },
-    { title: "Approver groups", href: "/admin/groups", stat: `${n(c.groups_n)} groups`, extra: null, body: "Desks such as MD office or Finance checkers, so approvers can change without editing workflows." },
-    { title: "Departments", href: "/admin/organisation", stat: `${n(c.departments)} departments`, extra: null, body: "Departments with their HOD, and designations." },
-    { title: "Working calendar", href: "/admin/calendar", stat: `${n(c.holidays)} upcoming holidays`, extra: null, body: "Working days and holidays used for response times, reminders and escalation." },
-    { title: "Insights", href: "/admin/insights", stat: `${n(c.open_requests)} open requests`, extra: null, body: "Where requests wait, how long each level takes, and what is overdue." },
+    { title: "Approver groups", href: "/admin/groups", stat: count(c.groups_n, "group", "groups"), extra: null, body: "Desks such as MD office or Finance checkers, so approvers can change without editing workflows." },
+    { title: "Departments", href: "/admin/organisation", stat: count(c.departments, "department", "departments"), extra: null, body: "Departments with their HOD, and designations." },
+    { title: "Working calendar", href: "/admin/calendar", stat: count(c.holidays, "upcoming holiday", "upcoming holidays"), extra: null, body: "Working days and holidays used for response times, reminders and escalation." },
+    { title: "Insights", href: "/admin/insights", stat: count(c.open_requests, "open request", "open requests"), extra: null, body: "Where requests wait, how long each level takes, and what is overdue." },
   ];
   return (
     <>

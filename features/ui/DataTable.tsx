@@ -125,7 +125,7 @@ export function DataTable({
           <Tag
             key={column.key}
             scope={index === 0 ? "row" : undefined}
-            className={`${pad} ${column.numeric ? "text-right tabular-nums" : ""} ${index === 0 ? `border-b border-line px-4 text-left font-normal ${stickyFirst ? "sticky left-0 bg-surface" : ""}` : ""}`}
+            className={`${pad} ${column.numeric ? "text-right tabular-nums" : ""} ${index === 0 ? `border-b border-line px-4 text-left align-top font-normal ${stickyFirst ? "sticky left-0 bg-surface" : ""}` : ""}`}
           >
             {row.cells[column.key] ?? "—"}
           </Tag>

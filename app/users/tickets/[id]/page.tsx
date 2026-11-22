@@ -228,6 +228,8 @@ export default async function Page({ params, searchParams }: { params: Promise<{
             <h2 id="timeline-heading" className="mb-3 font-semibold">
               Timeline
             </h2>
+            {/* v1.74.1 (D-397): an empty timeline says so. */}
+            {timeline.length === 0 && <p className="text-label text-ink-muted">Nothing has happened yet.</p>}
             <ol className="space-y-2 text-label" data-testid="ticket-timeline">
               {timeline.map((item) =>
                 item.kind === "task" ? (

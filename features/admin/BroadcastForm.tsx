@@ -168,7 +168,7 @@ export function BroadcastForm({ people, departments, roles }: { people: PersonOp
                 <p className="field-label">Roles</p>
                 <div className="space-y-1 rounded-md border border-line p-2">
                   {roles.map((role) => (
-                    <label key={role.code} className="flex items-center gap-2 text-label">
+                    <label key={role.code} className="flex min-h-6 items-center gap-2 text-label">
                       <input
                         type="checkbox"
                         className="h-4 w-4"

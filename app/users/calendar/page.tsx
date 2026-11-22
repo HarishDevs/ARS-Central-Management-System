@@ -258,7 +258,8 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
               <span className={`rounded px-1.5 py-0.5 text-caption font-semibold ${KIND_STYLE[entry.kind]}`}>{KIND_LABEL[entry.kind]}</span>
               {/* D-219: your tasks tick off here too. */}
               {entry.kind === "task" && /^TASK:\d+$/.test(entry.key) && <TaskCheck taskId={Number(entry.key.slice(5))} done={false} label={entry.title} />}
-              <Link href={entry.href} className="link min-w-0 flex-1 truncate text-label">
+              {/* v1.74.1 (D-397): on a phone the title takes its own line (two lines at most) instead of a few letters and "…". */}
+              <Link href={entry.href} className="link line-clamp-2 min-w-[12rem] flex-1 text-label [overflow-wrap:anywhere]" title={`${entry.ref ? `${entry.ref} · ` : ""}${entry.title}`}>
                 {entry.ref ? `${entry.ref} · ` : ""}
                 {entry.title}
               </Link>

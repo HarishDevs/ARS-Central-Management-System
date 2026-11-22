@@ -9,7 +9,8 @@ export function TicketCategoryForm({ category }: { category?: TicketCategory }) 
   const { result, pending, onSubmit } = useActionForm(saveTicketCategoryAction);
   const id = category ? `cat-${category.id}` : "cat-new";
   return (
-    <form onSubmit={onSubmit} className="grid gap-3 sm:grid-cols-[1fr_9rem_6rem_6rem_auto_auto] sm:items-end" aria-label={category ? `Category ${category.name}` : "New category"} data-testid={category ? "ticket-category" : "ticket-category-new"}>
+    // v1.74.1 (D-397): one row from 1280 px; below that two columns (on a tablet the name box was squeezed to nothing).
+    <form onSubmit={onSubmit} className="grid gap-3 sm:grid-cols-2 sm:items-end xl:grid-cols-[1fr_9rem_6rem_6rem_auto_auto]" aria-label={category ? `Category ${category.name}` : "New category"} data-testid={category ? "ticket-category" : "ticket-category-new"}>
       {category && <input type="hidden" name="id" value={category.id} />}
       <div>
         <label htmlFor={`${id}-name`} className="field-label">
@@ -54,7 +55,7 @@ export function TicketCategoryForm({ category }: { category?: TicketCategory }) 
       <SubmitButton pending={pending} variant={category ? "secondary" : "primary"} className="btn-compact">
         {category ? "Save" : "Add category"}
       </SubmitButton>
-      <div className="sm:col-span-6">
+      <div className="sm:col-span-2 xl:col-span-6">
         <ResultMessage result={result} />
       </div>
     </form>

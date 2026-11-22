@@ -149,7 +149,8 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
               <>
                 <span className="flex items-center gap-2">
                   {/* Only people you may change can be ticked (not yourself; another IT Admin only by the Super Admin). */}
-                  {canEdit && <RowSelectBox formId={USERS_BULK_FORM} value={user.id} label={`Select ${user.name}`} testId="select-user" />}
+                  {/* v1.74.1 (D-397): a row that can't be ticked keeps the box's room, so the names line up. */}
+                  {canEdit ? <RowSelectBox formId={USERS_BULK_FORM} value={user.id} label={`Select ${user.name}`} testId="select-user" /> : <span aria-hidden="true" className="inline-block h-4 w-4 shrink-0" />}
                   <Link href={`/admin/users/${user.id}`} className="link">
                     {user.name}
                   </Link>

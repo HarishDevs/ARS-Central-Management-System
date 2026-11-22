@@ -14,7 +14,8 @@ test("a plain user gets a 404 for /admin and /superadmin, and lands on their own
   expect((await page.goto("/superadmin"))?.status()).toBe(404);
   await page.goto("/users");
   // D-265: Home's heading names the overview; the welcome is beneath it.
-  await expect(page.getByText(/Welcome back, Sita/)).toBeVisible();
+  // v1.74.1 (D-397): the Tasks home greets by the time of day (D-396), the Approvals home says "Welcome back".
+  await expect(page.getByText(/(Welcome back|Good (morning|afternoon|evening)), Sita/).first()).toBeVisible();
 });
 
 test("an IT Admin reaches /admin but not /superadmin", async ({ page, context }) => {

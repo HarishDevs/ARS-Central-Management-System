@@ -447,6 +447,8 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
             <h2 id="people" className="mb-2 font-semibold">
               Participants ({participants.length}){meeting.actualStart ? ` · ${present} present` : ""}
             </h2>
+            {/* v1.74.1 (D-397): an empty list says so. */}
+            {participants.length === 0 && <p className="text-label text-ink-muted">Nobody is invited yet.</p>}
             <ul className="space-y-1.5 text-label" data-testid="meeting-participants">
               {participants.map((person) => (
                 <li key={person.userId} className="flex flex-wrap items-baseline justify-between gap-x-2">

@@ -292,10 +292,10 @@ export function ScheduleMeetingForm({
         </div>
         <fieldset>
           <legend className="field-label">If the points aren&apos;t approved in time</legend>
-          <label className="flex items-center gap-2 text-label">
+          <label className="flex min-h-6 items-center gap-2 text-label">
             <input type="radio" name="pointsPolicy" value="LAST_APPROVED" defaultChecked={defaults.pointsPolicy !== "BLOCK"} /> Hold the meeting anyway
           </label>
-          <label className="mt-1 flex items-center gap-2 text-label">
+          <label className="mt-1 flex min-h-6 items-center gap-2 text-label">
             <input type="radio" name="pointsPolicy" value="BLOCK" defaultChecked={defaults.pointsPolicy === "BLOCK"} /> Don&apos;t start until approved
           </label>
         </fieldset>

@@ -198,7 +198,8 @@ export default async function MyTasksPage({
           <CreateTaskButton label="Add task" />
         </span>
       </header>
-      <ul className="status-cards scroll-hint mb-4 flex gap-2 overflow-x-auto pb-1 2xl:grid 2xl:grid-cols-5 2xl:overflow-visible" data-testid="task-cards" aria-label="Your tasks at a glance">
+      {/* v1.74.1 (D-397): the row scrolls sideways below 1536 px, so it takes keyboard focus (arrow keys scroll it). */}
+      <ul className="status-cards scroll-hint mb-4 flex gap-2 overflow-x-auto pb-1 2xl:grid 2xl:grid-cols-5 2xl:overflow-visible" data-testid="task-cards" aria-label="Your tasks at a glance" tabIndex={0}>
         {cards.map((card) => (
           <li key={card.key} className="status-card flex min-w-[8rem] shrink-0 items-center gap-3 rounded-lg border border-line bg-surface px-3 py-2.5">
             <card.icon className={`h-5 w-5 shrink-0 ${card.tone}`} aria-hidden="true" />

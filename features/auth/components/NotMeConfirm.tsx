@@ -21,8 +21,8 @@ export function NotMeConfirm({ token }: { token: string }) {
 
   if (state === "done") {
     return (
-      <div className="mt-6">
-        <h1 className="text-title font-semibold">Your account is secured</h1>
+      <div className="mt-8">
+        <h1 className="text-display font-bold">Your account is secured</h1>
         <p className="mt-2 text-ink-muted">
           We signed your account out on every device and locked it. IT will contact you to unlock it. You can reach them at{" "}
           <span className="select-all font-medium text-ink"><MailLink address="itadmin@arssteels.co.in" /></span>.
@@ -32,8 +32,8 @@ export function NotMeConfirm({ token }: { token: string }) {
   }
 
   return (
-    <div className="mt-6">
-      <h1 className="text-title font-semibold">Wasn&apos;t you?</h1>
+    <div className="mt-8">
+      <h1 className="text-display font-bold">Wasn&apos;t you?</h1>
       <p className="mt-2 text-ink-muted">
         If you didn&apos;t just sign in, secure your account. This signs you out on every device and locks the account until IT unlocks it.
       </p>

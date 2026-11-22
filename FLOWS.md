@@ -1905,6 +1905,22 @@ flowchart TD
 - The engine refuses it (reassignTask, putOnHold, resume, askForInformation, resolveBlocked ASSIGN/SKIP/TAKE_PATH, decide, changeByApprover), so every screen and bulk action follows. A handover list reports such items as skipped.
 - A handover is also refused to someone who already decided another part of the same level this round (one person, one vote, D-147), so a level can't be left with a task nobody may decide.
 
+## F-QA-CRAWL: The live click-through of every screen (v1.74.1, D-397)
+```mermaid
+flowchart TD
+  setup[Set-up: a project with a task, form and automation; a portfolio; a request; a ticket with a coordinator; a meeting; a calendar entry; an information item] --> modes{Mode}
+  modes --> m1[light / dark × 1366 / 768 / 375<br/>default run: light 1366 + dark 375; CRAWL_FULL=1: all six]
+  m1 --> route[Each route as the person it is for<br/>public · requester · approver · HOD · staff · coordinator · no Tasks/Projects · IT · Super Admin]
+  route --> checks[Status · console and page errors · hydration · failed requests · axe serious/critical · sideways scroll · controls a bottom bar covers at the end of the page · clipped text · unnamed controls · screenshot]
+  checks --> green{Must stay green?}
+  green -- errors, hydration, axe, 5xx, sideways scroll at 375 --> fail[Test fails]
+  green -- the rest --> report[findings-*.json]
+  nav[To and fro per role] --> menu[Click each menu entry → page works → browser back = menu page → forward = page]
+  menu --> tabs[Click each tab · open each menu and close it with Escape]
+  tabs --> back[Detail pages: breadcrumb / Back link → list → browser back = detail]
+```
+- Run: `npx playwright test -c playwright.crawl.config.ts` (`CRAWL_FULL=1` for the whole matrix, `CRAWL_REUSE=1` to use a server already running on `E2E_PORT`). Screenshots: `test-results/crawl/shots`.
+
 ## F-NAV-STATES: Lists, state screens and the way back (v1.72.1, D-395)
 ```mermaid
 flowchart TD

@@ -15,9 +15,10 @@ export function SaveSearchForm({ query }: { query: string }) {
       <label htmlFor="search-name" className="field-label">
         Save this search as
       </label>
+      {/* v1.74.1 (D-397): the box takes the room and the button keeps its own size (it ran off the card on a phone). */}
       <div className="flex gap-2">
-        <input id="search-name" name="name" required minLength={2} maxLength={80} className="field-input h-9" />
-        <SubmitButton pending={pending} variant="secondary">
+        <input id="search-name" name="name" required minLength={2} maxLength={80} className="field-input field-compact min-w-0 flex-1" />
+        <SubmitButton pending={pending} variant="secondary" className="btn-compact">
           Save
         </SubmitButton>
       </div>
