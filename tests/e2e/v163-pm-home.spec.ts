@@ -49,16 +49,16 @@ test("My Tasks: the person's own tabs, added, renamed, reordered by keyboard, sa
   // The new section is there, after Overdue.
   await expect(page.getByRole("rowgroup", { name: "Recently assigned" })).toBeVisible();
 
-  // Add a Board tab: it opens, last, with a unique name.
+  // Add a Board tab: it opens, last. v1.76.0 (D-401): personal tab names may repeat (was "Board (2)").
   await page.getByTestId("add-tab").locator("button[aria-haspopup]").click(); // v1.72.0 (D-387): menus are ARIA menus (button[aria-haspopup]), not <details>.
   await expect(page.getByTestId("add-tab-timeline")).toHaveCount(0);
   await page.getByTestId("add-tab-board").click();
   await expect(page).toHaveURL(/my-tasks\?tab=\d+/);
   await expect(page.getByTestId("my-board")).toBeVisible();
-  await expect.poll(() => tabNames(page)).toEqual(["List", "Board", "Calendar", "Board (2)"]);
+  await expect.poll(() => tabNames(page)).toEqual(["List", "Board", "Calendar", "Board"]);
 
   // Rename it, then move it left with Alt + ← (announced, kept after reload).
-  const tab = page.getByTestId("view-tab").filter({ has: page.getByRole("link", { name: "Board (2)" }) });
+  const tab = page.getByTestId("view-tab").filter({ has: page.getByRole("link", { name: "Board" }) }).last();
   await tab.getByTestId("tab-menu").locator("button[aria-haspopup]").click();
   await tab.getByRole("menuitem", { name: "Rename" }).click();
   await page.getByTestId("tab-rename").fill(`Mine ${stamp}`);
@@ -72,23 +72,27 @@ test("My Tasks: the person's own tabs, added, renamed, reordered by keyboard, sa
   await page.reload();
   await expect.poll(() => tabNames(page)).toEqual(["List", "Board", `Mine ${stamp}`, "Calendar"]);
 
-  // The List: change the grouping, Unsaved changes, Save view keeps it; Reset goes back.
+  // The List: v1.76.0 (D-401, owner) a personal tab saves itself (no Save
+  // view, no Unsaved changes); Reset goes back to the tab's starting view.
   await page.getByTestId("view-tabs").getByRole("link", { name: /^List/ }).click();
   const grid = page.getByTestId("my-grid");
   await expect(grid).toBeVisible();
   await expect(grid.getByTestId("unsaved-view")).toHaveCount(0);
+  await expect(grid.getByTestId("save-view")).toHaveCount(0);
   await grid.getByTestId("group-menu").locator("summary").click();
   await grid.getByTestId("group-by").selectOption("priority");
-  await expect(grid.getByTestId("unsaved-view")).toContainText("Unsaved changes");
+  await expect(grid.getByTestId("auto-save")).toContainText("Saved");
   await grid.getByTestId("reset-view").click();
-  await expect(grid.getByTestId("unsaved-view")).toHaveCount(0);
+  await expect(grid.getByTestId("reset-view")).toHaveCount(0);
   await grid.getByTestId("sort-menu").locator("button[aria-haspopup]").click();
   await grid.getByRole("menuitemradio", { name: "Last modified" }).click();
   await page.keyboard.press("Escape");
-  await grid.getByTestId("save-view").click();
-  await expect(page.getByText("View saved.")).toBeVisible();
+  await expect(grid.getByTestId("auto-save")).toContainText("Saved");
+  await page.waitForTimeout(1500);
   await page.reload();
-  await expect(page.getByTestId("my-grid").getByTestId("sort-menu")).toContainText("Sort: Last modified");
+  // v1.76.0 (D-401): the chip shows the count; the sort's name is its tooltip.
+  await expect(page.getByTestId("my-grid").getByTestId("sort-menu")).toContainText("Sorts: 1");
+  await expect(page.getByTestId("my-grid").getByTestId("sort-menu").locator("button[aria-haspopup]")).toHaveAttribute("title", "Sorted by Last modified");
   expect(await axe(page)).toEqual([]);
 
   // Someone else sees only their own three tabs.

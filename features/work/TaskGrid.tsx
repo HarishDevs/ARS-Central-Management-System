@@ -2,7 +2,7 @@
 
 import { TaskPriorityPill, priorityControlProps } from "@/features/ui/ChoicePill";
 import { ApprovalBadge, approvalRowClass } from "@/features/work/ApprovalLink";
-import { ArrowDown, ArrowUp, ArrowUpDown, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ChevronsDownUp, ChevronsUpDown, EyeOff, Filter, GitBranch, Layers, Lock, MessageSquare, MoreHorizontal, Pencil, Plus, Repeat, Settings2, Users, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ChevronsDownUp, ChevronsUpDown, EyeOff, Filter, GitBranch, Globe2, Building2, Layers, Lock, RotateCcw, MessageSquare, MoreHorizontal, Pencil, Plus, Repeat, Settings2, Users, X } from "lucide-react";
 import { DueCell } from "@/features/work/DueCell";
 import { DateRangePicker } from "@/features/ui/DateRangePicker";
 import Link from "next/link";
@@ -13,6 +13,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FoldAllButtons } from "@/features/ui/GroupFold";
 import { deleteViewAction, densityAction, myTasksTabAction, projectTabAction, saveViewAction, taskFieldsAction, updateViewAction } from "@/app/users/work/actions";
 import { UnsavedView } from "@/features/work/UnsavedView";
+import { chipText, visibilityLabel, VISIBILITY_TIP } from "@/server/work/my-sections";
 import { useWindowedLines, WINDOW_FROM } from "@/features/work/useWindowedLines";
 import { expandableIds, flattenGrid, keyMove } from "@/server/work/tree";
 import { initials } from "@/features/ui/Display";
@@ -107,6 +108,11 @@ export function TaskGrid({
   widthKey,
   subtasks,
   density,
+  mySections,
+  moveGroup = "section",
+  onAddSection,
+  groupLabels,
+  resetTo,
 }: {
   rows: GridTask[];
   // v1.61.0 (D-367): each task's subtasks (shown inline, folded), and the person's row density.
@@ -143,6 +149,15 @@ export function TaskGrid({
   syncUrl?: boolean;
   // Where this table keeps its column widths (ars.gridw:<widthKey>).
   widthKey?: string;
+  // v1.76.0 (D-401, Task Summary): the person's own sections (group "mySection"),
+  // which grouping drag and drop works in, the Add ▸ Section entry, other names
+  // for some groupings, and the view Reset goes back to (personal tabs save
+  // themselves, so there is no Save view).
+  mySections?: { id: number; name: string }[];
+  moveGroup?: "section" | "mySection";
+  onAddSection?: () => void;
+  groupLabels?: Partial<Record<GridGroup, string>>;
+  resetTo?: GridConfig;
 }) {
   const projectsOn = useProjectsOn();
   const { call } = useWorkCall();
@@ -190,11 +205,15 @@ export function TaskGrid({
   const foldAll = (open: boolean) => setFold((value) => ({ ...value, closed: !open, toggled: new Set() }));
   const today = indiaDayOf(new Date(nowIso));
   const now = useMemo(() => new Date(nowIso), [nowIso]);
-  const groups = useMemo(() => applyGrid(rows, config, { today, meId, sections, values, fields }), [rows, config, today, meId, sections, values, fields]);
+  const groups = useMemo(() => applyGrid(rows, config, { today, meId, sections, mySections, values, fields }), [rows, config, today, meId, sections, mySections, values, fields]);
+  // v1.76.0 (D-401): the sections the current grouping shows (a project's or Task Summary's, or the person's own).
+  const sectionGroup = config.group === "section" || config.group === "mySection";
+  const activeSections = config.group === "mySection" ? mySections : sections;
+  const groupLabel = (group: GridGroup) => groupLabels?.[group] ?? GROUP_LABEL[group];
   const shown = config.hidden.length ? columns.filter((column) => !config.hidden.includes(column)) : columns;
   // v1.64.0 (D-371): the field columns this view shows (Options or the column menu hide them).
   const shownFields = planning && config.hiddenFields?.length ? fields.filter((field) => !config.hiddenFields.includes(field.id)) : fields;
-  const canDrag = Boolean(onMove) && config.group === "section" && config.sort === "none" && !config.sortField && filterCount(config) === 0 && !config.search;
+  const canDrag = Boolean(onMove) && config.group === moveGroup && config.sort === "none" && !config.sortField && filterCount(config) === 0 && !config.search;
   // Owner: "all the columns in all the tables should be resizable". Every
   // column but the row number takes its width from one state (drag the right
   // edge of its title; ←/→ when focused; double-click or Enter resets).
@@ -209,6 +228,33 @@ export function TaskGrid({
   const resizer = (key: string, label: string) => <ColumnResizer column={key} label={label} width={resize.widths[key] ?? widthDefaults.find((column) => column.key === key)?.width} onResize={(width) => resize.setWidth(key, width)} onReset={() => resize.reset(key)} />;
   const set = (changes: Partial<GridConfig>) => setConfig((value) => ({ ...value, ...changes }));
   const dirty = JSON.stringify(config) !== saved;
+  // v1.76.0 (D-401, owner): a personal (Task Summary) tab saves itself a second
+  // after each change (no Save view); Reset goes back to the tab's defaults.
+  const autoSave = Boolean(view?.phaseA && view.scope === "MY_TASKS" && view.tabKey && view.canSave);
+  const [autoState, setAutoState] = useState<"" | "saving" | "saved">("");
+  const autoKey = JSON.stringify({ ...config, search: "" });
+  const savedAuto = useRef(JSON.stringify({ ...(JSON.parse(saved) as GridConfig), search: "" }));
+  useEffect(() => {
+    savedAuto.current = JSON.stringify({ ...(JSON.parse(saved) as GridConfig), search: "" });
+  }, [saved]);
+  useEffect(() => {
+    if (!autoSave || autoKey === savedAuto.current) return;
+    const timer = window.setTimeout(() => {
+      const next = JSON.parse(autoKey) as GridConfig;
+      setAutoState("saving");
+      void myTasksTabAction({ op: "save", key: view!.tabKey!, config: next, auto: true }).then((result) => {
+        if (result?.ok) {
+          savedAuto.current = autoKey;
+          setAutoState("saved");
+          // The first save writes the built-in tabs as rows: fetch their new keys.
+          if (view!.tabKey!.startsWith("v")) router.refresh();
+        } else setAutoState("");
+      });
+    }, 1000);
+    return () => window.clearTimeout(timer);
+  }, [autoSave, autoKey, view, router]);
+  // Moving tasks by hand needs the person's order: no sort, filter or search.
+  const dragBlocked = Boolean(onMove) && config.group === moveGroup && !canDrag;
   const count = filterCount(config);
   const allShown = groups.flatMap((group) => group.rows);
   // v1.58.0 (D-354, owner: "sorting in all the tables asc to desc or vice versa
@@ -305,9 +351,9 @@ export function TaskGrid({
         subtasks,
         expanded,
         hideEmpty: config.hideEmpty,
-        addLine: (group) => Boolean((group.sectionId !== null && addTo?.projectId && sections?.some((item) => item.id === group.sectionId)) || (group.sectionId !== null && addTo?.mySections)),
+        addLine: (group) => Boolean((group.sectionId !== null && addTo?.projectId && sections?.some((item) => item.id === group.sectionId)) || (group.sectionId !== null && addTo?.mySections && config.group === "mySection")),
       }),
-    [groups, fold, subtasks, expanded, config.hideEmpty, addTo?.projectId, addTo?.mySections, sections],
+    [groups, fold, subtasks, expanded, config.hideEmpty, addTo?.projectId, addTo?.mySections, sections, config.group],
   );
   const virtual = lines.length >= WINDOW_FROM;
   const lineKeys = useMemo(() => lines.map((line) => line.key), [lines]);
@@ -368,6 +414,34 @@ export function TaskGrid({
       router.push(paneLink(line.task.id), { scroll: false });
       return;
     }
+    // v1.76.0 (D-401): the keyboard way to drag: Alt+↑/↓ moves a task within its
+    // section, Alt+Shift+↑/↓ to the section above or below.
+    if (event.altKey && (event.key === "ArrowUp" || event.key === "ArrowDown") && line.kind === "task" && line.parentId === null && onMove) {
+      event.preventDefault();
+      if (!canDrag) {
+        setGridLive("Clear the sort, filters and search to move tasks by hand.");
+        return;
+      }
+      const up = event.key === "ArrowUp";
+      const at = groups.findIndex((group) => group.rows.some((task) => task.id === line.task.id));
+      const group = groups[at];
+      if (!group || group.sectionId === null) return;
+      if (event.shiftKey) {
+        const target = groups[at + (up ? -1 : 1)];
+        if (target?.sectionId !== null && target) {
+          onMove(line.task.id, target.sectionId, null);
+          setGridLive(`Moved to ${target.name}.`);
+        }
+        return;
+      }
+      const list = group.rows;
+      const index = list.findIndex((task) => task.id === line.task.id);
+      if (up && index > 0) onMove(line.task.id, group.sectionId, list[index - 1]!.id);
+      else if (!up && index < list.length - 1) onMove(line.task.id, group.sectionId, list[index + 2]?.id ?? null);
+      else return;
+      setGridLive(`Moved ${up ? "up" : "down"} in ${group.name}.`);
+      return;
+    }
     if (event.key === " " && line.kind === "task" && bulk && line.parentId === null) {
       event.preventDefault();
       pick(line.task.id, event.shiftKey);
@@ -392,7 +466,7 @@ export function TaskGrid({
   const toolbar = useRef<HTMLDivElement>(null);
   const viewGroupItems = gridGroupItems({ hideEmpty: config.hideEmpty, onHideEmpty: (on) => set({ hideEmpty: on }), onFoldAll: foldAll, subtasks: hasSubtasks ? onSubtasksAll : undefined });
   const grouping = config.group !== "none" || Boolean(config.groupField);
-  const groupName = config.groupField ? (fields.find((field) => field.id === config.groupField)?.name ?? "Field") : GROUP_LABEL[config.group];
+  const groupName = config.groupField ? (fields.find((field) => field.id === config.groupField)?.name ?? "Field") : groupLabel(config.group);
   // v1.72.0 (D-387, spec PM §3.8.2): the Sort menu in the spec's order, custom fields after the built-in ones, Project last.
   const sortOrder = sortMenu(SORTS);
   const sortEntries = [
@@ -418,14 +492,14 @@ export function TaskGrid({
       {/* v1.72.0 (D-387, spec PM §3.8, CMP-10): [＋ Add task │▾] on the left; Filter, Sort (a menu in the
           spec's order), Group (a "Group by" dropdown), Options (rows that open their own pages) and Search on the right. */}
       <div ref={toolbar} className="mb-2 flex flex-wrap items-center gap-2" role="toolbar" aria-label="View options">
-        <AddTaskSplit projectId={addTo?.projectId ?? null} onSection={addTo?.projectId ? () => window.dispatchEvent(new Event(ADD_SECTION_EVENT)) : undefined} />
+        <AddTaskSplit projectId={addTo?.projectId ?? null} onSection={addTo?.projectId ? () => window.dispatchEvent(new Event(ADD_SECTION_EVENT)) : onAddSection && config.group === "mySection" ? onAddSection : undefined} sectionOff={onAddSection && config.group !== "mySection" ? "Group by My sections to add a section" : undefined} />
         <span className="ml-auto flex flex-wrap items-center gap-0.5">
           <span className={count ? "tb-pill" : "inline-flex items-center"}>
             <Drop
-              label={count ? `Filters: ${count}` : "Filter"}
+              label={chipText("Filters", count)}
               icon={
                 <>
-                  <Filter aria-hidden="true" className="h-4 w-4" /> {count ? `Filters: ${count}` : "Filter"}
+                  <Filter aria-hidden="true" className="h-4 w-4" /> {chipText("Filters", count)}
                 </>
               }
               buttonClass="tb-btn"
@@ -447,13 +521,14 @@ export function TaskGrid({
             onPick={(key) => (key.startsWith("f") && /^f\d+$/.test(key) ? set({ sort: "none", sortField: Number(key.slice(1)) }) : set({ sort: key as GridConfig["sort"], sortField: null }))}
             onDir={(dir) => set({ dir })}
             onClear={() => set({ sort: "none", sortField: null, dir: "asc" })}
+            chip
           />
           <span className={grouping ? "tb-pill" : "inline-flex items-center"}>
             <Drop
-              label="Group"
+              label={grouping ? `Groups: 1, by ${groupName}` : "Group"}
               icon={
                 <>
-                  <Layers aria-hidden="true" className="h-4 w-4" /> {grouping ? `Group: ${groupName}` : "Group"}
+                  <Layers aria-hidden="true" className="h-4 w-4" /> <span title={grouping ? `Grouped by ${groupName}` : undefined}>{chipText("Groups", grouping ? 1 : 0)}</span>
                 </>
               }
               buttonClass="tb-btn"
@@ -484,7 +559,7 @@ export function TaskGrid({
               >
                 {(["none", ...groupsAllowed] as GridGroup[]).map((group) => (
                   <option key={group} value={group}>
-                    {GROUP_LABEL[group]}
+                    {groupLabel(group)}
                   </option>
                 ))}
                 {/* v1.64.0 (D-371): group by any custom field. */}
@@ -512,7 +587,7 @@ export function TaskGrid({
               )}
             </Drop>
             {grouping && (
-              <button type="button" aria-label="Remove grouping" onClick={() => set({ group: "none", groupField: null })} className="tb-x">
+              <button type="button" aria-label="Clear groups" title="Clear groups" onClick={() => set({ group: "none", groupField: null })} className="tb-x">
                 <X aria-hidden="true" className="h-3.5 w-3.5" />
               </button>
             )}
@@ -591,7 +666,19 @@ export function TaskGrid({
             />
           </Drop>
           <ViewSearch value={config.search} onChange={(search) => set({ search })} />
-          {dirty && view?.phaseA && view.tabKey && (
+          {autoSave && (
+            <span className="inline-flex items-center gap-1.5" data-testid="auto-save">
+              <span role="status" aria-live="polite" className="text-caption text-ink-muted">
+                {autoState === "saving" ? "Saving…" : autoState === "saved" ? "Saved" : ""}
+              </span>
+              {resetTo && JSON.stringify({ ...config, search: "" }) !== JSON.stringify({ ...resetTo, search: "" }) && (
+                <button type="button" onClick={() => setConfig(resetTo)} className="tb-btn" data-testid="reset-view" title="Back to this tab's starting view">
+                  <RotateCcw aria-hidden="true" className="h-3.5 w-3.5" /> Reset
+                </button>
+              )}
+            </span>
+          )}
+          {dirty && view?.phaseA && view.tabKey && !autoSave && (
             <UnsavedView
               canSave={view.canSave}
               onReset={() => setConfig(JSON.parse(saved) as GridConfig)}
@@ -606,7 +693,12 @@ export function TaskGrid({
         </span>
       </div>
 
-      {(config.group !== "none" || config.groupField) && groups.length > 0 && !(config.group === "section" && !config.groupField && sectionHeader) && <FoldAllButtons onAll={foldAll} testId={`${testId}-fold-all`} />}
+      {dragBlocked && (
+        <p className="mb-2 text-caption text-ink-muted" data-testid="drag-blocked">
+          Clear the sort, filters and search to move tasks between your sections by hand.
+        </p>
+      )}
+      {(config.group !== "none" || config.groupField) && groups.length > 0 && !(sectionGroup && !config.groupField && sectionHeader) && <FoldAllButtons onAll={foldAll} testId={`${testId}-fold-all`} />}
       <div ref={scroller} className="overflow-x-auto rounded-lg border border-line bg-surface" data-density={rowDensity === "COMPACT" ? "compact" : undefined}>
         {/* v1.61.0 (D-367, spec PRJ-03): an ARIA treegrid. Group headings are level 1,
             tasks level 2 (1 without groups), subtasks one deeper; one line takes Tab
@@ -638,11 +730,11 @@ export function TaskGrid({
               </span>
             )}
           </div>
-          {allShown.length === 0 && !(config.group === "section" && sections?.length) && <p style={pinned} className="px-4 py-8 text-center text-label text-ink-muted">{emptyText}</p>}
+          {allShown.length === 0 && !(sectionGroup && activeSections?.length) && <p style={pinned} className="px-4 py-8 text-center text-label text-ink-muted">{emptyText}</p>}
           {windowed.range.padTop > 0 && <div aria-hidden="true" style={{ height: windowed.range.padTop }} data-testid="grid-spacer-top" />}
           {drawnGroups.map((chunk) => {
             const group = chunk.group;
-            const section = group.sectionId !== null ? (sections?.find((item) => item.id === group.sectionId) ?? null) : null;
+            const section = group.sectionId !== null ? (activeSections?.find((item) => item.id === group.sectionId) ?? null) : null;
             return (
               <div
                 key={`${group.key}-${chunk.from}`}
@@ -651,7 +743,7 @@ export function TaskGrid({
                 onDragOver={(event) => canDrag && event.preventDefault()}
                 onDrop={(event) => {
                   event.preventDefault();
-                  if (dragging !== null && section && onMove) onMove(dragging, section.id, null);
+                  if (dragging !== null && section && onMove && canDrag) onMove(dragging, section.id, null);
                   setDragging(null);
                 }}
               >
@@ -696,7 +788,7 @@ export function TaskGrid({
                   if (line.kind === "add")
                     return (
                       <div key={line.key} role="row" {...lineProps} className="focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus">
-                        <div role="gridcell" style={pinned}>{section && addTo?.projectId ? <AddTask projectId={addTo.projectId} sectionId={section.id} /> : group.sectionId !== null ? <AddTask mySectionId={group.sectionId} placeholder={`Add a task to ${group.name}…`} /> : null}</div>
+                        <div role="gridcell" style={pinned}>{section && addTo?.projectId ? <AddTask projectId={addTo.projectId} sectionId={section.id} /> : group.sectionId !== null && config.group === "mySection" ? <AddTask mySectionId={group.sectionId} placeholder={`Add a task to ${group.name}…`} /> : null}</div>
                       </div>
                     );
                   const task = line.task;
@@ -719,7 +811,7 @@ export function TaskGrid({
                       onDrop={(event) => {
                         event.preventDefault();
                         event.stopPropagation();
-                        if (dragging !== null && dragging !== task.id && section && onMove && !sub) onMove(dragging, section.id, task.id);
+                        if (dragging !== null && dragging !== task.id && section && onMove && !sub && canDrag) onMove(dragging, section.id, task.id);
                         setDragging(null);
                       }}
                       data-testid={sub ? "subtask-row" : "task-row"}
@@ -830,12 +922,7 @@ export function TaskGrid({
                               )}
                             </span>
                           )}
-                          {column === "visibility" && (
-                            <span className="flex min-w-0 items-center gap-1.5 text-ink-muted">
-                              {task.projects.length ? <Users aria-hidden="true" className="h-3.5 w-3.5 shrink-0" /> : <Lock aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />}
-                              <span className="truncate">{task.projects.length ? `${task.projects[0]!.name} members` : "Collaborators"}</span>
-                            </span>
-                          )}
+                          {column === "visibility" && <VisibilityCell projects={task.projects} />}
                           {column === "priority" &&
                             (editPriority && task.canEdit && open ? (
                               <select
@@ -1231,5 +1318,18 @@ export function OptionsPanel({
       {density && entry("Rows", density.value === "COMPACT" ? "Compact" : "Comfortable", () => setPage("rows"), "options-rows-row")}
       {footer}
     </div>
+  );
+}
+
+// v1.76.0 (D-401, spec §3.12): who can see the task, from its projects' privacy
+// (the widest wins); the tooltip names the reporting-hierarchy rule (D-216).
+function VisibilityCell({ projects }: { projects: GridTask["projects"] }) {
+  const label = visibilityLabel(projects);
+  const Icon = label.kind === "ORGANISATION" ? Globe2 : label.kind === "DEPARTMENT" ? Building2 : label.kind === "PRIVATE" ? Users : Lock;
+  return (
+    <span className="flex min-w-0 items-center gap-1.5 text-ink-muted" title={`${label.text}. ${VISIBILITY_TIP}`} data-testid="visibility-cell">
+      <Icon aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
+      <span className="truncate">{label.text}</span>
+    </span>
   );
 }

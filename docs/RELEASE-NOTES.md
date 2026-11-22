@@ -1,5 +1,16 @@
 # Release notes
 
+## v1.76.0 (23 Nov 2026): Task Summary for daily use: all your tasks in a tab, your own sections with rules, and CSV
+Comes with the Projects phase A switch. Migration `202611231000_task_summary_r1.sql` (runs on start).
+- **Show ▾ on each tab:** a Task Summary tab shows the *Summary window* (as before: overdue, due today, the next 7 days and completed today) or *All my open tasks* (every open task given to you, with a **Due later** section). Set up tabs like "Pending Today", "Overdue", "Pending Tasks" (All my open tasks) and "Assigner" (grouped by Created by).
+- **Tabs save themselves:** your filters, sort, groups and columns are kept as you change them; **Reset** goes back. Two of your tabs may have the same name.
+- **My sections:** group a tab by **My sections**: Recently assigned (new and reassigned work lands there and stays until moved), Today, Upcoming, Later and your own (**Add task ▾ › Section**). Drag, or **Alt + ↑ / ↓**; deleting a section moves its tasks to Recently assigned. A task's details have **Task Summary section** for you. A repeating task's next one keeps its section. Board tabs can use them as columns.
+- **Customise › Rules:** every night at midnight, tasks due today move to **Today** and tasks due within N working days to **Upcoming** (holidays don't count), once per due date; the task's activity says so, only to you.
+- **Chips:** **Filters: 1**, **Sorts: 1**, **Groups: 1**, each with **×** (in every task table).
+- **Task visibility** now follows the projects' privacy: Everyone at ARS, a department, a project's members, or Collaborators.
+- **Title ▾ › Sync / export:** Calendar feed, **CSV** (this tab, downloaded at once, 5 an hour) and Print.
+- **Owner steps:** publish v1.76.0 (the migration runs by itself). Nothing else.
+
 ## v1.75.0 (22 Nov 2026): One date picker for every From–To date, the new task side pane, and repeating tasks for anyone
 No migration and no new data stored.
 - **One date picker everywhere:** wherever Tasks and projects take a date or a From–To range there is now one picker: two boxes at the top (**+ Start date**, which becomes a Start box, and **Due date**; type dd-mm-yyyy or yyyy-mm-dd, or click a day), the month with Monday first, the days of the months around it dimmed, weekly offs and holidays dimmed (point at one to see its name), today circled and the range shaded (the shading follows the mouse before you click). A start after the due date is swapped and said so. At the bottom: the **clock** (time), **repeat** (where a task can repeat) and **Clear**. It works with the keyboard (arrows by day, Page Up / Page Down by month, Home / End to Monday / Sunday, Enter picks, Escape closes) and on phones it opens from the bottom of the screen.

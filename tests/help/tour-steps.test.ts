@@ -12,6 +12,11 @@ describe("onboarding tour steps", () => {
     for (const section of ["Approvals", "Tasks", "Calendar"]) expect(TOUR_STEPS.some((step) => step.section === section)).toBe(true);
   });
 
+  it("the Task Summary step names the range, My sections, Customise and the CSV (v1.76.0, D-401)", () => {
+    const text = TOUR_STEPS.find((step) => step.id === "tasks")!.points.join(" ");
+    for (const words of ["All my open tasks", "My sections", "Customise", "CSV"]) expect(text).toContain(words);
+  });
+
   it("every step says something, and every page it opens is in the user space", () => {
     for (const step of TOUR_STEPS) {
       expect(step.title.length).toBeGreaterThan(3);

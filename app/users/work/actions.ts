@@ -24,6 +24,7 @@ import type { RowDataPacket } from "mysql2/promise";
 import type { HolidayHit } from "@/server/work/holidays";
 import { z } from "zod";
 import { changeMyTabs, changeTabs } from "@/server/work/view-tabs-service";
+import { saveRules, startMySections } from "@/server/work/my-rules";
 import { setUserSetting } from "@/lib/db/repositories/user-settings.repository";
 import { CELEBRATION_LABEL, CELEBRATION_SETTING, clampPaneWidth, PANE_SETTING, parseCelebration, SIDEBAR_LISTS, SIDEBAR_SORT_LABEL, SIDEBAR_SORTS, type SidebarList, type SidebarSort } from "@/server/work/pm-rules";
 import { moveSidebarProject, setSidebarSort } from "@/server/work/sidebar";
@@ -367,7 +368,26 @@ export async function myPlaceAction(taskId: number, sectionId: number, position:
   const task = id(taskId);
   const section = id(sectionId);
   if (!task || !section || typeof position !== "number") return NOT_FOUND;
-  return run("myPlace", await actor(), (me) => work.placeMine(task, section, position, me));
+  return run("myPlace", await actor(), async (me) => {
+    // v1.76.0 (D-401): the first move by hand starts My sections (rules and all).
+    await startMySections(me.id);
+    return work.placeMine(task, section, position, me);
+  });
+}
+
+// v1.76.0 (D-401, owner): the person's Task Summary section rules (Customise ▸ Rules).
+export async function myRulesAction(input: unknown): Promise<ActionResult> {
+  const me = await actor();
+  if (!me || (me.modules && !hasModule({ roles: me.roles, modules: me.modules }, "TASK"))) return NOT_FOUND;
+  if (!(await featureOn("pm_foundations", me))) return { ok: false, message: "My sections aren't switched on yet." };
+  try {
+    const result = await saveRules(input, me);
+    if (result.ok) revalidatePath("/users/work/my-tasks");
+    return { ok: result.ok, message: result.message };
+  } catch (error) {
+    logError("myRulesAction failed", error);
+    return { ok: false, message: "Couldn't save the rules. Please try again." };
+  }
 }
 
 export async function mySectionAction(command: "ADD" | "RENAME" | "DELETE", sectionId: number | null, name: string): Promise<ActionResult> {
@@ -383,8 +403,11 @@ export async function mySectionAction(command: "ADD" | "RENAME" | "DELETE", sect
     } else if (command === "RENAME") {
       if (!title || !id(sectionId) || !(await repo.updateMySection(me.id, id(sectionId)!, { name: title }))) return { ok: false, message: "Give the section a name." };
     } else if (!id(sectionId) || !(await repo.deleteMySection(me.id, id(sectionId)!))) return { ok: false, message: "Built-in sections can't be deleted." };
+    // v1.76.0 (D-401): adding a section starts My sections (rules and all).
+    if (command === "ADD") await startMySections(me.id);
     revalidatePath("/users/work/my-tasks");
-    return { ok: true, message: command === "DELETE" ? "Section deleted; its tasks are back by date." : "Saved." };
+    // v1.76.0 (D-401, BR-MYT-006): a deleted section's tasks go to Recently assigned.
+    return { ok: true, message: command === "DELETE" ? "Section deleted. Its tasks are in Recently assigned now." : command === "ADD" ? "Section added." : "Saved." };
   } catch (error) {
     logError("mySectionAction failed", error);
     return { ok: false, message: "Couldn't do that. Please try again." };
@@ -657,7 +680,8 @@ const tabInput = z.discriminatedUnion("op", [
   z.object({ op: z.literal("duplicate"), key: z.string().max(20) }),
   z.object({ op: z.literal("remove"), key: z.string().max(20) }),
   z.object({ op: z.literal("reorder"), keys: z.array(z.string().max(20)).max(60) }),
-  z.object({ op: z.literal("save"), key: z.string().max(20), config: z.unknown() }),
+  z.object({ op: z.literal("save"), key: z.string().max(20), config: z.unknown(), auto: z.boolean().optional() }),
+  z.object({ op: z.literal("settings"), key: z.string().max(20), range: z.string().max(20).optional(), sections: z.string().max(20).optional() }),
 ]);
 export async function projectTabAction(projectId: number, input: unknown): Promise<ActionResult & { value?: { id: number | null } }> {
   const me = await actorForProjects();
@@ -690,7 +714,8 @@ export async function myTasksTabAction(input: unknown): Promise<ActionResult & {
   try {
     const result = await changeMyTabs(parsed.data, me);
     if (!result.ok) return { ok: false, message: result.message };
-    refresh();
+    // v1.76.0 (D-401): an auto-save keeps the page as it is (no reload under the person's hands).
+    if (!(parsed.data.op === "save" && parsed.data.auto)) refresh();
     return { ok: true, message: result.message, value: result.value };
   } catch (error) {
     logError("myTasksTabAction failed", error);

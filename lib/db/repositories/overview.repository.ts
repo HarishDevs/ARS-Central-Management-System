@@ -145,7 +145,7 @@ export async function workActivity(userId: number, limit: number, db: Queryable 
      FROM task_events e FORCE INDEX (idx_task_events_task)
      JOIN tasks t ON t.id = e.task_id AND t.deleted_at IS NULL
      LEFT JOIN users u ON u.id = e.actor_id
-     WHERE e.task_id IN (?) AND e.event_type NOT IN ('MOVED_SECTION', 'FIELD_SET', 'SUBTASK_ADDED', 'PARENT_CHANGED')
+     WHERE e.task_id IN (?) AND e.event_type NOT IN ('MOVED_SECTION', 'FIELD_SET', 'SUBTASK_ADDED', 'PARENT_CHANGED', 'MY_SECTION_RULE')
      ORDER BY e.id DESC LIMIT ?`,
     [ids, limit],
   );

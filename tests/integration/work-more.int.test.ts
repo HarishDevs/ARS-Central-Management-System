@@ -230,7 +230,10 @@ describe("projects step by step, saved tabs, periodic and ad hoc (D-219, D-220)"
   it("saved tabs: unique names per place; at most 30", async () => {
     const first = await repo.insertWorkView("MY_TASKS", owner, `Overdue ${tag}`, { group: "assignee" }, owner);
     expect(typeof first).toBe("number");
-    expect(await repo.insertWorkView("MY_TASKS", owner, `Overdue ${tag}`, {}, owner)).toBe("DUPLICATE");
+    // v1.76.0 (D-401, owner): a person's own tab names may repeat (projects' stay unique, task-summary-r1.int).
+    const second = await repo.insertWorkView("MY_TASKS", owner, `Overdue ${tag}`, {}, owner);
+    expect(typeof second).toBe("number");
+    await repo.deleteWorkView(second as number);
     expect((await repo.listWorkViews("MY_TASKS", owner)).map((view) => view.name)).toContain(`Overdue ${tag}`);
     await repo.updateWorkView(first as number, { config: { group: "due" } });
     expect((await repo.listWorkViews("MY_TASKS", owner)).find((view) => view.id === first)?.config).toEqual({ group: "due" });

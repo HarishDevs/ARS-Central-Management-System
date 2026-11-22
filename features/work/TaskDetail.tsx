@@ -34,6 +34,8 @@ import { CopyLinkButton } from "@/features/work/client";
 import { Avatar } from "@/features/ui/Avatar";
 
 import { TaskActivity } from "@/features/work/TaskActivity";
+import { MySectionPicker } from "@/features/work/MyTasks";
+import { mySectionChoice, RULE_EVENT } from "@/server/work/my-rules";
 import { RunAutomationButtons } from "@/features/work/automations/RunAutomationButtons";
 import { manualRulesFor } from "@/server/work/automations";
 import { loadTaskTime } from "@/server/work/time-tracking";
@@ -129,7 +131,9 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
   const values = Object.fromEntries(
     editable.map((field) => [field.key, Array.isArray(task.formData[field.key]) ? JSON.stringify(task.formData[field.key]) : task.formData[field.key] === undefined ? "" : String(task.formData[field.key])]),
   );
-  const history: HistoryEntry[] = events.map((event) => ({
+  // v1.76.0 (D-401): Task Summary's section (assignee only) and rule notes (only the person they are about sees them).
+  const sectionChoice = task.assigneeId === user.id && !task.deletedAt ? await mySectionChoice(user.id, task.id).catch(() => null) : null;
+  const history: HistoryEntry[] = events.filter((event) => event.eventType !== RULE_EVENT || Number(event.payload?.userId) === user.id).map((event) => ({
     id: event.id,
     when: event.createdAt,
     who: event.actorName,
@@ -336,6 +340,7 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
             {task.description && <RichText text={task.description} />}
             <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
               <Fact label="Assigned to" value={task.assigneeName} />
+              {sectionChoice && <MySectionPicker taskId={task.id} sections={sectionChoice.sections} current={sectionChoice.current} />}
               <Fact label="Assigned by" value={task.assignedByName} />
               <Fact label="Created by" value={`${task.createdByName}, ${indiaDateTimeText(task.createdAt)}`} />
               <Fact label="Due" value={task.dueAt ? indiaDateTimeText(task.dueAt) : "No due date"} />

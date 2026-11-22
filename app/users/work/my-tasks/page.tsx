@@ -4,8 +4,7 @@ import { AlarmClock, CalendarClock, CalendarRange, CheckCircle2, ListTodo } from
 import { paneLinks, paneTaskId, TaskPane, WithPane } from "@/features/work/TaskPane";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { MyTasks, MyTasksGrid, MyTasksTitle } from "@/features/work/MyTasks";
-import { toGridTask } from "@/server/work/grid-rows";
+import { CustomiseButton, MyTasks, MyTasksGrid, MyTasksTitle, TabSettingsBar } from "@/features/work/MyTasks";
 import { fieldDefsOfProjects } from "@/lib/db/repositories/fields.repository";
 import { cellsFor, fieldViews } from "@/server/work/fields-service";
 import type { CellMap, FieldView } from "@/server/work/custom-fields";
@@ -17,10 +16,12 @@ import { getDbPool } from "@/lib/db/client";
 import type { RowDataPacket } from "mysql2/promise";
 import { TaskCalendar } from "@/features/work/TaskCalendar";
 import { indiaDayOf } from "@/features/work/format";
-import { listMyTabs, listTaskItems, listVisibleProjects, listWorkViews, workDensity } from "@/lib/db/repositories/work.repository";
+import { listMyTabs, listVisibleProjects, listWorkViews, mySectionCounts, workDensity } from "@/lib/db/repositories/work.repository";
 import { buildStrip, MY_TASKS_VIEWS, parseTabConfig, pickTab, tabHref } from "@/server/work/view-tabs";
 import { ViewTabs } from "@/features/work/ViewTabs";
-import { summarySection, summarySections } from "@/server/work/my-summary";
+import { loadTaskSummary } from "@/server/work/task-summary";
+import { tabSettings } from "@/server/work/my-sections";
+import { myRules, startMySections } from "@/server/work/my-rules";
 import type { GridConfig } from "@/server/work/grid";
 import { featureOn } from "@/server/settings/features";
 import { LiveRefresh } from "@/features/work/useLiveRefresh";
@@ -72,6 +73,13 @@ export default async function MyTasksPage({
   const activeTab = tabData ? pickTab(strip, { tab: params.tab, view: params.view }) : null;
   const activeRow = activeTab?.id ? (tabData?.rows.find((row) => row.id === activeTab.id) ?? null) : null;
   const view = activeTab ? (activeTab.type.toLowerCase() as "list" | "board" | "calendar") : params.view === "board" || params.view === "calendar" ? params.view : "list";
+  // v1.76.0 (D-401, owner): each tab chooses its range (Summary window or All
+  // my open tasks) and can be grouped by the person's own sections.
+  const settings = tabSettings(activeRow?.config);
+  const listConfig: GridConfig | null = view === "list" ? (activeTab ? (parseTabConfig("LIST", activeRow?.config) as GridConfig) : null) : null;
+  const mineStored = pmOn && ((view === "list" && listConfig?.group === "mySection") || (view === "board" && settings.sections === "mine"));
+  if (mineStored) await startMySections(user.id);
+  const rules = pmOn ? await myRules(user.id) : null;
   const showDone = true;
   const now = new Date();
   const today = indiaDayOf(now);
@@ -83,12 +91,7 @@ export default async function MyTasksPage({
   const IST_DUE = "DATE(DATE_ADD(t.due_at, INTERVAL 330 MINUTE))";
   // v1.63.0 (D-369): with the switch on, open tasks given by someone else in
   // the last 3 days are listed too (Recently assigned), whatever their due date.
-  const recentSince = new Date(now.getTime() - 3 * 86_400_000);
-  const where = [
-    "t.assignee_id = ?",
-    "t.deleted_at IS NULL",
-    `((t.status IN ('OPEN', 'IN_PROGRESS', 'BLOCKED') AND t.due_at IS NOT NULL AND ${IST_DUE} <= ?) OR (t.status = 'COMPLETED' AND t.completed_at >= ?)${pmOn ? " OR (t.status IN ('OPEN', 'IN_PROGRESS', 'BLOCKED') AND t.created_by <> t.assignee_id AND t.assigned_at >= ?)" : ""})`,
-  ];
+  // v1.76.0 (D-401): the rows come from loadTaskSummary (the CSV uses it too).
   // D-257 / v1.54.3: the summary cards, counted in the database, for the
   // same tasks the summary lists.
   const OPEN = "t.status IN ('OPEN', 'IN_PROGRESS', 'BLOCKED') AND t.due_at IS NOT NULL";
@@ -108,8 +111,11 @@ export default async function MyTasksPage({
     { key: "upcoming", label: "Next 7 days", value: Number(cardRow?.upcoming ?? 0), icon: CalendarRange, tone: "text-primary-700" },
     { key: "done", label: "Completed today", value: Number(cardRow?.done_today ?? 0), icon: CheckCircle2, tone: "text-success-600" },
   ];
-  const [list, digestOff] = await Promise.all([
-    listTaskItems(where, [user.id, weekEnd, todayStart, ...(pmOn ? [recentSince] : [])], "t.due_at IS NULL, t.due_at, t.id", 1000),
+  // The person's own sections are loaded for List tabs (so "My sections" can be
+  // chosen at once) and for Board tabs set to them.
+  const wantMine = pmOn && (view === "list" || mineStored);
+  const [summary, digestOff] = await Promise.all([
+    loadTaskSummary(user.id, { range: pmOn ? settings.range : "summary", recentOn: pmOn, mine: wantMine, now }),
     getDbPool()
       .query<RowDataPacket[]>("SELECT 1 FROM user_settings WHERE user_id = ? AND setting_key = 'work.digest' AND value = 'OFF'", [user.id])
       .then(([rows]) => rows.length > 0),
@@ -117,11 +123,14 @@ export default async function MyTasksPage({
   // v1.54.4 (owner): Task Summary's own sections, by date (not the person's
   // sections): Overdue, Due today, Due in the next 7 days, Completed today.
   // v1.63.0 (D-369): plus "Recently assigned" with the switch on (server/work/my-summary.ts).
-  const SUMMARY = summarySections(pmOn);
-  const rows = list.items.map((task) => {
-    const sectionId = summarySection({ status: task.status, dueDay: task.dueAt ? indiaDayOf(task.dueAt) : null, assignedAt: task.assignedAt, selfAssigned: task.createdBy === user.id }, today, now, pmOn);
-    // By due date within each section.
-    const position = task.dueAt ? task.dueAt.getTime() / 1000 : 9e9;
+  const SUMMARY = summary.dateSections;
+  const counts = summary.mySections ? await mySectionCounts(user.id) : null;
+  const mySections = summary.mySections?.map((section) => ({ id: section.id, name: section.name, system: section.system, count: counts?.get(section.id) ?? 0 }));
+  const boardMine = view === "board" && settings.sections === "mine" && mySections;
+  const rows = summary.items.map((task) => {
+    const grid = summary.rows.find((item) => item.id === task.id)!;
+    const sectionId = boardMine ? (grid.mySectionId ?? 0) : grid.sectionId!;
+    const position = boardMine ? (grid.myPosition ?? 0) : grid.position;
     return {
       id: task.id,
       title: task.title,
@@ -145,10 +154,7 @@ export default async function MyTasksPage({
   const currentTab = savedTabs.find((item) => String(item.id) === params.tab) ?? null;
   // v1.61.0 (D-367): the row density choice (with "pm_foundations" on).
   const density = pmOn ? await workDensity(user.id) : undefined;
-  const gridRows = list.items.map((task) => {
-    const row = rows.find((item) => item.id === task.id)!;
-    return toGridTask(task, user.id, true, row.sectionId, row.position);
-  });
+  const gridRows = summary.rows;
   // v1.64.0 (D-371, "pm_planning"): the fields of the tasks' projects as columns
   // (a task shows a value only where one of its projects has the field).
   const planning = view === "list" && (await featureOn("pm_planning", user));
@@ -186,15 +192,16 @@ export default async function MyTasksPage({
         </span>
         <Avatar name={user.name} />
         {/* v1.73.0 (D-396, spec S-04): the title's ▾ menu holds the page's actions (the morning email, Table with filters, the calendar feed, Print). */}
-        <MyTasksTitle title="Task Summary" digestOn={!digestOff} feed={feed !== undefined} />
+        <MyTasksTitle title="Task Summary" digestOn={!digestOff} feed={feed !== undefined} csvHref={activeTab ? `/api/work/my-tasks/export?tab=${encodeURIComponent(activeTab.key)}` : "/api/work/my-tasks/export"} />
         <span className="text-caption text-ink-muted">
-          Your tasks overdue, due today and due in the next 7 days, and what you completed today. Everything else is on{" "}
+          {settings.range === "all" && pmOn ? "Every open task given to you, and what you completed today." : "Your tasks overdue, due today and due in the next 7 days, and what you completed today."} Everything else is on{" "}
           <Link href="/users/tasks" className="link">
             Assigned to me
           </Link>
           .
         </span>
-        <span className="ml-auto">
+        <span className="ml-auto flex items-center gap-2">
+          {rules && <CustomiseButton rules={{ todayOn: rules.todayOn, upcomingOn: rules.upcomingOn, upcomingDays: rules.upcomingDays }} />}
           <CreateTaskButton label="Add task" />
         </span>
       </header>
@@ -241,6 +248,7 @@ export default async function MyTasksPage({
             ))}
           </nav>
           )}
+          {activeTab && <TabSettingsBar key={`${activeTab.key}:${settings.range}:${settings.sections}`} tabKey={activeTab.key} range={settings.range} sections={settings.sections} board={view === "board"} />}
           <span className="ml-auto" />
           {view !== "list" && (
             <Link href={link({ done: params.done === "1" ? null : "1" })} className="text-label link">
@@ -272,7 +280,9 @@ export default async function MyTasksPage({
             sections={SUMMARY}
             fixed
             density={density}
-            initial={activeTab ? (parseTabConfig("LIST", activeRow?.config) as GridConfig) : currentTab ? parseGridConfig(currentTab.config) : { ...DEFAULT_GRID, group: "section" }}
+            initial={listConfig ?? (currentTab ? parseGridConfig(currentTab.config) : { ...DEFAULT_GRID, group: "section" })}
+            mySections={mySections}
+            resetTo={activeTab ? { ...DEFAULT_GRID, group: "section" } : undefined}
             view={
               activeTab
                 ? { scope: "MY_TASKS", scopeId: user.id, canSave: true, current: activeTab.id ? { id: activeTab.id, name: activeTab.name } : null, tabKey: activeTab.key, tabName: activeTab.name, phaseA: true }
@@ -286,8 +296,8 @@ export default async function MyTasksPage({
           />
         ) : (
           <MyTasks
-            sections={SUMMARY}
-            fixed
+            sections={boardMine ? boardMine : SUMMARY}
+            fixed={!boardMine}
             tasks={rows}
             layout={view === "board" ? "BOARD" : "LIST"}
             nowIso={now.toISOString()}

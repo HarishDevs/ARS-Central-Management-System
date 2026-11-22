@@ -53,7 +53,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   const names = new Map(people.map((person) => [person.id, person.name]));
   // v1.57.2 (D-339, owner: "all the comments and attachments and activities should be
   // reflected in both ticket and task"): the task's comments and activity show here too.
-  const [taskComments, taskEvents] = ticket.taskId ? await Promise.all([listTaskComments(ticket.taskId, user.id), listTaskEvents(ticket.taskId)]) : [[], []];
+  const [taskComments, taskEvents] = ticket.taskId ? await Promise.all([listTaskComments(ticket.taskId, user.id), listTaskEvents(ticket.taskId).then((rows) => rows.filter((row) => row.eventType !== "MY_SECTION_RULE"))]) : [[], []];
   const remarks = [
     ...comments.map((comment) => ({ key: `r${comment.id}`, id: comment.id, authorId: comment.authorId, authorName: comment.authorName, createdAt: comment.createdAt, body: comment.body, internal: comment.internal, fromTask: false, edited: comment.edited, deleted: comment.deleted })),
     ...taskComments.filter((comment) => !comment.deletedAt).map((comment) => ({ key: `t${comment.id}`, id: comment.id, authorId: comment.authorId, authorName: comment.authorName, createdAt: comment.createdAt, body: comment.body, internal: false, fromTask: true, edited: comment.editedAt !== null, deleted: false })),

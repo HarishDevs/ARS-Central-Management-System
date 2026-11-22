@@ -88,6 +88,8 @@ export async function createNextOccurrence(taskId: number, actor: { id: number; 
     const newId = await cloneTask(task, { parentId: task.parentTaskId, rootId: task.rootTaskId, depth: task.depth, dueAt, shiftDays: shift, recurrence: JSON.stringify(occurrence.rule), seriesId, withProjects: true, keepCreator: true }, actor.id, connection);
     await connection.query("UPDATE tasks SET recurrence_json = NULL, series_id = ? WHERE id = ?", [seriesId, task.id]);
     const created = (await findTask(newId, connection))!;
+    // v1.76.0 (D-401, BR-MYT-023): the next one stays in the person's own section.
+    await repo.copyPlacement(task.id, newId, created.assigneeId, connection);
     await appendTaskEvent(task.id, { actorId: actor.id, type: "RECURRED", body: `Next: ${created.taskNo}, due ${next}`, payload: { nextId: newId } }, connection);
     await recordAudit({ actorUserId: actor.id, action: "TASK_RECURRED", entityType: "TASK", entityId: newId, metadata: { from: task.id, due: next } }, connection);
     const messages = created.assigneeId !== actor.id ? [taskMessages.assigned(info(created), created.assigneeId, `${actor.name} (repeating task)`)] : [];

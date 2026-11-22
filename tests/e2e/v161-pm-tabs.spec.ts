@@ -113,7 +113,9 @@ test("view changes stay unsaved until Save view; Reset goes back", async ({ page
   await grid.getByTestId("save-view").click();
   await expect(page.getByText("View saved.")).toBeVisible();
   await page.reload();
-  await expect(page.getByTestId("project-grid").getByTestId("sort-menu")).toContainText("Sort: Last modified");
+  // v1.76.0 (D-401): the chip shows the count; the sort's name is its tooltip.
+  await expect(page.getByTestId("project-grid").getByTestId("sort-menu")).toContainText("Sorts: 1");
+  await expect(page.getByTestId("project-grid").getByTestId("sort-menu").locator("button[aria-haspopup]")).toHaveAttribute("title", "Sorted by Last modified");
   await expect(page.getByTestId("project-grid").getByTestId("unsaved-view")).toHaveCount(0);
 });
 

@@ -6,6 +6,7 @@ import { recordAudit } from "@/lib/db/repositories/audit.repository";
 import * as repo from "@/lib/db/repositories/work.repository";
 import type { TaskActor } from "@/server/modules/tasks";
 import { projectAbilities, type WorkViewer } from "@/server/work/access";
+import { BOARD_SECTIONS, isTabRange, tabSettings } from "@/server/work/my-sections";
 import {
   buildStrip,
   canRemoveTab,
@@ -88,7 +89,9 @@ type Op =
   | { op: "duplicate"; key: string }
   | { op: "remove"; key: string }
   | { op: "reorder"; keys: string[] }
-  | { op: "save"; key: string; config: unknown };
+  | { op: "save"; key: string; config: unknown; auto?: boolean }
+  // v1.76.0 (D-401): a Task Summary tab's range and (Board) sections.
+  | { op: "settings"; key: string; range?: string; sections?: string };
 
 export async function changeTabs(projectId: number, input: Op, actor: TaskActor, viewer: WorkViewer): Promise<TabResult<{ id: number | null }>> {
   return withTransaction(async (db) => {
@@ -108,6 +111,10 @@ export async function changeMyTabs(input: Op, actor: TaskActor): Promise<TabResu
 async function applyTabChange(owner: Owner, input: Op, actor: TaskActor, db: PoolConnection): Promise<TabResult<{ id: number | null }>> {
   {
     const MAX = maxTabs(owner.scope);
+    // v1.76.0 (D-401, owner; spec BR-MYT-021): personal tab names may repeat;
+    // a project's tabs keep unique names (shared by everyone).
+    const personal = owner.scope === "MY_TASKS";
+    const nameFor = (name: string, taken: string[]) => (personal ? name : uniqueName(name, taken));
     // Checks that need no writing come first.
     if (input.op === "add" && !allowedView(owner.scope, input.type, await featureOn("pm_planning", actor).catch(() => false), await featureOn("pm_reporting", actor).catch(() => false), await featureOn("pm_extras", actor).catch(() => false))) return { ok: false, message: "That view isn't available yet." };
     if (input.op === "rename" && !cleanTabName(input.name)) return { ok: false, message: "Give the tab a name (up to 60 characters)." };
@@ -125,7 +132,7 @@ async function applyTabChange(owner: Owner, input: Op, actor: TaskActor, db: Poo
         const type = input.type as TabView;
         const asked = input.name === undefined || input.name === "" ? TAB_VIEW_LABEL[type] : cleanTabName(input.name);
         if (!asked) return { ok: false, message: "Give the tab a name (up to 60 characters)." };
-        const name = uniqueName(asked, strip.map((tab) => tab.name));
+        const name = nameFor(asked, strip.map((tab) => tab.name));
         const id = await repo.insertTab(owner, { type, name, config: starterConfig(type), position: (strip.length + 1) * 1024 }, actor.id, db);
         if (id === "DUPLICATE") return { ok: false, message: "There is a tab with that name." };
         await audit("add", { tab: id, type });
@@ -152,7 +159,7 @@ async function applyTabChange(owner: Owner, input: Op, actor: TaskActor, db: Poo
         if (!tab) return NOT_FOUND;
         if (strip.length >= MAX) return { ok: false, message: `At most ${MAX} tabs.` };
         const source = await repo.findTab(owner, tab.id, db);
-        const name = copyName(tab.name, strip.map((item) => item.name));
+        const name = personal ? `${tab.name.slice(0, 53)} (copy)` : copyName(tab.name, strip.map((item) => item.name));
         const id = await repo.insertTab(owner, { type: tab.type, name, config: source?.config ?? starterConfig(tab.type), position: 0 }, actor.id, db);
         if (id === "DUPLICATE") return { ok: false, message: "There is a tab with that name." };
         const order = strip.flatMap((item) => (item.id === tab.id ? [item.id, id] : [item.id]));
@@ -186,9 +193,25 @@ async function applyTabChange(owner: Owner, input: Op, actor: TaskActor, db: Poo
         if (!tab) return NOT_FOUND;
         const config = validTabConfig(tab.type, input.config);
         if (config === null) return { ok: false, message: "That view can't be saved. Reset it and try again." };
-        await repo.updateWorkView(tab.id, { config }, db);
-        await audit("save", { tab: tab.id });
+        // v1.76.0 (D-401): a Task Summary tab keeps its range and sections (set apart, op "settings").
+        const stored = personal ? tabSettings((await repo.findTab(owner, tab.id, db))?.config) : null;
+        await repo.updateWorkView(tab.id, { config: stored ? { ...config, ...stored } : config }, db);
+        // Auto-saves of a personal tab aren't audited one by one (they come a second after each change).
+        if (!input.auto || !personal) await audit("save", { tab: tab.id });
         return { ok: true, value: { id: tab.id }, message: "View saved." };
+      }
+      case "settings": {
+        if (!personal) return NOT_FOUND;
+        const tab = tabOf(input.key);
+        if (!tab) return NOT_FOUND;
+        if (input.range !== undefined && !isTabRange(input.range)) return { ok: false, message: "Choose Summary window or All my open tasks." };
+        if (input.sections !== undefined && !(BOARD_SECTIONS as readonly string[]).includes(input.sections)) return { ok: false, message: "Choose By date or My sections." };
+        const source = await repo.findTab(owner, tab.id, db);
+        const current = source?.config && typeof source.config === "object" ? (source.config as Record<string, unknown>) : {};
+        const next = { ...current, ...tabSettings(current), ...(input.range !== undefined ? { range: input.range } : {}), ...(input.sections !== undefined ? { sections: input.sections } : {}) };
+        await repo.updateWorkView(tab.id, { config: next }, db);
+        await audit("settings", { tab: tab.id, range: next.range, sections: next.sections });
+        return { ok: true, value: { id: tab.id }, message: "Saved." };
       }
     }
   }

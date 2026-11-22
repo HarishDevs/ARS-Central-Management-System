@@ -110,10 +110,11 @@ describe("My Tasks tabs (PM-A13)", () => {
   });
 
   it("adds, renames, sets default, duplicates, saves a List view, reorders and removes, all on the person's own strip", async () => {
-    expect(await changeMyTabs({ op: "add", type: "BOARD" }, person(alice))).toMatchObject({ ok: true, message: 'Tab "Board (2)" added.' });
+    // v1.76.0 (D-401, owner): personal tab names may repeat (was "Board (2)").
+    expect(await changeMyTabs({ op: "add", type: "BOARD" }, person(alice))).toMatchObject({ ok: true, message: 'Tab "Board" added.' });
     expect((await changeMyTabs({ op: "add", type: "TIMELINE" }, person(alice))).ok).toBe(false);
     let tabs = await strip(alice);
-    expect(tabs.map((tab) => tab.name)).toEqual(["List", "Board", "Calendar", "Board (2)"]);
+    expect(tabs.map((tab) => tab.name)).toEqual(["List", "Board", "Calendar", "Board"]);
     expect((await listMyTabs(alice)).tabsSet).toBe(true);
     const list = tabs[0]!;
     expect((await changeMyTabs({ op: "rename", key: list.key, name: "Everything" }, person(alice))).ok).toBe(true);
@@ -123,7 +124,7 @@ describe("My Tasks tabs (PM-A13)", () => {
     expect((await changeMyTabs({ op: "default", key: calendar.key }, person(alice))).ok).toBe(true);
     expect((await changeMyTabs({ op: "duplicate", key: list.key }, person(alice))).ok).toBe(true);
     tabs = await strip(alice);
-    expect(tabs.map((tab) => tab.name)).toEqual(["Everything", "Everything (copy)", "Board", "Calendar", "Board (2)"]);
+    expect(tabs.map((tab) => tab.name)).toEqual(["Everything", "Everything (copy)", "Board", "Calendar", "Board"]);
     expect(tabs.find((tab) => tab.isDefault)?.name).toBe("Calendar");
     expect((await listMyTabs(alice)).rows.find((row) => row.name === "Everything (copy)")?.config).toMatchObject({ group: "priority", sort: "due" });
     const reversed = [...tabs].reverse().map((tab) => tab.key);

@@ -332,6 +332,18 @@ export const AUTOMATIONS: readonly Automation[] = [
     owner: "IT team (rules: the project's owners)",
   },
   {
+    key: "myTaskRules",
+    name: "Task Summary section rules",
+    what: "Moves open tasks into the person's Today and Upcoming sections by their Task Summary rules (v1.76.0, D-401): \"due today\" and \"due within N working days\" (weekly offs and holidays don't count), from any section, once per due day, with a note in the task's activity that only the person sees. Only for people who use My sections.",
+    trigger: "Every job run; each person once per India day, from 00:00 India time.",
+    everyMinutes: 5,
+    retry: "Up to 500 people a run; the next run carries on with the rest.",
+    idempotency: "Each person's last run day is kept, and each move is marked with its rule and due day, so a task is moved once per due day and the person can move it back.",
+    onFailure: "Recorded here; the person's transaction rolls back and the next run tries again.",
+    recovery: "None needed. People can still move tasks by hand.",
+    owner: "IT team",
+  },
+  {
     key: "ticketConfirmations",
     name: "Ticket confirmations",
     what: "Tickets whose work is done and wait for the requester: a reminder after 2 and after 3 working days, and the ticket closes by itself (Closed – auto closed) after 4 complete working days without an answer (Working Calendar: weekly offs and holidays skipped). v1.55.0.",
@@ -416,6 +428,10 @@ const STEPS: Record<string, () => Promise<StepResult>> = {
   projectAutomations: async () => {
     const { runAutomationStep } = await import("@/server/work/automation-engine");
     return { ...(await runAutomationStep()) };
+  },
+  myTaskRules: async () => {
+    const { runMyTaskRules } = await import("@/server/work/my-rules");
+    return { ...(await runMyTaskRules()) };
   },
   ticketConfirmations: async () => {
     const { runTicketConfirmations } = await import("@/server/tickets/service");

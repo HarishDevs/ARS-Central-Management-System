@@ -52,9 +52,10 @@ export const SORT_LABEL: Record<GridSort, string> = {
   tags: "Tags",
 };
 // v1.57.3 (D-341): "department" = the assignee's department.
-export const GROUPS = ["none", "section", "assignee", "department", "createdBy", "project", "due", "priority", "kind"] as const;
+// v1.76.0 (D-401): "mySection" = Task Summary's "My sections" (the person's own sections).
+export const GROUPS = ["none", "section", "assignee", "department", "createdBy", "project", "due", "priority", "kind", "mySection"] as const;
 export type GridGroup = (typeof GROUPS)[number];
-export const GROUP_LABEL: Record<GridGroup, string> = { none: "None", section: "Sections", assignee: "Assignee", department: "Department", createdBy: "Created by", project: "Project", due: "Due date", priority: "Priority", kind: "Periodic or ad hoc" };
+export const GROUP_LABEL: Record<GridGroup, string> = { none: "None", section: "Sections", assignee: "Assignee", department: "Department", createdBy: "Created by", project: "Project", due: "Due date", priority: "Priority", kind: "Periodic or ad hoc", mySection: "My sections" };
 export const FILTER_FIELDS = ["completion", "assignee", "createdBy", "project", "priority", "kind", "due", "start", "tag"] as const;
 export type FilterField = (typeof FILTER_FIELDS)[number];
 export const FILTER_LABEL: Record<FilterField, string> = {
@@ -144,11 +145,15 @@ export interface GridTask {
   subtasks: number;
   isPeriodic: boolean;
   isMilestone: boolean;
-  projects: { id: number; name: string; color: string }[];
+  // v1.76.0 (D-401): privacy and department for the Task visibility column.
+  projects: { id: number; name: string; color: string; privacy?: "PRIVATE" | "DEPARTMENT" | "ORGANISATION"; departmentName?: string | null }[];
   tags: { id: number; name: string }[];
   followers: { id: number; name: string }[];
   sectionId: number | null;
   position: number;
+  // v1.76.0 (D-401): Task Summary's "My sections": the person's own section and order.
+  mySectionId?: number | null;
+  myPosition?: number;
   canEdit: boolean; // may change its dates and fields here
   canComplete: boolean;
   approval?: { requestId: number; requestNo: string; workStep: boolean; linked?: boolean } | null; // v1.42.1: from an approval request
@@ -293,7 +298,7 @@ export function nextColumnSort(config: Pick<GridConfig, "sort" | "dir" | "sortFi
 // list's own structure (a project's sections, My Tasks' sections), not a chosen
 // Group by, so they stay open.
 export function groupsStartFolded(group: GridGroup, groupField: number | null = null): boolean {
-  return groupField !== null || (group !== "none" && group !== "section");
+  return groupField !== null || (group !== "none" && group !== "section" && group !== "mySection");
 }
 
 // v1.58.0 (D-354): the sort and grouping in the address (search results), so a
@@ -333,7 +338,7 @@ export interface GridGroupOut {
 export function applyGrid(
   rows: readonly GridTask[],
   config: GridConfig,
-  context: { today: string; meId: number; sections?: readonly { id: number; name: string }[]; values?: CellMap; fields?: readonly FieldView[] },
+  context: { today: string; meId: number; sections?: readonly { id: number; name: string }[]; mySections?: readonly { id: number; name: string }[]; values?: CellMap; fields?: readonly FieldView[] },
 ): GridGroupOut[] {
   // v1.64.0 (D-371): custom field filters (a filter on a field the view no longer has is ignored).
   const fields = new Map((context.fields ?? []).map((field) => [field.id, field]));
@@ -358,6 +363,14 @@ export function applyGrid(
     const out = sections.map((section) => ({ key: `s${section.id}`, name: section.name, sectionId: section.id, person: null, rows: kept.filter((task) => task.sectionId === section.id) }));
     const loose = kept.filter((task) => !sections.some((section) => section.id === task.sectionId));
     return loose.length ? [...out, { key: "s-none", name: "No section", sectionId: null, person: null, rows: loose }] : out;
+  }
+  // v1.76.0 (D-401): the person's own sections, in their own order (unless sorted).
+  if (config.group === "mySection") {
+    const sections = context.mySections ?? [];
+    const order = (list: GridTask[]) => (config.sort === "none" && !config.sortField ? [...list].sort((a, b) => (a.myPosition ?? 0) - (b.myPosition ?? 0) || a.id - b.id) : list);
+    const out = sections.map((section) => ({ key: `m${section.id}`, name: section.name, sectionId: section.id, person: null, rows: order(kept.filter((task) => task.mySectionId === section.id)) }));
+    const loose = kept.filter((task) => !sections.some((section) => section.id === task.mySectionId));
+    return loose.length ? [...out, { key: "m-none", name: "No section", sectionId: null, person: null, rows: loose }] : out;
   }
   const bucket = (task: GridTask): [string, number, string | null][] => {
     switch (config.group) {

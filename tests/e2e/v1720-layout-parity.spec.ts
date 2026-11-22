@@ -155,7 +155,9 @@ test("List toolbar: Add task ▾ (Task, Milestone, Section), a Sort menu in the 
   await expect(sort.getByRole("menuitemradio", { name: "Descending" })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(trigger(sort)).toBeFocused();
-  await expect(trigger(sort)).toContainText("Sort: Due date");
+  // v1.76.0 (D-401): "Sorts: 1" with the sort's name as the tooltip.
+  await expect(trigger(sort)).toContainText("Sorts: 1");
+  await expect(trigger(sort)).toHaveAttribute("title", "Sorted by Due date");
   await grid.getByRole("button", { name: "Clear sort" }).click();
   await expect(trigger(sort)).toHaveText("Sort");
 

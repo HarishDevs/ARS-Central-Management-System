@@ -209,6 +209,11 @@ Stops anyone reaching the GoDaddy server directly, around Cloudflare (and faking
 1. https://approval.arssteels.net → **Continue with Google** → **itsupport@arsenergy.co.in** (D-082). The seed created this Super Admin, User ID `itadmin`. `itadmin@arssteels.co.in` can't be used: it's only an alias, and Google reports the main address.
 2. You land on **My approvals**. Your name at the top right opens a menu whose **Switch space** section shows Admin and Super Admin.
 
+### G0t. Task Summary: range per tab, My sections and rules, CSV (v1.76.0)
+1. Publish v1.76.0. The migration `202611231000_task_summary_r1.sql` runs on start (no triggers, nothing optional): it lets a person's own tab names repeat (projects' stay unique), adds `my_task_placements.rule_key` and the new table `my_task_rules`.
+2. Nothing to switch on beyond the existing **Projects phase A** switch (`pm_foundations`). The nightly section rules run inside the existing job runner (step **myTaskRules**, each person once per India day from midnight); no new cron entry.
+3. Check: Task Summary → a tab's **Show ▾** offers *All my open tasks*; Super Admin → Automation lists *Task Summary section rules* after the next run.
+
 ### G0s. Review fixes, health checks and the task-history triggers (v1.71.2)
 1. Publish v1.71.2. **No migration**; nothing to switch on.
 2. **If you ever ran `database/optional/v190_append_only_triggers.sql` in phpMyAdmin** (or the trigger blocks of `202611221100_pm_a_reactions_sidebar.sql`): once, in cPanel → phpMyAdmin → the app database → SQL, paste the whole of the new `database/optional/v190_append_only_triggers.sql` → Go. It replaces the four task/information history guards; the task-history one now lets the 30-day clean-up remove the history of tasks deleted more than 30 days ago (the old one stopped the clean-up on every run, shown as a job-runner failure alert). Safe to run again. Check: Database → Triggers lists trg_task_events_no_update, trg_task_events_no_delete, trg_info_events_no_update, trg_info_events_no_delete; Super Admin → Automation shows the clean-up step without errors after its next run.

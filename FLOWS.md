@@ -21,6 +21,7 @@ The number of levels and how they combine is unlimited. There are no fixed "Leve
 | F-212 | Meeting Management: schedule, points and MOM approval, action tasks, follow-ups | Built 10 Nov 2026 (v1.51.0) |
 | F-PM-TABS | Project tabs for every view, Save view / Reset | Built 22 Nov 2026 (v1.61.0, behind pm_foundations) |
 | F-PM-LIST | The List as a keyboard treegrid, windowed; 15 s refresh | Built 22 Nov 2026 (v1.61.0) |
+| F-TS-R1 | Task Summary: range per tab, My sections (landing, moves, rules at midnight), CSV | Built 23 Nov 2026 (v1.76.0, behind pm_foundations) |
 | F-PM-BOARD-KEYS | Board: move a card from the keyboard (Space, arrows, Enter, Escape), announced | Built 22 Nov 2026 (v1.62.0, behind pm_foundations) |
 | F-PM-PANE | Task pane beside the view, resize kept; reactions; complete and delete with Undo; celebrations | Built 22 Nov 2026 (v1.62.0) |
 | F-PM-SIDEBAR | Starred and department projects in the sidebar, sort and reorder | Built 22 Nov 2026 (v1.62.0) |
@@ -2491,6 +2492,26 @@ flowchart TD
   T -->|Space| SEL[Select for bulk actions]
 ```
 - 150 lines or more: only the lines near the screen are drawn (spacers keep the scroll height). Every open project view, My Tasks and the task pane refresh every 15 s while visible, on focus, and after a change (paused when hidden or while typing).
+
+## F-TS-R1: Task Summary for daily use (v1.76.0, D-401)
+```mermaid
+flowchart TD
+  A[Someone gives me a task, or reassigns one to me] --> B[No placement: it shows in Recently assigned<br/>reassignment clears the old placement]
+  B --> C{Tab grouped by My sections?}
+  C -- no --> D[Date sections: Overdue, Recently assigned 3 days, Due today, Next 7 days, Due later if All my open tasks, Completed today]
+  C -- yes --> E[My sections: Overdue first while late, then Recently assigned, Today, Upcoming, Later, my own]
+  E -->|drag or Alt+Up/Down, no sort/filter/search| F[placeMine: my order only]
+  E -->|task Details: Task Summary section| F
+  E -->|delete a section| B
+  G[Job runner, each person once per India day from 00:00] --> H{Rule matches? due today / due within N working days}
+  H -- yes, not already moved for this due day, never back from Today --> I[Move to Today or Upcoming, rule_key = rule:due day<br/>activity note seen only by me]
+  H -- no --> J[Leave it]
+  K[Complete a repeating task] --> L[Next task copies my placement]
+  M[Title menu: Sync / export: CSV] --> N[Server: my own tab only, same rows as the page, 5 an hour, audited, not kept] --> O[Download]
+  P[Change filters, sort, groups in a personal tab] --> Q[Saved 1 s later, no Save view; Reset to the start view]
+  R[Show: Summary window / All my open tasks] --> S[Tab setting op 'settings', kept apart from the view, page reloads]
+```
+- Nobody sees anyone else's sections, order, rules or rule notes (R1). Sharing (managers read-only, chosen people) is release 2.
 
 ## F-PM-BOARD-KEYS: Move a Board card from the keyboard (v1.62.0, D-368)
 ```mermaid

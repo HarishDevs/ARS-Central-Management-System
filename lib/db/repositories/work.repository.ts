@@ -307,7 +307,8 @@ export interface WorkTaskItem {
   updatedAt?: Date; // v1.61.0 (D-367): the Modified sort
   followers: { id: number; name: string }[]; // D-220: collaborators
   tags: { id: number; name: string; color: string }[];
-  projects: { id: number; name: string; color: string }[];
+  // v1.76.0 (D-401): privacy and department for the Task visibility column.
+  projects: { id: number; name: string; color: string; privacy?: "PRIVATE" | "DEPARTMENT" | "ORGANISATION"; departmentName?: string | null }[];
   summary?: string | null; // D-265: the description's start, for Home's task table
   // v1.42.1 (owner: "task created from approval should be highlighted and mapped
   // with approval unique number"): the request a task belongs to, and whether
@@ -336,8 +337,15 @@ async function decorate(rows: Row[], db: Queryable): Promise<WorkTaskItem[]> {
     for (const row of followerRows) followers.set(num(row.task_id), [...(followers.get(num(row.task_id)) ?? []), { id: num(row.id), name: String(row.name) }]);
     const [tagRows] = await db.query<Row[]>("SELECT tt.task_id, g.id, g.name, g.color FROM task_tags tt JOIN work_tags g ON g.id = tt.tag_id WHERE tt.task_id IN (?) ORDER BY g.name", [ids]);
     for (const row of tagRows) tags.set(num(row.task_id), [...(tags.get(num(row.task_id)) ?? []), { id: num(row.id), name: String(row.name), color: String(row.color) }]);
-    const [projectRows] = await db.query<Row[]>("SELECT tp.task_id, p.id, p.name, p.color FROM task_projects tp JOIN projects p ON p.id = tp.project_id AND p.deleted_at IS NULL WHERE tp.task_id IN (?) ORDER BY p.name", [ids]);
-    for (const row of projectRows) projects.set(num(row.task_id), [...(projects.get(num(row.task_id)) ?? []), { id: num(row.id), name: String(row.name), color: String(row.color) }]);
+    const [projectRows] = await db.query<Row[]>(
+      "SELECT tp.task_id, p.id, p.name, p.color, p.privacy, d.name AS department_name FROM task_projects tp JOIN projects p ON p.id = tp.project_id AND p.deleted_at IS NULL LEFT JOIN departments d ON d.id = p.department_id WHERE tp.task_id IN (?) ORDER BY p.name",
+      [ids],
+    );
+    for (const row of projectRows)
+      projects.set(num(row.task_id), [
+        ...(projects.get(num(row.task_id)) ?? []),
+        { id: num(row.id), name: String(row.name), color: String(row.color), privacy: String(row.privacy) as "PRIVATE" | "DEPARTMENT" | "ORGANISATION", departmentName: row.department_name ? String(row.department_name) : null },
+      ]);
   }
   return rows.map((row) => ({
     id: num(row.id),
@@ -859,6 +867,81 @@ export async function placeMyTask(userId: number, taskId: number, sectionId: num
 // A new assignee starts fresh: earlier placements of the task are forgotten.
 export async function clearPlacements(taskId: number, db: Queryable): Promise<void> {
   await db.query<ResultSetHeader>("DELETE FROM my_task_placements WHERE task_id = ?", [taskId]);
+}
+// v1.76.0 (D-401): the placements with the rule that last moved each task.
+export async function myPlacementsWithRule(userId: number, db: Queryable = getDbPool()): Promise<Map<number, { sectionId: number; position: number; ruleKey: string | null }>> {
+  const [rows] = await db.query<Row[]>("SELECT task_id, section_id, position, rule_key FROM my_task_placements WHERE user_id = ?", [userId]);
+  return new Map(rows.map((row) => [num(row.task_id), { sectionId: num(row.section_id), position: Number(row.position), ruleKey: row.rule_key ? String(row.rule_key) : null }]));
+}
+// A rule's move: the task goes to the end of the section, marked with the rule and due day.
+export async function placeByRule(userId: number, taskId: number, sectionId: number, ruleKey: string, db: Queryable): Promise<void> {
+  const [[top]] = await db.query<Row[]>("SELECT COALESCE(MAX(position), 0) AS top FROM my_task_placements WHERE user_id = ? AND section_id = ?", [userId, sectionId]);
+  await db.query<ResultSetHeader>(
+    "INSERT INTO my_task_placements (user_id, task_id, section_id, position, rule_key) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE section_id = VALUES(section_id), position = VALUES(position), rule_key = VALUES(rule_key), placed_at = UTC_TIMESTAMP()",
+    [userId, taskId, sectionId, Number(top?.top ?? 0) + 1024, ruleKey],
+  );
+}
+// The next task of a repeating series keeps its predecessor's section (BR-MYT-023).
+export async function copyPlacement(fromTaskId: number, toTaskId: number, userId: number, db: Queryable): Promise<void> {
+  await db.query<ResultSetHeader>(
+    "INSERT IGNORE INTO my_task_placements (user_id, task_id, section_id, position) SELECT user_id, ?, section_id, position FROM my_task_placements WHERE task_id = ? AND user_id = ?",
+    [toTaskId, fromTaskId, userId],
+  );
+}
+export interface MyRulesRow {
+  todayOn: boolean;
+  upcomingOn: boolean;
+  upcomingDays: number;
+  lastRunDay: string | null;
+}
+const rulesRow = (row: Row): MyRulesRow => ({
+  todayOn: Boolean(row.today_on),
+  upcomingOn: Boolean(row.upcoming_on),
+  upcomingDays: Number(row.upcoming_days),
+  lastRunDay: row.last_run_day ? (row.last_run_day instanceof Date ? row.last_run_day.toISOString().slice(0, 10) : String(row.last_run_day).slice(0, 10)) : null,
+});
+// The person's section rules; null until they use My sections.
+export async function findMyRules(userId: number, db: Queryable = getDbPool()): Promise<MyRulesRow | null> {
+  const [rows] = await db.query<Row[]>("SELECT today_on, upcoming_on, upcoming_days, DATE_FORMAT(last_run_day, '%Y-%m-%d') AS last_run_day FROM my_task_rules WHERE user_id = ?", [userId]);
+  return rows[0] ? rulesRow(rows[0]) : null;
+}
+// Made with the defaults the first time; true when it was made now.
+export async function ensureMyRules(userId: number, db: Queryable = getDbPool()): Promise<boolean> {
+  const [result] = await db.query<ResultSetHeader>("INSERT IGNORE INTO my_task_rules (user_id) VALUES (?)", [userId]);
+  return result.affectedRows === 1;
+}
+export async function saveMyRules(userId: number, rules: { todayOn: boolean; upcomingOn: boolean; upcomingDays: number }, db: Queryable = getDbPool()): Promise<void> {
+  await db.query<ResultSetHeader>(
+    "INSERT INTO my_task_rules (user_id, today_on, upcoming_on, upcoming_days) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE today_on = VALUES(today_on), upcoming_on = VALUES(upcoming_on), upcoming_days = VALUES(upcoming_days)",
+    [userId, rules.todayOn, rules.upcomingOn, rules.upcomingDays],
+  );
+}
+export async function markRulesRun(userId: number, day: string, db: Queryable): Promise<void> {
+  await db.query<ResultSetHeader>("UPDATE my_task_rules SET last_run_day = ? WHERE user_id = ?", [day, userId]);
+}
+// The people whose rules haven't run for `today` yet (a batch).
+export async function rulesDueFor(today: string, limit: number, db: Queryable = getDbPool()): Promise<number[]> {
+  const [rows] = await db.query<Row[]>(
+    "SELECT r.user_id FROM my_task_rules r JOIN users u ON u.id = r.user_id AND u.active = TRUE WHERE (r.today_on OR r.upcoming_on) AND (r.last_run_day IS NULL OR r.last_run_day < ?) ORDER BY r.user_id LIMIT ?",
+    [today, limit],
+  );
+  return rows.map((row) => num(row.user_id));
+}
+// Open tasks given to the person due from `from` to `to` (India days).
+export async function openTasksDueBetween(userId: number, from: string, to: string, db: Queryable): Promise<{ id: number; dueDay: string }[]> {
+  const [rows] = await db.query<Row[]>(
+    "SELECT id, DATE_FORMAT(DATE_ADD(due_at, INTERVAL 330 MINUTE), '%Y-%m-%d') AS due_day FROM tasks WHERE assignee_id = ? AND deleted_at IS NULL AND status IN ('OPEN', 'IN_PROGRESS', 'BLOCKED') AND due_at IS NOT NULL AND DATE(DATE_ADD(due_at, INTERVAL 330 MINUTE)) BETWEEN ? AND ?",
+    [userId, from, to],
+  );
+  return rows.map((row) => ({ id: num(row.id), dueDay: String(row.due_day) }));
+}
+// How many tasks a section of the person holds (the delete confirmation).
+export async function mySectionCounts(userId: number, db: Queryable = getDbPool()): Promise<Map<number, number>> {
+  const [rows] = await db.query<Row[]>(
+    "SELECT p.section_id, COUNT(*) AS n FROM my_task_placements p JOIN tasks t ON t.id = p.task_id AND t.assignee_id = p.user_id AND t.deleted_at IS NULL WHERE p.user_id = ? GROUP BY p.section_id",
+    [userId],
+  );
+  return new Map(rows.map((row) => [num(row.section_id), Number(row.n)]));
 }
 
 // ---- saved searches ----------------------------------------------------------------------

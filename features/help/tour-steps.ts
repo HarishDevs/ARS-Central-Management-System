@@ -124,6 +124,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
       "Tick a task to complete it; click its name to open it beside the list (comments, files, subtasks, followers).",
       "List, Board and Calendar views, and your own tabs (+ adds one; its ⋯ menu renames, sets the default or removes it); Filter, Sort and Group like any list, then Save view. Periodic tasks repeat by themselves.",
       "The morning summary email lists what's due; switch it off here.",
+      "Each tab shows the Summary window or All my open tasks (Show ▾), and saves itself. Group a tab by My sections for your own sections; Customise sets the rules that move tasks to Today and Upcoming each night. Title ▾ › Sync / export › CSV downloads the tab.",
     ],
     path: "/users/work/my-tasks",
     target: "main h1",
