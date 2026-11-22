@@ -69,6 +69,10 @@ test("a task is created, started and completed with its note; the assignee hears
   await pickPerson(page, page.getByLabel("Assign to"), "Sita Staff - E2E_STAFF");
   await page.getByLabel("Priority").selectOption("HIGH");
   await page.getByLabel("Pump").check();
+  // v1.66.1: the default due date is today; on a Sunday (the weekly off) the form asks first, so pick the next working day.
+  const due = new Date(Date.now() + 330 * 60_000 + 86_400_000);
+  if (due.getUTCDay() === 0) due.setUTCDate(due.getUTCDate() + 1);
+  await page.locator("#task-due").fill(`${due.toISOString().slice(0, 10)}T17:00`);
   await page.getByRole("button", { name: "Create task" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Pump 3 leaks" })).toBeVisible();
   await expect(page.getByText(/created and .* was told/)).toBeVisible();
