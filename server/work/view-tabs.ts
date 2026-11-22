@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { DEFAULT_GRID, gridConfigSchema, parseGridConfig, type GridConfig } from "@/server/work/grid";
+import { fieldFilterSchema } from "@/server/work/custom-fields";
 
 // v1.61.0 (D-367, PM phase A, spec PRJ-15 "tab strip and saved views"): every
 // view of a project can be a saved tab: List, Board, Calendar, Timeline and
@@ -80,6 +81,10 @@ export const boardConfigSchema = z.object({
   dir: z.enum(["asc", "desc"]).default("asc"),
   sortField: z.number().int().positive().nullable().default(null),
   search: z.string().max(100).default(""),
+  // v1.64.0 (D-371, "pm_planning"): custom field filters, and columns by a
+  // custom field instead of sections (null = sections).
+  fieldFilters: z.array(fieldFilterSchema).max(10).default([]),
+  groupField: z.number().int().positive().nullable().default(null),
 });
 export type BoardConfig = z.infer<typeof boardConfigSchema>;
 export const DEFAULT_BOARD: BoardConfig = boardConfigSchema.parse({});

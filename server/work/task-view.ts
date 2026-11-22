@@ -2,7 +2,7 @@ import "server-only";
 import type { TaskRecord } from "@/lib/db/repositories/tasks.repository";
 import { listPeopleFacts } from "@/lib/db/repositories/tasks.repository";
 import { personLabel } from "@/lib/people/label";
-import { assignGroup, ancestors, fieldValues, likesOf, listComments, listDependencies, listFollowers, listProjectFields, listSections, listSubtasks, listTaskItems, listTaskProjects, listVisibleProjects } from "@/lib/db/repositories/work.repository";
+import { assignGroup, ancestors, likesOf, listComments, listDependencies, listFollowers, listSections, listSubtasks, listTaskItems, listTaskProjects, listVisibleProjects } from "@/lib/db/repositories/work.repository";
 import { OPEN_STATUSES } from "@/server/modules/task-rules";
 import { indiaDateTimeText } from "@/server/modules/settings";
 import { loadSetting } from "@/server/work/holiday-store";
@@ -14,13 +14,14 @@ import type { CommentView } from "@/features/work/CommentThread";
 import { featureOn } from "@/server/settings/features";
 import { reactionRows } from "@/lib/db/repositories/pm.repository";
 import { groupReactions } from "@/server/work/pm-rules";
+import { cellsFor, projectFieldsFor } from "@/server/work/fields-service";
 
 // D-215 / D-219: everything the task page and the task panel show beside the
 // task's own details (projects, subtasks, waiting for, tags, followers,
 // likes, repeat, fields, comments), with what the person may do.
 export async function taskWorkView(task: TaskRecord, user: { id: number; roles: readonly string[] }) {
   const viewer = await workViewer(user);
-  const [rights, chain, links, subtasks, deps, followers, likes, comments, choices, workItem, people, recurrence, recurrenceSettings, ownValues] = await Promise.all([
+  const [rights, chain, links, subtasks, deps, followers, likes, comments, choices, workItem, people, recurrence, recurrenceSettings] = await Promise.all([
     rightsOn(task, viewer),
     ancestors(task.id),
     listTaskProjects(task.id),
@@ -34,9 +35,13 @@ export async function taskWorkView(task: TaskRecord, user: { id: number; roles: 
     listPeopleFacts(),
     recurrenceOf(task.id),
     loadSetting(RECURRENCE_SETTINGS_KEY).then(parseRecurrenceSettings),
-    fieldValues([task.id]),
   ]);
-  const [linkSections, linkFields] = await Promise.all([Promise.all(links.map((link) => listSections(link.projectId))), Promise.all(links.map((link) => listProjectFields(link.projectId)))]);
+  // v1.64.0 (D-371): each project's fields with this task's values as typed cells.
+  const actor = { id: user.id, name: "", roles: user.roles };
+  const [linkSections, linkFields] = await Promise.all([Promise.all(links.map((link) => listSections(link.projectId))), Promise.all(links.map((link) => projectFieldsFor(link.projectId, actor)))]);
+  const allDefs = [...new Map(linkFields.flatMap((item) => item?.defs ?? []).map((field) => [field.id, field])).values()];
+  const ownCells = (await cellsFor([task.id], allDefs, viewer))[task.id] ?? {};
+  const planning = await featureOn("pm_planning", user).catch(() => false);
   const panel: PanelData = {
     taskId: task.id,
     taskNo: task.taskNo,
@@ -66,7 +71,8 @@ export async function taskWorkView(task: TaskRecord, user: { id: number; roles: 
     nowIso: new Date().toISOString(),
     recurrence,
     recurrenceOn: recurrenceSettings.enabled,
-    fields: links.map((link, index) => ({ projectId: link.projectId, fields: linkFields[index]!.map((field) => ({ id: field.id, name: field.name, kind: field.kind, options: field.options })), values: ownValues.get(task.id) ?? {} })),
+    fields: links.map((link, index) => ({ projectId: link.projectId, fields: linkFields[index]?.views ?? [], values: ownCells })),
+    planning,
   };
   // v1.62.0 (D-368): emoji reactions beside Like ("pm_foundations").
   const pmOn = await featureOn("pm_foundations", user).catch(() => false);

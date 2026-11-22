@@ -1021,7 +1021,7 @@ export async function quickAddForMany(input: QuickTaskInput, assigneeIds: readon
 
 // D-308 (owner): project notifications (inbox, email, WhatsApp, push) go only
 // to people with the Projects module (or the Super Admin) until it is released.
-async function withProjects(userIds: readonly number[], db: Queryable): Promise<number[]> {
+export async function withProjects(userIds: readonly number[], db: Queryable): Promise<number[]> {
   if (!userIds.length) return [];
   const [rows] = await db.query<(RowDataPacket & { id: number })[]>(
     "SELECT u.id FROM users u WHERE u.id IN (?) AND (FIND_IN_SET('PROJECT', u.module_access) > 0 OR EXISTS (SELECT 1 FROM user_roles ur JOIN roles r ON r.id = ur.role_id WHERE ur.user_id = u.id AND r.code = 'SUPER_ADMIN'))",

@@ -1,5 +1,6 @@
 "use client";
 
+import type { CellMap, FieldView } from "@/server/work/custom-fields";
 import { ApprovalBadge, approvalRowClass } from "@/features/work/ApprovalLink";
 import { Pencil, Trash2 } from "lucide-react";
 import Link from "next/link";
@@ -255,7 +256,32 @@ function SectionTitle({ section, count }: { section: MySectionRow; count: number
 
 // D-220: My Tasks as the shared table (owner's screenshot): your sections as
 // groups by default, or any grouping; drag to place (your order only).
-export function MyTasksGrid({ rows, sections, initial, view, people, projects, meId, nowIso, fixed = false, density }: { rows: GridTask[]; sections: MySectionRow[]; initial: GridConfig; view: GridView; people: { id: number; label: string }[]; projects: { id: number; name: string }[]; meId: number; nowIso: string; fixed?: boolean; density?: "COMFORTABLE" | "COMPACT" }) {
+export function MyTasksGrid({
+  rows,
+  sections,
+  initial,
+  view,
+  people,
+  projects,
+  meId,
+  nowIso,
+  fixed = false,
+  density,
+  fields,
+}: {
+  rows: GridTask[];
+  sections: MySectionRow[];
+  initial: GridConfig;
+  view: GridView;
+  people: { id: number; label: string }[];
+  projects: { id: number; name: string }[];
+  meId: number;
+  nowIso: string;
+  fixed?: boolean;
+  density?: "COMFORTABLE" | "COMPACT";
+  // v1.64.0 (D-371, "pm_planning"): the custom fields of the tasks' projects, their values, and which task has which.
+  fields?: { views: FieldView[]; values: CellMap; scope: Record<number, number[]> };
+}) {
   const { call } = useWorkCall();
   const place = (taskId: number, sectionId: number, beforeId: number | null) => {
     const list = rows.filter((task) => task.sectionId === sectionId && task.id !== taskId).sort((a, b) => a.position - b.position);
@@ -281,6 +307,10 @@ export function MyTasksGrid({ rows, sections, initial, view, people, projects, m
       nowIso={nowIso}
       view={view}
       density={density}
+      fields={fields?.views}
+      values={fields?.values}
+      fieldScope={fields?.scope}
+      planning={Boolean(fields)}
       testId="my-grid"
       emptyText="Nothing here. Clear the filters, or add a task."
     />

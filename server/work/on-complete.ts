@@ -119,7 +119,14 @@ async function cloneTask(
   }
   await db.query("INSERT IGNORE INTO task_tags (task_id, tag_id, added_by) SELECT ?, tag_id, ? FROM task_tags WHERE task_id = ?", [id, actorId, source.id]);
   await db.query("INSERT IGNORE INTO task_followers (task_id, user_id, source, added_by) SELECT ?, user_id, source, ? FROM task_followers WHERE task_id = ?", [id, actorId, source.id]);
-  await db.query("INSERT IGNORE INTO task_field_values (task_id, field_id, value, updated_by) SELECT ?, field_id, value, ? FROM task_field_values WHERE task_id = ?", [id, actorId, source.id]);
+  // v1.64.0 (D-371): typed values too; an ID field gives the new task its own
+  // number (placeTaskInProject) and a timer starts again from zero.
+  await db.query(
+    `INSERT IGNORE INTO task_field_values (task_id, field_id, value, text_value, number_value, date_value, time_value, option_id, ids_json, typed_at, updated_by)
+     SELECT ?, v.field_id, v.value, v.text_value, v.number_value, v.date_value, v.time_value, v.option_id, v.ids_json, v.typed_at, ? FROM task_field_values v JOIN project_fields f ON f.id = v.field_id
+     WHERE v.task_id = ? AND f.kind NOT IN ('ID', 'TIMER')`,
+    [id, actorId, source.id],
+  );
   for (const child of await repo.listSubtasks(source.id, db)) {
     const full = await findTask(child.id, db);
     if (!full || full.status === "CANCELLED") continue;

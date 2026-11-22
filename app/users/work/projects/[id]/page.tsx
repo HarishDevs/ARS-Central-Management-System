@@ -21,7 +21,7 @@ import { FromTemplateForm } from "@/features/work/MoreParts";
 import { listDepartments } from "@/lib/db/repositories/organisation.repository";
 import { countTemplateTasks, parseTemplate, type TemplateTask } from "@/server/work/more-rules";
 import { indiaDayOf } from "@/features/work/format";
-import { listChildTasks, listProjectTabs, listWorkViews, workDensity, fieldValues, listProjectFields, listProjectTasks, listSections, listStatusUpdates, projectCounts, projectFor, templateBody, touchRecentProject } from "@/lib/db/repositories/work.repository";
+import { listChildTasks, listProjectTabs, listWorkViews, workDensity, listProjectTasks, listSections, listStatusUpdates, projectCounts, projectFor, templateBody, touchRecentProject } from "@/lib/db/repositories/work.repository";
 import { getDbPool } from "@/lib/db/client";
 import { indiaDateTimeText } from "@/server/modules/settings";
 import { PRIVACY_LABEL, PROJECT_ROLE_LABEL, projectAbilities, STATUS_KIND_LABEL, STATUS_KIND_TONE } from "@/server/work/access";
@@ -32,6 +32,8 @@ import { RichText } from "@/features/work/RichText";
 import { isMobileLayout } from "@/server/ui/layout-mode";
 import { getUserSetting } from "@/lib/db/repositories/user-settings.repository";
 import { clampPaneWidth, PANE_SETTING } from "@/server/work/pm-rules";
+import { cellsFor, projectFieldsFor } from "@/server/work/fields-service";
+import { FieldDialogHost } from "@/features/work/FieldDialog";
 
 export const metadata: Metadata = { title: "Project" };
 export const dynamic = "force-dynamic";
@@ -132,12 +134,14 @@ export default async function ProjectPage({
     getDbPool()
       .query<RowDataPacket[]>("SELECT 1 FROM work_favourites WHERE user_id = ? AND object_type = 'PROJECT' AND object_id = ?", [user.id, project.id])
       .then(([rows]) => rows.length > 0),
-    listProjectFields(project.id),
+    // v1.64.0 (D-371): the project's custom fields (and whether this person may customise them).
+    projectFieldsFor(project.id, { id: user.id, name: user.name, roles: user.roles, modules: user.modules }),
   ]);
+  const planning = await featureOn("pm_planning", user);
   // D-220: the project's saved tabs (List views with their filters, sort and groups).
   const savedTabs = pmOn ? [] : await listWorkViews("PROJECT", project.id);
   const currentTab = savedTabs.find((item) => String(item.id) === query.tab) ?? null;
-  const values = await fieldValues(tasks.map((task) => task.id));
+  const values = fields ? await cellsFor(tasks.map((task) => task.id), fields.defs, viewer) : {};
   // v1.61.0 (D-367): subtasks shown inline in the List (treegrid), and the person's row density.
   const [subtaskRows, density] = await Promise.all([
     pmOn && view === "list" ? listChildTasks(tasks.map((task) => task.id)) : Promise.resolve([]),
@@ -222,6 +226,7 @@ export default async function ProjectPage({
       </nav>
       )}
 
+      {planning && fields?.customise && <FieldDialogHost projectId={project.id} projectName={project.name} fields={fields.views} customiseRole={fields.customiseRole} planning />}
       <WithPane pane={pane} sideWidth={sideWidth}>
         {(view === "list" || view === "board") && (
           <ProjectWorkspace
@@ -264,13 +269,10 @@ export default async function ProjectPage({
             meId={user.id}
             people={people}
             nowIso={now.toISOString()}
-            fields={fields.map((field) => ({
-              id: field.id,
-              name: field.name,
-              kind: field.kind,
-              options: field.options,
-            }))}
-            values={Object.fromEntries([...values].map(([taskId, own]) => [taskId, own]))}
+            fields={fields?.views ?? []}
+            values={values}
+            planning={planning}
+            customise={Boolean(planning && fields?.customise)}
             grid={
               view === "list"
                 ? {

@@ -143,8 +143,11 @@ export const PERMISSION_ROLE_LABEL: Record<PermissionRole, string> = { OWNER: "P
 export interface ProjectPermissions {
   fields: { field: string; role: "OWNER" | "EDITOR" }[];
   shareTasks: PermissionRole;
+  // v1.64.0 (D-371): "Only admins customise": who may add, change and remove
+  // the project's custom fields (EDITOR = owners and editors; OWNER = owners).
+  customise: "EDITOR" | "OWNER";
 }
-export const DEFAULT_PERMISSIONS: ProjectPermissions = { fields: [], shareTasks: "EDITOR" };
+export const DEFAULT_PERMISSIONS: ProjectPermissions = { fields: [], shareTasks: "EDITOR", customise: "EDITOR" };
 const FIELD_KEY = /^(due|start|assignee|priority|field:\d{1,10})$/;
 export function parseProjectPermissions(raw: unknown): ProjectPermissions {
   const value = (typeof raw === "string" ? safeParse(raw) : raw) as Partial<ProjectPermissions> | null;
@@ -156,7 +159,7 @@ export function parseProjectPermissions(raw: unknown): ProjectPermissions {
         .slice(0, 30)
     : [];
   const shareTasks = (PERMISSION_ROLES as readonly string[]).includes(String(value.shareTasks)) ? (value.shareTasks as PermissionRole) : "EDITOR";
-  return { fields, shareTasks };
+  return { fields, shareTasks, customise: value.customise === "OWNER" ? "OWNER" : "EDITOR" };
 }
 // May someone with `role` in the project update `field` there? IT always may.
 export function mayUpdateField(permissions: ProjectPermissions, field: string, role: ProjectRole | null, isAdmin: boolean): boolean {

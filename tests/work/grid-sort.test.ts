@@ -1,3 +1,4 @@
+import type { CellMap } from "@/server/work/custom-fields";
 import { describe, expect, it } from "vitest";
 import { applyGrid, columnSortState, DEFAULT_GRID, gridFromUrl, gridUrlState, groupsStartFolded, nextColumnSort, parseGridConfig, sortGridRows, type GridTask } from "@/server/work/grid";
 
@@ -36,7 +37,7 @@ const rows = [
   task({ id: 2, title: "audit", dueAt: "2026-11-03T12:30:00.000Z", priority: "URGENT", likes: 5, createdAt: "2026-10-03T00:00:00.000Z", projects: [{ id: 5, name: "Close", color: "teal" }], tags: [{ id: 2, name: "alpha" }], position: 1 }),
   task({ id: 3, title: "Later work", dueAt: null, priority: "LOW", likes: 0, createdAt: "2026-10-01T00:00:00.000Z", followers: [{ id: 8, name: "Anil" }], position: 2 }),
 ];
-const order = (config: Partial<typeof DEFAULT_GRID>, values?: Record<number, Record<number, string>>) => sortGridRows(rows, { ...DEFAULT_GRID, ...config }, values).map((row) => row.id);
+const order = (config: Partial<typeof DEFAULT_GRID>, values?: CellMap) => sortGridRows(rows, { ...DEFAULT_GRID, ...config }, values).map((row) => row.id);
 
 describe("task table column sort (D-354)", () => {
   it("each column sorts ascending and descending; empty values stay last", () => {
@@ -62,7 +63,8 @@ describe("task table column sort (D-354)", () => {
     expect(order({ dir: "desc" })).toEqual([2, 3, 1]);
   });
   it("a project field's column sorts by its value", () => {
-    const values = { 1: { 7: "10" }, 2: { 7: "9" } };
+    // v1.64.0 (D-371): values are typed cells; numbers sort as numbers.
+    const values: CellMap = { 1: { 7: { text: "10", sort: 10, edit: "10" } }, 2: { 7: { text: "9", sort: 9, edit: "9" } } };
     expect(order({ sortField: 7 }, values)).toEqual([2, 1, 3]);
     expect(order({ sortField: 7, dir: "desc" }, values)).toEqual([1, 2, 3]);
     const groups = applyGrid(rows, { ...DEFAULT_GRID, sortField: 7, dir: "desc" }, { today: "2026-10-30", meId: 1, values });

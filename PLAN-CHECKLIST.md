@@ -17,6 +17,7 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 **Multi-level approvals in any custom manner.** The engine must support any number of levels in any combination: sequential, parallel, any-one, any-N-of-M, conditional and hybrid. Approvers can come from any source, and levels can be added or skipped by rules. Build the engine for this from the first engine phase (P2). The drag-and-drop designer (P3) is only the screen for building it. Check every task against this.
 
 ## Now / Next
+- **Now (22 Nov 2026):** **v1.64.0** PM phase B part 1: custom fields with 11 types, typed values, field library, edit/remove/delete/restore, notify, limits, filter/sort/group by a field in List and Board (D-371). **Owner:** back up, publish (migration 202611221300_pm_b_custom_fields.sql runs on start), switch "phase B" on for IT only, then On; later confirm the typed values so the old column can go (DEPLOYMENT G0j).
 - **Now (22 Nov 2026):** **v1.63.1** startup fix (D-370). **Owner:** publish, then run database/optional/v1600_comment_triggers.sql once in phpMyAdmin.
 - [x] OPS-31 (22 Nov 2026) Optional trigger blocks in 202611211000; guard test for every migration trigger
 - **Now (22 Nov 2026):** **v1.63.0** PM phase A part 3: Task Summary tabs per person and Recently assigned; Home greeting, customisable widgets (keyboard and drag), People and a private notepad (D-369). **Owner:** back up, run migration 202611221200_pm_a_home_widgets.sql (after 202611221100), publish.
@@ -39,7 +40,19 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
   - [x] PM-A12 (22 Nov 2026) Home greeting and widget sections (from PM-A10): greeting with date, customisable widgets (add, remove, keyboard and drag reorder, half/full, reset), My Tasks, Tasks I've assigned, Projects Recent/Starred, status updates, People, private notepad; Forms slot hidden until phase C (D-369)
   - [x] PM-A13 (22 Nov 2026) My Tasks: tab management like project tabs, per person (List/Board/Calendar, rename, default, duplicate, copy link, remove, keyboard reorder, Save view / Reset), Recently assigned section (D-369)
   - [ ] PM-A14 Home widgets for people without the Approval module (their module Home keeps the Task home; from D-369)
-- [ ] PM-B Phase B planning and data
+- [ ] PM-B Phase B planning and data (in progress: part 1 in v1.64.0)
+  - [x] PM-B1 (22 Nov 2026) Feature switch pm_planning (default OFF; ON in e2e)
+  - [x] PM-B2 (22 Nov 2026) Custom fields, 11 types: text, number (formats, decimals), single/multi-select (colours, reorder), date (time), people, formula (own parser, no eval), ID (prefix, sequence), timer, reference, lookup (D-371)
+  - [x] PM-B3 (22 Nov 2026) Typed value storage; v1.63 values copied side by side; old column kept until the owner confirms (G0j)
+  - [x] PM-B4 (22 Nov 2026) Field library, Add field dialog (create / choose from library), notify on change, access (Only admins customise; library: creator and IT)
+  - [x] PM-B5 (22 Nov 2026) Edit after creation; remove (values kept, add back); delete with 30-day restore and purge
+  - [x] PM-B6 (22 Nov 2026) Limits as Admin settings 150 / 60 / 500, enforced on the server (C-8)
+  - [x] PM-B7 (22 Nov 2026) Rendering: List columns + column menu, Board chips and columns by a field, task pane/page rows, Task Summary columns; filter, sort and group by any field in List and Board, saved with tabs; activity stories
+  - [ ] PM-B8 Dependencies (FS/SS/FF/SF, lag), Dependencies and Scheduling settings
+  - [ ] PM-B9 Editable Timeline and Gantt
+  - [ ] PM-B10 Calendar week view and no-date drawer
+  - [ ] PM-B11 Status updates: highlights, recipients, weekly reminder
+  - [ ] PM-B12 Templates and copies carry every field type (from D-371)
 - [ ] PM-C Phase C forms
 - [ ] PM-D Phase D reporting, workload, automations, portfolios
 - [ ] PM-E Phase E backlog

@@ -33,6 +33,8 @@ export default async function globalSetup(): Promise<void> {
     await add("E2E_STAFF", "Sita Staff", ["USER"], null, null, false);
     // v1.61.0 (D-367): the PM phase A switch is OFF in production until IT releases it; ON for the e2e run.
     await conn.query("INSERT INTO system_settings (setting_key, setting_group, value_type, encrypted, value) VALUES ('features.pm_foundations', 'FEATURES', 'STRING', FALSE, 'ON') ON DUPLICATE KEY UPDATE value = 'ON'");
+    // v1.64.0 (D-371): the PM phase B switch (custom fields), likewise ON for the e2e run.
+    await conn.query("INSERT INTO system_settings (setting_key, setting_group, value_type, encrypted, value) VALUES ('features.pm_planning', 'FEATURES', 'STRING', FALSE, 'ON') ON DUPLICATE KEY UPDATE value = 'ON'");
   } finally {
     await conn.end();
   }

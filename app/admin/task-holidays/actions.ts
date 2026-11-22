@@ -11,6 +11,7 @@ import { DIGEST_SETTINGS_KEY, digestSettingsSchema, parseDigestSettings, parseRe
 import { personFacts } from "@/lib/db/repositories/tasks.repository";
 import { moveHolidayTasks, tellHolidayTasks } from "@/server/work/service";
 import { parseCelebration, parsePmExtras, PM_EXTRAS_KEY, pmExtrasSchema } from "@/server/work/pm-rules";
+import { FIELD_LIMITS_KEY, fieldLimitsSchema, parseFieldLimits } from "@/server/work/custom-fields";
 
 // D-217: Admin → Task holidays. IT (with access to the page) sets what tasks
 // do on holidays, and moves or tells about tasks due on a holiday.
@@ -122,6 +123,25 @@ export async function savePmExtrasAction(_previous: ActionResult | null, formDat
     await recordAudit({ actorUserId: actor.id, action: "TASK_SETTINGS", entityType: "SETTING", entityId: PM_EXTRAS_KEY, sessionId: actor.sessionId, ipAddress: actor.ipAddress, metadata: { before, after: parsed.data } });
   } catch (error) {
     logError("savePmExtrasAction failed", error);
+    return { ok: false, message: "Couldn't save. Please try again." };
+  }
+  revalidatePath("/admin/task-holidays");
+  return { ok: true, message: "Saved." };
+}
+
+// v1.64.0 (D-371, C-8): the custom field limits (defaults 150 fields per
+// project, 60 per task, 500 options per field), enforced on the server.
+export async function saveFieldLimitsAction(_previous: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  const actor = await getAdminActor("admin.task_holidays");
+  if (!actor) return NOT_FOUND;
+  const parsed = fieldLimitsSchema.safeParse({ perProject: Number(formData.get("perProject")), perTask: Number(formData.get("perTask")), options: Number(formData.get("options")) });
+  if (!parsed.success) return { ok: false, message: "Use whole numbers: fields per project 1 to 500, per task 1 to 200, options 2 to 1,000." };
+  try {
+    const before = parseFieldLimits(await loadSetting(FIELD_LIMITS_KEY));
+    await saveJsonSetting(FIELD_LIMITS_KEY, parsed.data, actor.id);
+    await recordAudit({ actorUserId: actor.id, action: "TASK_SETTINGS", entityType: "SETTING", entityId: FIELD_LIMITS_KEY, sessionId: actor.sessionId, ipAddress: actor.ipAddress, metadata: { before, after: parsed.data } });
+  } catch (error) {
+    logError("saveFieldLimitsAction failed", error);
     return { ok: false, message: "Couldn't save. Please try again." };
   }
   revalidatePath("/admin/task-holidays");

@@ -10,6 +10,10 @@ import { listDepartments } from "@/lib/db/repositories/organisation.repository";
 import { indiaDateTimeText } from "@/server/modules/settings";
 import { projectAbilities } from "@/server/work/access";
 import { peopleOptions, workPage } from "@/server/work/page-context";
+import { featureOn } from "@/server/settings/features";
+import { goneFieldsFor, projectFieldsFor } from "@/server/work/fields-service";
+import { FieldsPanel } from "@/features/work/FieldsPanel";
+import { FieldDialogHost } from "@/features/work/FieldDialog";
 
 export const metadata: Metadata = { title: "Project settings" };
 export const dynamic = "force-dynamic";
@@ -33,6 +37,9 @@ const EVENT_WORD: Record<string, string> = {
   FIELD_ADDED: "Added a field",
   PERMISSIONS: "Changed the project permissions",
   FIELD_REMOVED: "Removed a field",
+  FIELD_CHANGED: "Changed a field",
+  FIELD_DELETED: "Deleted a field",
+  FIELD_RESTORED: "Restored a field",
   TEMPLATE_SAVED: "Made this template",
   FROM_TEMPLATE: "Made it from a template",
   COPIED: "Made it as a copy",
@@ -50,6 +57,10 @@ export default async function ProjectSettingsPage({ params }: { params: Promise<
   const [people, departments, events, fields] = await Promise.all([can.share ? peopleOptions() : Promise.resolve([]), listDepartments(), listProjectEvents(project.id), listProjectFields(project.id)]);
   const activeDepartments = departments.filter((department) => department.active).map((department) => ({ id: department.id, name: department.name }));
   const isMember = members.some((member) => member.type === "USER" && member.id === user.id);
+  // v1.64.0 (D-371): with "pm_planning" on, the Fields section is the full custom field manager.
+  const planning = await featureOn("pm_planning", user);
+  const actor = { id: user.id, name: user.name, roles: user.roles, modules: user.modules };
+  const [planFields, gone] = planning ? await Promise.all([projectFieldsFor(project.id, actor), goneFieldsFor(project.id, actor)]) : [null, null];
   return (
     <>
       <Breadcrumbs items={[{ href: "/users/work/projects", label: "Projects" }, { href: `/users/work/projects/${project.id}`, label: project.name }, { label: "Members & settings" }]} />
@@ -90,9 +101,18 @@ export default async function ProjectSettingsPage({ params }: { params: Promise<
             <h2 id="permissions" className="mb-3 font-semibold">
               Project permissions
             </h2>
-            <PermissionsPanel projectId={project.id} projectName={project.name} initial={project.permissions} fields={fields.map((field) => ({ id: field.id, name: field.name }))} canManage={can.manage} />
+            <PermissionsPanel projectId={project.id} projectName={project.name} initial={project.permissions} fields={fields.map((field) => ({ id: field.id, name: field.name }))} canManage={can.manage} planning={planning} />
           </section>
-          {can.edit && (
+          {planFields && gone && (
+            <section className="card px-5 py-4" aria-labelledby="fields" id="fields-section">
+              <h2 id="fields" className="mb-1 font-semibold">
+                Fields
+              </h2>
+              <FieldsPanel projectId={project.id} fields={planFields.views} customise={planFields.customise} removed={gone.removed} deleted={gone.deleted} />
+              <FieldDialogHost projectId={project.id} projectName={project.name} fields={planFields.views} customiseRole={planFields.customiseRole} planning />
+            </section>
+          )}
+          {!planning && can.edit && (
             <section className="card px-5 py-4" aria-labelledby="fields">
               <h2 id="fields" className="mb-1 font-semibold">
                 Fields

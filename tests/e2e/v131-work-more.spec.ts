@@ -28,10 +28,12 @@ test("a project field shows as a List column and takes a value; two tasks change
   }
 
   await page.goto(`${projectUrl}/settings`);
-  await page.getByLabel("Field name").fill("Plant");
-  await page.getByLabel("Kind", { exact: true }).selectOption("SELECT");
-  await page.getByLabel("Choices (one per line)").fill("Raipur\nBilaspur");
-  await page.getByRole("button", { name: "Add field" }).click();
+  // v1.64.0 (D-371): with "pm_planning" on (e2e seed) fields are added in the Add field dialog.
+  await page.getByTestId("add-field").click();
+  await page.getByLabel("Field title").fill("Plant");
+  await page.getByLabel("Option 1", { exact: true }).fill("Raipur");
+  await page.getByLabel("Option 2", { exact: true }).fill("Bilaspur");
+  await page.getByRole("button", { name: "Create field" }).click();
   await expect(page.getByRole("list", { name: "Fields" })).toContainText("Plant");
 
   await page.goto(projectUrl);

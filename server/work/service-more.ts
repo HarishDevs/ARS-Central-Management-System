@@ -24,7 +24,6 @@ import {
   DIGEST_SETTINGS_KEY,
   digestText,
   FIELD_KINDS,
-  MAX_FIELDS_PER_PROJECT,
   parseDigestSettings,
   parseRecurrence,
   parseRecurrenceSettings,
@@ -39,6 +38,8 @@ import {
 } from "@/server/work/more-rules";
 import { rightsOn, workViewer } from "@/server/work/task-access";
 import * as work from "@/server/work/service";
+import * as fieldsService from "@/server/work/fields-service";
+import * as fieldsRepo from "@/lib/db/repositories/fields.repository";
 import type { HolidayHit } from "@/server/work/holidays";
 import type { NotifyInput } from "@/server/notifications/notify";
 
@@ -80,56 +81,29 @@ export async function recurrenceOf(taskId: number, db: Queryable = getDbPool()):
 }
 
 // ---- custom fields --------------------------------------------------------------------
-async function editableProject(projectId: number, actor: TaskActor) {
-  const viewer = await workViewer(actor);
-  const found = await repo.projectFor(projectId, viewer);
-  return found && projectAbilities(found.role).edit ? found : null;
-}
-
+// D-218's form (text, number, choice, date). v1.64.0 (D-371): kept for the
+// screens with "pm_planning" off; the work is done by fields-service.ts.
 export async function addField(projectId: number, input: { name: string; kind: string; options: string }, actor: TaskActor): Promise<Result<{ id: number }>> {
-  const found = await editableProject(projectId, actor);
-  if (!found) return fail("Only the project's owners and editors can add fields.");
-  const name = input.name.replace(/\s+/g, " ").trim().slice(0, 60);
-  if (name.length < 1) return fail("Give the field a name.", { name: "Give the field a name." });
   if (!(FIELD_KINDS as readonly string[]).includes(input.kind)) return fail("Choose a kind of field.");
   const kind = input.kind as FieldKind;
   const options = cleanFieldOptions(kind, input.options);
   if (kind === "SELECT" && options.length < 2) return fail("Give at least two choices, one per line.", { options: "Give at least two choices." });
-  const fields = await repo.listProjectFields(projectId);
-  if (fields.length >= MAX_FIELDS_PER_PROJECT) return fail(`A project has at most ${MAX_FIELDS_PER_PROJECT} fields.`);
-  if (fields.some((field) => field.name.toLowerCase() === name.toLowerCase())) return fail("The project has a field with that name.", { name: "Choose another name." });
-  const id = await repo.insertProjectField(projectId, name, kind, options, actor.id);
-  await repo.appendProjectEvent(projectId, actor.id, "FIELD_ADDED", name, getDbPool());
-  return { ok: true, value: { id }, message: `Field "${name}" added.` };
+  const made = await fieldsService.createField(projectId, { name: input.name, type: kind, options: options.map((name, index) => ({ name, color: (index % 8) + 1 })) }, actor);
+  if (!made.ok) return made.message === "Only the project's owners and editors customise its fields." || made.message === "Not found." ? fail("Only the project's owners and editors can add fields.") : made;
+  return { ok: true, value: { id: made.value.id }, message: made.message };
 }
 
-export async function removeField(fieldId: number, actor: TaskActor): Promise<Result> {
-  const field = await repo.findProjectField(fieldId);
-  if (!field || !(await editableProject(field.projectId, actor))) return fail(NOT_FOUND);
-  await repo.removeProjectField(fieldId);
-  await repo.appendProjectEvent(field.projectId, actor.id, "FIELD_REMOVED", field.name, getDbPool());
-  return { ok: true, value: undefined, message: `Field "${field.name}" removed.` };
+// Removing a field from its project keeps its values (BR-CF-003).
+export async function removeField(fieldId: number, actor: TaskActor, projectId?: number): Promise<Result> {
+  const projects = await fieldsRepo.fieldProjects(fieldId);
+  const target = projectId ?? projects[0];
+  if (!target || !projects.includes(target)) return fail(NOT_FOUND);
+  return fieldsService.removeFieldFromProject(target, fieldId, actor);
 }
 
-export async function setTaskField(taskId: number, fieldId: number, raw: string, actor: TaskActor): Promise<Result> {
-  const field = await repo.findProjectField(fieldId);
-  const task = await findTask(taskId);
-  if (!field || !task || task.deletedAt) return fail(NOT_FOUND);
-  const links = await repo.listTaskProjects(taskId);
-  if (!links.some((link) => link.projectId === field.projectId)) return fail(NOT_FOUND);
-  const rights = await rightsOn(task, await workViewer(actor));
-  if (!rights.view) return fail(NOT_FOUND);
-  if (!rights.planning) return fail(rights.adhoc ? "Only its creator can change an ad hoc task's details." : "You can't change this task.");
-  const viewer = await workViewer(actor);
-  const blocked = await work.fieldBlockedBy(taskId, `field:${fieldId}`, viewer);
-  if (blocked) return fail(`In ${blocked}, only some people may change ${field.name} (Project permissions).`);
-  const checked = checkFieldValue(field.kind, field.options, String(raw ?? ""));
-  if (!checked.ok) return fail(`${field.name}: ${checked.message}`);
-  await withTransaction(async (connection) => {
-    await repo.setFieldValue(taskId, fieldId, checked.value, actor.id, connection);
-    await appendTaskEvent(taskId, { actorId: actor.id, type: "FIELD_SET", body: `${field.name}: ${checked.value ?? "cleared"}` }, connection);
-  });
-  return { ok: true, value: undefined };
+export async function setTaskField(taskId: number, fieldId: number, raw: unknown, actor: TaskActor): Promise<Result> {
+  const result = await fieldsService.setFieldValue(taskId, fieldId, raw, actor);
+  return result.ok ? { ok: true, value: undefined } : result;
 }
 
 // ---- templates and duplication ----------------------------------------------------------
@@ -137,7 +111,8 @@ export async function setTaskField(taskId: number, fieldId: number, raw: string,
 // cancelled) with their subtasks; dates as days from the project's start.
 async function projectShape(projectId: number, startOn: string | null): Promise<{ template: ProjectTemplate; start: string }> {
   const sections = await repo.listSections(projectId);
-  const fields = await repo.listProjectFields(projectId);
+  // v1.64.0 (D-371): templates and copies carry the v1.63 field types (text, number, choice, date).
+  const fields = (await repo.listProjectFields(projectId)).filter((field) => (FIELD_KINDS as readonly string[]).includes(field.kind));
   const items = (await repo.listProjectTasks(projectId)).filter((task) => task.status !== "CANCELLED" && task.parentTaskId === null);
   const dueDays = items.map((task) => (task.dueAt ? indiaDate(task.dueAt) : null)).filter((day): day is string => day !== null);
   const start = startOn ?? dueDays.sort()[0] ?? indiaDate(new Date());
@@ -167,7 +142,7 @@ async function projectShape(projectId: number, startOn: string | null): Promise<
     const made = await toTemplate(item.id, index, 0);
     if (made) tasks.push(made);
   }
-  return { template: { sections: sections.map((section) => section.name), fields: fields.map((field) => ({ name: field.name, kind: field.kind, options: field.options })), tasks }, start };
+  return { template: { sections: sections.map((section) => section.name), fields: fields.map((field) => ({ name: field.name, kind: field.kind as FieldKind, options: field.options })), tasks }, start };
 }
 
 export async function saveAsTemplate(projectId: number, name: string, actor: TaskActor): Promise<Result<{ id: number }>> {
@@ -259,7 +234,7 @@ export async function createFromTemplate(source: { templateId?: number; copyFrom
       for (const [name, value] of Object.entries(item.fields)) {
         const field = fieldIds.get(name);
         const checked = field ? checkFieldValue(field.kind, field.options, value) : null;
-        if (field && checked?.ok && checked.value !== null) await repo.setFieldValue(id, field.id, checked.value, actor.id, connection);
+        if (field && checked?.ok && checked.value !== null) await fieldsService.writeTemplateValue(id, field.id, checked.value, actor.id, connection);
       }
       await repo.addFollower(id, actor.id, "CREATOR", actor.id, connection);
       await appendTaskEvent(id, { actorId: actor.id, type: "CREATED", to: "OPEN", body: source.templateId ? `From the template ${base!.name}` : `Copied with the project ${base!.name}` }, connection);

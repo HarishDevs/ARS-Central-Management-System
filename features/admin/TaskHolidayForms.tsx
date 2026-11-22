@@ -1,6 +1,7 @@
 "use client";
 
-import { departmentHolidayAction, holidayTasksAction, savePmExtrasAction, saveTaskExtrasAction, saveTaskHolidaySettingsAction } from "@/app/admin/task-holidays/actions";
+import { departmentHolidayAction, holidayTasksAction, saveFieldLimitsAction, savePmExtrasAction, saveTaskExtrasAction, saveTaskHolidaySettingsAction } from "@/app/admin/task-holidays/actions";
+import type { FieldLimits } from "@/server/work/custom-fields";
 import { CELEBRATION_LABEL, CELEBRATIONS, PURGE_DAYS, type PmExtras } from "@/server/work/pm-rules";
 import type { DigestSettings, RecurrenceSettings } from "@/server/work/more-rules";
 import { FieldError, ResultMessage, SubmitButton, useActionForm } from "@/features/ui/form";
@@ -197,6 +198,38 @@ export function PmExtrasForm({ extras }: { extras: PmExtras }) {
         </label>
         <p className="text-caption text-ink-muted">Off: they stay in Deleted (restorable by the people who could restore them) until this is turned on again. A ticket&apos;s or meeting&apos;s task, and tasks of requests under a legal hold, are always kept.</p>
       </fieldset>
+      <ResultMessage result={result} />
+      <SubmitButton pending={pending}>Save</SubmitButton>
+    </form>
+  );
+}
+
+// v1.64.0 (D-371, C-8): custom field limits.
+export function FieldLimitsForm({ limits }: { limits: FieldLimits }) {
+  const { result, pending, onSubmit } = useActionForm(saveFieldLimitsAction);
+  return (
+    <form onSubmit={onSubmit} className="space-y-4 px-5 py-4" aria-label="Custom field limits" data-testid="field-limits">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div>
+          <label htmlFor="limit-project" className="field-label">
+            Fields per project
+          </label>
+          <input id="limit-project" name="perProject" type="number" min={1} max={500} defaultValue={limits.perProject} className="field-input h-9" />
+        </div>
+        <div>
+          <label htmlFor="limit-task" className="field-label">
+            Fields with values per task
+          </label>
+          <input id="limit-task" name="perTask" type="number" min={1} max={200} defaultValue={limits.perTask} className="field-input h-9" />
+        </div>
+        <div>
+          <label htmlFor="limit-options" className="field-label">
+            Options per field
+          </label>
+          <input id="limit-options" name="options" type="number" min={2} max={1000} defaultValue={limits.options} className="field-input h-9" />
+        </div>
+      </div>
+      <p className="text-caption text-ink-muted">Checked every time someone adds a field, an option or a value. Lowering a limit doesn&apos;t remove anything already there; it only stops new additions.</p>
       <ResultMessage result={result} />
       <SubmitButton pending={pending}>Save</SubmitButton>
     </form>

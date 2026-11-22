@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { sortRows, type SortDir } from "@/server/lists/sorting";
+import { fieldFilterSchema, fieldGroups, matchFieldFilter, viewDef, type CellMap, type FieldView } from "@/server/work/custom-fields";
 
 // D-220 (owner: "the compact screen like this, table format… filters, sort,
 // groups like Asana in all the screens"): one task table for every list in
@@ -76,6 +77,11 @@ export const gridConfigSchema = z.object({
   search: z.string().max(100).default(""),
   // v1.61.0 (D-367): the section menu's "Hide empty groups", saved with the view.
   hideEmpty: z.boolean().default(false),
+  // v1.64.0 (D-371, "pm_planning"): filters on custom fields, grouping by a
+  // custom field, and the field columns hidden in this view.
+  fieldFilters: z.array(fieldFilterSchema).max(10).default([]),
+  groupField: z.number().int().positive().nullable().default(null),
+  hiddenFields: z.array(z.number().int().positive()).max(500).default([]),
 });
 export type GridConfig = z.infer<typeof gridConfigSchema>;
 export const DEFAULT_GRID: GridConfig = gridConfigSchema.parse({});
@@ -129,7 +135,7 @@ const weekStart = (day: string) => shift(day, -((new Date(`${day}T00:00:00Z`).ge
 
 // How many filters are on (the "Filters: N" count).
 export function filterCount(config: GridConfig): number {
-  return Number(!config.incomplete || config.completed !== "none") + Number(config.dueThisWeek) + Number(config.dueNextWeek) + config.filters.length;
+  return Number(!config.incomplete || config.completed !== "none") + Number(config.dueThisWeek) + Number(config.dueNextWeek) + config.filters.length + (config.fieldFilters?.length ?? 0);
 }
 
 function passes(task: GridTask, config: GridConfig, today: string, meId: number): boolean {
@@ -204,11 +210,12 @@ const SORT_VALUE: Record<Exclude<GridSort, "none">, (task: GridTask) => unknown>
 };
 const NATURAL_DESC: ReadonlySet<GridSort> = new Set(["createdOn", "modified", "completedOn", "likes"]);
 
-export function sortGridRows(rows: readonly GridTask[], config: Pick<GridConfig, "sort" | "dir" | "sortField">, values?: Record<number, Record<number, string>>): GridTask[] {
+export function sortGridRows(rows: readonly GridTask[], config: Pick<GridConfig, "sort" | "dir" | "sortField">, values?: CellMap): GridTask[] {
   const manual = [...rows].sort((a, b) => a.position - b.position || a.id - b.id);
   if (config.sortField) {
     const field = config.sortField;
-    return sortRows(manual, (task) => values?.[task.id]?.[field] ?? "", config.dir);
+    // v1.64.0 (D-371): each type's own order (numbers, dates, options in their order).
+    return sortRows(manual, (task) => values?.[task.id]?.[field]?.sort ?? null, config.dir);
   }
   if (config.sort === "none") return manual;
   const natural: SortDir = NATURAL_DESC.has(config.sort) ? "desc" : "asc";
@@ -244,8 +251,8 @@ export function nextColumnSort(config: Pick<GridConfig, "sort" | "dir" | "sortFi
 // collapse all the group"): a chosen grouping starts folded. Sections are the
 // list's own structure (a project's sections, My Tasks' sections), not a chosen
 // Group by, so they stay open.
-export function groupsStartFolded(group: GridGroup): boolean {
-  return group !== "none" && group !== "section";
+export function groupsStartFolded(group: GridGroup, groupField: number | null = null): boolean {
+  return groupField !== null || (group !== "none" && group !== "section");
 }
 
 // v1.58.0 (D-354): the sort and grouping in the address (search results), so a
@@ -282,8 +289,28 @@ export interface GridGroupOut {
 
 // Filter, sort and group the rows. `sections` keeps empty sections visible.
 // v1.58.0 (D-354): `values` (a project's own fields) lets a field's column sort.
-export function applyGrid(rows: readonly GridTask[], config: GridConfig, context: { today: string; meId: number; sections?: readonly { id: number; name: string }[]; values?: Record<number, Record<number, string>> }): GridGroupOut[] {
-  const kept = sortGridRows(rows.filter((task) => passes(task, config, context.today, context.meId)), config, context.values);
+export function applyGrid(
+  rows: readonly GridTask[],
+  config: GridConfig,
+  context: { today: string; meId: number; sections?: readonly { id: number; name: string }[]; values?: CellMap; fields?: readonly FieldView[] },
+): GridGroupOut[] {
+  // v1.64.0 (D-371): custom field filters (a filter on a field the view no longer has is ignored).
+  const fields = new Map((context.fields ?? []).map((field) => [field.id, field]));
+  const fieldFilters = (config.fieldFilters ?? []).filter((filter) => fields.has(filter.fieldId));
+  const passesFields = (task: GridTask) => fieldFilters.every((filter) => matchFieldFilter(fields.get(filter.fieldId)!.kind, context.values?.[task.id]?.[filter.fieldId], filter, context.meId));
+  const kept = sortGridRows(rows.filter((task) => passes(task, config, context.today, context.meId) && passesFields(task)), config, context.values);
+  const byField = config.groupField ? fields.get(config.groupField) : undefined;
+  if (byField) {
+    const def = viewDef(byField);
+    const map = new Map<string, { order: number; rows: GridTask[] }>();
+    for (const task of kept)
+      for (const [name, order] of fieldGroups(def, context.values?.[task.id]?.[byField.id], context.today)) {
+        const entry = map.get(name) ?? { order, rows: [] };
+        entry.rows.push(task);
+        map.set(name, entry);
+      }
+    return [...map.entries()].sort((a, b) => a[1].order - b[1].order || a[0].localeCompare(b[0])).map(([name, entry]) => ({ key: `f${byField.id}:${name}`, name, sectionId: null, person: byField.kind === "PEOPLE" ? name : null, rows: entry.rows }));
+  }
   if (config.group === "none") return [{ key: "all", name: "", sectionId: null, person: null, rows: kept }];
   if (config.group === "section") {
     const sections = context.sections ?? [];

@@ -8,6 +8,7 @@ import { loadSetting } from "@/server/work/holiday-store";
 import { featureMode } from "@/server/settings/features";
 import { uploadRoot } from "@/server/attachments/service";
 import { logError } from "@/lib/logging/logger";
+import { purgeDeletedFields } from "@/lib/db/repositories/fields.repository";
 import { parsePmExtras, PM_EXTRAS_KEY, PURGE_DAYS, purgeableTasks } from "@/server/work/pm-rules";
 
 // v1.62.0 (D-368, BR-DEL-001/002): tasks and projects in Deleted for more
@@ -17,7 +18,7 @@ import { parsePmExtras, PM_EXTRAS_KEY, PURGE_DAYS, purgeableTasks } from "@/serv
 const TASK_BATCH = 500;
 const PROJECT_BATCH = 50;
 
-export async function runWorkPurge(options: { force?: boolean } = {}): Promise<{ purgedTasks: number; purgedProjects: number; skipped?: string }> {
+export async function runWorkPurge(options: { force?: boolean } = {}): Promise<{ purgedTasks: number; purgedProjects: number; purgedFields?: number; skipped?: string }> {
   if (!options.force) {
     if ((await featureMode("pm_foundations")) === "OFF") return { purgedTasks: 0, purgedProjects: 0, skipped: "switch off" };
     if (!parsePmExtras(await loadSetting(PM_EXTRAS_KEY)).purge) return { purgedTasks: 0, purgedProjects: 0, skipped: "purge off" };
@@ -47,6 +48,12 @@ export async function runWorkPurge(options: { force?: boolean } = {}): Promise<{
       return count;
     });
   }
+  // v1.64.0 (D-371, BR-CF-004): custom fields deleted more than 30 days ago, with their values.
+  const purgedFields = await withTransaction(async (connection) => {
+    const ids = await purgeDeletedFields(PROJECT_BATCH, connection);
+    if (ids.length) await recordAudit({ actorUserId: null, action: "WORK_FIELDS_PURGED", entityType: "RETENTION", entityId: "fields", metadata: { olderThanDays: PURGE_DAYS, count: ids.length, fieldIds: ids } }, connection);
+    return ids.length;
+  });
   // The task files go from disk only after the rows are gone for good.
   const root = uploadRoot();
   for (const stored of files) {
@@ -58,5 +65,5 @@ export async function runWorkPurge(options: { force?: boolean } = {}): Promise<{
       if (error.code !== "ENOENT") logError("work purge: couldn't remove a file", error);
     });
   }
-  return { purgedTasks, purgedProjects };
+  return { purgedTasks, purgedProjects, purgedFields };
 }

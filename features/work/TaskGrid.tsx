@@ -19,6 +19,8 @@ import { PersonSelect } from "@/features/ui/PersonSelect";
 import { CREATE_TASK_EVENT, COLOR_HEX, TaskCheck, usePaneLink, useWorkCall } from "@/features/work/client";
 import { dueLabel, indiaDayOf, TONE_TEXT } from "@/features/work/format";
 import { BulkBar, FieldInput, type FieldView } from "@/features/work/MoreParts";
+import { FieldFilterRows, FieldGlyph, FieldValueEditor, openFieldDialog } from "@/features/work/FieldControls";
+import type { CellMap } from "@/server/work/custom-fields";
 import { AddTask } from "@/features/work/ProjectWorkspace";
 import { CollaboratorsCell, TagsCell } from "@/features/work/GridCellEditors";
 import { ColumnResizer } from "@/features/work/ColumnResizer";
@@ -81,6 +83,9 @@ export function TaskGrid({
   projects = [],
   fields = [],
   values = {},
+  planning = false,
+  customise = false,
+  fieldScope,
   meId,
   nowIso,
   view,
@@ -110,7 +115,13 @@ export function TaskGrid({
   people?: { id: number; label: string }[];
   projects?: { id: number; name: string }[];
   fields?: FieldView[];
-  values?: Record<number, Record<number, string>>;
+  values?: CellMap;
+  // v1.64.0 (D-371, "pm_planning"): every field type, filter/sort/group by a
+  // field and the column menu; `customise` adds "Add field" and "Edit field";
+  // `fieldScope` (My Tasks): the fields each task's projects have.
+  planning?: boolean;
+  customise?: boolean;
+  fieldScope?: Record<number, number[]>;
   meId: number;
   nowIso: string;
   view?: GridView;
@@ -136,7 +147,7 @@ export function TaskGrid({
   // a chosen grouping starts with every group folded (sections stay open, see
   // groupsStartFolded); a heading opens one group; Expand all / Collapse all.
   // `toggled` holds the groups opened or closed one by one against `closed`.
-  const [fold, setFold] = useState(() => ({ group: initial.group, closed: groupsStartFolded(initial.group), toggled: new Set<string>() }));
+  const [fold, setFold] = useState(() => ({ group: `${initial.group}:${initial.groupField ?? ""}`, closed: groupsStartFolded(initial.group, initial.groupField), toggled: new Set<string>() }));
   const [selected, setSelected] = useState<number[]>([]);
   const [dragging, setDragging] = useState<number | null>(null);
   const [searching, setSearching] = useState(Boolean(initial.search));
@@ -166,13 +177,16 @@ export function TaskGrid({
     for (const [name, value] of Object.entries(JSON.parse(urlState) as Record<string, string>)) url.searchParams.set(name, value);
     if (url.search !== window.location.search) router.replace(`${url.pathname}${url.search}`, { scroll: false });
   }, [syncUrl, urlState, router]);
-  if (fold.group !== config.group) setFold({ group: config.group, closed: groupsStartFolded(config.group), toggled: new Set() });
+  const foldKey = `${config.group}:${config.groupField ?? ""}`;
+  if (fold.group !== foldKey) setFold({ group: foldKey, closed: groupsStartFolded(config.group, config.groupField), toggled: new Set() });
   const toggleGroup = (key: string) => setFold((value) => ({ ...value, toggled: new Set(value.toggled.has(key) ? [...value.toggled].filter((item) => item !== key) : [...value.toggled, key]) }));
   const foldAll = (open: boolean) => setFold((value) => ({ ...value, closed: !open, toggled: new Set() }));
   const today = indiaDayOf(new Date(nowIso));
   const now = useMemo(() => new Date(nowIso), [nowIso]);
-  const groups = useMemo(() => applyGrid(rows, config, { today, meId, sections, values }), [rows, config, today, meId, sections, values]);
+  const groups = useMemo(() => applyGrid(rows, config, { today, meId, sections, values, fields }), [rows, config, today, meId, sections, values, fields]);
   const shown = config.hidden.length ? columns.filter((column) => !config.hidden.includes(column)) : columns;
+  // v1.64.0 (D-371): the field columns this view shows (Options or the column menu hide them).
+  const shownFields = planning && config.hiddenFields?.length ? fields.filter((field) => !config.hiddenFields.includes(field.id)) : fields;
   const canDrag = Boolean(onMove) && config.group === "section" && config.sort === "none" && !config.sortField && filterCount(config) === 0 && !config.search;
   // Owner: "all the columns in all the tables should be resizable". Every
   // column but the row number takes its width from one state (drag the right
@@ -180,7 +194,8 @@ export function TaskGrid({
   const widthDefaults: ColumnDefault[] = [
     { key: "name", width: 260, flex: true },
     ...shown.map((column) => ({ key: column, width: WIDTH[column] })),
-    ...fields.map((field) => ({ key: `f${field.id}`, width: FIELD_WIDTH })),
+    ...shownFields.map((field) => ({ key: `f${field.id}`, width: FIELD_WIDTH })),
+    ...(planning && customise ? [{ key: "addField", width: 44 }] : []),
   ];
   const resize = useColumnWidths(widthKey ?? (testId === "task-grid" ? "taskgrid" : `taskgrid:${testId}`), widthDefaults);
   const gridColumns = { gridTemplateColumns: `40px ${resize.template}` };
@@ -194,6 +209,50 @@ export function TaskGrid({
   // The sort is part of the view (saved with Save view / Save as a new tab).
   const sorting = Boolean(config.sortField) || config.sort !== "none";
   const sortName = config.sortField ? (fields.find((field) => field.id === config.sortField)?.name ?? "Field") : SORT_LABEL[config.sort];
+  // v1.64.0 (D-371, spec PC §8.10): a field column's own menu.
+  const fieldHead = (field: FieldView) => {
+    const state = columnSortState(config, field.id);
+    const Icon = state === "asc" ? ArrowUp : state === "desc" ? ArrowDown : ArrowUpDown;
+    const item = "block w-full rounded px-2 py-1 text-left text-label hover:bg-surface-muted";
+    const close = (event: React.SyntheticEvent) => {
+      const details = (event.currentTarget as HTMLElement).closest("details");
+      if (details) details.open = false;
+    };
+    return (
+      <span key={field.id} role="columnheader" aria-sort={state === "asc" ? "ascending" : state === "desc" ? "descending" : "none"} className="relative flex min-w-0 items-center gap-1 border-r border-line px-2 py-2" data-column={`f${field.id}`}>
+        <button type="button" onClick={() => set(nextColumnSort(config, field.id))} title={`Sort by ${field.name}, ${state === "asc" ? "descending" : "ascending"}`} className={`inline-flex min-w-0 items-center gap-1 hover:text-ink ${state ? "text-ink" : ""}`} data-testid="grid-sort">
+          <FieldGlyph kind={field.kind} />
+          <span className="truncate">{field.name}</span>
+          <Icon aria-hidden="true" className={`h-3.5 w-3.5 shrink-0 ${state ? "" : "opacity-40"}`} />
+        </button>
+        <Drop label={`Show options for ${field.name} column`} icon={<ChevronDown aria-hidden="true" className="h-3.5 w-3.5" />} buttonClass="rounded p-0.5 text-ink-muted hover:bg-surface-muted hover:text-ink" panelClass="left-0 w-56" testId="field-column-menu">
+          <div className="space-y-0.5 pt-5">
+            <button type="button" className={item} onClick={(event) => { close(event); set({ sort: "none", sortField: field.id, dir: "asc" }); }}>
+              Sort ascending
+            </button>
+            <button type="button" className={item} onClick={(event) => { close(event); set({ sort: "none", sortField: field.id, dir: "desc" }); }}>
+              Sort descending
+            </button>
+            <button type="button" className={item} onClick={(event) => { close(event); set({ fieldFilters: [...(config.fieldFilters ?? []), { fieldId: field.id, op: "notEmpty" as const, value: "" }].slice(0, 10) }); }}>
+              Filter by this field
+            </button>
+            <button type="button" className={item} onClick={(event) => { close(event); set({ groupField: field.id }); }}>
+              Group by this field
+            </button>
+            <button type="button" className={item} onClick={(event) => { close(event); set({ hiddenFields: [...(config.hiddenFields ?? []), field.id] }); }}>
+              Hide column
+            </button>
+            {field.canEdit && (
+              <button type="button" className={item} onClick={(event) => { close(event); openFieldDialog({ fieldId: field.id }); }}>
+                Edit field
+              </button>
+            )}
+          </div>
+        </Drop>
+        {resizer(`f${field.id}`, field.name)}
+      </span>
+    );
+  };
   const sortHead = (column: SortableColumn, label: string, className: string, colKey: string) => {
     const state = columnSortState(config, column);
     const Icon = state === "asc" ? ArrowUp : state === "desc" ? ArrowDown : ArrowUpDown;
@@ -364,10 +423,10 @@ export function TaskGrid({
               panelClass="w-[min(560px,90vw)] right-0"
               testId="filter-menu"
             >
-              <FilterPanel config={config} set={set} people={people} projects={projects} />
+              <FilterPanel config={config} set={set} people={people} projects={projects} fields={planning ? fields : []} />
             </Drop>
             {count > 0 && (
-              <button type="button" aria-label="Clear filters" onClick={() => set({ incomplete: true, completed: "none", dueThisWeek: false, dueNextWeek: false, filters: [] })} className="tb-x">
+              <button type="button" aria-label="Clear filters" onClick={() => set({ incomplete: true, completed: "none", dueThisWeek: false, dueNextWeek: false, filters: [], fieldFilters: [] })} className="tb-x">
                 <X aria-hidden="true" className="h-3.5 w-3.5" />
               </button>
             )}
@@ -406,12 +465,12 @@ export function TaskGrid({
               </button>
             )}
           </span>
-          <span className={config.group !== "none" ? "tb-pill" : "inline-flex items-center"}>
+          <span className={config.group !== "none" || config.groupField ? "tb-pill" : "inline-flex items-center"}>
             <Drop
               label="Group"
               icon={
                 <>
-                  <Layers aria-hidden="true" className="h-4 w-4" /> {config.group === "none" ? "Group" : "Groups: 1"}
+                  <Layers aria-hidden="true" className="h-4 w-4" /> {config.group === "none" && !config.groupField ? "Group" : "Groups: 1"}
                 </>
               }
               buttonClass="tb-btn"
@@ -421,11 +480,19 @@ export function TaskGrid({
               <p className="mb-1 px-2 text-label font-semibold">Groups</p>
               {(["none", ...groupsAllowed] as GridGroup[]).map((group) => (
                 <label key={group} className="flex items-center gap-2 rounded px-2 py-1 text-label hover:bg-surface-muted">
-                  <input type="radio" name={`${testId}-group`} checked={config.group === group} onChange={() => set({ group })} /> {GROUP_LABEL[group]}
+                  <input type="radio" name={`${testId}-group`} checked={config.group === group && !config.groupField} onChange={() => set({ group, groupField: null })} /> {GROUP_LABEL[group]}
                 </label>
               ))}
+              {/* v1.64.0 (D-371): group by any custom field. */}
+              {planning && fields.length > 0 && <p className="mt-2 border-t border-line px-2 pt-2 text-caption font-semibold text-ink-muted">Custom fields</p>}
+              {planning &&
+                fields.map((field) => (
+                  <label key={field.id} className="flex items-center gap-2 rounded px-2 py-1 text-label hover:bg-surface-muted">
+                    <input type="radio" name={`${testId}-group`} checked={config.groupField === field.id} onChange={() => set({ groupField: field.id })} /> {field.name}
+                  </label>
+                ))}
               {/* v1.58.0 (D-354, owner's screenshot "Expand or collapse groups"): both choices, plainly. */}
-              {config.group !== "none" && (
+              {(config.group !== "none" || config.groupField) && (
                 <div className="mt-2 border-t border-line pt-2">
                   <p className="mb-1 px-2 text-caption font-semibold text-ink-muted">Expand or collapse groups</p>
                   <button type="button" className="block w-full rounded px-2 py-1 text-left text-label hover:bg-surface-muted" onClick={() => foldAll(true)} data-testid="grid-expand-all">
@@ -437,8 +504,8 @@ export function TaskGrid({
                 </div>
               )}
             </Drop>
-            {config.group !== "none" && (
-              <button type="button" aria-label="Remove grouping" onClick={() => set({ group: "none" })} className="tb-x">
+            {(config.group !== "none" || config.groupField) && (
+              <button type="button" aria-label="Remove grouping" onClick={() => set({ group: "none", groupField: null })} className="tb-x">
                 <X aria-hidden="true" className="h-3.5 w-3.5" />
               </button>
             )}
@@ -465,6 +532,21 @@ export function TaskGrid({
                 {COLUMN_LABEL[column]}
               </label>
             ))}
+            {planning && fields.length > 0 && (
+              <div className="mt-2 border-t border-line pt-2" data-testid="field-columns">
+                <p className="mb-1 px-2 text-label font-semibold">Fields</p>
+                {fields.map((field) => (
+                  <label key={field.id} className="flex items-center gap-2 rounded px-2 py-1 text-label hover:bg-surface-muted">
+                    <input
+                      type="checkbox"
+                      checked={!(config.hiddenFields ?? []).includes(field.id)}
+                      onChange={(event) => set({ hiddenFields: event.target.checked ? (config.hiddenFields ?? []).filter((id) => id !== field.id) : [...(config.hiddenFields ?? []), field.id] })}
+                    />{" "}
+                    {field.name}
+                  </label>
+                ))}
+              </div>
+            )}
             {hasSubtasks && (
               <div className="mt-2 space-y-1 border-t border-line pt-2">
                 <p className="mb-1 px-2 text-label font-semibold">Subtasks</p>
@@ -535,7 +617,7 @@ export function TaskGrid({
         </span>
       </div>
 
-      {config.group !== "none" && groups.length > 0 && <FoldAllButtons onAll={foldAll} testId={`${testId}-fold-all`} />}
+      {(config.group !== "none" || config.groupField) && groups.length > 0 && <FoldAllButtons onAll={foldAll} testId={`${testId}-fold-all`} />}
       <div className="overflow-x-auto rounded-lg border border-line bg-surface" data-density={rowDensity === "COMPACT" ? "compact" : undefined}>
         {/* v1.61.0 (D-367, spec PRJ-03): an ARIA treegrid. Group headings are level 1,
             tasks level 2 (1 without groups), subtasks one deeper; one line takes Tab
@@ -558,7 +640,14 @@ export function TaskGrid({
             </span>
             {sortHead("name", "Name", "border-r border-line px-2 py-2", "name")}
             {shown.map((column) => sortHead(column, COLUMN_LABEL[column], "truncate border-r border-line px-2 py-2", column))}
-            {fields.map((field) => sortHead(field.id, field.name, "truncate border-r border-line px-2 py-2", `f${field.id}`))}
+            {planning ? shownFields.map((field) => fieldHead(field)) : fields.map((field) => sortHead(field.id, field.name, "truncate border-r border-line px-2 py-2", `f${field.id}`))}
+            {planning && customise && (
+              <span role="columnheader" className="flex items-center justify-center">
+                <button type="button" aria-label="Add field" title="Add field" onClick={() => openFieldDialog({})} className="rounded p-1 text-ink-muted hover:bg-surface-muted hover:text-ink" data-testid="grid-add-field">
+                  <Plus aria-hidden="true" className="h-4 w-4" />
+                </button>
+              </span>
+            )}
           </div>
           {allShown.length === 0 && !(config.group === "section" && sections?.length) && <p className="px-4 py-8 text-center text-label text-ink-muted">{emptyText}</p>}
           {windowed.range.padTop > 0 && <div aria-hidden="true" style={{ height: windowed.range.padTop }} data-testid="grid-spacer-top" />}
@@ -780,11 +869,16 @@ export function TaskGrid({
                           {column === "tags" && <TagsCell taskId={task.id} title={task.title} tags={task.tags} canEdit={task.canEdit && open} />}
                         </span>
                       ))}
-                      {fields.map((field) => (
+                      {shownFields.map((field) => (
                         <span key={field.id} role="gridcell" className="min-w-0 border-r border-line px-1">
-                          {sub ? null : <FieldInput taskId={task.id} field={{ ...field, name: `${field.name} of ${task.title}` }} value={values[task.id]?.[field.id] ?? ""} canChange={task.canEdit} compact />}
+                          {sub || (fieldScope && !fieldScope[task.id]?.includes(field.id)) ? null : planning ? (
+                            <FieldValueEditor taskId={task.id} field={field} cell={values[task.id]?.[field.id]} label={`${field.name} of ${task.title}`} canChange={task.canEdit} people={people} compact />
+                          ) : (
+                            <FieldInput taskId={task.id} field={{ ...field, name: `${field.name} of ${task.title}` }} value={values[task.id]?.[field.id]?.edit ?? ""} canChange={task.canEdit} compact />
+                          )}
                         </span>
                       ))}
+                      {planning && customise && <span role="gridcell" aria-hidden="true" />}
                     </div>
                   );
                 })}
@@ -834,7 +928,7 @@ export function TaskGrid({
 }
 
 // The Filters panel (screenshot): Quick filters as chips, then field filters.
-function FilterPanel({ config, set, people, projects }: { config: GridConfig; set: (changes: Partial<GridConfig>) => void; people: { id: number; label: string }[]; projects: { id: number; name: string }[] }) {
+function FilterPanel({ config, set, people, projects, fields }: { config: GridConfig; set: (changes: Partial<GridConfig>) => void; people: { id: number; label: string }[]; projects: { id: number; name: string }[]; fields: FieldView[] }) {
   const chip = (on: boolean) => `inline-flex items-center gap-1 rounded-full border px-3 py-1 text-label ${on ? "border-primary-600 bg-primary-50 text-primary-700" : "border-line text-ink hover:border-line-strong"}`;
   const options = (field: FilterField): [string, string][] => {
     switch (field) {
@@ -877,7 +971,7 @@ function FilterPanel({ config, set, people, projects }: { config: GridConfig; se
     <div className="space-y-4">
       <p className="flex items-center justify-between font-semibold">
         Filters
-        <button type="button" className="link text-caption font-normal" onClick={() => set({ incomplete: true, completed: "none", dueThisWeek: false, dueNextWeek: false, filters: [] })}>
+        <button type="button" className="link text-caption font-normal" onClick={() => set({ incomplete: true, completed: "none", dueThisWeek: false, dueNextWeek: false, filters: [], fieldFilters: [] })}>
           Clear
         </button>
       </p>
@@ -984,6 +1078,7 @@ function FilterPanel({ config, set, people, projects }: { config: GridConfig; se
           </button>
         </div>
       </div>
+      <FieldFilterRows fields={fields} filters={config.fieldFilters ?? []} onChange={(fieldFilters) => set({ fieldFilters })} people={people} />
     </div>
   );
 }

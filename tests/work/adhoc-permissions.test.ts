@@ -41,10 +41,12 @@ describe("project permissions", () => {
         { field: "field:12", role: "EDITOR" },
       ],
       shareTasks: "OWNER",
+      customise: "EDITOR", // v1.64.0 (D-371): "Only admins customise" off by default
     });
+    expect(parseProjectPermissions('{"customise":"OWNER"}').customise).toBe("OWNER");
   });
   it("field restrictions and sharing follow the role", () => {
-    const permissions = { fields: [{ field: "due", role: "OWNER" as const }], shareTasks: "OWNER" as const };
+    const permissions = { fields: [{ field: "due", role: "OWNER" as const }], shareTasks: "OWNER" as const, customise: "EDITOR" as const };
     expect(mayUpdateField(permissions, "due", "EDITOR", false)).toBe(false);
     expect(mayUpdateField(permissions, "due", "OWNER", false)).toBe(true);
     expect(mayUpdateField(permissions, "due", null, true)).toBe(true); // IT

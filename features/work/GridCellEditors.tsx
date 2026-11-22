@@ -14,7 +14,7 @@ import { inside } from "@/features/ui/inside";
 // would clip it). The same actions, and the same permission checks on the
 // server, as the task pane.
 
-function useCellPanel() {
+export function useCellPanel() {
   const [spot, setSpot] = useState<{ top: number; left: number } | null>(null);
   const button = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);

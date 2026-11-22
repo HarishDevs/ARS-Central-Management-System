@@ -120,7 +120,7 @@ export async function purgeTasks(ids: readonly number[], db: Queryable): Promise
   await db.query("DELETE FROM record_files WHERE entity_type = 'TASK' AND entity_id IN (?)", [ids]);
   await db.query("DELETE FROM work_likes WHERE target_type = 'TASK' AND target_id IN (?)", [ids]);
   await db.query("DELETE FROM task_dependencies WHERE blocker_task_id IN (?) OR blocked_task_id IN (?)", [ids, ids]);
-  for (const table of ["task_tags", "task_followers", "task_field_values", "task_item_reminders", "my_task_placements", "task_projects", "task_events"]) {
+  for (const table of ["task_tags", "task_followers", "task_field_values", "task_field_timer_runs", "task_item_reminders", "my_task_placements", "task_projects", "task_events"]) {
     await db.query(`DELETE FROM ${table} WHERE task_id IN (?)`, [ids]);
   }
   await db.query("DELETE FROM notification_rule_sends WHERE record_kind = 'TASK' AND record_id IN (?)", [ids]);
@@ -143,7 +143,11 @@ export async function purgeProjectCandidates(limit: number, db: Queryable = getD
 // deleted (a task can be in other projects, and has its own people); they
 // only leave this project, as when it was deleted.
 export async function purgeProject(projectId: number, db: Queryable): Promise<number> {
-  await db.query("DELETE v FROM task_field_values v JOIN project_fields f ON f.id = v.field_id WHERE f.project_id = ?", [projectId]);
+  // v1.64.0 (D-371): the project's own (local) fields go with their values,
+  // options, timers and links; library fields only lose this project's link.
+  for (const table of ["task_field_values", "task_field_timer_runs", "project_field_options", "project_field_links"])
+    await db.query(`DELETE x FROM ${table} x JOIN project_fields f ON f.id = x.field_id WHERE f.project_id = ?`, [projectId]);
+  await db.query("DELETE FROM project_field_links WHERE project_id = ?", [projectId]);
   await db.query("DELETE FROM task_projects WHERE project_id = ?", [projectId]);
   for (const table of ["project_fields", "project_sections", "project_members", "project_status_updates", "project_events", "work_recent_projects", "work_project_order"]) {
     await db.query(`DELETE FROM ${table} WHERE project_id = ?`, [projectId]);

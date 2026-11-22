@@ -9,6 +9,8 @@ import { MY_SECTION_NAMES, MY_SECTION_ORDER } from "@/server/work/rules";
 import type { TaskPriority } from "@/server/modules/settings";
 import type { TaskStatus } from "@/server/modules/task-rules";
 import type { TabRow, TabScope, TabView } from "@/server/work/view-tabs";
+import type { FieldType } from "@/server/work/custom-fields";
+import { assignIds, idFieldsOfProject } from "@/lib/db/repositories/fields.repository";
 
 // D-215: Task & Project Management data. Every list that shows tasks uses
 // visibleTaskClause, the SQL twin of server/work/access.ts taskRights().view.
@@ -429,6 +431,9 @@ export async function placeTaskInProject(taskId: number, projectId: number, sect
     "INSERT INTO task_projects (task_id, project_id, section_id, position, added_by) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE section_id = VALUES(section_id), position = VALUES(position)",
     [taskId, projectId, sectionId, position, addedBy],
   );
+  // v1.64.0 (D-371): a task placed in a project gets the next number of each of
+  // the project's ID fields it doesn't have yet (IDs never change afterwards).
+  for (const fieldId of await idFieldsOfProject(projectId, db)) await assignIds(fieldId, [taskId], addedBy, db);
 }
 export async function removeTaskFromProject(taskId: number, projectId: number, db: Queryable): Promise<void> {
   await db.query<ResultSetHeader>("DELETE FROM task_projects WHERE task_id = ? AND project_id = ?", [taskId, projectId]);
@@ -948,56 +953,49 @@ export async function teamWorkload(teamIds: readonly number[], managerId: number
   return rows.map((row) => ({ id: num(row.id), name: String(row.name), managerName: str(row.manager_name), direct: num(row.reporting_manager_id) === managerId, open: num(row.open_n), overdue: num(row.late_n), doneWeek: num(row.done_n) }));
 }
 
-// ---- custom fields (D-218) -------------------------------------------------------------
+// ---- custom fields (D-218; v1.64.0 D-371: through project_field_links) --------------------
 export interface ProjectField {
   id: number;
-  projectId: number;
+  projectId: number; // the project asked about
   name: string;
-  kind: "TEXT" | "NUMBER" | "SELECT" | "DATE";
-  options: string[];
+  kind: FieldType;
+  options: string[]; // the active options' names
 }
 export async function listProjectFields(projectId: number, db: Queryable = getDbPool()): Promise<ProjectField[]> {
-  const [rows] = await db.query<Row[]>("SELECT id, project_id, name, kind, options_json FROM project_fields WHERE project_id = ? AND deleted_at IS NULL ORDER BY position, id", [projectId]);
+  const [rows] = await db.query<Row[]>(
+    `SELECT f.id, f.name, f.kind, f.options_json FROM project_field_links l JOIN project_fields f ON f.id = l.field_id
+     WHERE l.project_id = ? AND l.removed_at IS NULL AND f.deleted_at IS NULL ORDER BY l.position, f.id`,
+    [projectId],
+  );
   return rows.map((row) => ({
     id: num(row.id),
-    projectId: num(row.project_id),
+    projectId,
     name: String(row.name),
-    kind: row.kind as ProjectField["kind"],
+    kind: row.kind as FieldType,
     options: (typeof row.options_json === "string" ? JSON.parse(row.options_json) : row.options_json) as string[],
   }));
 }
-export async function findProjectField(id: number, db: Queryable = getDbPool()): Promise<ProjectField | null> {
-  const [rows] = await db.query<Row[]>("SELECT project_id FROM project_fields WHERE id = ? AND deleted_at IS NULL", [id]);
-  if (!rows[0]) return null;
-  return (await listProjectFields(num(rows[0].project_id), db)).find((field) => field.id === id) ?? null;
-}
+// A local field in the project, with its options (templates and copies).
 export async function insertProjectField(projectId: number, name: string, kind: ProjectField["kind"], options: string[], by: number, db: Queryable = getDbPool()): Promise<number> {
-  const [top] = await db.query<Row[]>("SELECT COALESCE(MAX(position), 0) AS top FROM project_fields WHERE project_id = ?", [projectId]);
-  const [result] = await db.query<ResultSetHeader>("INSERT INTO project_fields (project_id, name, kind, options_json, position, created_by) VALUES (?, ?, ?, ?, ?, ?)", [
-    projectId,
-    name,
-    kind,
-    JSON.stringify(options),
-    Number(top[0]?.top ?? 0) + 1024,
-    by,
-  ]);
-  return result.insertId;
+  const [result] = await db.query<ResultSetHeader>("INSERT INTO project_fields (project_id, name, kind, options_json, config_json, created_by) VALUES (?, ?, ?, ?, '{}', ?)", [projectId, name, kind, JSON.stringify(options), by]);
+  const id = result.insertId;
+  let position = 1024;
+  for (const [index, option] of options.entries()) {
+    await db.query("INSERT INTO project_field_options (field_id, name, color, position) VALUES (?, ?, ?, ?)", [id, option, (index % 8) + 1, position]);
+    position += 1024;
+  }
+  const [top] = await db.query<Row[]>("SELECT COALESCE(MAX(position), 0) AS top FROM project_field_links WHERE project_id = ?", [projectId]);
+  await db.query("INSERT INTO project_field_links (project_id, field_id, position, added_by) VALUES (?, ?, ?, ?)", [projectId, id, Number(top[0]?.top ?? 0) + 1024, by]);
+  return id;
 }
-export async function removeProjectField(id: number, db: Queryable = getDbPool()): Promise<void> {
-  await db.query<ResultSetHeader>("UPDATE project_fields SET deleted_at = UTC_TIMESTAMP() WHERE id = ?", [id]);
-}
-// Values of the given tasks: task id → field id → value.
+// Values of the given tasks as plain text (the old `value` column, kept up to
+// date for every type): task id → field id → value. Templates and copies.
 export async function fieldValues(taskIds: readonly number[], db: Queryable = getDbPool()): Promise<Map<number, Record<number, string>>> {
   const out = new Map<number, Record<number, string>>();
   if (!taskIds.length) return out;
   const [rows] = await db.query<Row[]>("SELECT task_id, field_id, value FROM task_field_values WHERE task_id IN (?)", [[...taskIds]]);
   for (const row of rows) out.set(num(row.task_id), { ...(out.get(num(row.task_id)) ?? {}), [num(row.field_id)]: String(row.value) });
   return out;
-}
-export async function setFieldValue(taskId: number, fieldId: number, value: string | null, by: number, db: Queryable = getDbPool()): Promise<void> {
-  if (value === null) await db.query<ResultSetHeader>("DELETE FROM task_field_values WHERE task_id = ? AND field_id = ?", [taskId, fieldId]);
-  else
-    await db.query<ResultSetHeader>("INSERT INTO task_field_values (task_id, field_id, value, updated_by) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value), updated_by = VALUES(updated_by)", [taskId, fieldId, value, by]);
 }
 
 // ---- templates (D-218) ----------------------------------------------------------------

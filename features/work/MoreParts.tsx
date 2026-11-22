@@ -9,6 +9,7 @@ import { FIELD_KIND_LABEL, FIELD_KINDS, recurrenceLabel, RECURRENCE_KINDS, type 
 import { PRIVACY, PRIVACY_LABEL } from "@/server/work/access";
 import { ConfirmButton } from "@/features/ui/ConfirmButton";
 import { PersonSelect } from "@/features/ui/PersonSelect";
+import { FIELD_TYPE_LABEL, type FieldView } from "@/server/work/custom-fields";
 
 // D-218: repeating tasks, custom fields, templates, bulk actions, the inbox
 // and the morning summary switch.
@@ -92,12 +93,8 @@ export function RepeatEditor({ taskId, current, canChange }: { taskId: number; c
 }
 
 // ---- custom fields -------------------------------------------------------------------
-export interface FieldView {
-  id: number;
-  name: string;
-  kind: "TEXT" | "NUMBER" | "SELECT" | "DATE";
-  options: string[];
-}
+// v1.64.0 (D-371): one shape for every field type (server/work/custom-fields.ts).
+export type { FieldView } from "@/server/work/custom-fields";
 export function FieldInput({ taskId, field, value, canChange, compact }: { taskId: number; field: FieldView; value: string; canChange: boolean; compact?: boolean }) {
   const { call } = useWorkCall();
   const save = (next: string) => {
@@ -144,7 +141,7 @@ export function FieldsManager({ projectId, fields }: { projectId: number; fields
             <span className="flex-1">
               <span className="font-medium">{field.name}</span>{" "}
               <span className="text-ink-muted">
-                · {FIELD_KIND_LABEL[field.kind]}
+                · {FIELD_TYPE_LABEL[field.kind]}
                 {field.options.length ? `: ${field.options.join(", ")}` : ""}
               </span>
             </span>

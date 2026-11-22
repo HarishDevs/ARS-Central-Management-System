@@ -517,14 +517,38 @@ erDiagram
     }
     project_fields {
         bigint id PK
-        bigint project_id FK
-        enum kind
-        json options_json
+        bigint project_id FK "NULL = library field"
+        enum kind "11 types"
+        boolean is_library
+        json config_json
+        varchar id_prefix
+    }
+    project_field_links {
+        bigint project_id PK, FK
+        bigint field_id PK, FK
+        double position
+        datetime removed_at
+    }
+    project_field_options {
+        bigint id PK
+        bigint field_id FK
+        tinyint color
+        datetime archived_at
     }
     task_field_values {
         bigint task_id PK, FK
         bigint field_id PK, FK
-        varchar value
+        varchar value "kept, plain text"
+        decimal number_value
+        date date_value
+        bigint option_id
+        json ids_json
+    }
+    task_field_timer_runs {
+        bigint id PK
+        bigint task_id FK
+        bigint field_id FK
+        bigint user_id FK
     }
     task_comments {
         bigint id PK
@@ -576,6 +600,10 @@ erDiagram
     projects ||--o{ project_fields : "project_id"
     tasks ||--o{ task_field_values : "task_id"
     project_fields ||--o{ task_field_values : "field_id"
+    project_fields ||--o{ project_field_links : "field_id"
+    projects ||--o{ project_field_links : "project_id"
+    project_fields ||--o{ project_field_options : "field_id"
+    project_fields ||--o{ task_field_timer_runs : "field_id"
     tasks ||--o{ task_comments : "task_id"
     task_comments |o--o{ task_comments : "parent_comment_id"
     tasks ||--o{ task_followers : "task_id"
@@ -924,8 +952,11 @@ Migration names are shortened to their date-time prefix; the full file is `datab
 | `my_task_sections` | Tasks | A person's My Tasks sections | 202610301000 |
 | `my_task_placements` | Tasks | Where each task sits in My Tasks | 202610301000 |
 | `work_saved_searches` | Personal | Saved task searches | 202610301000 |
-| `project_fields` | Projects | Custom fields of a project | 202610301200 |
-| `task_field_values` | Projects | Custom field values on tasks | 202610301200 |
+| `project_fields` | Projects | Custom field definitions: 11 types (v1.64.0), local (`project_id`) or library (`project_id` NULL, `is_library`, unique `library_key`), description, `notify_on_change`, `config_json` (number format and decimals, formula `{f<id>}`, date with time, lookup fields), `id_prefix` / `id_next`, soft delete (`deleted_at`, `deleted_by`; purged after 30 days) | 202610301200, 202611221300 |
+| `project_field_links` | Projects | Which projects show which fields, in what order, `show_on_cards`; `removed_at` = removed from the project (values kept) | 202611221300 |
+| `project_field_options` | Projects | Options of single- and multi-select fields: name, `color` 1..8 (identity tokens), position, `archived_at` | 202611221300 |
+| `task_field_values` | Projects | Custom field values on tasks. Typed columns since v1.64.0 (`text_value`, `number_value`, `date_value`, `time_value`, `option_id`, `ids_json`, `id_seq` unique per field, `typed_at`); `value` is the plain-text copy kept until the owner confirms (G0j) | 202610301200, 202611221300 |
+| `task_field_timer_runs` | Projects | Timer field runs per person (one running run per person, task and field) | 202611221300 |
 | `work_digest_sends` | Tasks | Daily digests already sent | 202610301200 |
 | `department_holidays` | Calendar | Holidays of one department only | 202610301200 |
 | `work_views` | Tasks | Saved view tabs for My Tasks and projects; since v1.61.0 a project tab has a `view_type` (LIST, BOARD, CALENDAR, TIMELINE, OVERVIEW) and one tab per project `is_default` | 202610301400, 202611221000 |

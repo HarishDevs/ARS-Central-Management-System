@@ -104,8 +104,10 @@ export function nextDueDay(rule: Recurrence, dueDay: string | null, doneDay: str
 export const FIELD_KINDS = ["TEXT", "NUMBER", "SELECT", "DATE"] as const;
 export type FieldKind = (typeof FIELD_KINDS)[number];
 export const FIELD_KIND_LABEL: Record<FieldKind, string> = { TEXT: "Text", NUMBER: "Number", SELECT: "Choice", DATE: "Date" };
-export const MAX_FIELDS_PER_PROJECT = 20;
-export const MAX_FIELD_OPTIONS = 30;
+// v1.64.0 (D-371): the limits are Admin settings now (custom-fields.ts
+// FIELD_LIMITS_KEY, defaults 150 fields, 500 options); these bound templates.
+export const MAX_FIELDS_PER_PROJECT = 500;
+export const MAX_FIELD_OPTIONS = 1000;
 
 export function cleanFieldOptions(kind: FieldKind, raw: string): string[] {
   if (kind !== "SELECT") return [];

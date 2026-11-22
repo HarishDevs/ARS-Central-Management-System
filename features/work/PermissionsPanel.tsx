@@ -9,14 +9,16 @@ import { PERMISSION_ROLE_LABEL, PERMISSION_ROLES, RESTRICTABLE, RESTRICTABLE_LAB
 // D-222 (owner's screenshot: Asana's Project permissions): Fields: choose a
 // field and who may update its values in this project; Sharing tasks with
 // other projects: who may add this project's tasks to other projects.
-export function PermissionsPanel({ projectId, projectName, initial, fields, canManage }: { projectId: number; projectName: string; initial: ProjectPermissions; fields: { id: number; name: string }[]; canManage: boolean }) {
+export function PermissionsPanel({ projectId, projectName, initial, fields, canManage, planning = false }: { projectId: number; projectName: string; initial: ProjectPermissions; fields: { id: number; name: string }[]; canManage: boolean; planning?: boolean }) {
   const { call, pending } = useWorkCall();
   const [rules, setRules] = useState(initial.fields);
   const [share, setShare] = useState<PermissionRole>(initial.shareTasks);
+  // v1.64.0 (D-371): "Only admins customise" (who adds and changes the project's fields).
+  const [customise, setCustomise] = useState<"EDITOR" | "OWNER">(initial.customise);
   const options: [string, string][] = [...RESTRICTABLE.map((key) => [key, RESTRICTABLE_LABEL[key]] as [string, string]), ...fields.map((field) => [`field:${field.id}`, field.name] as [string, string])];
   const name = (key: string) => options.find(([value]) => value === key)?.[1] ?? key;
   const free = options.filter(([value]) => !rules.some((rule) => rule.field === value));
-  const dirty = JSON.stringify({ rules, share }) !== JSON.stringify({ rules: initial.fields, share: initial.shareTasks });
+  const dirty = JSON.stringify({ rules, share, customise }) !== JSON.stringify({ rules: initial.fields, share: initial.shareTasks, customise: initial.customise });
   return (
     <div className="space-y-6" data-testid="permissions">
       <section aria-labelledby="perm-fields" className="space-y-2">
@@ -82,8 +84,22 @@ export function PermissionsPanel({ projectId, projectName, initial, fields, canM
           </select>
         </span>
       </section>
+      {planning && (
+        <section aria-labelledby="perm-customise" className="space-y-2">
+          <h3 id="perm-customise" className="font-semibold">
+            Customising fields
+          </h3>
+          <label className="flex items-start gap-2 text-label">
+            <input type="checkbox" className="mt-1" checked={customise === "OWNER"} disabled={!canManage} onChange={(event) => setCustomise(event.target.checked ? "OWNER" : "EDITOR")} data-testid="only-admins-customise" />
+            <span>
+              Only admins customise
+              <span className="block text-caption text-ink-muted">When ticked, only the project&apos;s admins (owners) add, change and remove its fields. Otherwise editors can too.</span>
+            </span>
+          </label>
+        </section>
+      )}
       {canManage ? (
-        <button type="button" disabled={!dirty || pending} onClick={() => void call(() => permissionsAction(projectId, { fields: rules, shareTasks: share }))} className="btn-primary btn-compact">
+        <button type="button" disabled={!dirty || pending} onClick={() => void call(() => permissionsAction(projectId, { fields: rules, shareTasks: share, customise }))} className="btn-primary btn-compact">
           Save permissions
         </button>
       ) : (

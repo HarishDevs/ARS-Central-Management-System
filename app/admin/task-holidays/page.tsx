@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PageHeader } from "@/features/shell/PageHeader";
 import { AddHolidayForm } from "@/features/admin/CalendarForms";
-import { DepartmentHolidayForm, HolidayTasksButtons, PmExtrasForm, RemoveDepartmentHolidayButton, TaskExtrasForm, TaskHolidaySettingsForm } from "@/features/admin/TaskHolidayForms";
+import { DepartmentHolidayForm, FieldLimitsForm, HolidayTasksButtons, PmExtrasForm, RemoveDepartmentHolidayButton, TaskExtrasForm, TaskHolidaySettingsForm } from "@/features/admin/TaskHolidayForms";
 import { parsePmExtras, PM_EXTRAS_KEY } from "@/server/work/pm-rules";
+import { FIELD_LIMITS_KEY, parseFieldLimits } from "@/server/work/custom-fields";
 import { listDepartments } from "@/lib/db/repositories/organisation.repository";
 import { DIGEST_SETTINGS_KEY, parseDigestSettings, parseRecurrenceSettings, RECURRENCE_SETTINGS_KEY } from "@/server/work/more-rules";
 import { requireArea } from "@/server/authorization/guards";
@@ -28,6 +29,7 @@ export default async function TaskHolidaysPage() {
     loadSetting(RECURRENCE_SETTINGS_KEY).then(parseRecurrenceSettings),
   ]);
   const extras = parsePmExtras(await loadSetting(PM_EXTRAS_KEY));
+  const fieldLimits = parseFieldLimits(await loadSetting(FIELD_LIMITS_KEY));
   return (
     <>
       <PageHeader title="Task settings" description="Holidays for tasks (the same list as the Working calendar, plus department holidays), the morning summary and repeating tasks.">
@@ -76,6 +78,10 @@ export default async function TaskHolidaysPage() {
         <section className="card">
           <h2 className="border-b border-line px-5 py-4 font-semibold">Celebrations and deleted items</h2>
           <PmExtrasForm extras={extras} />
+        </section>
+        <section className="card">
+          <h2 className="border-b border-line px-5 py-4 font-semibold">Custom field limits</h2>
+          <FieldLimitsForm limits={fieldLimits} />
         </section>
       </div>
     </>

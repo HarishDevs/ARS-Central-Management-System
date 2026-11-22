@@ -209,6 +209,12 @@ Stops anyone reaching the GoDaddy server directly, around Cloudflare (and faking
 1. https://approval.arssteels.net → **Continue with Google** → **itsupport@arsenergy.co.in** (D-082). The seed created this Super Admin, User ID `itadmin`. `itadmin@arssteels.co.in` can't be used: it's only an alias, and Google reports the main address.
 2. You land on **My approvals**. Your name at the top right opens a menu whose **Switch space** section shows Admin and Super Admin.
 
+### G0j. Custom fields, field library and typed values (v1.64.0)
+1. Back up the database. Publish v1.64.0; on start the runner applies `database/migrations/202611221300_pm_b_custom_fields.sql` (after 202611221200; no triggers, no special rights). It adds `project_field_links`, `project_field_options`, `task_field_timer_runs`, new columns on `project_fields` and typed columns on `task_field_values`, and **copies every existing field value into the typed columns side by side**. The old column `task_field_values.value` is kept and still written (a plain-text copy), so rolling back to v1.63 loses nothing. Fields removed before v1.64 become "removed from the project" (values kept, can be added back). Rollback inside.
+2. Check (phpMyAdmin): `SELECT COUNT(*) FROM task_field_values WHERE typed_at IS NULL;` should be 0 or only odd values (those are still read from the old column).
+3. **Owner confirmation pending:** when you are happy with the typed values, tell us; a later release drops `task_field_values.value`. Until then nothing is removed.
+4. Everything new is behind **Super Admin → Features → "Projects: custom fields with 11 types… (phase B)"** (default Off). Try IT only first. Limits: **Admin → Task settings → Custom field limits** (150 / 60 / 500). The 30-day clean-up (G0g) also removes fields deleted more than 30 days ago.
+
 ### G0i. Startup fix for hosted MySQL (v1.63.1)
 1. Publish v1.63.1. On start, `scripts/database/migrate.js` applies the pending migrations; the trigger blocks of `202611211000_comment_edits.sql` are skipped with a warning when the database user can't create triggers (it resumes from the statement where the failed start stopped).
 2. Once, in cPanel → phpMyAdmin → the app database → SQL, run `database/optional/v1600_comment_triggers.sql`. It drops the old `trg_request_comments_no_update` (which would block comment edits) and adds the comment triggers. Safe to run twice.

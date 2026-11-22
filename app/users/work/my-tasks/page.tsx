@@ -6,6 +6,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { MyTasks, MyTasksGrid } from "@/features/work/MyTasks";
 import { toGridTask } from "@/server/work/grid-rows";
+import { fieldDefsOfProjects } from "@/lib/db/repositories/fields.repository";
+import { cellsFor, fieldViews } from "@/server/work/fields-service";
+import type { CellMap, FieldView } from "@/server/work/custom-fields";
 import { DEFAULT_GRID, parseGridConfig } from "@/server/work/grid";
 import { peopleOptions } from "@/server/work/page-context";
 import { Avatar } from "@/features/ui/Display";
@@ -144,6 +147,17 @@ export default async function MyTasksPage({
     const row = rows.find((item) => item.id === task.id)!;
     return toGridTask(task, user.id, true, row.sectionId, row.position);
   });
+  // v1.64.0 (D-371, "pm_planning"): the fields of the tasks' projects as columns
+  // (a task shows a value only where one of its projects has the field).
+  const planning = view === "list" && (await featureOn("pm_planning", user));
+  let fieldColumns: { views: FieldView[]; values: CellMap; scope: Record<number, number[]> } | undefined;
+  if (planning) {
+    const byProject = await fieldDefsOfProjects([...new Set(gridRows.flatMap((task) => task.projects.map((project) => project.id)))]);
+    const defs = [...new Map([...byProject.values()].flat().map((field) => [field.id, field])).values()];
+    const scope = Object.fromEntries(gridRows.map((task) => [task.id, [...new Set(task.projects.flatMap((project) => (byProject.get(project.id) ?? []).map((field) => field.id)))]]));
+    const views = (await fieldViews(defs, { id: user.id, name: user.name, roles: user.roles }, viewer, false)).map((field) => ({ ...field, canEdit: false }));
+    fieldColumns = { views, values: await cellsFor(gridRows.map((task) => task.id), defs, viewer), scope };
+  }
   const link = (changes: Record<string, string | null>) => {
     const query = new URLSearchParams({
       ...(activeTab ? (activeTab.id !== null ? { tab: String(activeTab.id) } : { view: activeTab.type.toLowerCase() }) : view !== "list" ? { view } : {}),
@@ -267,6 +281,7 @@ export default async function MyTasksPage({
             projects={gridProjects.map((project) => ({ id: project.id, name: project.name }))}
             meId={user.id}
             nowIso={now.toISOString()}
+            fields={fieldColumns}
           />
         ) : (
           <MyTasks

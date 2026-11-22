@@ -12,6 +12,8 @@ import { openCreateTask, ProjectDot, TaskCheck, useDeleteWithUndo, usePaneLink, 
 import { dueLabel, TONE_TEXT } from "@/features/work/format";
 import { AddTask } from "@/features/work/ProjectWorkspace";
 import { FieldInput, RepeatEditor, type FieldView } from "@/features/work/MoreParts";
+import { FieldGlyph, FieldValueEditor } from "@/features/work/FieldControls";
+import type { FieldCell } from "@/server/work/custom-fields";
 import type { Recurrence } from "@/server/work/more-rules";
 
 // D-215: what Task & Project Management adds to the task page: its projects
@@ -46,7 +48,9 @@ export interface PanelData {
   // D-218
   recurrence: Recurrence | null;
   recurrenceOn: boolean;
-  fields: { projectId: number; fields: FieldView[]; values: Record<number, string> }[];
+  // v1.64.0 (D-371): typed cells; `planning` = the "pm_planning" switch (every field type).
+  fields: { projectId: number; fields: FieldView[]; values: Record<number, FieldCell> }[];
+  planning?: boolean;
 }
 
 const OPEN = ["OPEN", "IN_PROGRESS", "BLOCKED"];
@@ -117,14 +121,24 @@ export function TaskWorkPanel({ data }: { data: PanelData }) {
               </select>
               {data.fields
                 .find((item) => item.projectId === link.projectId)
-                ?.fields.map((field) => (
-                  <span key={field.id} className="flex w-full items-center gap-2 pl-5 text-caption">
-                    <span className="w-28 shrink-0 truncate text-ink-muted">{field.name}</span>
-                    <span className="w-56">
-                      <FieldInput taskId={data.taskId} field={field} value={data.fields.find((item) => item.projectId === link.projectId)?.values[field.id] ?? ""} canChange={data.canProgress && projectsOn} compact />
+                ?.fields.map((field) => {
+                  const cell = data.fields.find((item) => item.projectId === link.projectId)?.values[field.id];
+                  return (
+                    <span key={field.id} className="flex w-full items-center gap-2 pl-5 text-caption" data-testid="pane-field">
+                      <span className="flex w-28 shrink-0 items-center gap-1 truncate text-ink-muted" title={field.description ?? field.name}>
+                        {data.planning && <FieldGlyph kind={field.kind} />}
+                        <span className="truncate">{field.name}</span>
+                      </span>
+                      <span className="min-w-0 w-56">
+                        {data.planning ? (
+                          <FieldValueEditor taskId={data.taskId} field={field} cell={cell} label={field.name} canChange={data.canProgress && projectsOn} people={data.people} compact />
+                        ) : (
+                          <FieldInput taskId={data.taskId} field={field} value={cell?.edit ?? ""} canChange={data.canProgress && projectsOn} compact />
+                        )}
+                      </span>
                     </span>
-                  </span>
-                ))}
+                  );
+                })}
               {data.canEdit && projectsOn && (
                 <button type="button" aria-label={`Remove from ${link.projectName}`} onClick={() => void call(() => taskProjectAction(data.taskId, link.projectId, false))} className="rounded p-1 text-ink-faint hover:text-danger-600">
                   <X aria-hidden="true" className="h-4 w-4" />

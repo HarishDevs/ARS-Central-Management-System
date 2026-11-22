@@ -1889,6 +1889,27 @@ The application audit (`application-audit/`) found these gaps between flows and 
 - **F-59 Bulk import:** the import doesn't apply the rule that only the Super Admin changes another IT Admin's contact details (AUD-01). Fix planned: V181-A2.
 - **F-121 Page access:** an action posted from an address that is no configured page isn't restricted (AUD-14). Fix planned: V181-A7.
 
+## F-PM-FIELDS: Custom fields (v1.64.0, D-371; "pm_planning")
+```mermaid
+flowchart TD
+  A[Owner/editor: Project settings → Fields → Add field, or + after the List's columns] --> B{Create new or Choose from library}
+  B -- Create new --> C[Title, type, description, type settings: options/format/formula/prefix/reference+target]
+  C --> D{Library? Notify?}
+  D --> E[Server: may customise? limits 150/60/500? unique title? formula parses, no loop? lookup has a reference?]
+  B -- Library --> F[Search the ARS library → Add] --> E
+  E -- refused --> C
+  E -- ok --> G[Field + options + project link; an ID field numbers every task PREFIX-1..n]
+  G --> H[List column with ▾ menu · Board chip · pane row · Task Summary column]
+  H --> I[Someone with the task's planning right changes a value]
+  I --> J[Server: checks by type, field restriction, per-task limit; writes typed columns + plain copy; history 'changed X to …']
+  J --> K{Notify on change?}
+  K -- yes --> L[Followers except the changer, with the Projects module]
+  H --> M[Filter / Sort / Group by the field; Board Columns by it; Save view keeps it]
+  G --> N[Edit: rename, options add/rename/recolour/reorder/archive, format]
+  G --> O[Remove from project: values kept → Add back]
+  G --> P[Delete: restore within 30 days → purge job removes it with its values]
+```
+
 ## F-PM-MYTABS: Task Summary tabs and Recently assigned (v1.63.0, D-369; extends F-PM-TABS)
 ```mermaid
 flowchart LR

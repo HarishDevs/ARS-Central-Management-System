@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { dropTarget, focusNeighbour, lift, moveLifted, positionText, previewColumn, type Lifted } from "@/features/work/board-keys";
-import { addSectionAction, projectTabAction, moveTaskAction, quickAddAction, quickAddManyAction, sectionAction, taskFieldsAction } from "@/app/users/work/actions";
+import { addSectionAction, fieldValueAction, projectTabAction, moveTaskAction, quickAddAction, quickAddManyAction, sectionAction, taskFieldsAction } from "@/app/users/work/actions";
 import { TaskCheck, usePaneLink, useWorkCall } from "@/features/work/client";
 import { dueLabel, indiaDayOf, TONE_TEXT } from "@/features/work/format";
 import { columnAccent, initialsOf } from "@/features/work/kanban";
@@ -23,6 +23,8 @@ import { useColumnWidths, type ColumnDefault } from "@/features/work/useColumnWi
 import { useLiveRefresh } from "@/features/work/useLiveRefresh";
 import { UnsavedView } from "@/features/work/UnsavedView";
 import { DEFAULT_BOARD, type BoardConfig } from "@/server/work/view-tabs";
+import { FieldChip, FieldFilterRows, FieldValueEditor } from "@/features/work/FieldControls";
+import { boardMovable, fieldGroups, matchFieldFilter, viewDef, type CellMap, type FieldCell, type FieldFilter } from "@/server/work/custom-fields";
 
 // D-215: a project's List and Board. Sections hold tasks in the order the
 // team set (drag, or Alt+↑/↓ on a row); a sort other than "Manual" only
@@ -80,7 +82,13 @@ export function ProjectWorkspace({
   grid,
   density = "COMFORTABLE",
   board,
+  planning = false,
+  customise = false,
 }: {
+  // v1.64.0 (D-371): "pm_planning" on (every field type, field filters and
+  // columns), and whether this person may add and change the project's fields.
+  planning?: boolean;
+  customise?: boolean;
   projectId: number;
   layout: "LIST" | "BOARD";
   sections: BoardSection[];
@@ -90,7 +98,7 @@ export function ProjectWorkspace({
   people: { id: number; label: string; detail?: string }[];
   nowIso: string;
   fields?: FieldView[]; // D-218: the project's own columns
-  values?: Record<number, Record<number, string>>;
+  values?: CellMap;
   grid?: { rows: GridTask[]; initial: GridConfig; view: GridView; subtasks?: Record<number, GridTask[]> }; // D-220: the List as the shared table
   // v1.61.0 (D-367): the person's row density, and the Board tab's saved view (Save view / Reset).
   density?: "COMFORTABLE" | "COMPACT";
@@ -111,9 +119,12 @@ export function ProjectWorkspace({
   // the direction of the sort, and a project field's id when sorting by its column.
   const [dir, setDir] = useState<SortDir>(start.dir);
   const [sortField, setSortField] = useState<number | null>(start.sortField);
+  // v1.64.0 (D-371): filters on custom fields, and Board columns by a field (null = sections).
+  const [fieldFilters, setFieldFilters] = useState<FieldFilter[]>(start.fieldFilters ?? []);
+  const [groupField, setGroupField] = useState<number | null>(start.groupField ?? null);
   // v1.61.0 (D-367): a Board tab's view stays unsaved until "Save view"; Reset goes back.
   const [savedBoard, setSavedBoard] = useState<BoardConfig>(start);
-  const boardNow: BoardConfig = { incomplete, showDone, mine, dueWithin, sort, dir, sortField, search: filter };
+  const boardNow: BoardConfig = { incomplete, showDone, mine, dueWithin, sort, dir, sortField, search: filter, fieldFilters, groupField };
   const boardDirty = Boolean(board) && JSON.stringify(boardNow) !== JSON.stringify(savedBoard);
   const resetBoard = () => {
     setIncomplete(savedBoard.incomplete);
@@ -124,6 +135,8 @@ export function ProjectWorkspace({
     setDir(savedBoard.dir);
     setSortField(savedBoard.sortField);
     setFilter(savedBoard.search);
+    setFieldFilters(savedBoard.fieldFilters ?? []);
+    setGroupField(savedBoard.groupField ?? null);
   };
   // v1.58.0 (D-354, owner: "by default when a group by is selected it should
   // collapse all the group"): a chosen grouping starts folded; Sections (the
@@ -168,11 +181,15 @@ export function ProjectWorkspace({
         ((incomplete && OPEN.has(task.status)) || (showDone && task.status === "COMPLETED")) &&
         (!mine || task.assigneeId === meId) &&
         (!dueWithin || inWeek(task, dueWithin === "this" ? 0 : 1)) &&
-        words.every((word) => `${task.title} ${task.taskNo} ${task.assigneeName} ${task.tags.map((tag) => tag.name).join(" ")}`.toLowerCase().includes(word)),
+        words.every((word) => `${task.title} ${task.taskNo} ${task.assigneeName} ${task.tags.map((tag) => tag.name).join(" ")}`.toLowerCase().includes(word)) &&
+        fieldFilters.every((item) => {
+          const field = fields.find((one) => one.id === item.fieldId);
+          return !field || matchFieldFilter(field.kind, values[task.id]?.[item.fieldId], item, meId);
+        }),
     );
     // v1.58.0 (D-354): each sort reads one value; "desc" reverses it; empty values stay last.
     const manualOrder = [...list].sort((a, b) => a.position - b.position || a.id - b.id);
-    if (sortField !== null) return sortRows(manualOrder, (task) => values[task.id]?.[sortField] ?? "", dir);
+    if (sortField !== null) return sortRows(manualOrder, (task) => values[task.id]?.[sortField]?.sort ?? null, dir);
     const by: Record<Exclude<Sort, "manual">, (task: BoardTask) => unknown> = {
       due: (task) => task.dueAt,
       priority: (task) => PRIORITY_RANK[task.priority],
@@ -180,9 +197,9 @@ export function ProjectWorkspace({
       assignee: (task) => task.assigneeName,
     };
     return sort === "manual" ? manualOrder : sortRows(manualOrder, by[sort], dir);
-  }, [tasks, incomplete, showDone, mine, dueWithin, meId, filter, sort, now, dir, sortField, values]);
-  const filterCount = Number(!incomplete) + Number(showDone) + Number(mine) + Number(Boolean(dueWithin));
-  const manual = sort === "manual" && sortField === null && !filter && !mine && !dueWithin && group === "section";
+  }, [tasks, incomplete, showDone, mine, dueWithin, meId, filter, sort, now, dir, sortField, values, fieldFilters, fields]);
+  const filterCount = Number(!incomplete) + Number(showDone) + Number(mine) + Number(Boolean(dueWithin)) + fieldFilters.length;
+  const manual = sort === "manual" && sortField === null && !filter && !mine && !dueWithin && group === "section" && fieldFilters.length === 0 && groupField === null;
   const canDrag = canEdit && manual;
 
   const inSection = (sectionId: number) => visible.filter((task) => task.sectionId === sectionId);
@@ -297,6 +314,7 @@ export function ProjectWorkspace({
                 setShowDone(false);
                 setMine(false);
                 setDueWithin("");
+                setFieldFilters([]);
               }}
             >
               Clear
@@ -320,7 +338,25 @@ export function ProjectWorkspace({
             <input type="checkbox" checked={dueWithin === "next"} onChange={(event) => setDueWithin(event.target.checked ? "next" : "")} /> Due next week
           </label>
         </div>
+        {planning && fields.length > 0 && (
+          <div className="mt-3 border-t border-line pt-3">
+            <FieldFilterRows fields={fields} filters={fieldFilters} onChange={setFieldFilters} people={people} />
+          </div>
+        )}
       </Popover>
+      {planning && layout === "BOARD" && fields.length > 0 && (
+        <label className="flex items-center gap-1.5 text-label">
+          <span className="text-ink-muted">Columns</span>
+          <select aria-label="Columns" value={groupField ?? ""} onChange={(event) => setGroupField(event.target.value ? Number(event.target.value) : null)} className="field-input h-8 w-auto py-0 text-label" data-testid="board-columns">
+            <option value="">Sections</option>
+            {fields.map((field) => (
+              <option key={field.id} value={field.id}>
+                {field.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       <label className="flex items-center gap-1.5 text-label">
         <span className="text-ink-muted">Sort</span>
         <select
@@ -393,7 +429,36 @@ export function ProjectWorkspace({
   if (layout === "BOARD") {
     // v1.62.0 (D-368): each column's cards in the order shown; a lifted card
     // (keyboard move) shows at its new place until dropped.
-    const columns = sections.map((section) => inSection(section.id).map((task) => task.id));
+    // v1.64.0 (D-371): columns by a custom field: a single-select field's
+    // options (and "No ..."), moving a card sets the option; other types group
+    // the cards read-only.
+    const byField = planning && groupField !== null ? fields.find((field) => field.id === groupField) : undefined;
+    const fieldMovable = Boolean(byField && boardMovable(byField.kind) && canEdit);
+    const today = indiaDayOf(now);
+    const boardCols: { key: string; name: string; section: BoardSection | null; optionId: number | null }[] = byField
+      ? (() => {
+          const def = viewDef(byField);
+          const named = new Map<string, { order: number; optionId: number | null }>();
+          if (byField.kind === "SELECT") (byField.choices ?? []).filter((choice) => !choice.archived).forEach((choice, index) => named.set(choice.name, { order: index, optionId: choice.id }));
+          for (const task of visible) for (const [name, order] of fieldGroups(def, values[task.id]?.[byField.id], today)) if (!named.has(name)) named.set(name, { order, optionId: byField.choices?.find((choice) => choice.name === name)?.id ?? null });
+          if (!named.has(`No ${byField.name}`)) named.set(`No ${byField.name}`, { order: 1e9, optionId: null });
+          return [...named.entries()].sort((a, b) => a[1].order - b[1].order || a[0].localeCompare(b[0])).map(([name, info]) => ({ key: `f${name}`, name, section: null, optionId: info.optionId }));
+        })()
+      : sections.map((section) => ({ key: `s${section.id}`, name: section.name, section, optionId: null }));
+    const columns = byField
+      ? boardCols.map((col) => visible.filter((task) => fieldGroups(viewDef(byField), values[task.id]?.[byField.id], today).some(([name]) => name === col.name)).map((task) => task.id))
+      : sections.map((section) => inSection(section.id).map((task) => task.id));
+    const canMoveCards = byField ? fieldMovable : canDrag;
+    // A drop into column `col`: a section move, or setting the field's option.
+    const dropInto = async (taskId: number, col: number, beforeId: number | null) => {
+      const target = boardCols[col];
+      if (!target) return;
+      if (target.section) return move(taskId, target.section.id, beforeId);
+      if (byField && fieldMovable) {
+        setLive(`${byField.name} set to ${target.optionId ? target.name : "nothing"}.`);
+        await call(() => fieldValueAction(taskId, byField.id, target.optionId), { success: false });
+      }
+    };
     const byId = new Map(visible.map((task) => [task.id, task]));
     const focusCard = (id: number) => requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-card-id="${id}"]`)?.focus());
     const cardKeys = (event: React.KeyboardEvent<HTMLLIElement>, task: BoardTask) => {
@@ -401,7 +466,7 @@ export function ProjectWorkspace({
       if (event.target !== event.currentTarget) return; // keys inside the card's own buttons and links
       const key = event.key;
       if (lifted) {
-        const name = (col: number) => sections[col]?.name ?? "the column";
+        const name = (col: number) => boardCols[col]?.name ?? "the column";
         if (key.startsWith("Arrow")) {
           event.preventDefault();
           const next = moveLifted(columns, lifted, key);
@@ -411,12 +476,11 @@ export function ProjectWorkspace({
         } else if (key === " " || key === "Enter") {
           event.preventDefault();
           const target = dropTarget(columns, lifted);
-          const section = sections[target.col];
           const where = positionText(columns, lifted, name(target.col));
           setLifted(null);
-          if (section && target.moved) {
+          if (boardCols[target.col] && target.moved && (!byField || target.col !== lifted.fromCol)) {
             setLive(`Dropped ${task.title}. ${where}`);
-            void move(task.id, section.id, target.beforeId).then(() => setLive(`Dropped ${task.title}. ${where}`));
+            void dropInto(task.id, target.col, target.beforeId).then(() => setLive(`Dropped ${task.title}. ${where}`));
           } else setLive(`Dropped ${task.title}. It stays where it was.`);
           focusCard(task.id);
         } else if (key === "Escape") {
@@ -430,14 +494,14 @@ export function ProjectWorkspace({
       }
       if (key === " ") {
         event.preventDefault();
-        if (!canDrag) {
-          setLive(canEdit ? "Moving is off while a sort, filter or search is on." : "You can't move tasks in this project.");
+        if (!canMoveCards) {
+          setLive(!canEdit ? "You can't move tasks in this project." : byField ? `Cards can't be moved between ${byField.name} columns.` : "Moving is off while a sort, filter or search is on.");
           return;
         }
         const start = lift(columns, task.id);
         if (!start) return;
         setLifted(start);
-        setLive(`Picked up ${task.title}. ${positionText(columns, start, sections[start.col]?.name ?? "")} Use the arrow keys to move it, Space or Enter to drop it, Escape to cancel.`);
+        setLive(`Picked up ${task.title}. ${positionText(columns, start, boardCols[start.col]?.name ?? "")} Use the arrow keys to move it, Space or Enter to drop it, Escape to cancel.`);
       } else if (key === "Enter") {
         event.preventDefault();
         router.push(paneLink(task.id), { scroll: false });
@@ -458,24 +522,31 @@ export function ProjectWorkspace({
           </p>
         )}
         <div className="scroll-hint flex gap-3 overflow-x-auto pb-4" data-testid="board">
-          {sections.map((section, index) => {
+          {boardCols.map((boardCol, index) => {
+            const section = boardCol.section;
             const ids = previewColumn(columns[index] ?? [], index, lifted);
             const count = columns[index]?.length ?? 0;
             return (
               <section
-                key={section.id}
-                aria-label={`${section.name}, ${count} task${count === 1 ? "" : "s"}`}
+                key={boardCol.key}
+                aria-label={`${boardCol.name}, ${count} task${count === 1 ? "" : "s"}`}
                 className={`kanban-col flex w-[304px] shrink-0 flex-col rounded-xl border border-t-4 border-line bg-surface-muted ${columnAccent(index)}`}
-                onDragOver={(event) => canDrag && event.preventDefault()}
+                onDragOver={(event) => canMoveCards && event.preventDefault()}
                 onDrop={(event) => {
                   event.preventDefault();
-                  if (dragging !== null) void move(dragging, section.id, null);
+                  if (dragging !== null) void dropInto(dragging, index, null);
                   setDragging(null);
                 }}
                 data-testid="board-column"
               >
-                <SectionHeader section={section} sections={sections} count={count} canEdit={canEdit} />
-                <ul className="flex-1 space-y-2 px-2 pb-2" aria-label={`Tasks in ${section.name}`}>
+                {section ? (
+                  <SectionHeader section={section} sections={sections} count={count} canEdit={canEdit} />
+                ) : (
+                  <h3 className="flex items-center gap-2 px-3 pb-2 pt-3 text-card-title font-semibold">
+                    {boardCol.name} <span className="text-caption font-normal text-ink-muted">{count}</span>
+                  </h3>
+                )}
+                <ul className="flex-1 space-y-2 px-2 pb-2" aria-label={`Tasks in ${boardCol.name}`}>
                   {ids.map((id) => {
                     const task = byId.get(id);
                     if (!task) return null;
@@ -487,14 +558,14 @@ export function ProjectWorkspace({
                         data-card-id={task.id}
                         aria-label={`${task.title}${isLifted ? ", picked up" : ""}`}
                         aria-describedby={canEdit ? "board-keys-help" : undefined}
-                        draggable={canDrag && !lifted}
+                        draggable={canMoveCards && !lifted}
                         onDragStart={() => setDragging(task.id)}
                         onDragEnd={() => setDragging(null)}
-                        onDragOver={(event) => canDrag && event.preventDefault()}
+                        onDragOver={(event) => canMoveCards && event.preventDefault()}
                         onDrop={(event) => {
                           event.preventDefault();
                           event.stopPropagation();
-                          if (dragging !== null && dragging !== task.id) void move(dragging, section.id, task.id);
+                          if (dragging !== null && dragging !== task.id) void dropInto(dragging, index, task.id);
                           setDragging(null);
                         }}
                         onKeyDown={(event) => cardKeys(event, task)}
@@ -509,17 +580,17 @@ export function ProjectWorkspace({
                             <span className={task.status === "COMPLETED" ? "text-ink-muted line-through" : ""}>{task.title}</span>
                           </Link>
                         </div>
-                        <FieldChips fields={fields} values={values[task.id]} />
+                        <FieldChips fields={fields} values={values[task.id]} planning={planning} />
                         <TaskMeta task={task} now={now} />
                       </li>
                     );
                   })}
                 </ul>
-                {canEdit && <AddTask projectId={projectId} sectionId={section.id} compact />}
+                {canEdit && section && <AddTask projectId={projectId} sectionId={section.id} compact />}
               </section>
             );
           })}
-          {canEdit && <AddSection projectId={projectId} afterId={sections.at(-1)?.id ?? null} board />}
+          {canEdit && !byField && <AddSection projectId={projectId} afterId={sections.at(-1)?.id ?? null} board />}
         </div>
       </div>
     );
@@ -543,6 +614,8 @@ export function ProjectWorkspace({
           people={people}
           fields={fields}
           values={values}
+          planning={planning}
+          customise={customise}
           meId={meId}
           nowIso={nowIso}
           view={grid.view}
@@ -734,7 +807,11 @@ export function ProjectWorkspace({
                       </div>
                       {fields.map((field) => (
                         <div key={field.id} role="cell" className="min-w-0 pr-2">
-                          <FieldInput taskId={task.id} field={{ ...field, name: `${field.name} of ${task.title}` }} value={values[task.id]?.[field.id] ?? ""} canChange={canEdit || task.assigneeId === meId} compact />
+                          {planning ? (
+                            <FieldValueEditor taskId={task.id} field={field} cell={values[task.id]?.[field.id]} label={`${field.name} of ${task.title}`} canChange={canEdit || task.assigneeId === meId} people={people} compact />
+                          ) : (
+                            <FieldInput taskId={task.id} field={{ ...field, name: `${field.name} of ${task.title}` }} value={values[task.id]?.[field.id]?.edit ?? ""} canChange={canEdit || task.assigneeId === meId} compact />
+                          )}
                         </div>
                       ))}
                     </div>
@@ -753,16 +830,21 @@ export function ProjectWorkspace({
 
 // v1.62.0 (D-368, spec Board card "field chips"): the project's field values
 // set on this card (empty ones left out), name and value, at most three.
-function FieldChips({ fields, values }: { fields: FieldView[]; values?: Record<number, string> }) {
-  const set = fields.filter((field) => (values?.[field.id] ?? "").trim() !== "");
+function FieldChips({ fields, values, planning }: { fields: FieldView[]; values?: Record<number, FieldCell>; planning: boolean }) {
+  // v1.64.0 (D-371): only the fields shown on cards (Fields settings); select values as coloured chips.
+  const set = fields.filter((field) => field.showOnCards !== false && values?.[field.id] && (values[field.id]!.text !== "" || (field.kind === "TIMER" && (values[field.id]!.timer?.seconds ?? 0) > 0)));
   if (!set.length) return null;
   return (
     <ul className="mt-2 flex flex-wrap gap-1" aria-label="Fields" data-testid="card-fields">
-      {set.slice(0, 3).map((field) => (
-        <li key={field.id} className="max-w-full truncate rounded-md bg-surface-muted px-1.5 py-0.5 text-caption text-ink">
-          <span className="text-ink-muted">{field.name}:</span> {values?.[field.id]}
-        </li>
-      ))}
+      {set.slice(0, 3).map((field) =>
+        planning ? (
+          <FieldChip key={field.id} field={field} cell={values![field.id]!} />
+        ) : (
+          <li key={field.id} className="max-w-full truncate rounded-md bg-surface-muted px-1.5 py-0.5 text-caption text-ink">
+            <span className="text-ink-muted">{field.name}:</span> {values?.[field.id]?.text}
+          </li>
+        ),
+      )}
       {set.length > 3 && <li className="rounded-md px-1 text-caption text-ink-muted">+{set.length - 3} more</li>}
     </ul>
   );

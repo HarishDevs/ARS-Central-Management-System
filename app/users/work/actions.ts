@@ -13,6 +13,7 @@ import * as repo from "@/lib/db/repositories/work.repository";
 import { parseWorkSearch, workSearchQuery } from "@/server/work/rules";
 import { workViewer } from "@/server/work/task-access";
 import * as more from "@/server/work/service-more";
+import * as fieldsService from "@/server/work/fields-service";
 import { parseGridConfig } from "@/server/work/grid";
 import { projectAbilities } from "@/server/work/access";
 import { hasModule } from "@/server/modules/modules";
@@ -418,15 +419,93 @@ export async function addFieldAction(_previous: ActionResult | null, formData: F
   return runProject("addField", await actorForProjects(), (me) => more.addField(projectId, { name: text(formData, "name"), kind: text(formData, "kind"), options: text(formData, "options") }, me));
 }
 
-export async function removeFieldAction(fieldId: number): Promise<ActionResult> {
+export async function removeFieldAction(fieldId: number, projectId?: number): Promise<ActionResult> {
   const field = id(fieldId);
-  return field ? runProject("removeField", await actorForProjects(), (me) => more.removeField(field, me)) : NOT_FOUND;
+  const project = projectId === undefined ? undefined : (id(projectId) ?? undefined);
+  return field ? runProject("removeField", await actorForProjects(), (me) => more.removeField(field, me, project)) : NOT_FOUND;
 }
 
-export async function fieldValueAction(taskId: number, fieldId: number, value: string): Promise<ActionResult> {
+// v1.64.0 (D-371): a value of any field type (text, number, option id or
+// name, option ids, date, people ids, task ids); checked by type on the server.
+export async function fieldValueAction(taskId: number, fieldId: number, value: unknown): Promise<ActionResult> {
   const task = id(taskId);
   const field = id(fieldId);
-  return task && field ? runProject("fieldValue", await actorForProjects(), (me) => more.setTaskField(task, field, String(value ?? ""), me)) : NOT_FOUND;
+  if (!task || !field) return NOT_FOUND;
+  const clean = value === null || typeof value === "string" || typeof value === "number" ? value : Array.isArray(value) && value.length <= 50 && value.every((item) => typeof item === "number") ? value : undefined;
+  if (clean === undefined) return { ok: false, message: "Check the value." };
+  return runProject("fieldValue", await actorForProjects(), (me) => more.setTaskField(task, field, clean, me));
+}
+
+// ---- v1.64.0 (D-371, PM phase B part 1): custom fields ------------------------------------
+const fieldOpSchema = z.discriminatedUnion("op", [
+  z.object({ op: z.literal("create"), input: z.unknown() }),
+  z.object({ op: z.literal("update"), fieldId: z.number().int().positive(), input: z.unknown() }),
+  z.object({ op: z.enum(["remove", "delete", "restore", "addBack", "attach"]), fieldId: z.number().int().positive() }),
+  z.object({ op: z.literal("move"), fieldId: z.number().int().positive(), direction: z.enum(["up", "down"]) }),
+  z.object({ op: z.literal("cards"), fieldId: z.number().int().positive(), show: z.boolean() }),
+]);
+export async function fieldDefAction(projectId: number, change: unknown): Promise<ActionResult & { value?: unknown }> {
+  const project = id(projectId);
+  const parsed = fieldOpSchema.safeParse(change);
+  if (!project || !parsed.success) return NOT_FOUND;
+  const op = parsed.data;
+  return runProject(`field:${op.op}`, await actorForProjects(), (me) => {
+    switch (op.op) {
+      case "create":
+        return fieldsService.createField(project, op.input, me);
+      case "update":
+        return fieldsService.updateField(project, op.fieldId, op.input, me);
+      case "remove":
+        return fieldsService.removeFieldFromProject(project, op.fieldId, me);
+      case "delete":
+        return fieldsService.deleteField(project, op.fieldId, me);
+      case "restore":
+        return fieldsService.restoreField(project, op.fieldId, me);
+      case "addBack":
+        return fieldsService.addBackField(project, op.fieldId, me);
+      case "attach":
+        return fieldsService.attachLibraryField(project, op.fieldId, me);
+      case "move":
+        return fieldsService.moveField(project, op.fieldId, op.direction, me);
+      case "cards":
+        return fieldsService.showOnCards(project, op.fieldId, op.show, me);
+    }
+  });
+}
+// The organisation's field library (the Add field dialog's second tab).
+export async function fieldLibraryAction(query: string): Promise<ActionResult & { value?: { id: number; name: string; kind: string; description: string | null; options: string[]; usage: number; createdBy: string }[] }> {
+  const me = await actorForProjects();
+  if (me === "OFF") return PROJECTS_OFF;
+  if (!me) return NOT_FOUND;
+  try {
+    const result = await fieldsService.libraryFor(String(query ?? ""), me);
+    if (!result.ok) return result;
+    return { ok: true, message: "", value: result.value.map((field) => ({ id: field.id, name: field.name, kind: field.type, description: field.description, options: field.options.filter((option) => !option.archived).map((option) => option.name), usage: field.usage, createdBy: field.createdByName })) };
+  } catch (error) {
+    logError("fieldLibraryAction failed", error);
+    return { ok: false, message: "Couldn't load the library. Please try again." };
+  }
+}
+export async function fieldTimerAction(taskId: number, fieldId: number, command: string): Promise<ActionResult> {
+  const task = id(taskId);
+  const field = id(fieldId);
+  if (!task || !field || (command !== "start" && command !== "stop")) return NOT_FOUND;
+  return runProject("fieldTimer", await actorForProjects(), (me) => fieldsService.timer(task, field, command, me));
+}
+// Tasks the person can see, by number or words (a reference field's picker).
+export async function fieldTaskSearchAction(q: string): Promise<ActionResult & { value?: { id: number; taskNo: string; title: string }[] }> {
+  const me = await actorForProjects();
+  if (me === "OFF") return PROJECTS_OFF;
+  if (!me) return NOT_FOUND;
+  const text = String(q ?? "").trim().slice(0, 80);
+  if (text.length < 2) return { ok: true, message: "", value: [] };
+  try {
+    const found = await repo.quickWork(await workViewer(me), text);
+    return { ok: true, message: "", value: found.tasks.map((task) => ({ id: task.id, taskNo: task.taskNo, title: task.title })) };
+  } catch (error) {
+    logError("fieldTaskSearchAction failed", error);
+    return { ok: false, message: "Couldn't search. Please try again." };
+  }
 }
 
 export async function saveTemplateAction(_previous: ActionResult | null, formData: FormData): Promise<ActionResult> {
