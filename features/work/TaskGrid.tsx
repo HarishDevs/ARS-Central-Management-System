@@ -576,7 +576,7 @@ export function TaskGrid({
                   if (/^f\d+$/.test(value)) set({ groupField: Number(value.slice(1)) });
                   else set({ group: value as GridGroup, groupField: null });
                 }}
-                className="field-input mt-1 h-9 w-full text-label"
+                className="field-input field-compact mt-1 w-full text-label"
                 data-testid="group-by"
               >
                 {(["none", ...groupsAllowed] as GridGroup[]).map((group) => (
@@ -799,7 +799,7 @@ export function TaskGrid({
                           {section && sectionHeader ? (
                             sectionHeader(section, group.rows.length, view?.phaseA ? viewGroupItems : [])
                           ) : (
-                            <h3 className="flex items-center gap-2 text-card-title font-semibold">
+                            <h3 className="flex items-center gap-2 text-section font-semibold">
                               {group.name} <span className="text-caption font-normal text-ink-muted">{group.rows.length}</span>
                             </h3>
                           )}
@@ -952,7 +952,7 @@ export function TaskGrid({
                                 value={task.priority}
                                 onChange={(event) => void call(() => taskFieldsAction(task.id, { priority: event.target.value }), { success: false })}
                                 {...priorityControlProps(task.priority)}
-                                className={`rounded-full border-0 px-2 py-0.5 text-caption ${priorityControlProps(task.priority).className}`}
+                                className={`grid-editor rounded-full border-0 px-2 py-0.5 text-caption ${priorityControlProps(task.priority).className}`}
                               >
                                 <option value="URGENT">Critical</option>
                                 <option value="HIGH">Most Important</option>
@@ -1131,7 +1131,7 @@ function FilterPanel({ config, set, people, projects, fields }: { config: GridCo
                 onChange={(event) =>
                   set({ filters: config.filters.map((item, at) => (at === index ? { field: event.target.value as FilterField, value: options(event.target.value as FilterField)[0]?.[0] ?? "" } : item)) })
                 }
-                className="field-input h-9 w-48"
+                className="field-input field-compact w-48"
               >
                 {FILTER_FIELDS.map((field) => (
                   <option key={field} value={field}>
@@ -1144,7 +1144,7 @@ function FilterPanel({ config, set, people, projects, fields }: { config: GridCo
                   aria-label="Tag"
                   value={filter.value}
                   onChange={(event) => set({ filters: config.filters.map((item, at) => (at === index ? { ...item, value: event.target.value } : item)) })}
-                  className="field-input h-9 flex-1"
+                  className="field-input field-compact flex-1"
                 />
               ) : filter.field === "assignee" || filter.field === "createdBy" ? (
                 // "Me" stands first, where the empty choice goes.
@@ -1168,7 +1168,7 @@ function FilterPanel({ config, set, people, projects, fields }: { config: GridCo
                       const next = event.target.value;
                       set({ filters: config.filters.map((item, at) => (at === index ? { ...item, value: next.endsWith("::") ? dateWindowValue(next.startsWith("not"), window.from, window.to) : next } : item)) });
                     }}
-                    className="field-input h-9 w-40"
+                    className="field-input field-compact w-40"
                   >
                     {options(filter.field).map(([value, label]) => (
                       <option key={value} value={value}>
@@ -1192,7 +1192,7 @@ function FilterPanel({ config, set, people, projects, fields }: { config: GridCo
                   aria-label="Filter value"
                   value={filter.value}
                   onChange={(event) => set({ filters: config.filters.map((item, at) => (at === index ? { ...item, value: event.target.value } : item)) })}
-                  className="field-input h-9 flex-1"
+                  className="field-input field-compact flex-1"
                 >
                   {options(filter.field).map(([value, label]) => (
                     <option key={value} value={value}>

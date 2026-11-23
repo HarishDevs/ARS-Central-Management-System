@@ -50,8 +50,8 @@ export function CalendarFeedPanel({ scope, projectId = null, current }: { scope:
             Your calendar address (shown only now)
           </label>
           <div className="flex flex-wrap gap-2">
-            <input id={`feed-url-${scope}-${projectId ?? 0}`} readOnly value={url} className="field-input h-9 min-w-0 flex-1 font-mono text-caption" onFocus={(event) => event.currentTarget.select()} data-testid="feed-url" />
-            <button type="button" className="btn-secondary h-9" onClick={copy}>
+            <input id={`feed-url-${scope}-${projectId ?? 0}`} readOnly value={url} className="field-input field-compact min-w-0 flex-1 font-mono text-caption" onFocus={(event) => event.currentTarget.select()} data-testid="feed-url" />
+            <button type="button" className="btn-secondary btn-compact" onClick={copy}>
               <Copy aria-hidden="true" className="h-4 w-4" /> {copied ? "Copied" : "Copy"}
             </button>
           </div>

@@ -153,7 +153,7 @@ export function Links({ requestId, rows, followUpHref }: { requestId: number; ro
           {/* key: a new link adds a row, which starts the search box afresh. */}
           <RequestLinkPicker key={rows.length} name="otherRequestNo" excludeId={requestId} />
         </div>
-        <SubmitButton pending={pending} variant="secondary" className="btn-compact h-11">
+        <SubmitButton pending={pending} variant="secondary" className="">
           Link
         </SubmitButton>
         <div className="w-full">

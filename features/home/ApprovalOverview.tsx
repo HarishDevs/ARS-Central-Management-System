@@ -206,7 +206,7 @@ export async function ApprovalOverview({
   );
   const insightsNode = (
     <section className="card min-w-0 px-4 py-4 sm:px-5" aria-labelledby="insights" data-testid="quick-insights">
-      <h2 id="insights" className="mb-3 flex items-center gap-2 text-[calc(17px*var(--text-scale,1))] font-semibold">
+      <h2 id="insights" className="mb-3 flex items-center gap-2 text-section">
         <BarChart3 aria-hidden="true" className="h-5 w-5 text-primary-700" /> Quick insights
       </h2>
       {insights === null ? (
@@ -241,7 +241,7 @@ export async function ApprovalOverview({
   const attentionNode = <AttentionWidget id="ap-attention" items={attentionItems} empty="Nothing late, due soon or returned to you. Well done." testId="approval-attention" />;
   const chartNode = (
     <section className="card min-w-0 px-4 py-4 sm:px-5" aria-labelledby="ap-chart" data-testid="approval-chart">
-      <h2 id="ap-chart" className="mb-1 text-[calc(17px*var(--text-scale,1))] font-semibold">
+      <h2 id="ap-chart" className="mb-1 text-section">
         My approval activity
       </h2>
       <p className="mb-2 text-caption text-ink-muted">{period.key === "week" ? "This week, day by day" : `${period.label}, by day of the week`}: requests you raised and approval steps you decided.</p>

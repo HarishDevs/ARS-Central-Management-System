@@ -67,7 +67,7 @@ export function BottomSheet({ open, onClose, title, subtitle, action, children }
           </button>
           {title && (
             <div className="relative px-12 pb-2 pt-1 text-center">
-              <h2 id={titleId} className="text-[length:calc(17px*var(--text-scale,1))] font-semibold">
+              <h2 id={titleId} className="text-section">
                 {title}
               </h2>
               {subtitle && <p className="text-[length:calc(13px*var(--text-scale,1))] text-ink-muted">{subtitle}</p>}
@@ -166,7 +166,7 @@ export function ViewDock({ views, manage, add, label }: { views: SheetView[]; ma
 export function ScreenTitle({ title, menu, menuLabel }: { title: string; menu?: React.ReactNode; menuLabel?: string }) {
   return (
     <div className="-mx-4 flex items-center justify-between gap-3 border-b border-line px-4 pb-3">
-      <h1 className="mob-screen-title">{title}</h1>
+      <h1 className="min-w-0 text-page-title tracking-tight [overflow-wrap:anywhere]">{title}</h1>
       {menu && (
         <SheetButton label={menuLabel ?? `${title} options`} content={menu} testId="m-screen-menu" className="grid h-11 w-11 place-items-center rounded-full text-ink-muted">
           <MoreHorizontal aria-hidden="true" className="h-6 w-6" />

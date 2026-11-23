@@ -22,7 +22,7 @@ export function PageHeader({ title, description, meta, children, badge }: { titl
       <div className="flex min-w-0 max-w-full items-center gap-3">
         <div className="min-w-0 max-w-full">
           <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-            <h1 className="min-w-0 max-w-full text-page-title font-semibold tracking-tight [overflow-wrap:anywhere]">{typeof title === "string" ? <SafeText text={title} /> : title}</h1>
+            <h1 className="min-w-0 max-w-full text-page-title tracking-tight [overflow-wrap:anywhere]">{typeof title === "string" ? <SafeText text={title} /> : title}</h1>
             {description && <Hint text={description} align="start" />}
             {/* v1.47.0: e.g. the request's Priority pill, beside the title. */}
             {badge}

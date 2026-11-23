@@ -55,7 +55,7 @@ export function PageRuleForm({
           {scope === "USER" ? (
             <PersonSelect id={`${id}-who`} name="scopeId" options={choices} placeholder="Choose…" compact className="w-64" />
           ) : (
-            <select id={`${id}-who`} name="scopeId" defaultValue="" className="field-input h-9 w-64">
+            <select id={`${id}-who`} name="scopeId" defaultValue="" className="field-input field-compact w-64">
               <option value="" disabled>
                 Choose…
               </option>
@@ -73,7 +73,7 @@ export function PageRuleForm({
         <label htmlFor={`${id}-level`} className={choices ? "field-label" : "sr-only"}>
           {label}
         </label>
-        <select id={`${id}-level`} name="level" value={chosen} onChange={(event) => setChosen(event.target.value as PageLevel)} className="field-input h-9 w-56" aria-label={label}>
+        <select id={`${id}-level`} name="level" value={chosen} onChange={(event) => setChosen(event.target.value as PageLevel)} className="field-input field-compact w-56" aria-label={label}>
           {PAGE_LEVELS.filter((value) => !(neverHidden && value === "HIDDEN")).map((value) => (
             <option key={value} value={value}>
               {LEVEL_LABEL[value]}

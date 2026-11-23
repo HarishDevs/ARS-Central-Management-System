@@ -33,15 +33,15 @@ export function AuthLayout({ children, landing = false }: { children: React.Reac
           </p>
           <dl className="mt-12 grid grid-cols-3 gap-6">
             <div>
-              <dt className="text-card-title font-bold">Any</dt>
+              <dt className="text-stat font-bold">Any</dt>
               <dd className="text-label text-white/75">number of levels</dd>
             </div>
             <div>
-              <dt className="text-card-title font-bold">One</dt>
+              <dt className="text-stat font-bold">One</dt>
               <dd className="text-label text-white/75">place for every request</dd>
             </div>
             <div>
-              <dt className="text-card-title font-bold">Full</dt>
+              <dt className="text-stat font-bold">Full</dt>
               <dd className="text-label text-white/75">history, always</dd>
             </div>
           </dl>
@@ -57,7 +57,7 @@ export function AuthLayout({ children, landing = false }: { children: React.Reac
           <span className="sr-only">ARS Steels · ARS CMS</span>
           <div className="mb-6 flex flex-col items-center text-center lg:hidden" data-testid="auth-mobile-brand">
             <BrandLogoClear variant="auto" className="h-36" />
-            <p className="mt-4 text-title font-bold text-[color:var(--brand-navy)]">Welcome to ARS CMS</p>
+            <p className="mt-4 text-section font-bold text-[color:var(--brand-navy)]">Welcome to ARS CMS</p>
           </div>
           <span className="hidden lg:inline-flex">
             <BrandLockup size="md" />

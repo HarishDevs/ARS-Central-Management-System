@@ -226,7 +226,7 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
           <p className="font-mono text-[12px] text-ink-muted">
             {task.taskNo} · {task.typeName}
           </p>
-          <h1 className="text-greeting font-semibold [overflow-wrap:anywhere]">{task.title}</h1>
+          <h1 className="text-page-title [overflow-wrap:anywhere]">{task.title}</h1>
           <div className="flex flex-wrap gap-2">
             <Badge tone={STATUS_TONE[task.status]}>{TASK_STATUS_LABEL[task.status]}</Badge>
             <TaskPriorityPill priority={task.priority} showNormal />

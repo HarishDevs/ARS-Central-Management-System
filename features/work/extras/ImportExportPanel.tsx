@@ -125,7 +125,7 @@ function ImportWizard({ projectId }: { projectId: number }) {
                     <td className="py-1">
                       <select
                         aria-label={`Import the column ${name || index + 1} as`}
-                        className="field-input h-8"
+                        className="field-input field-compact"
                         value={mapping[index] ?? "skip"}
                         onChange={(event) => setMapping((current) => current.map((item, at) => (at === index ? (event.target.value as Target) : item)))}
                         data-testid={`map-${index}`}

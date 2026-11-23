@@ -57,7 +57,7 @@ export function OverviewHeader({
       <header className="mb-5 flex flex-wrap items-start justify-between gap-4" data-tour={tour ? "page-header" : undefined} data-testid={testId}>
         <div className="flex min-w-0 items-start gap-3">
           <div className="min-w-0">
-            <h1 className="text-page-title font-semibold tracking-tight">{title}</h1>
+            <h1 className="text-page-title tracking-tight">{title}</h1>
             {role && (
               <p className="text-label text-ink-muted" data-testid="overview-role">
                 {role}
@@ -98,7 +98,7 @@ export function SummaryCards({ cards, testId, cardTestId, tour = false }: { card
           </span>
           <span className="min-w-0 flex-1">
             {/* v1.87.0 (D-417): a figure that changed on a refresh gets a short emphasis; the others stay still. */}
-            <LiveNumber value={card.value} className={`block text-card-title font-bold tabular-nums leading-tight ${card.alert ? (card.danger ? "text-danger-600" : "text-primary-700") : ""}`} />
+            <LiveNumber value={card.value} className={`block text-stat font-bold tabular-nums leading-tight ${card.alert ? (card.danger ? "text-danger-600" : "text-primary-700") : ""}`} />
             <span className="block text-label font-medium">{card.label}</span>
             <span className="block truncate text-caption text-ink-muted">{card.note}</span>
             {/* v1.74.1 (D-397): the change sits under the note; beside it, it squeezed the label into two lines on a tablet. */}
@@ -138,7 +138,7 @@ export function Change({ value, label }: { value: number | null; label: string }
 export function SectionHead({ id, title, href, count = 0, linkText = "View all", children }: { id: string; title: string; href?: string; count?: number; linkText?: string; children?: React.ReactNode }) {
   return (
     <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-      <h2 id={id} className="text-[calc(17px*var(--text-scale,1))] font-semibold">
+      <h2 id={id} className="text-section">
         {title}
       </h2>
       {children}
@@ -198,7 +198,7 @@ export function InsightFigures({ figures }: { figures: { icon: React.ReactNode; 
             </span>
             {figure.label}
           </dt>
-          <dd className="text-title font-bold tabular-nums">{figure.value}</dd>
+          <dd className="text-stat font-bold tabular-nums">{figure.value}</dd>
         </div>
       ))}
     </dl>

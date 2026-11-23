@@ -27,7 +27,7 @@ export function SaveViewForm({ query }: { query: Record<string, string> }) {
         <input id="view-name" name="name" maxLength={80} placeholder="e.g. Overdue purchases" className="field-input w-56" />
         <FieldError result={result} name="name" />
       </div>
-      <SubmitButton pending={pending} variant="secondary" className="btn-compact h-11">
+      <SubmitButton pending={pending} variant="secondary" className="">
         Save view
       </SubmitButton>
       <ResultMessage result={result && !result.ok && result.fieldErrors ? null : result} />
@@ -83,7 +83,7 @@ function ViewRow({ view }: { view: ViewItem }) {
           <form onSubmit={manage.onSubmit} className="flex items-center gap-2">
             <input type="hidden" name="id" value={view.id} />
             <input type="hidden" name="command" value="rename" />
-            <input aria-label={`New name for ${view.name}`} name="name" defaultValue={view.name} maxLength={80} className="field-input h-9 w-44" />
+            <input aria-label={`New name for ${view.name}`} name="name" defaultValue={view.name} maxLength={80} className="field-input field-compact w-44" />
             <SubmitButton pending={manage.pending} variant="secondary" className="btn-compact">
               Rename
             </SubmitButton>

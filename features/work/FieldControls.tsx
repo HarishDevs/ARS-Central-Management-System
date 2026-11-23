@@ -316,7 +316,7 @@ function ReferenceEditor({ cell, label, pending, onSave }: { cell: FieldCell; la
               </li>
             ))}
           </ul>
-          <input type="search" value={q} onChange={(event) => setQ(event.target.value)} aria-label="Find a task by number or title" placeholder="Task number or title" className="field-input h-8 text-label" />
+          <input type="search" value={q} onChange={(event) => setQ(event.target.value)} aria-label="Find a task by number or title" placeholder="Task number or title" className="field-input field-compact text-label" />
           <ul className="mt-1 space-y-0.5" aria-label="Tasks found">
             {q.trim().length >= 2 &&
               found
@@ -385,14 +385,14 @@ export function FieldFilterRows({ fields, filters, onChange, people }: { fields:
           const needsValue = filter.op !== "empty" && filter.op !== "notEmpty";
           return (
             <div key={index} className="flex flex-wrap items-center gap-2">
-              <select aria-label="Field" value={filter.fieldId} onChange={(event) => set(index, { fieldId: Number(event.target.value), op: filterOps(fields.find((item) => item.id === Number(event.target.value))!.kind)[0]!, value: "" })} className="field-input h-9 w-40">
+              <select aria-label="Field" value={filter.fieldId} onChange={(event) => set(index, { fieldId: Number(event.target.value), op: filterOps(fields.find((item) => item.id === Number(event.target.value))!.kind)[0]!, value: "" })} className="field-input field-compact w-40">
                 {fields.map((item) => (
                   <option key={item.id} value={item.id}>
                     {item.name}
                   </option>
                 ))}
               </select>
-              <select aria-label={`How ${field.name} is compared`} value={filter.op} onChange={(event) => set(index, { op: event.target.value as FieldFilter["op"] })} className="field-input h-9 w-32">
+              <select aria-label={`How ${field.name} is compared`} value={filter.op} onChange={(event) => set(index, { op: event.target.value as FieldFilter["op"] })} className="field-input field-compact w-32">
                 {ops.map((op) => (
                   <option key={op} value={op}>
                     {FIELD_FILTER_LABEL[op]}
@@ -401,7 +401,7 @@ export function FieldFilterRows({ fields, filters, onChange, people }: { fields:
               </select>
               {needsValue &&
                 (field.kind === "SELECT" || field.kind === "MULTI_SELECT" ? (
-                  <select aria-label={`${field.name} value`} value={filter.value} onChange={(event) => set(index, { value: event.target.value })} className="field-input h-9 min-w-32 flex-1">
+                  <select aria-label={`${field.name} value`} value={filter.value} onChange={(event) => set(index, { value: event.target.value })} className="field-input field-compact min-w-32 flex-1">
                     <option value="">Any</option>
                     {(field.choices ?? []).map((item) => (
                       <option key={item.id} value={String(item.id)}>
@@ -410,7 +410,7 @@ export function FieldFilterRows({ fields, filters, onChange, people }: { fields:
                     ))}
                   </select>
                 ) : field.kind === "PEOPLE" ? (
-                  <select aria-label={`${field.name} value`} value={filter.value} onChange={(event) => set(index, { value: event.target.value })} className="field-input h-9 min-w-32 flex-1">
+                  <select aria-label={`${field.name} value`} value={filter.value} onChange={(event) => set(index, { value: event.target.value })} className="field-input field-compact min-w-32 flex-1">
                     <option value="me">Me</option>
                     {people.map((person) => (
                       <option key={person.id} value={String(person.id)}>
@@ -425,7 +425,7 @@ export function FieldFilterRows({ fields, filters, onChange, people }: { fields:
                     inputMode={field.kind === "NUMBER" || field.kind === "FORMULA" || field.kind === "TIMER" ? "decimal" : undefined}
                     value={filter.value}
                     onChange={(event) => set(index, { value: event.target.value })}
-                    className="field-input h-9 min-w-24 flex-1"
+                    className="field-input field-compact min-w-24 flex-1"
                   />
                 ))}
               <button type="button" aria-label={`Remove the ${field.name} filter`} onClick={() => onChange(filters.filter((_, at) => at !== index))} className="rounded p-1.5 text-ink-muted hover:bg-surface-muted">

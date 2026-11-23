@@ -268,7 +268,7 @@ export function OnboardingTour({ steps, autoStart }: { steps: TourStep[]; autoSt
         <div className="mt-2 h-1 overflow-hidden rounded-full bg-surface-muted" aria-hidden="true">
           <div className="h-full w-full rounded-full bg-primary-600 transition-transform duration-standard ease-standard motion-reduce:transition-none" style={{ transform: `translateX(${((index + 1) / steps.length) * 100 - 100}%)` }} />
         </div>
-        <h2 id="tour-title" ref={heading} tabIndex={-1} className="mt-3 text-card-title font-semibold focus:outline-none">
+        <h2 id="tour-title" ref={heading} tabIndex={-1} className="mt-3 text-section font-semibold focus:outline-none">
           {step.title}
         </h2>
         <p id="tour-intro" className="mt-1.5 text-body text-ink-muted">

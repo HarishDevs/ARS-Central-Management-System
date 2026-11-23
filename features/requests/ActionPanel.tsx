@@ -70,7 +70,7 @@ export function DecisionForm({ requestId, taskKey, label, work = false, only, id
       </div>
       {/* v1.42.1 (owner's sketch): the decisions as a grid of equal buttons; a single one keeps its own size.
           v1.49.5 (owner's screenshot): as many columns as fit with each label on one line, so "Ask for changes" doesn't break in the narrow side column. */}
-      <div className={only ? "flex flex-wrap items-center gap-2" : "grid grid-cols-[repeat(auto-fit,minmax(9.5rem,1fr))] gap-2 [&>button]:h-auto [&>button]:min-h-9 [&>button]:w-full [&>button]:justify-center [&>button]:whitespace-normal [&>button]:leading-tight"} data-testid="decision-buttons">
+      <div className={only ? "flex flex-wrap items-center gap-2" : "grid grid-cols-[repeat(auto-fit,minmax(9.5rem,1fr))] gap-2 [&>button]:h-auto [&>button]:min-h-control-md [&>button]:w-full [&>button]:justify-center [&>button]:whitespace-normal [&>button]:leading-tight"} data-testid="decision-buttons">
         {shows("APPROVE") && (
           <button type="submit" name="decision" value="APPROVE" disabled={pending} className="btn-primary btn-compact">
             {working("APPROVE") ? "Working…" : work ? "Mark as done" : "Approve"}
@@ -157,7 +157,7 @@ export function BlockedStepForm({ requestId, step, people }: { requestId: number
           <label htmlFor={`assign-${step.nodeId}`} className="field-label">
             People (hold Ctrl to pick several)
           </label>
-          <select id={`assign-${step.nodeId}`} name="userIds" multiple className="field-input h-32 py-2">
+          <select id={`assign-${step.nodeId}`} name="userIds" multiple className="field-input h-auto min-h-32 py-2">
             {people.map((person) => (
               <option key={person.id} value={person.id}>
                 {person.label}

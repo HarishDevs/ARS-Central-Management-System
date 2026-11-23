@@ -171,7 +171,7 @@ export default async function GoogleCalendarAdminPage({ searchParams }: { search
           ].map(([label, value]) => (
             <div key={label as string}>
               <dt className="text-ink-muted">{label}</dt>
-              <dd className="text-card-title font-semibold tabular-nums">{value}</dd>
+              <dd className="text-stat font-semibold tabular-nums">{value}</dd>
             </div>
           ))}
         </dl>

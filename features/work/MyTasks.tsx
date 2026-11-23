@@ -195,7 +195,7 @@ export function MyTasks({
       <label htmlFor="my-new-section" className="sr-only">
         New section name
       </label>
-      <input id="my-new-section" value={newSection} onChange={(event) => setNewSection(event.target.value)} placeholder="New section…" className="field-input h-8 text-label" />
+      <input id="my-new-section" value={newSection} onChange={(event) => setNewSection(event.target.value)} placeholder="New section…" className="field-input field-compact text-label" />
       <button type="submit" disabled={busy} aria-busy={busy || undefined} className="btn-secondary btn-compact mt-1 shrink-0">
         Add section
       </button>
@@ -310,7 +310,7 @@ export function MyTasksTitle({ title, digestOn, feed, csvHref, readOnly = false 
   ];
   return (
     <span className="inline-flex items-center gap-1">
-      <h1 className="text-page-title font-semibold tracking-tight">{title}</h1>
+      <h1 className="text-page-title tracking-tight">{title}</h1>
       <Menu label={`Actions for ${title}`} trigger={<ChevronDown aria-hidden="true" className="h-4 w-4" />} align="left" menuClass="w-64" testId="my-tasks-actions" items={items} />
     </span>
   );
@@ -338,7 +338,7 @@ function SectionTitle({ section, count }: { section: MySectionRow; count: number
           if (!busy) void call(() => mySectionAction("RENAME", section.id, name)).then((result) => result?.ok && setEditing(false));
         }}
       >
-        <input autoFocus aria-label="Section name" value={name} onChange={(event) => setName(event.target.value)} onKeyDown={(event) => event.key === "Escape" && setEditing(false)} className="field-input h-8 text-label" />
+        <input autoFocus aria-label="Section name" value={name} onChange={(event) => setName(event.target.value)} onKeyDown={(event) => event.key === "Escape" && setEditing(false)} className="field-input field-compact text-label" />
         <button type="submit" disabled={busy} aria-busy={busy || undefined} className="btn-secondary btn-compact">
           Save
         </button>
@@ -462,7 +462,7 @@ export function TabSettingsBar({ tabKey, range }: { tabKey: string; range: TabRa
     <div className="flex flex-wrap items-center gap-3" data-testid="tab-settings">
       <label className="inline-flex items-center gap-2 text-label">
         <span className="text-ink-muted">Show</span>
-        <select value={range} disabled={pending} onChange={(event) => save({ range: event.target.value as TabRange })} className="field-input h-8 text-label" data-testid="tab-range" title={TAB_RANGE_HINT[range]}>
+        <select value={range} disabled={pending} onChange={(event) => save({ range: event.target.value as TabRange })} className="field-input field-compact text-label" data-testid="tab-range" title={TAB_RANGE_HINT[range]}>
           {TAB_RANGES.map((value) => (
             <option key={value} value={value}>
               {TAB_RANGE_LABEL[value]}
@@ -588,7 +588,7 @@ function SummaryBoardToolbar({
                   <select
                     value={sections}
                     onChange={(event) => void call(() => myTasksTabAction({ op: "settings", key: tabKey, sections: event.target.value as BoardSections }), { success: false })}
-                    className="field-input mt-1 h-9 w-full text-label"
+                    className="field-input field-compact mt-1 w-full text-label"
                     data-testid="tab-board-sections"
                   >
                     {BOARD_SECTIONS.map((value) => (
@@ -745,7 +745,7 @@ export function CustomiseButton({ rules, fields }: { rules: MyRules; fields?: Cu
                   value={value.upcomingDays}
                   disabled={!value.upcomingOn}
                   onChange={(event) => setValue({ ...value, upcomingDays: Math.max(1, Math.min(MAX_UPCOMING_DAYS, Math.round(Number(event.target.value) || 1))) })}
-                  className="field-input h-8 w-20 text-label"
+                  className="field-input field-compact w-20 text-label"
                   data-testid="rule-upcoming-days"
                 />
               </label>
@@ -789,7 +789,7 @@ export function MySectionPicker({ taskId, sections, current }: { taskId: number;
             setValue(next);
             void call(() => myPlaceAction(taskId, next, Date.now() / 1000), { success: "Moved. Only you see your sections." });
           }}
-          className="field-input mt-1 h-8 text-label"
+          className="field-input field-compact mt-1 text-label"
           data-testid="my-section-picker"
         >
           {choices.map((section) => (

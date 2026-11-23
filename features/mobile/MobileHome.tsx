@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ScreenTitle } from "@/features/mobile/BottomSheet";
 import { ComingSoonCard } from "@/features/ui/ComingSoon";
 import { AlertTriangle, ArrowRight, CheckCircle2, ClipboardList, FilePlus2, FileText, Inbox, ListPlus, MessagesSquare, PenSquare, Search } from "lucide-react";
 import { countPendingTasksFor, listAttentionTasksFor, listMyRequests, listPendingTasksFor } from "@/lib/db/repositories/approvals.repository";
@@ -82,6 +83,8 @@ export async function MobileHome({
 
   return (
     <div className="space-y-5" data-testid="mobile-home">
+      {/* v1.89.0 (D-422, UIQA-A11Y-02 / RESP-04): the phone title, like the other tab screens. */}
+      <ScreenTitle title="Home" />
       <section aria-label="Today" className="rounded-2xl bg-[color:var(--m-navy)] p-4 text-white">
         <p className="text-[length:calc(13px*var(--text-scale,1))] opacity-80">{greeting}</p>
         <p className="mt-1 text-[length:calc(18px*var(--text-scale,1))] font-bold leading-snug" data-testid="m-attention">

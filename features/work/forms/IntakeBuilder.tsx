@@ -319,7 +319,7 @@ export function IntakeBuilder(props: BuilderProps) {
             <label htmlFor="form-title" className="field-label">
               Form title
             </label>
-            <input id="form-title" value={name} maxLength={FORM_NAME_MAX} onChange={(event) => { setName(event.target.value); touch(); }} className="field-input text-title font-semibold" />
+            <input id="form-title" value={name} maxLength={FORM_NAME_MAX} onChange={(event) => { setName(event.target.value); touch(); }} className="field-input text-section font-semibold" />
           </div>
           <div>
             <label htmlFor="form-description" className="field-label">

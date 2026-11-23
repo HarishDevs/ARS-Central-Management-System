@@ -107,6 +107,7 @@ export async function ClassicModuleMenu({ user, moduleKey }: { user: Authenticat
   if (!entry) return null;
   return (
     <div className="space-y-6" data-testid="classic-module">
+      {/* eslint-disable-next-line ars-ui/type-scale -- the Classic view keeps its own title bar (D-421, Q-UI-3) */}
       <h1 className="text-title font-semibold">{entry.label}</h1>
       <Boxes boxes={boxesFor(entry.key, counts, approver)} />
       <p className="text-caption text-ink-faint">Choose a page above, or press its highlighted letter. Esc goes back.</p>

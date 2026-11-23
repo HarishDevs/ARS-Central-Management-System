@@ -7,7 +7,7 @@ const SIZE = {
   xs: "h-6 w-6 text-[length:calc(10px*var(--text-scale,1))]",
   sm: "h-8 w-8 text-caption",
   md: "h-10 w-10 text-label",
-  lg: "h-16 w-16 text-title",
+  lg: "h-16 w-16 text-section",
   xl: "h-24 w-24 text-[length:calc(30px*var(--text-scale,1))]",
 } as const;
 

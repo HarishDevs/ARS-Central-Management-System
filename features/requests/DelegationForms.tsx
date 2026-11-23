@@ -56,7 +56,7 @@ export function StopDelegationButton({ delegationId }: { delegationId: number })
   return (
     <form onSubmit={onSubmit} className="flex items-center gap-2">
       <input type="hidden" name="delegationId" value={delegationId} />
-      <SubmitButton pending={pending} variant="secondary" className="btn-compact h-8">
+      <SubmitButton pending={pending} variant="secondary" className="btn-compact">
         End now
       </SubmitButton>
       {result && !result.ok && <ResultMessage result={result} />}

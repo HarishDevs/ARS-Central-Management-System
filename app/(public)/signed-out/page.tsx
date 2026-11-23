@@ -32,7 +32,7 @@ export default async function SignedOutPage({ searchParams }: { searchParams: Pr
         <h1 className="text-display font-bold">{reason.title}</h1>
         <p className="mt-2 text-[length:calc(15px*var(--text-scale,1))] text-ink-muted">{reason.body(minutes)}</p>
         {canSignIn && (
-          <a href={`/login?next=${encodeURIComponent(next)}`} className="btn-primary mt-6 inline-flex">
+          <a href={`/login?next=${encodeURIComponent(next)}`} className="btn-primary btn-block mt-6">
             Sign in again
           </a>
         )}

@@ -58,7 +58,7 @@ export function TryAsButton({ userId, name }: { userId: number; name: string }) 
   return (
     <form onSubmit={onSubmit} className="space-y-1">
       <input type="hidden" name="userId" value={userId} />
-      <button type="submit" disabled={pending} className="btn-secondary btn-compact h-8">
+      <button type="submit" disabled={pending} className="btn-secondary btn-compact">
         {pending ? "Switching…" : "Try as"}
       </button>
       {result && !result.ok && <ResultMessage result={result} />}

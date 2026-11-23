@@ -227,7 +227,7 @@ export function TaskCalendar({
           });
         }}
       >
-        <input autoFocus aria-label={`New task due ${day}`} aria-busy={busy || undefined} readOnly={busy} value={title} onChange={(event) => setTitle(event.target.value)} onKeyDown={(event) => event.key === "Escape" && setAdding(null)} className="field-input h-7 text-caption" placeholder="Task name, Enter" />
+        <input autoFocus aria-label={`New task due ${day}`} aria-busy={busy || undefined} readOnly={busy} value={title} onChange={(event) => setTitle(event.target.value)} onKeyDown={(event) => event.key === "Escape" && setAdding(null)} className="field-input field-compact text-caption" placeholder="Task name, Enter" />
       </form>
     );
   const dayCell = (day: string, label: React.ReactNode, extra = "") => {

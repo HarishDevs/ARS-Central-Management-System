@@ -261,7 +261,7 @@ export async function MeetingHome({
   );
   const insightsNode = figures ? (
     <section className="card min-w-0 px-4 py-4 sm:px-5" aria-labelledby="mh-insights" data-testid="meeting-insights">
-      <h2 id="mh-insights" className="mb-3 flex items-center gap-2 text-[calc(17px*var(--text-scale,1))] font-semibold">
+      <h2 id="mh-insights" className="mb-3 flex items-center gap-2 text-section">
         <Lightbulb aria-hidden="true" className="h-4 w-4 text-warning-600" /> Quick insights · {period.label}
       </h2>
       {insights.length === 0 ? (
@@ -277,7 +277,7 @@ export async function MeetingHome({
   ) : null;
   const figuresNode = figures ? (
     <section className="card min-w-0 space-y-6 px-4 py-4 sm:px-5" aria-labelledby="mh-figures" data-testid="meeting-figures">
-      <h2 id="mh-figures" className="text-[calc(17px*var(--text-scale,1))] font-semibold">
+      <h2 id="mh-figures" className="text-section">
         How meetings are running · {period.label}
       </h2>
       <KpiGrid total={total} />
@@ -343,7 +343,7 @@ export async function MeetingHome({
   );
   const chartNode = (
     <section className="card min-w-0 px-4 py-4 sm:px-5" aria-labelledby="mh-chart" data-testid="meeting-chart">
-      <h2 id="mh-chart" className="mb-1 text-[calc(17px*var(--text-scale,1))] font-semibold">
+      <h2 id="mh-chart" className="mb-1 text-section">
         My meeting activity
       </h2>
       <p className="mb-2 text-caption text-ink-muted">{period.key === "week" ? "This week, day by day" : `${period.label}, by day of the week`}: meetings you ran or attended, and your meeting actions completed.</p>

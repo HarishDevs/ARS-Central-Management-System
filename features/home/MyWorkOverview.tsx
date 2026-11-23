@@ -235,7 +235,7 @@ export async function MyWorkOverview({
   const attentionNode = <AttentionWidget id="mw-attention" items={attentionItems} empty="Nothing overdue or due today. Well done." testId="task-attention" />;
   const insightsNode = (
     <section className="card min-w-0 px-4 py-4 sm:px-5" aria-labelledby="mw-insights" data-testid="task-insights">
-      <h2 id="mw-insights" className="mb-3 flex items-center gap-2 text-[calc(17px*var(--text-scale,1))] font-semibold">
+      <h2 id="mw-insights" className="mb-3 flex items-center gap-2 text-section">
         <BarChart3 aria-hidden="true" className="h-5 w-5 text-primary-700" /> Quick insights
       </h2>
       {insights === null ? (
@@ -260,7 +260,7 @@ export async function MyWorkOverview({
   const myTasksNode = (
           <section className="card min-w-0 px-4 py-4 sm:px-5" aria-labelledby="mw-tasks">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <h2 id="mw-tasks" className="text-[calc(17px*var(--text-scale,1))] font-semibold">
+              <h2 id="mw-tasks" className="text-section">
                 My Tasks
               </h2>
               <span className="flex items-center gap-3">
@@ -404,7 +404,7 @@ export async function MyWorkOverview({
           ) : (
           <section className="card min-w-0 px-4 py-4 sm:px-5" aria-labelledby="mw-projects">
             <div className="mb-3 flex items-center justify-between">
-              <h2 id="mw-projects" className="text-[calc(17px*var(--text-scale,1))] font-semibold">
+              <h2 id="mw-projects" className="text-section">
                 Projects
               </h2>
               <Link href="/users/work/projects" className="link inline-flex items-center gap-1 text-label">
@@ -479,7 +479,7 @@ export async function MyWorkOverview({
   const activityNode = (
           <section className="card min-w-0 px-4 py-4 sm:px-5" aria-labelledby="mw-activity">
             <div className="mb-3 flex items-center justify-between">
-              <h2 id="mw-activity" className="text-[calc(17px*var(--text-scale,1))] font-semibold">
+              <h2 id="mw-activity" className="text-section">
                 Latest status updates
               </h2>
               {query.activity !== "more" && activity.length >= 6 && (
@@ -550,7 +550,7 @@ export async function MyWorkOverview({
   const peopleNode = (
     <section className="card min-w-0 px-4 py-4 sm:px-5" aria-labelledby="mw-people" data-testid="people-widget">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <h2 id="mw-people" className="text-[calc(17px*var(--text-scale,1))] font-semibold">
+        <h2 id="mw-people" className="text-section">
           People
         </h2>
         {team.length > 0 && (
@@ -610,7 +610,7 @@ export async function MyWorkOverview({
   };
   const workloadNode = (
           <section className="card min-w-0 px-4 py-4 sm:px-5" aria-labelledby="mw-workload">
-            <h2 id="mw-workload" className="mb-1 text-[calc(17px*var(--text-scale,1))] font-semibold">
+            <h2 id="mw-workload" className="mb-1 text-section">
               My weekly workload
             </h2>
             <p className="mb-2 text-caption text-ink-muted">
@@ -815,7 +815,7 @@ function describe(event: WorkActivity, meId: number): { title: string; text: str
 function FormsWidget({ data }: { data: HomeForms }) {
   return (
     <section className="card min-w-0 px-4 py-4 sm:px-5" aria-labelledby="mw-forms" data-testid="forms-widget">
-      <h2 id="mw-forms" className="mb-2 text-[calc(17px*var(--text-scale,1))] font-semibold">
+      <h2 id="mw-forms" className="mb-2 text-section">
         Forms
       </h2>
       {data.forms.length === 0 ? (

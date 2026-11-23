@@ -61,7 +61,7 @@ export function PeriodPicker({
               go({ period: next });
             }
           }}
-          className="field-input h-9 w-auto py-0 pl-8 pr-8 text-label font-medium"
+          className="field-input field-compact w-auto py-0 pl-8 pr-8 text-label font-medium"
         >
           {options.map(([key, text]) => (
             <option key={key} value={key}>
@@ -80,10 +80,10 @@ export function PeriodPicker({
           }}
         >
           <label className="text-caption text-ink-muted">
-            From <input type="date" name="from" defaultValue={from} required className="field-input ml-1 h-9 w-auto text-label" />
+            From <input type="date" name="from" defaultValue={from} required className="field-input field-compact ml-1 w-auto text-label" />
           </label>
           <label className="text-caption text-ink-muted">
-            To <input type="date" name="to" defaultValue={to} required className="field-input ml-1 h-9 w-auto text-label" />
+            To <input type="date" name="to" defaultValue={to} required className="field-input field-compact ml-1 w-auto text-label" />
           </label>
           <button type="submit" className="btn-secondary btn-compact">
             Show
@@ -152,7 +152,7 @@ export function WorkloadChart({
                 onMouseEnter={() => setActive(index)}
                 onMouseLeave={() => setActive(null)}
                 onClick={() => setActive(active === index ? null : index)}
-                className={`relative flex items-end justify-center gap-[2px] rounded-t ${active === index ? "bg-surface-muted/70" : ""}`}
+                className={`relative flex items-end justify-center gap-0.5 rounded-t ${active === index ? "bg-surface-muted/70" : ""}`}
               >
                 <span className="w-[38%] max-w-5 rounded-t bg-[color:var(--chart-assigned)]" style={{ height: `${(assigned[index]! / max) * 100}%`, minHeight: assigned[index] ? 2 : 0 }} />
                 <span className="w-[38%] max-w-5 rounded-t bg-[color:var(--chart-completed)]" style={{ height: `${(completed[index]! / max) * 100}%`, minHeight: completed[index] ? 2 : 0 }} />

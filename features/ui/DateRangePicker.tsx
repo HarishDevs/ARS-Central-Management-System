@@ -474,13 +474,13 @@ export function DateRangePicker({
           {time?.start && startShown && (
             <label className="flex items-center gap-1.5 text-ink-muted">
               Start time
-              <input id={`${base}-start-time`} type="time" step={1800} value={current.startTime ?? ""} onChange={(event) => set({ ...current, startTime: event.target.value })} className="field-input h-8 w-28 py-0 text-label" />
+              <input id={`${base}-start-time`} type="time" step={1800} value={current.startTime ?? ""} onChange={(event) => set({ ...current, startTime: event.target.value })} className="field-input field-compact w-28 py-0 text-label" />
             </label>
           )}
           {time?.due && (
             <label className="flex items-center gap-1.5 text-ink-muted">
               {dueLabel.replace(/ date$/, "")} time
-              <input id={`${base}-due-time`} type="time" step={1800} value={current.dueTime ?? ""} onChange={(event) => set({ ...current, dueTime: event.target.value || "23:59" })} className="field-input h-8 w-28 py-0 text-label" />
+              <input id={`${base}-due-time`} type="time" step={1800} value={current.dueTime ?? ""} onChange={(event) => set({ ...current, dueTime: event.target.value || "23:59" })} className="field-input field-compact w-28 py-0 text-label" />
             </label>
           )}
         </div>

@@ -80,7 +80,7 @@ export function PageTab({ projectId, page, people, tasks, taskHref }: { projectI
             <label className="block text-label font-medium" htmlFor="page-title">
               Title
             </label>
-            <input id="page-title" className="field-input h-12 text-title font-semibold" value={title} maxLength={PAGE_TITLE_MAX} placeholder="Untitled page" onChange={(event) => setTitle(event.target.value)} />
+            <input id="page-title" className="field-input text-section font-semibold" value={title} maxLength={PAGE_TITLE_MAX} placeholder="Untitled page" onChange={(event) => setTitle(event.target.value)} />
             <RichEditor key={editorKey} name="body" id="page-body" label="Page" placeholder="Write the project's brief: goals, scope, key people and links. Use # for a heading and @ to mention someone." initialText={body} onText={setBody} people={people} minHeight={320} maxLength={PAGE_MAX} />
             <div className="flex flex-wrap items-end gap-2 rounded-md bg-surface-muted p-2">
               <label className="flex min-w-[12rem] flex-1 flex-col gap-1 text-caption text-ink-muted">

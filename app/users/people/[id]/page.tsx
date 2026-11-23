@@ -48,7 +48,7 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
         <Avatar name={profile.name} src={photoUrl(profile.id, profile.photoUpdatedAt)} size="xl" approver={profile.isApprover} />
         <div className="min-w-0 flex-1 space-y-3">
           <div>
-            <h1 className="text-page-title font-semibold">
+            <h1 className="text-page-title">
               <SafeText text={profile.name} />
             </h1>
             <p className="text-label text-ink-muted">{[profile.designationName, profile.departmentName].filter(Boolean).join(" · ")}</p>

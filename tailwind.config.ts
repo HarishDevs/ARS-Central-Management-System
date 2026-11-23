@@ -67,14 +67,16 @@ const config: Config = {
         body: ["calc(14px * var(--text-scale, 1))", "calc(20px * var(--text-scale, 1))"],
         subhead: ["calc(16px * var(--text-scale, 1))", "calc(22px * var(--text-scale, 1))"],
         "widget-title": ["calc(18px * var(--text-scale, 1))", "calc(24px * var(--text-scale, 1))"],
+        // v1.89.0 (D-422): `title` (20) is kept for the Classic view's title bar only
+        // (D-421, Q-UI-3); card-title (22) and greeting (28) are retired (lint ars-ui/type-scale).
         title: ["calc(20px * var(--text-scale, 1))", "calc(28px * var(--text-scale, 1))"],
-        "card-title": ["calc(22px * var(--text-scale, 1))", "calc(30px * var(--text-scale, 1))"],
-        greeting: ["calc(28px * var(--text-scale, 1))", "calc(36px * var(--text-scale, 1))"],
         display: ["calc(32px * var(--text-scale, 1))", "calc(40px * var(--text-scale, 1))"],
         kpi: ["calc(44px * var(--text-scale, 1))", "calc(52px * var(--text-scale, 1))"],
         // v1.89.0 (D-421, owner's reference): the page title (PageHeader h1) and a page section heading.
-        "page-title": ["calc(var(--text-page-title) * var(--text-scale, 1))", "calc(32px * var(--text-scale, 1))"],
-        section: ["calc(var(--text-section) * var(--text-scale, 1))", "calc(24px * var(--text-scale, 1))"],
+        // D-422: the weight is part of the token (600; 700 on phones, where the size is 22).
+        "page-title": ["calc(var(--text-page-title) * var(--text-scale, 1))", { lineHeight: "calc(var(--text-page-title-lh) * var(--text-scale, 1))", fontWeight: "var(--text-page-title-weight)" }],
+        section: ["calc(var(--text-section) * var(--text-scale, 1))", { lineHeight: "calc(24px * var(--text-scale, 1))", fontWeight: "600" }],
+        stat: ["calc(var(--text-stat) * var(--text-scale, 1))", "calc(28px * var(--text-scale, 1))"],
       },
       // v1.89.0 (D-421): md / lg / xl keep their values (8 / 12 / 16) and read the radius tokens.
       borderRadius: { sm: "4px", md: "var(--radius-control)", lg: "var(--radius-card)", xl: "var(--radius-modal)", control: "var(--radius-control)", card: "var(--radius-card)", popover: "var(--radius-popover)", modal: "var(--radius-modal)" },

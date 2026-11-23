@@ -9,7 +9,7 @@ export function HomeGreeting({ name, detail, now = new Date() }: { name: string;
         <span className="sr-only">Today is </span>
         {homeDate(now)}
       </p>
-      <p className="text-greeting font-semibold leading-tight tracking-tight">
+      <p className="text-page-title leading-tight tracking-tight">
         {greetingFor(now)}, {greetingName(name)}
       </p>
       {detail && <p className="text-label text-ink-muted">{detail}</p>}

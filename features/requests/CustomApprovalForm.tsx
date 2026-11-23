@@ -576,7 +576,7 @@ function PanelHeader({ icon: Icon, id, title, hint, aside }: { icon: typeof Clip
         <Icon className="h-5 w-5" />
       </span>
       <div className="min-w-0 flex-1">
-        <h2 id={id} className="text-[calc(18px*var(--text-scale,1))] font-semibold">
+        <h2 id={id} className="text-section">
           {title}
         </h2>
         <p className="text-label text-ink-muted">{hint}</p>

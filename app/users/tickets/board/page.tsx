@@ -121,7 +121,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
           <label htmlFor="board-category" className="field-label">
             Category
           </label>
-          <select id="board-category" name="category" defaultValue={categoryId ?? ""} className="field-input h-9 py-0">
+          <select id="board-category" name="category" defaultValue={categoryId ?? ""} className="field-input field-compact py-0">
             <option value="">All categories</option>
             {categories.map((category) => (
               <option key={category.id} value={category.id}>
@@ -134,7 +134,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
           <label htmlFor="board-q" className="field-label">
             Search
           </label>
-          <input id="board-q" name="q" defaultValue={q} maxLength={100} placeholder="Ticket number or subject" className="field-input h-9" />
+          <input id="board-q" name="q" defaultValue={q} maxLength={100} placeholder="Ticket number or subject" className="field-input field-compact" />
         </div>
         <label className="flex min-h-9 items-center gap-2 text-label">
           <input type="checkbox" name="overdue" value="1" defaultChecked={overdueOnly} /> Only overdue

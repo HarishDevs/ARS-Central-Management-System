@@ -55,7 +55,7 @@ export default async function ReassignPage({ searchParams }: { searchParams: Pro
             ))}
           </select>
         </div>
-        <button type="submit" className="btn-secondary btn-compact h-11">
+        <button type="submit" className="btn-secondary">
           Show
         </button>
       </form>

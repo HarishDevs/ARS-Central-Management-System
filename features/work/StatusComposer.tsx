@@ -147,7 +147,7 @@ export function StatusComposer({
           </h3>
           <label className="ml-auto flex items-center gap-1 text-caption">
             <span>Completed in the last</span>
-            <select className="field-input h-8 w-auto py-0" value={days} onChange={(event) => setDays(Number(event.target.value))} aria-label="Highlights period">
+            <select className="field-input field-compact w-auto py-0" value={days} onChange={(event) => setDays(Number(event.target.value))} aria-label="Highlights period">
               {HIGHLIGHT_WINDOWS.map((window) => (
                 <option key={window} value={window}>
                   {window} days

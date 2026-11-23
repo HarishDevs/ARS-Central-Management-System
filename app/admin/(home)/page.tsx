@@ -59,7 +59,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
             <li key={figure.label}>
               <Link href={figure.href} className="card-link flex h-full flex-col p-4">
                 <span className="text-caption text-ink-muted">{figure.label}</span>
-                <span className={`mt-1 text-title font-semibold tabular-nums ${figure.warn ? "text-warning-600" : ""}`}>{figure.value}</span>
+                <span className={`mt-1 text-stat font-semibold tabular-nums ${figure.warn ? "text-warning-600" : ""}`}>{figure.value}</span>
               </Link>
             </li>
           ))}
@@ -68,7 +68,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
 
       {recordsOn && (
         <section aria-labelledby="record-search-title" className="mt-8" data-testid="record-search">
-          <h2 id="record-search-title" className="mb-3 text-subhead font-semibold">
+          <h2 id="record-search-title" className="mb-3 text-section">
             Search records
           </h2>
           <form method="get" action="/admin" role="search" className="flex max-w-xl gap-2">

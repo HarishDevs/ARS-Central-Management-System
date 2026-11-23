@@ -360,7 +360,7 @@ function CreateTaskDialog({
                 placeholder="Task name"
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
-                className="w-full bg-transparent text-title font-semibold placeholder:text-ink-faint focus:outline-none lg:rounded-md lg:border lg:border-line lg:px-3 lg:py-2 lg:text-body lg:focus:border-primary-600"
+                className="w-full bg-transparent text-section font-semibold placeholder:text-ink-faint focus:outline-none lg:rounded-md lg:border lg:border-line lg:px-3 lg:py-2 lg:text-body lg:focus:border-primary-600"
               />
               <div className="flex flex-wrap items-center gap-2 text-label">
                 <span className="text-ink-muted">For</span>
@@ -425,7 +425,7 @@ function CreateTaskDialog({
                     value={project}
                     onChange={(event) => setProject(event.target.value ? Number(event.target.value) : "")}
                     onBlur={() => setPicking("")}
-                    className="field-input h-8 w-56 py-0 text-label"
+                    className="field-input field-compact w-56 py-0 text-label"
                   >
                     <option value="">No project (My Tasks)</option>
                     {projects.map((item) => (
@@ -543,7 +543,7 @@ function CreateTaskDialog({
                 <label htmlFor="create-priority" className="text-ink-muted">
                   Priority
                 </label>
-                <select id="create-priority" value={priority} onChange={(event) => setPriority(event.target.value as typeof priority)} className="field-input h-8 w-40 py-0 text-label lg:w-full">
+                <select id="create-priority" value={priority} onChange={(event) => setPriority(event.target.value as typeof priority)} className="field-input field-compact w-40 py-0 text-label lg:w-full">
                   <option value="URGENT">Critical</option>
                   <option value="HIGH">Most Important</option>
                   <option value="IMPORTANT">Important</option>
@@ -581,9 +581,9 @@ function CreateTaskDialog({
                         onChange={(event) => setEvery(Math.max(1, Math.min(365, Number(event.target.value) || 1)))}
                         id="create-every"
                         aria-label="Every how many"
-                        className="field-input h-8 w-20 py-0"
+                        className="field-input field-compact w-20 py-0"
                       />
-                      <select value={kind} onChange={(event) => setKind(event.target.value as Recurrence["kind"])} aria-label="Repeat unit" className="field-input h-8 w-auto py-0">
+                      <select value={kind} onChange={(event) => setKind(event.target.value as Recurrence["kind"])} aria-label="Repeat unit" className="field-input field-compact w-auto py-0">
                         {RECURRENCE_KINDS.map((item) => (
                           <option key={item} value={item}>
                             {UNIT[item]}
@@ -827,7 +827,7 @@ function PersonSearch({
           }
         }}
         onBlur={() => closeOnBlur && window.setTimeout(onDone, 150)}
-        className="field-input h-8 w-56 py-0 text-label"
+        className="field-input field-compact w-56 py-0 text-label"
       />
       <ul id={listId} role="listbox" aria-label="People" className="absolute left-0 top-full z-popover mt-1 max-h-64 w-64 overflow-y-auto rounded-lg border border-line bg-raised py-1 shadow-overlay">
         {matches.length === 0 ? (

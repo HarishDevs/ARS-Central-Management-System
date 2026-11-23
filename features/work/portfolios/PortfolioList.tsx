@@ -362,7 +362,7 @@ function Line({ row, fields, canEdit, portfolioId, people, duration }: { row: Vi
             <label className="sr-only" htmlFor={`prio-${row.itemId}`}>
               Priority of {row.name}
             </label>
-            <select id={`prio-${row.itemId}`} value={row.priority ?? ""} disabled={pending} onChange={(event) => void call(() => priorityAction(portfolioId, row.itemId, event.target.value || null), { success: false })} className="field-input h-8 w-28 text-label" data-testid="priority-select">
+            <select id={`prio-${row.itemId}`} value={row.priority ?? ""} disabled={pending} onChange={(event) => void call(() => priorityAction(portfolioId, row.itemId, event.target.value || null), { success: false })} className="field-input field-compact w-28 text-label" data-testid="priority-select">
               <option value="">—</option>
               {PRIORITIES.map((key) => (
                 <option key={key} value={key}>
@@ -400,7 +400,7 @@ function ValueEditor({ field, value, rowName, people, save }: { field: Field; va
   const label = `${field.name} for ${rowName}`;
   if (field.kind === "SELECT")
     return (
-      <select aria-label={label} value={value} onChange={(event) => save(event.target.value || null)} className="field-input h-8 w-32 text-label">
+      <select aria-label={label} value={value} onChange={(event) => save(event.target.value || null)} className="field-input field-compact w-32 text-label">
         <option value="">—</option>
         {field.options.map((option) => (
           <option key={option} value={option}>
@@ -429,7 +429,7 @@ function ValueEditor({ field, value, rowName, people, save }: { field: Field; va
         if (event.key === "Enter") commit();
         if (event.key === "Escape") setDraft(value);
       }}
-      className="field-input h-8 w-36 text-label"
+      className="field-input field-compact w-36 text-label"
     />
   );
 }
@@ -500,7 +500,7 @@ function AddWork({ portfolioId, choices, exclude }: { portfolioId: number; choic
             if (open) pick(options[active]);
           } else if (event.key === "Escape") setOpen(false);
         }}
-        className="field-input h-8 text-label"
+        className="field-input field-compact text-label"
         data-testid="add-work-input"
       />
       {open && options.length > 0 && (

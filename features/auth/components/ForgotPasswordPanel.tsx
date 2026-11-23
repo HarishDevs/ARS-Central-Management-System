@@ -64,7 +64,7 @@ export function ForgotPasswordPanel({ minLength }: { minLength: number }) {
           <CodeField code={code} onCode={setCode} />
           <NewPasswordFields password={password} confirm={confirm} onPassword={setPassword} onConfirm={setConfirm} minLength={minLength} />
           <ErrorBox message={error} />
-          <button type="submit" disabled={busy || code.length < 4 || !password || !confirm} className="btn-primary">
+          <button type="submit" disabled={busy || code.length < 4 || !password || !confirm} className="btn-primary btn-block">
             {busy ? "Saving…" : "Reset password and sign in"}
           </button>
         </form>
@@ -102,7 +102,7 @@ export function ForgotPasswordPanel({ minLength }: { minLength: number }) {
           />
         </div>
         <ErrorBox message={error} />
-        <button type="submit" disabled={busy || !loginId.trim()} className="btn-primary">
+        <button type="submit" disabled={busy || !loginId.trim()} className="btn-primary btn-block">
           {busy ? "Sending…" : "Send code"}
         </button>
       </form>

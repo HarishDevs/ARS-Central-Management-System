@@ -269,7 +269,7 @@ export async function TaskListScreen({ base, query }: { base: TaskBase; query: R
           ) : (
             // v1.58.0 (D-352): groups start folded; Expand all / Collapse all above them.
             <FoldScope enabled={Boolean(filters.group)}>
-            <div className="card overflow-x-auto">
+            <div className="card table-cards overflow-x-auto">
               <table className="data-table" data-testid={base === "PERIODIC" ? "periodic-table" : "task-table"}>
                 <caption className="sr-only">{TITLE[base]}</caption>
                 <thead>
@@ -308,40 +308,40 @@ export async function TaskListScreen({ base, query }: { base: TaskBase; query: R
                     const late = isOverdue(task, now);
                     return (
                       <tr key={task.id}>
-                        <td className="w-8">
+                        <td className="w-8" data-card-lead>
                           {/* D-219: tick to complete, as everywhere (only the assignee here). */}
                           <TaskCheck taskId={task.id} done={task.status === "COMPLETED"} disabled={task.assigneeId !== user.id || task.status === "CANCELLED"} label={task.title} />
                         </td>
-                        <td>
+                        <td data-card-title>
                           <Link href={`/users/tasks/${task.id}`} className="link font-medium">
                             {task.title}
                           </Link>
                           <p className="font-mono text-caption text-ink-muted">{task.taskNo}</p>
                         </td>
-                        <td className="text-label">{task.typeName}</td>
-                        <td className="text-label">{base === "MINE" ? task.createdByName : task.assigneeName}</td>
-                        <td>
+                        <td className="text-label" data-label={columnLabel.type}>{task.typeName}</td>
+                        <td className="text-label" data-label={columnLabel.person}>{base === "MINE" ? task.createdByName : task.assigneeName}</td>
+                        <td data-label={columnLabel.priority}>
                           <TaskPriorityPill priority={task.priority} showNormal /> {/* v1.47.0: the one priority pill */}
                         </td>
-                        <td>
+                        <td data-label={columnLabel.status}>
                           <Badge tone={STATUS_TONE[task.status]}>{TASK_STATUS_LABEL[task.status]}</Badge>
                         </td>
-                        <td className={`text-label ${late ? "font-semibold text-danger-600" : ""}`}>
+                        <td className={`text-label ${late ? "font-semibold text-danger-600" : ""}`} data-label={columnLabel.due}>
                           {task.dueAt ? indiaDateTimeText(task.dueAt) : "—"}
                           {late && <span className="block text-caption">Overdue</span>}
                         </td>
                         {repeats && (
                           <>
-                            <td className="text-label">{(() => {
+                            <td className="text-label" data-label={columnLabel.repeats}>{(() => {
                               const rule = parseRecurrence(repeats.get(task.id)?.rule);
                               return rule ? recurrenceLabel(rule) : "Stopped";
                             })()}</td>
-                            <td className="text-label">{repeats.get(task.id)?.doneInSeries ?? 0}</td>
+                            <td className="text-label" data-label={columnLabel.done}>{repeats.get(task.id)?.doneInSeries ?? 0}</td>
                             <td>{task.status !== "COMPLETED" && task.status !== "CANCELLED" && <StopRepeatButton taskId={task.id} />}</td>
                           </>
                         )}
                         {columns.map((field) => (
-                          <td key={field.key} className="text-label">
+                          <td key={field.key} className="text-label" data-label={field.label}>
                             {/* v1.47.0: coloured choice values. */}
                             {OPTION_TYPES.includes(field.type) && field.optionColors ? <ChoicePills values={choiceValues(field, task.formData[field.key])} /> : displayValue(field, task.formData[field.key], names)}
                           </td>

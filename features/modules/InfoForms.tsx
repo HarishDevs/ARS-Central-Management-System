@@ -45,7 +45,7 @@ export function InfoForm({
   const { result, pending, onSubmit, confirmBar } = useActionForm(saveInformationAction);
   const [everyone, setEveryone] = useState(defaults.everyone);
   return (
-    <form onSubmit={onSubmit} encType="multipart/form-data" className="card space-y-5 px-5 py-5" aria-label="Information">
+    <form onSubmit={onSubmit} encType="multipart/form-data" className="card max-w-form space-y-5 px-5 py-5" aria-label="Information">
       {/* D-234 (Active user): leaving with unsaved changes asks first. */}
       <UnsavedGuard />
       <input type="hidden" name="type" value={typeId} />

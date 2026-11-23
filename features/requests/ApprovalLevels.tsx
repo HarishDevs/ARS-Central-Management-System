@@ -35,7 +35,7 @@ function ProgressRing({ percent, done, total }: { percent: number; done: number;
 // dt, placed at the tile's left edge.
 function Tile({ icon: Icon, graphic, label, children, wide = false, valueClass = "" }: { icon?: LucideIcon; graphic?: React.ReactNode; label: string; children: React.ReactNode; wide?: boolean; valueClass?: string }) {
   return (
-    <div className={`request-tile relative min-w-0 rounded-md border border-line bg-surface py-2.5 pr-3 ${graphic ? "pl-[3.75rem]" : "pl-10"} ${wide ? "col-span-2 sm:col-span-1" : ""}`}>
+    <div className={`request-tile relative min-w-0 rounded-md border border-line bg-surface py-2.5 pr-3 ${graphic ? "pl-16" : "pl-10"} ${wide ? "col-span-2 sm:col-span-1" : ""}`}>
       <dt className="text-caption text-ink-muted">
         {graphic ? (
           <span className="absolute left-3 top-1/2 -translate-y-1/2">{graphic}</span>

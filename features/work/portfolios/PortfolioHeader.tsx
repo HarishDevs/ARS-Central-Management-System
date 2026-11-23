@@ -105,7 +105,7 @@ export function PortfolioHeader({
       </span>
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-1">
-          <h1 className="truncate text-page-title font-semibold tracking-tight">{portfolio.name}</h1>
+          <h1 className="truncate text-page-title tracking-tight">{portfolio.name}</h1>
           <Menu
             label={`Actions for ${portfolio.name}`}
             trigger={<ChevronDown aria-hidden="true" className="h-4 w-4" />}
@@ -362,7 +362,7 @@ function ShareForm({ portfolioId, members, people, can, meId, onCopy }: { portfo
                     <label className="sr-only" htmlFor={`${id}-m${member.id}`}>
                       Role of {member.name}
                     </label>
-                    <select id={`${id}-m${member.id}`} value={member.role} disabled={pending} onChange={(event) => void call(() => portfolioMemberAction(portfolioId, member.id, event.target.value))} className="field-input h-8 w-auto text-label">
+                    <select id={`${id}-m${member.id}`} value={member.role} disabled={pending} onChange={(event) => void call(() => portfolioMemberAction(portfolioId, member.id, event.target.value))} className="field-input field-compact w-auto text-label">
                       {roles.map((key) => (
                         <option key={key} value={key}>
                           {PROJECT_ROLE_LABEL[key]}

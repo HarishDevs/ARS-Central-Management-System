@@ -80,7 +80,7 @@ export function SortMenu({ entries, current, dir, onPick, onDir, onClear, label 
 export function ViewSearch({ value, onChange }: { value: string; onChange: (value: string) => void }) {
   const [open, setOpen] = useState(Boolean(value));
   return open || value ? (
-    <input autoFocus={!value} type="search" aria-label="Search this view" placeholder="Search this view" value={value} onChange={(event) => onChange(event.target.value)} onBlur={() => !value && setOpen(false)} className="field-input h-7 w-48 text-label" />
+    <input autoFocus={!value} type="search" aria-label="Search this view" placeholder="Search this view" value={value} onChange={(event) => onChange(event.target.value)} onBlur={() => !value && setOpen(false)} className="field-input field-compact w-48 text-label" />
   ) : (
     <button type="button" aria-label="Search this view" title="Search this view" onClick={() => setOpen(true)} className="tb-btn">
       <Search aria-hidden="true" className="h-4 w-4" />

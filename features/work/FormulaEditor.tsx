@@ -142,7 +142,7 @@ export function FormulaEditor({ projectId, fields, editingId, formula, setFormul
                 {preset.name} needs a date field for “{preset.needs}”
               </label>
               {dateFields.length ? (
-                <select id="preset-date-field" value={presetField} onChange={(event) => setPresetField(event.target.value)} className="field-input h-9 w-56">
+                <select id="preset-date-field" value={presetField} onChange={(event) => setPresetField(event.target.value)} className="field-input field-compact w-56">
                   <option value="">Choose a date field</option>
                   {dateFields.map((field) => (
                     <option key={field.id} value={field.name}>
@@ -169,7 +169,7 @@ export function FormulaEditor({ projectId, fields, editingId, formula, setFormul
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <select aria-label="Field to insert" value={pick} onChange={(event) => setPick(event.target.value)} className="field-input h-9 w-52">
+        <select aria-label="Field to insert" value={pick} onChange={(event) => setPick(event.target.value)} className="field-input field-compact w-52">
           <option value="">Select field</option>
           {sources.length > 0 && (
             <optgroup label="Fields of this project">

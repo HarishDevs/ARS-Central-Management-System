@@ -227,7 +227,7 @@ function FieldDialog({ projectId, projectName, fields, editing, customiseRole, p
                         aria-label={`Colour of option ${index + 1}`}
                         value={row.color}
                         onChange={(event) => setOptions((rows) => rows.map((item) => (item.key === row.key ? { ...item, color: Number(event.target.value) } : item)))}
-                        className="field-input h-8 w-28 py-0 text-label"
+                        className="field-input field-compact w-28 py-0 text-label"
                         style={optionStyle(row.color)}
                       >
                         {OPTION_COLOR_NAMES.map((label, color) => (
@@ -249,7 +249,7 @@ function FieldDialog({ projectId, projectName, fields, editing, customiseRole, p
                           }
                         }}
                         aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
-                        className="field-input h-8 min-w-0 flex-1 text-label"
+                        className="field-input field-compact min-w-0 flex-1 text-label"
                       />
                       <button type="button" aria-label={`Move option ${index + 1} up`} disabled={index === 0} onClick={() => moveOption(index, -1)} className="rounded p-1 text-ink-muted hover:bg-surface-muted disabled:opacity-30">
                         <ArrowUp aria-hidden="true" className="h-4 w-4" />
@@ -479,7 +479,7 @@ function LibraryPanel({ projectId, inProject, onAdded }: { projectId: number; in
       <label className="flex items-center gap-2">
         <Search aria-hidden="true" className="h-4 w-4 text-ink-muted" />
         <span className="sr-only">Search the field library</span>
-        <input type="search" value={q} onChange={(event) => setQ(event.target.value)} placeholder="Search the field library" className="field-input h-9" />
+        <input type="search" value={q} onChange={(event) => setQ(event.target.value)} placeholder="Search the field library" className="field-input field-compact" />
       </label>
       {items === null ? (
         <InlineLoading />

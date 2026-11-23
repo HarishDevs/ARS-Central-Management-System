@@ -77,7 +77,7 @@ export function DependencyEditor({ taskId, title, blockedBy, blocking, canChange
         {canChange ? (
           <select
             aria-label={`Type of the link with ${item.taskNo}`}
-            className="field-input h-7 w-auto py-0 text-caption"
+            className="field-input field-compact w-auto py-0 text-caption"
             value={linkType}
             disabled={pending}
             onChange={(event) => void call(() => typedDependencyAction(taskId, item.id, side, event.target.value, true))}
@@ -127,7 +127,7 @@ export function DependencyEditor({ taskId, title, blockedBy, blocking, canChange
             </div>
             <label className="flex items-center gap-1 text-label">
               <span>Type</span>
-              <select className="field-input h-8 w-auto py-0" value={type} onChange={(event) => setType(event.target.value as DepType)} data-testid="dependency-type">
+              <select className="field-input field-compact w-auto py-0" value={type} onChange={(event) => setType(event.target.value as DepType)} data-testid="dependency-type">
                 {DEP_TYPES.map((value) => (
                   <option key={value} value={value}>
                     {DEP_TYPE_LABEL[value]} ({value})

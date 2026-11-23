@@ -118,7 +118,7 @@ export function UsersBulkActions({ modules = [] }: { modules?: { code: string; l
           </fieldset>
           <p className="text-caption text-ink-muted">Your own access and other IT Admins&apos; (unless you are the Super Admin) are left as they are.</p>
           <div className="flex flex-wrap gap-2">
-            <button type="submit" disabled={pending} className="btn-primary btn-compact inline-flex h-9 items-center gap-2">
+            <button type="submit" disabled={pending} className="btn-primary btn-compact inline-flex items-center gap-2">
               {pending && <Spinner />}
               {pending ? "Working…" : `Apply to ${count}`}
             </button>
@@ -136,7 +136,7 @@ export function UsersBulkActions({ modules = [] }: { modules?: { code: string; l
             <button
               type="submit"
               disabled={pending}
-              className={`btn-compact inline-flex h-9 items-center gap-2 ${chosen.danger ? "rounded-md bg-danger-solid px-3 text-label font-semibold text-on-solid hover:bg-danger-solid-hover disabled:opacity-60" : "btn-primary"}`}
+              className={`btn-compact inline-flex items-center gap-2 ${chosen.danger ? "rounded-md bg-danger-solid px-3 text-label font-semibold text-on-solid hover:bg-danger-solid-hover disabled:opacity-60" : "btn-primary"}`}
             >
               {pending && <Spinner />}
               {pending ? "Working…" : `Yes, ${chosen.label.toLowerCase()} ${count}`}

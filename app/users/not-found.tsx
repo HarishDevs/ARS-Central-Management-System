@@ -9,14 +9,14 @@ export default function NotFound() {
       <span aria-hidden="true" className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-muted text-ink-faint">
         <SearchX className="h-6 w-6" />
       </span>
-      <h1 className="text-page-title font-semibold">This page isn&apos;t available</h1>
+      <h1 className="text-page-title">This page isn&apos;t available</h1>
       <p className="max-w-md text-ink-muted">The link may be wrong, the item may have been removed, or it may not be shared with you.</p>
       <form action="/users/search" method="get" className="flex w-full max-w-sm gap-2">
         <label htmlFor="nf-q" className="sr-only">
           Search your requests
         </label>
         <input id="nf-q" name="q" type="search" placeholder="Search by number or title" className="field-input" />
-        <button type="submit" className="btn-secondary btn-compact h-11">
+        <button type="submit" className="btn-secondary">
           Search
         </button>
       </form>

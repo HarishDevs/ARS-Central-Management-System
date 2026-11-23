@@ -501,7 +501,7 @@ export function ChoiceListEditor({
                   else delete next[option];
                   onColorsChange(next);
                 }}
-                className="pill-select h-7 max-w-[6.5rem] px-1.5 text-caption"
+                className="pill-select max-w-[6.5rem] px-1.5 text-caption"
                 data-testid="option-colour"
               >
                 <option value="">No colour</option>
@@ -545,7 +545,7 @@ export function ChoiceListEditor({
           placeholder="New option"
           className="field-input min-w-0 flex-1"
         />
-        <button type="button" onClick={() => add(draft)} className="btn-secondary btn-compact h-11">
+        <button type="button" onClick={() => add(draft)} className="btn-secondary">
           Add option
         </button>
         <Hint text={`Press Enter to add. Paste a list separated by commas or new lines to add many at once.${onColorsChange ? " Pick a colour on an option to show it as a coloured pill in lists and on the record." : ""}`} align="end" className="self-center" />

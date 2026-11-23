@@ -38,7 +38,7 @@ export function PortfolioProgress({
   const latest = updates[0] ?? null;
   const card = (label: string, value: number, testId: string) => (
     <div className="card px-4 py-3" data-testid={testId}>
-      <p className="text-card-title font-semibold">{value}</p>
+      <p className="text-stat font-semibold">{value}</p>
       <p className="text-caption text-ink-muted">{label}</p>
     </div>
   );

@@ -64,7 +64,7 @@ export default async function PortfoliosPage({ searchParams }: { searchParams: P
               <label htmlFor="portfolio-q" className="sr-only">
                 Find a portfolio
               </label>
-              <input id="portfolio-q" name="q" defaultValue={q} placeholder="Find a portfolio…" className="field-input h-8 w-56 max-w-full text-label" />
+              <input id="portfolio-q" name="q" defaultValue={q} placeholder="Find a portfolio…" className="field-input field-compact w-56 max-w-full text-label" />
             </form>
           )}
           {show !== "deleted" && (

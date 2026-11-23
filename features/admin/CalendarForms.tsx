@@ -46,7 +46,7 @@ export function AddHolidayForm() {
         <input aria-label="Holiday name" name="name" maxLength={100} placeholder="e.g. Diwali" className="field-input" />
         <FieldError result={result} name="name" />
       </div>
-      <SubmitButton pending={pending} className="btn-compact h-11">
+      <SubmitButton pending={pending} className="">
         Add holiday
       </SubmitButton>
       {result && (result.ok || !result.fieldErrors) && (
@@ -64,7 +64,7 @@ export function RemoveHolidayButton({ date }: { date: string }) {
     <form onSubmit={onSubmit}>
       <input type="hidden" name="command" value="remove" />
       <input type="hidden" name="date" value={date} />
-      <SubmitButton pending={pending} variant="secondary" className="btn-compact h-8">
+      <SubmitButton pending={pending} variant="secondary" className="btn-compact">
         Remove
       </SubmitButton>
       {confirmBar}

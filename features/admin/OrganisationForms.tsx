@@ -51,7 +51,7 @@ export function DepartmentForm({
       ) : (
         <span />
       )}
-      <SubmitButton pending={pending} variant={department ? "secondary" : "primary"} className="btn-compact h-11">
+      <SubmitButton pending={pending} variant={department ? "secondary" : "primary"} className="">
         {department ? "Save" : "Add"}
       </SubmitButton>
       {result && (
@@ -103,7 +103,7 @@ export function DesignationForm({ designation }: { designation?: { id: number; c
       ) : (
         <span />
       )}
-      <SubmitButton pending={pending} variant={designation ? "secondary" : "primary"} className="btn-compact h-11">
+      <SubmitButton pending={pending} variant={designation ? "secondary" : "primary"} className="">
         {designation ? "Save" : "Add"}
       </SubmitButton>
       {result && (

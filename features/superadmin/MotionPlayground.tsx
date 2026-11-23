@@ -164,7 +164,7 @@ export function MotionPlayground() {
           </Card>
           <Card title="Changed figure (emphasis)">
             <div className="flex items-center gap-3">
-              <LiveNumber value={count} className="text-title font-bold tabular-nums" testId="lab-number" />
+              <LiveNumber value={count} className="text-stat font-bold tabular-nums" testId="lab-number" />
               <button type="button" className="btn-secondary btn-compact" onClick={() => setCount((value) => value + 1)}>
                 +1
               </button>

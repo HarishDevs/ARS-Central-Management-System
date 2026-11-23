@@ -266,7 +266,7 @@ function DockedComposer({ taskId, people }: { taskId: number; people: Mentionabl
           <RichEditor name="body" id="comment-dock-body" label="Add a comment" people={people} minHeight={72} autoFocus />
           <FieldError result={result} name="body" />
           <div className="flex items-center gap-2">
-            <SubmitButton pending={pending} className="btn-compact ml-auto h-10 px-4">
+            <SubmitButton pending={pending} className="ml-auto px-4">
               <SendHorizontal aria-hidden="true" className="h-4 w-4" /> Send
             </SubmitButton>
           </div>

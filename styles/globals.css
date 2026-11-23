@@ -147,7 +147,11 @@
   --input-h-sm: 32px; /* toolbar and grid fields */
   --touch-min: 44px; /* every control on a touch screen */
   --text-page-title: 24px; /* PageHeader h1 */
+  --text-page-title-lh: 32px;
+  --text-page-title-weight: 600;
+  --text-page-title-mobile: 22px; /* v1.89.0 (D-422): the phone title, 22 / 700 */
   --text-section: 18px; /* page section h2 */
+  --text-stat: 22px; /* v1.89.0 (D-422): a figure in a tile (replaces title 20 / card-title 22) */
   --text-body: 14px;
   --radius-control: 8px;
   --radius-card: 12px;
@@ -207,6 +211,10 @@
     --page-px: 16px;
     --page-pt: 16px;
     --section-gap: 16px;
+    /* v1.89.0 (D-422, UIQA-RESP-04): one phone title, 22 / 700, for every page title. */
+    --text-page-title: var(--text-page-title-mobile);
+    --text-page-title-lh: 28px;
+    --text-page-title-weight: 700;
   }
 }
 
@@ -411,10 +419,10 @@ body {
   }
   /* Disabled/busy: a muted blue that keeps white text at 4.72:1 (QA DEF-06). */
   .btn-primary {
-    @apply inline-flex h-control-md w-full items-center justify-center gap-2 rounded-md bg-primary-solid px-5 text-body font-semibold text-on-solid shadow-button transition-colors hover:bg-primary-solid-hover disabled:cursor-not-allowed disabled:bg-primary-solid-disabled disabled:shadow-none;
+    @apply inline-flex h-control-md w-auto items-center justify-center gap-2 rounded-md bg-primary-solid px-5 text-body font-semibold text-on-solid shadow-button transition-colors hover:bg-primary-solid-hover disabled:cursor-not-allowed disabled:bg-primary-solid-disabled disabled:shadow-none;
   }
   .btn-secondary {
-    @apply inline-flex h-control-md w-full items-center justify-center gap-3 rounded-md border border-line bg-surface px-5 text-body font-medium text-ink transition-colors hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex h-control-md w-auto items-center justify-center gap-3 rounded-md border border-line bg-surface px-5 text-body font-medium text-ink transition-colors hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-60;
   }
   .card {
     @apply rounded-lg border border-line bg-surface shadow-sm;
@@ -484,7 +492,7 @@ body {
   }
   /* v1.6.0 additions (UI-03). */
   .btn-danger {
-    @apply inline-flex h-control-md w-full items-center justify-center gap-2 rounded-md bg-danger-solid px-5 text-body font-semibold text-on-solid transition-colors hover:bg-danger-solid-hover disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex h-control-md w-auto items-center justify-center gap-2 rounded-md bg-danger-solid px-5 text-body font-semibold text-on-solid transition-colors hover:bg-danger-solid-hover disabled:cursor-not-allowed disabled:opacity-60;
   }
   /* D-234: an irreversible action (Reject, Withdraw, Delete) that is not the
      confirm button itself: outlined in danger red, never the same look as
@@ -535,8 +543,110 @@ body {
   .btn-lg {
     @apply h-control-lg px-6;
   }
+  /* v1.89.0 (D-422, UIQA-CON-13): a button sizes to its words by default;
+     btn-block opts into the full width (sign-in forms, phone sheets). After
+     the size modifiers so `btn-block btn-compact` is full width too. */
+  .btn-block {
+    @apply w-full;
+  }
   .skip-link {
     @apply sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-palette focus:rounded-md focus:bg-primary-solid focus:px-4 focus:py-2 focus:text-on-solid;
+  }
+}
+
+/* v1.89.0 (D-422, UIQA-RESP-01 / CON-14): phone lists as cards. Below 768 a
+   .data-table inside .table-cards (ListPage, DataTable, RecordTable) draws
+   one card per row (the card look of Approvals / Information on phones):
+   the first cell, or the one marked data-card-title, is the card's title;
+   the other cells follow as short lines, each after its column name
+   (data-label). The header row stays for screen readers only. Desktop
+   tables are untouched. */
+@media (max-width: 767.98px) {
+  .table-cards :is(table.data-table, table[data-cards]) {
+    display: block;
+    width: 100%;
+    min-width: 0 !important;
+  }
+  .table-cards :is(table.data-table, table[data-cards]) > thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .table-cards :is(table.data-table, table[data-cards]) > tbody {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .table-cards :is(table.data-table, table[data-cards]) > tbody > tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-1) var(--space-3);
+    border: 1px solid var(--color-border-default);
+    border-radius: var(--radius-card);
+    background: var(--color-surface-raised);
+    padding: var(--space-3);
+  }
+  .table-cards :is(table.data-table, table[data-cards]) > tbody > tr > :is(td, th) {
+    display: block;
+    min-width: 0 !important;
+    width: auto !important;
+    max-width: 100%;
+    position: static;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    font-size: calc(var(--text-body) * var(--text-scale, 1));
+    color: var(--color-text-secondary);
+  }
+  .table-cards :is(table.data-table, table[data-cards]) > tbody > tr > [data-card-title],
+  .table-cards :is(table.data-table, table[data-cards]) > tbody > tr:not(:has(> [data-card-title])) > :first-child:not(:has(> input[type="checkbox"])),
+  .table-cards :is(table.data-table, table[data-cards]) > tbody > tr:not(:has(> [data-card-title])) > :first-child:has(> input[type="checkbox"]) + :is(td, th) {
+    flex-basis: 100%;
+    order: -1;
+    font-size: calc(var(--text-body) * var(--text-scale, 1));
+    font-weight: 600;
+    color: var(--color-text-primary);
+  }
+  .table-cards :is(table.data-table, table[data-cards]) > tbody > tr > :is(td, th):is([data-card-lead], :has(> input[type="checkbox"])) {
+    order: -2;
+  }
+  /* A tick or a check box before the title: the title takes the rest of its line. */
+  .table-cards :is(table.data-table, table[data-cards]) > tbody > tr:has(> [data-card-lead], > :first-child > input[type="checkbox"]) > :is([data-card-title], :first-child + :is(td, th)) {
+    flex: 1 1 0;
+    min-width: 60%;
+  }
+  .table-cards :is(table.data-table, table[data-cards]) > tbody > tr > :is(td, th)[data-label]:not([data-card-title])::before {
+    content: attr(data-label) ": ";
+    color: var(--color-text-tertiary, var(--color-text-secondary));
+  }
+  .table-cards :is(table.data-table, table[data-cards]) > tbody > tr > :is(td:empty, [data-row-number]) {
+    display: none;
+  }
+  /* A group row (one cell across the table) is a heading between the cards. */
+  .table-cards :is(table.data-table, table[data-cards]) > tbody > tr:has(> :is(td, th)[colspan]:only-child) {
+    border: 0;
+    background: transparent;
+    padding: var(--space-2) var(--space-1) 0;
+  }
+  .table-cards :is(table.data-table, table[data-cards]) > tbody > tr:hover {
+    background: var(--color-surface-raised);
+  }
+  .table-cards .overflow-x-auto:has(> table) {
+    overflow-x: visible;
+  }
+  .table-cards [data-table-scroll] {
+    max-height: none;
+    overflow: visible;
+  }
+  /* The card that framed the table: the rows are the cards now. */
+  .table-cards .card:has(> table:is(.data-table, [data-cards]), > div > table:is(.data-table, [data-cards])) {
+    border: 0;
+    background: transparent;
+    box-shadow: none;
   }
 }
 
@@ -547,6 +657,16 @@ body {
   :is(.btn-primary, .btn-secondary, .btn-danger, .btn-danger-quiet, .btn-ghost, .btn-compact, .tb-btn, .tb-split, .pill-select),
   .field-input {
     min-height: var(--touch-min);
+  }
+  /* v1.89.0 (D-422, rest of UIQA-RESP-05): TaskGrid's inline editors (the
+     priority select, a section's name) and the round task checks reach 44 on
+     touch screens; a mouse keeps the dense grid. The check grows its hit
+     area only (an invisible ring), so the row does not move. */
+  .grid-editor {
+    min-height: var(--touch-min);
+  }
+  .task-check::before {
+    inset: calc((var(--touch-min) - 100%) / -2) !important;
   }
 }
 
@@ -1023,15 +1143,13 @@ main table {
   border: 1px solid var(--color-border-default);
   background: var(--color-surface-raised);
 }
+/* v1.89.0 (D-422, UIQA-CON-02): the section token (18 / 600); the phone
+   screen title (.mob-screen-title, 22 / 800) is gone: ScreenTitle uses the
+   page title token, 22 / 700 on phones. */
 [data-layout="mobile"] .mob-section-title {
-  font-size: calc(17px * var(--text-scale, 1));
-  font-weight: 700;
-  color: var(--color-text-primary);
-}
-[data-layout="mobile"] .mob-screen-title {
-  font-size: calc(22px * var(--text-scale, 1));
-  font-weight: 800;
-  letter-spacing: -0.01em;
+  font-size: calc(var(--text-section) * var(--text-scale, 1));
+  line-height: calc(24px * var(--text-scale, 1));
+  font-weight: 600;
   color: var(--color-text-primary);
 }
 /* Touch targets: 44 px at least for the shell's controls. */

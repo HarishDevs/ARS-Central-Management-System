@@ -49,7 +49,7 @@ export function AnalyticsPicker({
           key={board}
           defaultValue={board}
           onChange={(event) => go(boards, event.target.value)}
-          className="field-input h-9 w-64 max-w-full"
+          className="field-input field-compact w-64 max-w-full"
           data-testid="board-picker"
         >
           {boards.map((option) => (
@@ -68,7 +68,7 @@ export function AnalyticsPicker({
           key={scope}
           defaultValue={scope}
           onChange={(event) => go(scopes, event.target.value)}
-          className="field-input h-9 w-56 max-w-full"
+          className="field-input field-compact w-56 max-w-full"
           data-testid="scope-picker"
         >
           {scopes.map((option) => (

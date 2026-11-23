@@ -32,7 +32,7 @@ export function TryAsButton({ userId }: { userId: number }) {
             <Hint text="Ctrl + Shift + N (Chrome, Edge) or Ctrl + Shift + P (Firefox), then paste. It works once, within 5 minutes." align="end" />
           </div>
           <div className="flex gap-2">
-            <input readOnly value={url} aria-label="Try as link" className="field-input h-9 flex-1 text-caption" onFocus={(event) => event.currentTarget.select()} />
+            <input readOnly value={url} aria-label="Try as link" className="field-input field-compact flex-1 text-caption" onFocus={(event) => event.currentTarget.select()} />
             <button
               type="button"
               className="btn-primary btn-compact"

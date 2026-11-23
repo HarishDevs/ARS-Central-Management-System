@@ -35,7 +35,7 @@ export function ToolbarSearch({ id, name, defaultValue, placeholder }: { id: str
         defaultValue={defaultValue}
         placeholder={placeholder}
         onBlur={(event) => !event.currentTarget.value && !defaultValue && setOpen(false)}
-        className="field-input h-7 w-48 pl-8 text-label sm:w-64"
+        className="field-input field-compact w-48 pl-8 text-label sm:w-64"
       />
     </span>
   );

@@ -80,7 +80,7 @@ export function CircularProgress({ value, label = "Processing…", size = 88 }: 
           <circle cx="24" cy="24" r="20" fill="none" stroke="var(--brand-wave-2)" strokeWidth="4" />
           <circle cx="24" cy="24" r="20" fill="none" stroke="var(--brand-accent)" strokeWidth="4" strokeLinecap="round" strokeDasharray={`${(percent / 100) * circumference} ${circumference}`} className="motion-safe:transition-[stroke-dasharray] motion-safe:duration-emphasis" />
         </svg>
-        <span className="text-title font-bold tabular-nums">{percent}%</span>
+        <span className="text-stat font-bold tabular-nums">{percent}%</span>
       </span>
       <span className="text-label text-ink-muted">{label}</span>
     </span>

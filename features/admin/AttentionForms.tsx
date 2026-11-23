@@ -18,7 +18,7 @@ export function SnoozeForm({ requestId, reason, requestNo }: { requestId: number
           <label htmlFor={`${id}-days`} className="sr-only">
             Hide {requestNo} for
           </label>
-          <select id={`${id}-days`} name="days" defaultValue="7" className="field-input h-9 w-28">
+          <select id={`${id}-days`} name="days" defaultValue="7" className="field-input field-compact w-28">
             {[1, 3, 7, 14, 30].map((days) => (
               <option key={days} value={days}>
                 {days} day{days === 1 ? "" : "s"}
@@ -31,7 +31,7 @@ export function SnoozeForm({ requestId, reason, requestNo }: { requestId: number
           <label htmlFor={`${id}-note`} className="sr-only">
             Why hide {requestNo}?
           </label>
-          <input id={`${id}-note`} name="note" maxLength={300} placeholder="Why, e.g. waiting for the vendor" className="field-input h-9 w-64" />
+          <input id={`${id}-note`} name="note" maxLength={300} placeholder="Why, e.g. waiting for the vendor" className="field-input field-compact w-64" />
           <FieldError result={result} name="note" />
         </div>
         <SubmitButton pending={pending} variant="secondary" className="btn-compact">

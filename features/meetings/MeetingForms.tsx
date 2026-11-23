@@ -76,7 +76,7 @@ export function ScheduleMeetingForm({
   const [endTime, setEndTime] = useState(defaults.endTime);
   const err = (name: string) => <FieldError result={result} name={name} />;
   return (
-    <form onSubmit={onSubmit} className="card space-y-5 px-5 py-5" aria-label="Meeting">
+    <form onSubmit={onSubmit} className="card max-w-form space-y-5 px-5 py-5" aria-label="Meeting">
       <p className="text-caption text-ink-muted">
         <span className="text-danger-600" aria-hidden="true">
           *
@@ -675,7 +675,7 @@ export function MomEditor({
           </label>
           {!timing.startedOnTime && (
             <label className="flex items-center gap-2 text-label">
-              Started at <input type="time" value={timing.startTime} onChange={(event) => setTime({ startTime: event.target.value })} required className="field-input h-9 w-auto" />
+              Started at <input type="time" value={timing.startTime} onChange={(event) => setTime({ startTime: event.target.value })} required className="field-input field-compact w-auto" />
             </label>
           )}
         </div>
@@ -686,7 +686,7 @@ export function MomEditor({
           {timing.extended && (
             <>
               <label className="flex items-center gap-2 text-label">
-                Ended at <input type="time" value={timing.endTime} onChange={(event) => setTime({ endTime: event.target.value })} required className="field-input h-9 w-auto" />
+                Ended at <input type="time" value={timing.endTime} onChange={(event) => setTime({ endTime: event.target.value })} required className="field-input field-compact w-auto" />
               </label>
               <span className="text-label font-semibold text-warning-600" data-testid="extended-by">
                 {extraMinutes > 0 ? `Extended by ${extraMinutes} min` : "Enter a time after the scheduled end"}

@@ -591,7 +591,7 @@ function DoaEditor({
                 className="field-input w-36"
               />
               {stage.limits.length > 1 && (
-                <button type="button" onClick={() => removeLimit(index)} className="btn-secondary btn-compact h-11" aria-label={`Remove limit ${index + 1}`}>
+                <button type="button" onClick={() => removeLimit(index)} className="btn-secondary" aria-label={`Remove limit ${index + 1}`}>
                   ×
                 </button>
               )}

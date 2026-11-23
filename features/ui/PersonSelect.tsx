@@ -144,7 +144,7 @@ export function PersonSelect({
             setOpen(true);
           }
         }}
-        className={`field-input flex w-full items-center justify-between gap-2 text-left ${compact ? "h-9 py-1" : "h-auto min-h-[2.75rem] py-1.5"} ${ariaInvalid ? "border-danger-600" : ""} disabled:cursor-not-allowed disabled:opacity-60`}
+        className={`field-input flex w-full items-center justify-between gap-2 text-left ${compact ? "field-compact py-1" : "h-auto min-h-input py-1.5"} ${ariaInvalid ? "border-danger-600" : ""} disabled:cursor-not-allowed disabled:opacity-60`}
       >
         <span className="min-w-0">
           <span className={`block truncate ${current ? "" : "text-ink-muted"}`}>{current ? current.label : (emptyLabel ?? placeholder)}</span>

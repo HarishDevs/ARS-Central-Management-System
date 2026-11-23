@@ -8,7 +8,7 @@ export function RetryButton({ deliveryId }: { deliveryId: number }) {
   return (
     <form onSubmit={onSubmit} className="space-y-1">
       <input type="hidden" name="deliveryId" value={deliveryId} />
-      <button type="submit" disabled={pending} className="btn-secondary btn-compact h-8">
+      <button type="submit" disabled={pending} className="btn-secondary btn-compact">
         {pending ? "Retrying…" : "Retry now"}
       </button>
       <ResultMessage result={result} />

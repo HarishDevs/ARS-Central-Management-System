@@ -10,7 +10,7 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
   return (
     <main className="flex min-h-full flex-col items-center justify-center gap-4 px-4 py-16 text-center">
       <p className="text-caption font-semibold text-ink-muted">Something went wrong</p>
-      <h1 className="text-page-title font-semibold">This page couldn&apos;t be shown</h1>
+      <h1 className="text-page-title">This page couldn&apos;t be shown</h1>
       <p className="max-w-sm text-ink-muted">It may be a connection problem. Try again; if it keeps happening, tell IT what you were doing.</p>
       <div className="flex flex-wrap justify-center gap-3">
         <button type="button" onClick={reset} className="btn-primary btn-compact">

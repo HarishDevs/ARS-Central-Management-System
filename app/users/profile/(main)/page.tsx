@@ -109,7 +109,7 @@ export default async function ProfilePage() {
           <PhotoForm name={profile.name} src={photoUrl(profile.id, profile.photoUpdatedAt)} approver={profile.isApprover} />
           <div className="min-w-0 flex-1 space-y-3">
             <div>
-              <h2 className="text-title font-semibold">
+              <h2 className="text-section font-semibold">
                 <SafeText text={profile.name} />
               </h2>
               <p className="text-label text-ink-muted">{[profile.designationName, profile.departmentName].filter(Boolean).join(" · ") || "No designation or department yet"}</p>

@@ -666,7 +666,7 @@ async function Trends({ scope, viewer, period, previous, compareLabel, today, ex
           ].map((card) => (
             <li key={card.label} className="card px-4 py-3">
               <p className="text-caption text-ink-muted">{card.label}</p>
-              <p className="mt-1 text-title font-semibold tabular-nums">{card.now.toLocaleString("en-IN")}</p>
+              <p className="mt-1 text-stat font-semibold tabular-nums">{card.now.toLocaleString("en-IN")}</p>
               <p className={`text-caption ${card.now > card.then ? "text-success-600" : card.now < card.then ? "text-danger-600" : "text-ink-muted"}`}>
                 {change(card.now, card.then)} against {card.then.toLocaleString("en-IN")}
               </p>
@@ -737,7 +737,7 @@ async function Quality({ base, carry, scope, viewer, today }: { base: Base; carr
           <li key={check.key} className={`card border-l-4 px-4 py-3 ${check.count > 0 ? "border-l-warning-600" : "border-l-success-600"}`}>
             <p className="text-caption text-ink-muted">{check.module}</p>
             <p className="mt-0.5 text-label font-medium">{check.label}</p>
-            <p className={`mt-1 text-title font-semibold tabular-nums ${check.count > 0 ? "text-warning-600" : "text-success-600"}`}>{check.count > 0 ? check.count.toLocaleString("en-IN") : "✓ 0"}</p>
+            <p className={`mt-1 text-stat font-semibold tabular-nums ${check.count > 0 ? "text-warning-600" : "text-success-600"}`}>{check.count > 0 ? check.count.toLocaleString("en-IN") : "✓ 0"}</p>
           </li>
         ))}
       </ul>

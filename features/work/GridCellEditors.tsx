@@ -163,7 +163,7 @@ export function TagsCell({ taskId, title, tags, canEdit }: { taskId: number; tit
             <label htmlFor={`tag-${taskId}`} className="sr-only">
               New tag
             </label>
-            <input id={`tag-${taskId}`} value={text} maxLength={40} onChange={(event) => setText(event.target.value)} placeholder="New tag" className="field-input h-9 min-w-0 flex-1 text-label" />
+            <input id={`tag-${taskId}`} value={text} maxLength={40} onChange={(event) => setText(event.target.value)} placeholder="New tag" className="field-input field-compact min-w-0 flex-1 text-label" />
             <button type="submit" disabled={pending || !text.trim()} className="btn-secondary btn-compact">
               Add
             </button>

@@ -41,7 +41,7 @@ export function RaiseTicketForm({
 }) {
   const { result, pending, onSubmit } = useActionForm(raiseTicketAction);
   return (
-    <form onSubmit={onSubmit} className="space-y-5" aria-label="Raise a ticket" data-testid="raise-ticket">
+    <form onSubmit={onSubmit} className="max-w-form space-y-5" aria-label="Raise a ticket" data-testid="raise-ticket">
       <input type="hidden" name="type" value={typeId} />
       <input type="hidden" name="submission_key" value={submissionKey} />
       {/* Filled in from your user details (owner's brief §3). */}

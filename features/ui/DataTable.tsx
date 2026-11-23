@@ -125,6 +125,7 @@ export function DataTable({
           <Tag
             key={column.key}
             scope={index === 0 ? "row" : undefined}
+            data-label={index === 0 ? undefined : column.header}
             className={`${pad} ${column.numeric ? "text-right tabular-nums" : ""} ${index === 0 ? `border-b border-line px-4 text-left align-top font-normal ${stickyFirst ? "sticky left-0 bg-surface" : ""}` : ""}`}
           >
             {row.cells[column.key] ?? "—"}
@@ -135,7 +136,7 @@ export function DataTable({
   );
   const optional = columns.filter((column) => column.optional);
   return (
-    <div className="card">
+    <div className="card table-cards">
       <div className="flex flex-wrap items-center justify-end gap-2 border-b border-line px-3 py-2 text-label">
         <span className="mr-auto px-2 text-ink-muted">{rows.length.toLocaleString("en-IN")} {rows.length === 1 ? "row" : "rows"}</span>
         {optional.length > 0 && (
@@ -174,7 +175,7 @@ export function DataTable({
         </button>
       </div>
       <FoldScope enabled={Boolean(groups)} testId="table-fold-all">
-      <div className="max-h-[70vh] overflow-auto">
+      <div className="max-h-[70vh] overflow-auto" data-table-scroll>
         <table className="data-table">
           <caption className="sr-only">{caption}</caption>
           <thead className="sticky top-0 z-[1] bg-surface">

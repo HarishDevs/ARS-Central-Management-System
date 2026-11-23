@@ -50,7 +50,7 @@ export function SummaryDashboard({ view, rangeHref, readOnly }: { view: SummaryD
             <li key={number.key} className="flex items-center gap-3 rounded-lg border border-line bg-surface px-3 py-2.5" data-testid={`dash-number-${number.key}`}>
               <Icon className={`h-5 w-5 shrink-0 ${NUMBER_ICON[number.key].tone}`} aria-hidden="true" />
               <span>
-                <span className="block text-title font-semibold leading-none tabular-nums">{number.value.toLocaleString("en-IN")}</span>
+                <span className="block text-stat font-semibold leading-none tabular-nums">{number.value.toLocaleString("en-IN")}</span>
                 <span className="text-caption text-ink-muted">{number.label}</span>
               </span>
             </li>

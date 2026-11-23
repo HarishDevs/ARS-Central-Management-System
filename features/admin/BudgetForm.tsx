@@ -10,11 +10,11 @@ export function BudgetForm({ departmentId, departmentName, fy, amountRupees, war
       <input type="hidden" name="departmentId" value={departmentId} />
       <input type="hidden" name="fy" value={fy} />
       <div>
-        <input name="amount" defaultValue={amountRupees} inputMode="decimal" aria-label={`Budget for ${departmentName} (₹)`} placeholder="₹ budget" className="field-input h-9 w-36" />
+        <input name="amount" defaultValue={amountRupees} inputMode="decimal" aria-label={`Budget for ${departmentName} (₹)`} placeholder="₹ budget" className="field-input field-compact w-36" />
         <FieldError result={result} name="amount" />
       </div>
       <div>
-        <input name="warnPercent" type="number" min={50} max={100} defaultValue={warnPercent} aria-label={`Warn at percent used for ${departmentName}`} className="field-input h-9 w-20" />
+        <input name="warnPercent" type="number" min={50} max={100} defaultValue={warnPercent} aria-label={`Warn at percent used for ${departmentName}`} className="field-input field-compact w-20" />
         <FieldError result={result} name="warnPercent" />
       </div>
       <SubmitButton pending={pending} variant="secondary" className="btn-compact">

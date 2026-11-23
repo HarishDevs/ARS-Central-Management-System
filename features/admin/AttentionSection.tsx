@@ -55,7 +55,7 @@ export async function AttentionSection({ userId, query }: { userId: number; quer
   return (
     <section id="attention" aria-labelledby="attention-title" className="mt-8 scroll-mt-20" data-testid="attention">
       <div className="mb-3 flex items-center gap-1.5">
-        <h2 id="attention-title" className="text-subhead font-semibold">
+        <h2 id="attention-title" className="text-section">
           Needs attention <span className="text-ink-muted">({all.length})</span>
         </h2>
         <Hint text={`Open requests that can't move on their own: blocked steps, inactive approvers, unsent messages, and anything with no activity for ${idleDays} days or more.`} align="start" />

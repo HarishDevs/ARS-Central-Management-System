@@ -126,7 +126,7 @@ export function FillForm({ token, name, description, coverUrl, fields, submitter
         {done ? (
           <div className="space-y-3 px-5 py-8 text-center sm:px-10" data-testid="form-confirmation">
             <CheckCircle2 aria-hidden="true" className="mx-auto h-12 w-12 text-success-600" />
-            <h1 className="text-page-title font-semibold tracking-tight">{confirmation.trim() || "Thanks for submitting a request"}</h1>
+            <h1 className="text-page-title tracking-tight">{confirmation.trim() || "Thanks for submitting a request"}</h1>
             <p className="text-label text-ink-muted">A confirmation has been sent to {submitter.email} (in your notifications and by email).</p>
             <div className="flex flex-wrap justify-center gap-2 pt-2">
               {done.canSee && (
@@ -144,7 +144,7 @@ export function FillForm({ token, name, description, coverUrl, fields, submitter
         ) : (
           <form onSubmit={submit} noValidate className="space-y-5 px-5 py-6 sm:px-10" aria-labelledby="fill-title">
             <header className="space-y-1">
-              <h1 id="fill-title" className="text-page-title font-semibold tracking-tight">
+              <h1 id="fill-title" className="text-page-title tracking-tight">
                 {name}
               </h1>
               {description && <p className="whitespace-pre-line text-label text-ink-muted">{description}</p>}

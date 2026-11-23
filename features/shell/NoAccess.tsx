@@ -22,7 +22,7 @@ export function NoAccess({ pageKey, why, home }: { pageKey: string | undefined; 
       <span aria-hidden="true" className="flex h-12 w-12 items-center justify-center rounded-full bg-warning-50 text-warning-600">
         <ShieldAlert className="h-6 w-6" />
       </span>
-      <h1 className="text-page-title font-semibold">You don&apos;t have access to this page</h1>
+      <h1 className="text-page-title">You don&apos;t have access to this page</h1>
       {page && <p className="font-semibold text-ink">{page.label}</p>}
       <p className="max-w-md text-ink-muted">{moduleName ? `It belongs to the ${moduleName} module: coming soon for you. It opens once IT switches it on for you.` : (WHY[why ?? ""] ?? WHY.UNKNOWN_PAGE)}</p>
       <p className="max-w-md text-label text-ink-muted">If you need it for your work, ask IT to give you access.</p>

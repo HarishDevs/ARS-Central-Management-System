@@ -69,7 +69,7 @@ export function KpiCard({
           </span>
         )}
       </p>
-      <p className="mt-1 text-card-title font-semibold tabular-nums">
+      <p className="mt-1 text-stat font-semibold tabular-nums">
         {fmt(value, unit)}
       </p>
       {previous !== undefined && (

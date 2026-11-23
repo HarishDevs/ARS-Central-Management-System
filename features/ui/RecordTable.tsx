@@ -26,9 +26,9 @@ export interface RecordTableRow {
 function Row({ row, index, columns }: { row: RecordTableRow; index: number; columns: RecordTableColumn[] }) {
   return (
     <tr data-row-href={row.openHref} aria-current={row.current ? "true" : undefined} className={`cursor-pointer odd:bg-surface even:bg-page hover:bg-primary-50/60 ${row.current ? "!bg-primary-50" : ""}`}>
-      <td className="sticky left-0 border-b border-r border-line bg-inherit px-2 py-1.5 text-right tabular-nums text-ink-faint">{index}</td>
+      <td className="sticky left-0 border-b border-r border-line bg-inherit px-2 py-1.5 text-right tabular-nums text-ink-faint" data-row-number>{index}</td>
       {columns.map((column, cellIndex) => (
-        <td key={column.key} className={`border-b border-r border-line px-3 py-1.5 align-top ${column.wide ? "min-w-[14rem] max-w-[22rem]" : "whitespace-nowrap"}`}>
+        <td key={column.key} data-label={cellIndex === 0 ? undefined : column.label} data-card-title={cellIndex === 0 ? "" : undefined} className={`border-b border-r border-line px-3 py-1.5 align-top ${column.wide ? "min-w-[14rem] max-w-[22rem]" : "whitespace-nowrap"}`}>
           {cellIndex === 0 ? (
             <Link href={row.openHref} scroll={false} data-open-link={row.fullHref} className="link font-medium" data-testid="record-open">
               {row.cells[0]}
@@ -68,17 +68,18 @@ export function RecordTable({
   return (
     <FoldScope enabled={Boolean(groups)}>
       <RowClickHost />
-      <div className="card overflow-hidden">
-        <div className="max-h-[70vh] overflow-auto" data-testid={testId}>
-          <table className="w-max min-w-full border-collapse text-label">
+      {/* v1.89.0 (D-422): phone cards below 768 (table-cards); UIQA-TBL-01: the column titles use the lists' 12 / 600. */}
+      <div className="card table-cards overflow-hidden">
+        <div className="max-h-[70vh] overflow-auto" data-testid={testId} data-table-scroll>
+          <table className="w-max min-w-full border-collapse text-label" data-cards>
             <caption className="sr-only">{caption}</caption>
             <thead className="sticky top-0 z-10 bg-surface-muted">
               <tr>
-                <th scope="col" className="sticky left-0 z-[2] w-12 border-b border-r border-line bg-surface-muted px-2 py-2 text-right font-medium text-ink-faint">
+                <th scope="col" className="sticky left-0 z-[2] w-12 border-b border-r border-line bg-surface-muted px-2 py-2 text-right text-caption font-semibold text-ink-faint">
                   #
                 </th>
                 {columns.map((column) => (
-                  <th key={column.key} scope="col" aria-sort={column.sort?.active ? (column.sort.dir === "asc" ? "ascending" : "descending") : undefined} className="whitespace-nowrap border-b border-r border-line px-3 py-2 text-left font-medium text-ink-muted">
+                  <th key={column.key} scope="col" aria-sort={column.sort?.active ? (column.sort.dir === "asc" ? "ascending" : "descending") : undefined} className="whitespace-nowrap border-b border-r border-line px-3 py-2 text-left text-caption font-semibold text-ink-muted">
                     {column.sort ? <SortLink label={column.label} active={column.sort.active} dir={column.sort.dir} href={column.sort.href} /> : column.label}
                   </th>
                 ))}

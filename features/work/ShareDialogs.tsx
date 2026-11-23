@@ -78,7 +78,7 @@ function ProjectShareDialog({ projectId, name, privacy, departmentId, department
   return (
     <dialog ref={ref} {...props} aria-labelledby="share-project-title" className="ars-dialog w-[calc(100%-2rem)] max-w-xl rounded-xl border border-line bg-raised p-0 text-ink shadow-overlay" data-testid="share-dialog">
       <header className="flex items-center gap-2 border-b border-line px-6 py-4">
-        <h2 id="share-project-title" className="flex-1 text-card-title font-semibold">
+        <h2 id="share-project-title" className="flex-1 text-section font-semibold">
           Share {name}
         </h2>
         <Link href={`/users/work/projects/${projectId}/settings#permissions`} className="text-caption text-ink-muted hover:text-ink">
@@ -124,7 +124,7 @@ function ProjectShareDialog({ projectId, name, privacy, departmentId, department
                 ))}
               </select>
             </div>
-            <button type="button" disabled={!who || pending} onClick={() => void send(who, role).then((result) => result?.ok && setWho(""))} className="btn-primary btn-compact h-10">
+            <button type="button" disabled={!who || pending} onClick={() => void send(who, role).then((result) => result?.ok && setWho(""))} className="btn-primary">
               Invite
             </button>
           </div>
@@ -146,7 +146,7 @@ function ProjectShareDialog({ projectId, name, privacy, departmentId, department
               if (next !== "DEPARTMENT") void call(() => privacyAction(projectId, next, null));
               else if (department !== "") void call(() => privacyAction(projectId, next, Number(department)));
             }}
-            className="field-input h-10 flex-1"
+            className="field-input flex-1"
           >
             {PRIVACY.map((item) => (
               <option key={item} value={item}>
@@ -165,7 +165,7 @@ function ProjectShareDialog({ projectId, name, privacy, departmentId, department
                 setDepartment(next);
                 if (next !== "") void call(() => privacyAction(projectId, "DEPARTMENT", next));
               }}
-              className="field-input h-10 w-56"
+              className="field-input w-56"
             >
               <option value="">Choose a department…</option>
               {departments.map((item) => (
@@ -261,7 +261,7 @@ function TaskShareDialog({ taskId, title, followers, people, visibility, canAdd,
   return (
     <dialog ref={ref} {...props} aria-labelledby="share-task-title" className="ars-dialog w-[calc(100%-2rem)] max-w-lg rounded-xl border border-line bg-raised p-0 text-ink shadow-overlay" data-testid="share-dialog">
       <header className="flex items-center gap-2 border-b border-line px-6 py-4">
-        <h2 id="share-task-title" className="min-w-0 flex-1 truncate text-card-title font-semibold">
+        <h2 id="share-task-title" className="min-w-0 flex-1 truncate text-section font-semibold">
           Share {title}
         </h2>
         <button type="button" aria-label="Close" onClick={onClose} className="rounded p-1 text-ink-muted hover:bg-surface-muted">
@@ -282,7 +282,7 @@ function TaskShareDialog({ taskId, title, followers, people, visibility, canAdd,
               floating
               className="flex-1"
             />
-            <button type="button" disabled={!who || pending} onClick={() => void call(() => followAction(taskId, Number(who), true)).then((result) => result?.ok && setWho(""))} className="btn-primary btn-compact h-10">
+            <button type="button" disabled={!who || pending} onClick={() => void call(() => followAction(taskId, Number(who), true)).then((result) => result?.ok && setWho(""))} className="btn-primary">
               Add
             </button>
           </div>

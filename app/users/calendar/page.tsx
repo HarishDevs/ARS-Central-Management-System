@@ -76,7 +76,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
         <Link href={href({ date: state.prev })} className="grid h-9 w-9 place-items-center rounded-full border border-line hover:bg-surface-muted" aria-label={`Previous ${unit}`}>
           <ChevronLeft aria-hidden="true" className="h-4 w-4" />
         </Link>
-        <h2 className="min-w-0 px-1 text-center text-body font-semibold sm:min-w-40 sm:text-title" aria-live="polite">
+        <h2 className="min-w-0 px-1 text-center text-body font-semibold sm:min-w-40 sm:text-section" aria-live="polite">
           {title}
         </h2>
         <Link href={href({ date: state.next })} className="grid h-9 w-9 place-items-center rounded-full border border-line hover:bg-surface-muted" aria-label={`Next ${unit}`}>

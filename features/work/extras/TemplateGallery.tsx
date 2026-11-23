@@ -89,7 +89,7 @@ function TemplateCard({ item, isAdmin }: { item: GalleryCard; isAdmin: boolean }
               <label htmlFor={`rename-${item.id}`} className="sr-only">
                 New name
               </label>
-              <input id={`rename-${item.id}`} value={name} onChange={(event) => setName(event.target.value)} minLength={2} maxLength={150} required className="field-input h-8 min-w-0 flex-1" />
+              <input id={`rename-${item.id}`} value={name} onChange={(event) => setName(event.target.value)} minLength={2} maxLength={150} required className="field-input field-compact min-w-0 flex-1" />
               <button type="submit" className="btn-primary btn-compact w-auto" disabled={pending}>
                 Save
               </button>

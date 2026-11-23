@@ -90,7 +90,7 @@ export function TaskExtrasForm({ digest, recurrence }: { digest: DigestSettings;
         </label>
         <label className="flex items-center gap-2 text-body">
           From
-          <select name="digestHour" defaultValue={digest.hour} className="field-input h-8 w-auto py-0" aria-label="Summary hour">
+          <select name="digestHour" defaultValue={digest.hour} className="field-input field-compact w-auto py-0" aria-label="Summary hour">
             {[5, 6, 7, 8, 9, 10, 11, 12].map((hour) => (
               <option key={hour} value={hour}>
                 {hour}:00
@@ -184,7 +184,7 @@ export function PmExtrasForm({ extras }: { extras: PmExtras }) {
     <form onSubmit={onSubmit} className="space-y-4 px-5 py-4" aria-label="Celebrations and deleted items">
       <fieldset className="space-y-2">
         <legend className="field-label">Celebrations when someone completes a task (default)</legend>
-        <select name="celebrations" defaultValue={extras.celebrations} className="field-input h-9 w-auto py-0" aria-label="Celebrations default">
+        <select name="celebrations" defaultValue={extras.celebrations} className="field-input field-compact w-auto py-0" aria-label="Celebrations default">
           {CELEBRATIONS.map((choice) => (
             <option key={choice} value={choice}>
               {CELEBRATION_LABEL[choice]}
@@ -216,19 +216,19 @@ export function FieldLimitsForm({ limits }: { limits: FieldLimits }) {
           <label htmlFor="limit-project" className="field-label">
             Fields per project
           </label>
-          <input id="limit-project" name="perProject" type="number" min={1} max={500} defaultValue={limits.perProject} className="field-input h-9" />
+          <input id="limit-project" name="perProject" type="number" min={1} max={500} defaultValue={limits.perProject} className="field-input field-compact" />
         </div>
         <div>
           <label htmlFor="limit-task" className="field-label">
             Fields with values per task
           </label>
-          <input id="limit-task" name="perTask" type="number" min={1} max={200} defaultValue={limits.perTask} className="field-input h-9" />
+          <input id="limit-task" name="perTask" type="number" min={1} max={200} defaultValue={limits.perTask} className="field-input field-compact" />
         </div>
         <div>
           <label htmlFor="limit-options" className="field-label">
             Options per field
           </label>
-          <input id="limit-options" name="options" type="number" min={2} max={1000} defaultValue={limits.options} className="field-input h-9" />
+          <input id="limit-options" name="options" type="number" min={2} max={1000} defaultValue={limits.options} className="field-input field-compact" />
         </div>
       </div>
       <p className="text-caption text-ink-muted">Checked every time someone adds a field, an option or a value. Lowering a limit doesn&apos;t remove anything already there; it only stops new additions.</p>
@@ -248,7 +248,7 @@ export function PlanningSettingsForm({ settings }: { settings: PlanningSettings 
         <label htmlFor="hours-per-day" className="field-label">
           Hours per working day
         </label>
-        <input id="hours-per-day" name="hoursPerDay" type="number" min={1} max={24} step={0.5} required defaultValue={settings.hoursPerDay} className="field-input h-9" aria-describedby="hours-per-day-hint" />
+        <input id="hours-per-day" name="hoursPerDay" type="number" min={1} max={24} step={0.5} required defaultValue={settings.hoursPerDay} className="field-input field-compact" aria-describedby="hours-per-day-hint" />
         <FieldError result={result} name="hoursPerDay" />
       </div>
       <p id="hours-per-day-hint" className="text-caption text-ink-muted">
@@ -270,13 +270,13 @@ export function AutomationLimitsForm({ limits }: { limits: AutomationLimits }) {
           <label htmlFor="limit-rules" className="field-label">
             Automations per project
           </label>
-          <input id="limit-rules" name="perProject" type="number" min={1} max={200} defaultValue={limits.perProject} className="field-input h-9" />
+          <input id="limit-rules" name="perProject" type="number" min={1} max={200} defaultValue={limits.perProject} className="field-input field-compact" />
         </div>
         <div>
           <label htmlFor="limit-steps" className="field-label">
             Steps per automation
           </label>
-          <input id="limit-steps" name="stepsPerRule" type="number" min={1} max={50} defaultValue={limits.stepsPerRule} className="field-input h-9" />
+          <input id="limit-steps" name="stepsPerRule" type="number" min={1} max={50} defaultValue={limits.stepsPerRule} className="field-input field-compact" />
         </div>
       </div>
       <p className="text-caption text-ink-muted">Checked when someone adds an automation and when they publish one. Lowering a limit doesn&apos;t remove anything; existing automations keep running. Loop protection (at most 3 automations in a chain, 500 runs an hour per automation) is fixed.</p>

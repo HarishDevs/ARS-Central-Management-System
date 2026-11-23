@@ -79,7 +79,7 @@ export function BulkDeleteRequests() {
             <button
               type="submit"
               disabled={pending || !typed.ready}
-              className="btn-compact inline-flex h-9 items-center gap-2 rounded-md bg-danger-solid px-3 text-label font-semibold text-on-solid hover:bg-danger-solid-hover disabled:opacity-60"
+              className="btn-compact inline-flex items-center gap-2 rounded-md bg-danger-solid px-3 text-label font-semibold text-on-solid hover:bg-danger-solid-hover disabled:opacity-60"
               data-testid="bulk-delete-confirm"
             >
               {pending && <Spinner />}

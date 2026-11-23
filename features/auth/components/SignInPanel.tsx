@@ -117,7 +117,7 @@ function PasswordStep({ onChallenge, onDone }: { onChallenge: (c: Challenge) => 
           </p>
         )}
 
-        <button type="submit" disabled={busy || !loginId || !password} className="btn-primary">
+        <button type="submit" disabled={busy || !loginId || !password} className="btn-primary btn-block">
           {busy ? "Checking…" : "Continue"}
         </button>
       </form>
@@ -210,7 +210,7 @@ function OtpStep({
         )}
         {info && !error && <p className="text-label text-success-600">{info}</p>}
 
-        <button type="submit" disabled={busy || code.length < 4} className="btn-primary">
+        <button type="submit" disabled={busy || code.length < 4} className="btn-primary btn-block">
           {busy ? "Verifying…" : "Sign in"}
         </button>
       </form>

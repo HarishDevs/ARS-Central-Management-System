@@ -149,7 +149,7 @@ export function NotificationCenter({ groups, channels, digest, dnd }: { groups: 
             <label htmlFor="dnd-pause" className="sr-only">
               Pause notifications
             </label>
-            <select id="dnd-pause" name="pause" defaultValue="keep" className="field-input h-9 w-auto">
+            <select id="dnd-pause" name="pause" defaultValue="keep" className="field-input field-compact w-auto">
               <option value="keep">{dnd.pausedText ? "Keep the pause" : "Don't pause"}</option>
               <option value="1h">Pause for 1 hour</option>
               <option value="3h">Pause for 3 hours</option>
@@ -165,9 +165,9 @@ export function NotificationCenter({ groups, channels, digest, dnd }: { groups: 
                 <input type="checkbox" name="quiet" checked={quietOn} onChange={(event) => setQuietOn(event.target.checked)} className="h-6 w-6 shrink-0" />
                 Do not notify me from
               </label>
-              <input type="time" name="quietFrom" aria-label="Quiet from" defaultValue={dnd.quiet?.from ?? "19:00"} disabled={!quietOn} className="field-input h-9 w-32" />
+              <input type="time" name="quietFrom" aria-label="Quiet from" defaultValue={dnd.quiet?.from ?? "19:00"} disabled={!quietOn} className="field-input field-compact w-32" />
               <span>to</span>
-              <input type="time" name="quietTo" aria-label="Quiet to" defaultValue={dnd.quiet?.to ?? "09:00"} disabled={!quietOn} className="field-input h-9 w-32" />
+              <input type="time" name="quietTo" aria-label="Quiet to" defaultValue={dnd.quiet?.to ?? "09:00"} disabled={!quietOn} className="field-input field-compact w-32" />
             </div>
           </fieldset>
           <fieldset>

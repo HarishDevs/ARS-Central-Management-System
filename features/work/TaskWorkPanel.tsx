@@ -136,7 +136,7 @@ export function TaskWorkPanel({ data }: { data: PanelData }) {
                     value={link.sectionId}
                     disabled={!data.canEdit || !projectsOn}
                     onChange={(event) => void call(() => moveTaskAction({ taskId: data.taskId, projectId: link.projectId, sectionId: Number(event.target.value), beforeId: null, afterId: null }))}
-                    className="field-input h-8 w-auto py-0 text-label"
+                    className="field-input field-compact w-auto py-0 text-label"
                   >
                     {link.sections.map((section) => (
                       <option key={section.id} value={section.id}>
@@ -159,7 +159,7 @@ export function TaskWorkPanel({ data }: { data: PanelData }) {
               <label htmlFor="add-to-project" className="field-label">
                 Add to a project
               </label>
-              <select id="add-to-project" value={addProject} onChange={(event) => setAddProject(event.target.value ? Number(event.target.value) : "")} className="field-input h-9 w-64">
+              <select id="add-to-project" value={addProject} onChange={(event) => setAddProject(event.target.value ? Number(event.target.value) : "")} className="field-input field-compact w-64">
                 <option value="">Choose a project…</option>
                 {data.projectChoices
                   .filter((project) => !data.links.some((link) => link.projectId === project.id))
@@ -228,7 +228,7 @@ export function TaskWorkPanel({ data }: { data: PanelData }) {
                   <label htmlFor="parent-ref" className="field-label">
                     Make it a subtask of (task number)
                   </label>
-                  <input id="parent-ref" value={parentRef} onChange={(event) => setParentRef(event.target.value)} placeholder="TSK-2026-000123" className="field-input h-9 w-56" />
+                  <input id="parent-ref" value={parentRef} onChange={(event) => setParentRef(event.target.value)} placeholder="TSK-2026-000123" className="field-input field-compact w-56" />
                 </div>
                 <button type="button" disabled={!parentRef.trim()} className="btn-secondary btn-compact" onClick={() => void call(() => parentAction(data.taskId, parentRef)).then((result) => result?.ok && setParentRef(""))}>
                   Move under it
@@ -374,7 +374,7 @@ function DependencyForm({ taskId }: { taskId: number }) {
         <label htmlFor="blocker" className="field-label">
           Waits for task number
         </label>
-        <input id="blocker" name="blocker" required placeholder="TSK-2026-000123" className="field-input h-9 w-56" />
+        <input id="blocker" name="blocker" required placeholder="TSK-2026-000123" className="field-input field-compact w-56" />
       </div>
       <SubmitButton pending={pending} variant="secondary" className="btn-compact">
         Add
@@ -445,7 +445,7 @@ export function TaskWorkSide({ data }: { data: PanelData }) {
             <label htmlFor="new-tag" className="sr-only">
               Add a tag
             </label>
-            <input id="new-tag" value={tag} onChange={(event) => setTag(event.target.value)} placeholder="Add a tag…" maxLength={60} className="field-input h-8 text-label" />
+            <input id="new-tag" value={tag} onChange={(event) => setTag(event.target.value)} placeholder="Add a tag…" maxLength={60} className="field-input field-compact text-label" />
             <button type="submit" className="btn-secondary btn-compact">
               Add
             </button>

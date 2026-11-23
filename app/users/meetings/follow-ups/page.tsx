@@ -104,7 +104,7 @@ export default async function FollowUpsPage({ searchParams }: { searchParams: Pr
         {(["OPEN", "OVERDUE", "DONE_UNCONFIRMED", "CONFIRMED"] as FollowUpState[]).map((state) => (
           <div key={state} className="card px-4 py-3">
             <dt className="text-caption text-ink-muted">{FOLLOW_UP_LABEL[state]}</dt>
-            <dd className="text-card-title font-semibold">{counts[state]}</dd>
+            <dd className="text-stat font-semibold">{counts[state]}</dd>
           </div>
         ))}
       </dl>

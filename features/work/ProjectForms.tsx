@@ -226,7 +226,7 @@ export function MembersPanel({
                     data.set("role", event.target.value);
                     void call(() => memberAction(null, data));
                   }}
-                  className="field-input h-8 w-auto py-0 text-label"
+                  className="field-input field-compact w-auto py-0 text-label"
                 >
                   {roles
                     .filter((role) => member.type === "USER" || role !== "OWNER")

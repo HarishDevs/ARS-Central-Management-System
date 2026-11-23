@@ -1,4 +1,5 @@
 import { FlatCompat } from "@eslint/eslintrc";
+import { arsUi } from "./eslint-ui-rules.mjs";
 
 const compat = new FlatCompat({ baseDirectory: import.meta.dirname });
 
@@ -11,6 +12,12 @@ const eslintConfig = [
     // Standalone CommonJS scripts run directly by Node, outside the bundler.
     files: ["scripts/**/*.js"],
     rules: { "@typescript-eslint/no-require-imports": "off" },
+  },
+  {
+    // v1.89.0 (D-422): the design tokens stay the only control sizes, spacing and type sizes.
+    files: ["app/**/*.{ts,tsx}", "features/**/*.{ts,tsx}"],
+    plugins: { "ars-ui": arsUi },
+    rules: { "ars-ui/control-size": "error", "ars-ui/spacing-scale": "error", "ars-ui/type-scale": "error" },
   },
 ];
 

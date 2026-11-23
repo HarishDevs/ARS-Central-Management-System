@@ -18,7 +18,7 @@ export function NewGroupForm() {
         <input aria-label="Group name" name="name" placeholder="Group name, e.g. Finance checkers" className="field-input" />
         <FieldError result={result} name="name" />
       </div>
-      <SubmitButton pending={pending} className="btn-compact h-11">
+      <SubmitButton pending={pending} className="">
         Add group
       </SubmitButton>
       {result && (

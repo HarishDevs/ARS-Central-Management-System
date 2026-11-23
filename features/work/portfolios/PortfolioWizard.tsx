@@ -96,7 +96,7 @@ export function PortfolioWizard({
             <ArrowLeft aria-hidden="true" className="h-4 w-4" /> Portfolios
           </Link>
         )}
-        <h1 className="flex items-center gap-2 text-page-title font-semibold">
+        <h1 className="flex items-center gap-2 text-page-title">
           <Briefcase aria-hidden="true" className="h-5 w-5 text-ink-muted" /> New portfolio
         </h1>
       </div>

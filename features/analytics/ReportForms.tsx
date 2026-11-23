@@ -25,7 +25,7 @@ export function SaveViewForm({ target, query, path }: { target: string; query: R
           <label htmlFor={`view-${target}`} className="sr-only">
             View name
           </label>
-          <input id={`view-${target}`} name="viewName" maxLength={80} placeholder="e.g. Purchase, this quarter" className="field-input h-9 w-56" />
+          <input id={`view-${target}`} name="viewName" maxLength={80} placeholder="e.g. Purchase, this quarter" className="field-input field-compact w-56" />
           <FieldError result={result} name="viewName" />
         </div>
         <SubmitButton pending={pending} variant="secondary" className="btn-compact">
@@ -127,7 +127,7 @@ export function ScheduleForm({ reportKey, query, people = [], existing }: { repo
           <label htmlFor={`${prefix}frequency`} className="field-label">
             How often
           </label>
-          <select id={`${prefix}frequency`} name="frequency" value={frequency} onChange={(event) => setFrequency(event.target.value)} className="field-input h-9 w-36">
+          <select id={`${prefix}frequency`} name="frequency" value={frequency} onChange={(event) => setFrequency(event.target.value)} className="field-input field-compact w-36">
             <option value="DAILY">Every day</option>
             <option value="WEEKLY">Every week</option>
             <option value="MONTHLY">Every month</option>
@@ -138,7 +138,7 @@ export function ScheduleForm({ reportKey, query, people = [], existing }: { repo
             <label htmlFor={`${prefix}weekday`} className="field-label">
               Day
             </label>
-            <select id={`${prefix}weekday`} name="weekday" defaultValue={String(existing?.weekday ?? 1)} className="field-input h-9 w-36">
+            <select id={`${prefix}weekday`} name="weekday" defaultValue={String(existing?.weekday ?? 1)} className="field-input field-compact w-36">
               {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map((day, index) => (
                 <option key={day} value={index + 1}>
                   {day}
@@ -152,14 +152,14 @@ export function ScheduleForm({ reportKey, query, people = [], existing }: { repo
             <label htmlFor={`${prefix}monthDay`} className="field-label">
               Day of month
             </label>
-            <input id={`${prefix}monthDay`} name="monthDay" type="number" min={1} max={28} defaultValue={existing?.monthDay ?? 1} className="field-input h-9 w-24" />
+            <input id={`${prefix}monthDay`} name="monthDay" type="number" min={1} max={28} defaultValue={existing?.monthDay ?? 1} className="field-input field-compact w-24" />
           </div>
         )}
         <div>
           <label htmlFor={`${prefix}hour`} className="field-label">
             Time (India)
           </label>
-          <select id={`${prefix}hour`} name="hour" defaultValue={String(existing?.hourIst ?? 8)} className="field-input h-9 w-28">
+          <select id={`${prefix}hour`} name="hour" defaultValue={String(existing?.hourIst ?? 8)} className="field-input field-compact w-28">
             {Array.from({ length: 24 }, (_, hour) => (
               <option key={hour} value={hour}>
                 {String(hour).padStart(2, "0")}:00
@@ -171,7 +171,7 @@ export function ScheduleForm({ reportKey, query, people = [], existing }: { repo
           <label htmlFor={`${prefix}format`} className="field-label">
             Format
           </label>
-          <select id={`${prefix}format`} name="format" defaultValue={existing?.format ?? "xlsx"} className="field-input h-9 w-28">
+          <select id={`${prefix}format`} name="format" defaultValue={existing?.format ?? "xlsx"} className="field-input field-compact w-28">
             <option value="xlsx">Excel</option>
             <option value="csv">CSV</option>
             <option value="pdf">PDF</option>
@@ -237,7 +237,7 @@ export function AlertForm({ scopes, metrics }: { scopes: { kind: string; label: 
           <label htmlFor="days" className="field-label">
             N (days)
           </label>
-          <input id="days" name="days" type="number" min={1} max={90} defaultValue={3} className="field-input h-9 w-20" />
+          <input id="days" name="days" type="number" min={1} max={90} defaultValue={3} className="field-input field-compact w-20" />
           <FieldError result={result} name="days" />
         </div>
       )}
@@ -245,7 +245,7 @@ export function AlertForm({ scopes, metrics }: { scopes: { kind: string; label: 
         <label htmlFor="alert-scope" className="field-label">
           For
         </label>
-        <select id="alert-scope" name="scope" className="field-input h-9 w-48">
+        <select id="alert-scope" name="scope" className="field-input field-compact w-48">
           {allowed.map((scope) => (
             <option key={scope.kind} value={scope.kind}>
               {scope.label}
@@ -257,14 +257,14 @@ export function AlertForm({ scopes, metrics }: { scopes: { kind: string; label: 
         <label htmlFor="threshold" className="field-label">
           reaches
         </label>
-        <input id="threshold" name="threshold" type="number" min={1} defaultValue={5} className="field-input h-9 w-24" />
+        <input id="threshold" name="threshold" type="number" min={1} defaultValue={5} className="field-input field-compact w-24" />
         <FieldError result={result} name="threshold" />
       </div>
       <div>
         <label htmlFor="severity" className="field-label">
           Severity
         </label>
-        <select id="severity" name="severity" defaultValue="WARNING" className="field-input h-9 w-36">
+        <select id="severity" name="severity" defaultValue="WARNING" className="field-input field-compact w-36">
           <option value="INFO">Information</option>
           <option value="WARNING">Warning</option>
           <option value="CRITICAL">Critical</option>
@@ -274,14 +274,14 @@ export function AlertForm({ scopes, metrics }: { scopes: { kind: string; label: 
         <label htmlFor="channels" className="field-label">
           Tell me by
         </label>
-        <select id="channels" name="channels" defaultValue="INBOX_EMAIL" className="field-input h-9 w-44">
+        <select id="channels" name="channels" defaultValue="INBOX_EMAIL" className="field-input field-compact w-44">
           <option value="INBOX_EMAIL">App inbox and email</option>
           <option value="INBOX">App inbox only</option>
         </select>
       </div>
       <fieldset className="flex items-end gap-2">
         <legend className="field-label">Quiet hours (India, optional)</legend>
-        <select name="quietStart" defaultValue="" aria-label="Quiet from" className="field-input h-9 w-24">
+        <select name="quietStart" defaultValue="" aria-label="Quiet from" className="field-input field-compact w-24">
           <option value="">—</option>
           {Array.from({ length: 24 }, (_, hour) => (
             <option key={hour} value={hour}>
@@ -290,7 +290,7 @@ export function AlertForm({ scopes, metrics }: { scopes: { kind: string; label: 
           ))}
         </select>
         <span className="pb-2">to</span>
-        <select name="quietEnd" defaultValue="" aria-label="Quiet until" className="field-input h-9 w-24">
+        <select name="quietEnd" defaultValue="" aria-label="Quiet until" className="field-input field-compact w-24">
           <option value="">—</option>
           {Array.from({ length: 24 }, (_, hour) => (
             <option key={hour} value={hour}>
@@ -325,7 +325,7 @@ export function BackgroundExportForm({ reportKey, query, truncated }: { reportKe
           <label htmlFor="bg-format" className="field-label">
             Format
           </label>
-          <select id="bg-format" name="format" defaultValue="xlsx" className="field-input h-9 w-28">
+          <select id="bg-format" name="format" defaultValue="xlsx" className="field-input field-compact w-28">
             <option value="xlsx">Excel</option>
             <option value="csv">CSV</option>
             <option value="pdf">PDF (5,000 rows)</option>

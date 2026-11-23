@@ -85,7 +85,7 @@ export default async function PageAccessPage({ searchParams }: { searchParams: P
             className="w-72"
           />
         </div>
-        <button type="submit" className="btn-secondary btn-compact h-10">
+        <button type="submit" className="btn-secondary">
           Check
         </button>
         {checked && (

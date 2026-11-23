@@ -110,7 +110,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
           <input id="export-to" type="date" name="to" defaultValue={today} className="field-input" />
         </div>
         {action && <input type="hidden" name="action" value={action} />}
-        <button type="submit" className="btn-secondary btn-compact h-11">
+        <button type="submit" className="btn-secondary">
           Download CSV{action ? ` (${action})` : ""}
         </button>
       </form>

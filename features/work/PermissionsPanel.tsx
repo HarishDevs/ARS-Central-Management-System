@@ -38,7 +38,7 @@ export function PermissionsPanel({ projectId, projectName, initial, fields, canM
                 value={rule.role}
                 disabled={!canManage}
                 onChange={(event) => setRules((value) => value.map((item, at) => (at === index ? { ...item, role: event.target.value as "OWNER" | "EDITOR" } : item)))}
-                className="field-input h-9 w-auto"
+                className="field-input field-compact w-auto"
               >
                 <option value="OWNER">{PERMISSION_ROLE_LABEL.OWNER}</option>
                 <option value="EDITOR">{PERMISSION_ROLE_LABEL.EDITOR}</option>
@@ -55,7 +55,7 @@ export function PermissionsPanel({ projectId, projectName, initial, fields, canM
           <label className="inline-flex items-center gap-2">
             <Plus aria-hidden="true" className="h-4 w-4 text-ink-muted" />
             <span className="sr-only">Add restriction</span>
-            <select aria-label="Add restriction" value="" onChange={(event) => event.target.value && setRules((value) => [...value, { field: event.target.value, role: "OWNER" }])} className="field-input h-9 w-auto">
+            <select aria-label="Add restriction" value="" onChange={(event) => event.target.value && setRules((value) => [...value, { field: event.target.value, role: "OWNER" }])} className="field-input field-compact w-auto">
               <option value="">Add restriction…</option>
               {free.map(([value, label]) => (
                 <option key={value} value={value}>
@@ -75,7 +75,7 @@ export function PermissionsPanel({ projectId, projectName, initial, fields, canM
         </label>
         <span className="flex items-center gap-2">
           <Users aria-hidden="true" className="h-4 w-4 text-ink-muted" />
-          <select id="perm-share-select" value={share} disabled={!canManage} onChange={(event) => setShare(event.target.value as PermissionRole)} className="field-input h-10 w-72">
+          <select id="perm-share-select" value={share} disabled={!canManage} onChange={(event) => setShare(event.target.value as PermissionRole)} className="field-input w-72">
             {PERMISSION_ROLES.map((role) => (
               <option key={role} value={role}>
                 {PERMISSION_ROLE_LABEL[role]}

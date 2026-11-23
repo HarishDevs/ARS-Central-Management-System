@@ -52,7 +52,7 @@ export function NewModuleTypeForm({ module }: { module: ModuleKind }) {
         </label>
         <input id="type-code" name="code" required maxLength={40} placeholder="e.g. IT_SUPPORT" className="field-input font-mono uppercase" />
       </div>
-      <SubmitButton pending={pending} className="btn-compact h-11">
+      <SubmitButton pending={pending} className="">
         Create type
       </SubmitButton>
       <div className="md:col-span-3">

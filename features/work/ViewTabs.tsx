@@ -218,7 +218,7 @@ function RenameBox({ name, onDone }: { name: string; onDone: (name: string | nul
         if (event.key === "Escape") finish(null);
       }}
       onBlur={() => finish(value.trim() || null)}
-      className="field-input my-1 h-8 w-40 text-label"
+      className="field-input field-compact my-1 w-40 text-label"
       data-testid="tab-rename"
     />
   );

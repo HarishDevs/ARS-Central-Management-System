@@ -117,7 +117,7 @@ export function DeliveryDashboard({ summary, filter, path, keep = {} }: { summar
           <li key={tile.label}>
             <Link href={tile.href} className="card block h-full px-4 py-3 hover:border-line-strong">
               <p className="text-label text-ink-muted">{tile.label}</p>
-              <p className={`text-title font-semibold tabular-nums ${tile.tone ?? ""}`}>{tile.value.toLocaleString("en-IN")}</p>
+              <p className={`text-stat font-semibold tabular-nums ${tile.tone ?? ""}`}>{tile.value.toLocaleString("en-IN")}</p>
               <p className="text-caption text-ink-muted">{tile.note}</p>
             </Link>
           </li>

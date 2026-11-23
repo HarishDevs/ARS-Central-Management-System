@@ -56,5 +56,5 @@ export function PublicPage({ children }: { children: React.ReactNode }) {
 
 // Headings and paragraphs for the policy pages.
 export function Prose({ children }: { children: React.ReactNode }) {
-  return <article className="space-y-4 text-body leading-relaxed [&_h1]:text-title [&_h1]:font-semibold [&_h2]:pt-4 [&_h2]:text-card-title [&_h2]:font-semibold [&_li]:ml-5 [&_li]:list-disc [&_ul]:space-y-1 [&_code]:break-all [&_a]:break-words">{children}</article>;
+  return <article className="space-y-4 text-body leading-relaxed [&_h1]:text-page-title [&_h2]:pt-4 [&_h2]:text-section [&_h2]:font-semibold [&_li]:ml-5 [&_li]:list-disc [&_ul]:space-y-1 [&_code]:break-all [&_a]:break-words">{children}</article>;
 }

@@ -15,7 +15,7 @@ export default async function TryAsPage({ searchParams }: { searchParams: Promis
   const text = TEXT[(await searchParams).reason ?? ""] ?? TEXT.REFUSED!;
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-4 px-6">
-      <h1 className="text-page-title font-semibold">{text.title}</h1>
+      <h1 className="text-page-title">{text.title}</h1>
       <p className="text-ink-muted">{text.body}</p>
       <Link href="/" className="link">
         ARS CMS

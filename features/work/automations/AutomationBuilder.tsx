@@ -184,7 +184,7 @@ export function AutomationBuilder(props: BuilderProps) {
             <label htmlFor="rule-name" className="field-label">
               Automation name
             </label>
-            <input id="rule-name" className="field-input h-9" value={name} maxLength={RULE_NAME_MAX} disabled={readOnly} aria-describedby={problemsAt("name").length ? "rule-name-problem" : undefined} onChange={(event) => { setName(event.target.value); setDirty(true); setServerProblems(null); }} />
+            <input id="rule-name" className="field-input field-compact" value={name} maxLength={RULE_NAME_MAX} disabled={readOnly} aria-describedby={problemsAt("name").length ? "rule-name-problem" : undefined} onChange={(event) => { setName(event.target.value); setDirty(true); setServerProblems(null); }} />
             {problemsAt("name").map((message) => (
               <p key={message} id="rule-name-problem" className="mt-1 text-caption text-danger-600">
                 {message}
@@ -436,7 +436,7 @@ function TriggerCard({ trigger, onChange, problems, readOnly, props }: { trigger
               <label htmlFor="trigger-time" className="field-label">
                 Time (India)
               </label>
-              <input id="trigger-time" type="time" className="field-input h-9" value={trigger.time ?? ""} disabled={readOnly} onChange={(event) => set({ time: event.target.value || undefined })} />
+              <input id="trigger-time" type="time" className="field-input field-compact" value={trigger.time ?? ""} disabled={readOnly} onChange={(event) => set({ time: event.target.value || undefined })} />
             </div>
           </div>
           <fieldset className="space-y-2 rounded-md border border-line px-3 py-2">
@@ -472,13 +472,13 @@ function TriggerPicker({ value, disabled, onPick }: { value: TriggerType | null;
     { kind: "separator", label: "" },
     ...OWN_STARTS.map(radio),
   ];
-  if (disabled) return <p className="field-input flex h-9 items-center" aria-labelledby="trigger-type-label">{value ? TRIGGER_LABEL[value] : "Not set"}</p>;
+  if (disabled) return <p className="field-input field-compact flex items-center" aria-labelledby="trigger-type-label">{value ? TRIGGER_LABEL[value] : "Not set"}</p>;
   return (
     <Menu
       label={`Trigger: ${value ? TRIGGER_LABEL[value] : "Choose what starts this rule"}`}
       align="left"
       className="relative flex"
-      buttonClass="field-input flex h-9 w-full items-center justify-between gap-2 text-left"
+      buttonClass="field-input field-compact flex w-full items-center justify-between gap-2 text-left"
       menuClass="w-72"
       testId="trigger-type"
       trigger={
@@ -584,7 +584,7 @@ function StepCard({ step, title, first, last, problems, readOnly, props, onChang
           Do this
         </p>
         {readOnly ? (
-          <p className="field-input flex h-9 items-center" aria-labelledby={`${id}-type-label`}>
+          <p className="field-input field-compact flex items-center" aria-labelledby={`${id}-type-label`}>
             {STEP_LABEL[step.type]}
           </p>
         ) : (
@@ -592,7 +592,7 @@ function StepCard({ step, title, first, last, problems, readOnly, props, onChang
             label={`Do this: ${STEP_LABEL[step.type]}`}
             align="left"
             className="relative flex"
-            buttonClass="field-input flex h-9 w-full items-center justify-between gap-2 text-left"
+            buttonClass="field-input field-compact flex w-full items-center justify-between gap-2 text-left"
             menuClass="w-64"
             testId="step-type"
             trigger={
@@ -698,7 +698,7 @@ function FieldValue({ id, field, value, people, disabled, onChange }: { id: stri
           Date (blank = clears the field)
         </label>
         {/* v1.75.0 (D-399): the shared date picker, one day. */}
-        <DateRangePicker mode="single" idBase={`${id}-picker`} triggerId={id} label="Date" dueLabel="Date" disabled={disabled} value={{ start: "", due: typeof value === "string" ? value : "" }} onChange={(next) => onChange(next.due || null)} placeholder="No date" triggerClass="field-input flex h-9 w-full items-center gap-2 text-left" />
+        <DateRangePicker mode="single" idBase={`${id}-picker`} triggerId={id} label="Date" dueLabel="Date" disabled={disabled} value={{ start: "", due: typeof value === "string" ? value : "" }} onChange={(next) => onChange(next.due || null)} placeholder="No date" triggerClass="field-input field-compact flex w-full items-center gap-2 text-left" />
       </div>
     );
   return <TextInput id={id} label={field.type === "NUMBER" ? "Number (blank = clears the field)" : "Text (blank = clears the field)"} value={value === null || value === undefined ? "" : String(value)} max={500} disabled={disabled} onChange={(next) => onChange(next === "" ? null : next)} inputMode={field.type === "NUMBER" ? "decimal" : undefined} />;
@@ -799,7 +799,7 @@ function ConditionRow({ condition, id, n, readOnly, props, onChange, onRemove }:
             <label htmlFor={`${id}-value`} className="field-label">
               Value
             </label>
-            <DateRangePicker mode="single" idBase={`${id}-value-picker`} triggerId={`${id}-value`} label="Value" dueLabel="Date" disabled={readOnly} value={{ start: "", due: String(condition.value ?? "") }} onChange={(next) => onChange({ ...condition, value: next.due || null })} placeholder="Choose a date" triggerClass="field-input flex h-9 w-full items-center gap-2 text-left" />
+            <DateRangePicker mode="single" idBase={`${id}-value-picker`} triggerId={`${id}-value`} label="Value" dueLabel="Date" disabled={readOnly} value={{ start: "", due: String(condition.value ?? "") }} onChange={(next) => onChange({ ...condition, value: next.due || null })} placeholder="Choose a date" triggerClass="field-input field-compact flex w-full items-center gap-2 text-left" />
           </div>
         ) : (
           <TextInput id={`${id}-value`} label="Value" value={String(condition.value ?? "")} max={500} disabled={readOnly} onChange={(value) => onChange({ ...condition, value: value || null })} />
@@ -820,7 +820,7 @@ function Select({ id, label, value, options, disabled, onChange }: { id: string;
       <label htmlFor={id} className="field-label">
         {label}
       </label>
-      <select id={id} className="field-input h-9 max-w-full" value={String(value)} disabled={disabled} onChange={(event) => onChange(event.target.value)}>
+      <select id={id} className="field-input field-compact max-w-full" value={String(value)} disabled={disabled} onChange={(event) => onChange(event.target.value)}>
         {options.map((option) => (
           <option key={String(option.value)} value={String(option.value)}>
             {option.label}
@@ -836,7 +836,7 @@ function TextInput({ id, label, value, max, disabled, onChange, inputMode }: { i
       <label htmlFor={id} className="field-label">
         {label}
       </label>
-      <input id={id} className="field-input h-9" value={value} maxLength={max} disabled={disabled} inputMode={inputMode} onChange={(event) => onChange(event.target.value)} />
+      <input id={id} className="field-input field-compact" value={value} maxLength={max} disabled={disabled} inputMode={inputMode} onChange={(event) => onChange(event.target.value)} />
     </div>
   );
 }
@@ -849,7 +849,7 @@ function NumberInput({ id, label, value, min, max, disabled, onChange, optional 
       <input
         id={id}
         type="number"
-        className="field-input h-9"
+        className="field-input field-compact"
         min={min}
         max={max}
         value={value}
@@ -884,7 +884,7 @@ function PeoplePicker({ id, label, ids, people, disabled, onChange }: { id: stri
         ))}
       </ul>
       {!disabled && ids.length < 20 && (
-        <select id={id} className="field-input h-9" value="" onChange={(event) => event.target.value && onChange([...ids, Number(event.target.value)])}>
+        <select id={id} className="field-input field-compact" value="" onChange={(event) => event.target.value && onChange([...ids, Number(event.target.value)])}>
           <option value="">Add a person</option>
           {people.filter((person) => !ids.includes(person.id)).map((person) => (
             <option key={person.id} value={person.id}>

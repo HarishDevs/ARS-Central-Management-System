@@ -55,9 +55,9 @@ export function RepeatEditor({ taskId, current, canChange }: { taskId: number; c
               value={every}
               onChange={(event) => setEvery(Math.max(1, Math.min(365, Number(event.target.value) || 1)))}
               aria-label="Every how many"
-              className="field-input h-8 w-20 py-0"
+              className="field-input field-compact w-20 py-0"
             />
-            <select value={kind} onChange={(event) => setKind(event.target.value as Recurrence["kind"])} aria-label="Repeat unit" className="field-input h-8 w-auto py-0">
+            <select value={kind} onChange={(event) => setKind(event.target.value as Recurrence["kind"])} aria-label="Repeat unit" className="field-input field-compact w-auto py-0">
               {RECURRENCE_KINDS.map((item) => (
                 <option key={item} value={item}>
                   {KIND_LABEL[item]}
@@ -209,7 +209,7 @@ export function SaveTemplateForm({ projectId, name }: { projectId: number; name:
         <label htmlFor="template-name" className="field-label">
           Save as a template named
         </label>
-        <input id="template-name" name="name" defaultValue={`${name} (template)`} maxLength={150} className="field-input h-9" />
+        <input id="template-name" name="name" defaultValue={`${name} (template)`} maxLength={150} className="field-input field-compact" />
       </div>
       <SubmitButton pending={pending} variant="secondary">
         Save as template
@@ -405,7 +405,7 @@ export function BulkBar({ ids, clear, people, sections, projectId }: { ids: numb
           setOp(event.target.value);
           setValue("");
         }}
-        className="field-input h-8 w-auto py-0 text-label"
+        className="field-input field-compact w-auto py-0 text-label"
       >
         <option value="COMPLETE">Complete</option>
         {people && <option value="ASSIGN">Assign to</option>}
@@ -420,7 +420,7 @@ export function BulkBar({ ids, clear, people, sections, projectId }: { ids: numb
       )}
       {op === "DUE" && <DateRangePicker mode="single" compact label="Due date" dueLabel="Due date" value={{ start: "", due: value }} onChange={(next) => setValue(next.due)} placeholder="Choose the due date" testId="bulk-due" />}
       {op === "PRIORITY" && (
-        <select aria-label="Priority" value={value} onChange={(event) => setValue(event.target.value)} className="field-input h-8 w-32 py-0 text-label">
+        <select aria-label="Priority" value={value} onChange={(event) => setValue(event.target.value)} className="field-input field-compact w-32 py-0 text-label">
           <option value="">Choose…</option>
           <option value="URGENT">Critical</option>
           <option value="HIGH">Most Important</option>
@@ -431,7 +431,7 @@ export function BulkBar({ ids, clear, people, sections, projectId }: { ids: numb
         </select>
       )}
       {op === "SECTION" && (
-        <select aria-label="Section" value={value} onChange={(event) => setValue(event.target.value)} className="field-input h-8 w-40 py-0 text-label">
+        <select aria-label="Section" value={value} onChange={(event) => setValue(event.target.value)} className="field-input field-compact w-40 py-0 text-label">
           <option value="">Choose…</option>
           {sections?.map((section) => (
             <option key={section.id} value={section.id}>
@@ -440,7 +440,7 @@ export function BulkBar({ ids, clear, people, sections, projectId }: { ids: numb
           ))}
         </select>
       )}
-      {op === "TAG" && <input aria-label="Tag" value={value} onChange={(event) => setValue(event.target.value)} maxLength={60} className="field-input h-8 w-40 py-0 text-label" />}
+      {op === "TAG" && <input aria-label="Tag" value={value} onChange={(event) => setValue(event.target.value)} maxLength={60} className="field-input field-compact w-40 py-0 text-label" />}
       <button type="button" disabled={pending || (needsValue && !value)} onClick={() => void run()} className={`${op === "DELETE" ? "btn-danger" : "btn-primary"} btn-compact`}>
         Apply
       </button>

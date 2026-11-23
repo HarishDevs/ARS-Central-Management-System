@@ -14,6 +14,7 @@ import { MODE_LABEL, offerOrder, type ChatMode } from "@/server/ai/chat-access";
 import { PROVIDER_LABEL, type ProviderCode } from "@/server/ai/providers";
 import { formatIndiaTime } from "@/server/notifications/security-messages";
 import { friendlyError } from "@/server/ai/friendly";
+import { PageHeader } from "@/features/shell/PageHeader";
 
 export const metadata: Metadata = { title: "AI Assistant" };
 export const dynamic = "force-dynamic";
@@ -52,7 +53,8 @@ export default async function AiAssistantPage({ searchParams }: { searchParams: 
 
   return (
     <section className="mx-auto flex w-full max-w-4xl flex-col" aria-label="AI Assistant">
-      <h1 className="sr-only">AI Assistant</h1>
+      {/* v1.89.0 (D-422, UIQA-CON-04): a visible page title like every other module (was sr-only). */}
+      <PageHeader title="AI Assistant" description="Ask about your approvals, tasks and records in plain words. Pico Bot reads only what you can see." />
       {/* D-180 (owner's sketch): new chat, the day's limit and the connection, in one strip. */}
       <div className="mb-6 flex flex-wrap items-center gap-2 text-label" data-testid="ai-strip">
         <Link href="/users/ai/assistant" className="btn-secondary btn-compact">

@@ -522,7 +522,7 @@ export function CommandPalette({ pages, saved }: { pages: PaletteLink[]; saved?:
                   {ADD[type].filter((item) => !extra.includes(item.key)).length > 0 && (
                     <label className="inline-flex items-center gap-1 text-label">
                       <span className="sr-only">Add filter</span>
-                      <select aria-label="Add filter" value="" onChange={(event) => event.target.value && setExtra((value) => [...value, event.target.value])} className="field-input h-9 w-auto text-label">
+                      <select aria-label="Add filter" value="" onChange={(event) => event.target.value && setExtra((value) => [...value, event.target.value])} className="field-input field-compact w-auto text-label">
                         <option value="">Add filter…</option>
                         {ADD[type]
                           .filter((item) => !extra.includes(item.key))

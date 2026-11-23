@@ -60,7 +60,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
               <label htmlFor="project-q" className="sr-only">
                 Find a project
               </label>
-              <input id="project-q" name="q" defaultValue={q} placeholder="Find a project…" className="field-input h-8 w-56 text-label" />
+              <input id="project-q" name="q" defaultValue={q} placeholder="Find a project…" className="field-input field-compact w-56 text-label" />
             </form>
           </div>
           {show === "templates" ? (

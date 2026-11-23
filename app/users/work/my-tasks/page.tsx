@@ -281,7 +281,7 @@ export default async function MyTasksPage({
           <li key={card.key} className="status-card flex min-w-[8rem] shrink-0 items-center gap-3 rounded-lg border border-line bg-surface px-3 py-2.5">
             <card.icon className={`h-5 w-5 shrink-0 ${card.tone}`} aria-hidden="true" />
             <span>
-              <span className="block text-title font-semibold leading-none tabular-nums">{card.value.toLocaleString("en-IN")}</span>
+              <span className="block text-stat font-semibold leading-none tabular-nums">{card.value.toLocaleString("en-IN")}</span>
               <span className="text-caption text-ink-muted">{card.label}</span>
             </span>
           </li>
@@ -412,7 +412,7 @@ export default async function MyTasksPage({
 function NoAccess({ ask }: { ask: { ownerId: number; ownerName: string; pending: boolean } | null }) {
   return (
     <section className="card mx-auto mt-8 max-w-lg px-6 py-8 text-center" data-testid="summary-no-access">
-      <h1 className="text-page-title font-semibold">You can&apos;t open this Task Summary</h1>
+      <h1 className="text-page-title">You can&apos;t open this Task Summary</h1>
       <p className="mt-2 text-label text-ink-muted">Only its owner, the managers above them and the people they share it with can open it. {ask ? `Ask ${ask.ownerName} for access.` : "Ask them to share it with you."}</p>
       {ask && <RequestAccess ownerId={ask.ownerId} ownerName={ask.ownerName} pending={ask.pending} />}
       <Link href="/users/work/my-tasks" className="btn-primary btn-compact mt-4 inline-flex w-auto">

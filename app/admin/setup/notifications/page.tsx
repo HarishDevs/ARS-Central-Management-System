@@ -86,7 +86,7 @@ export default async function AdminNotificationsPage({ searchParams }: { searchP
         {cards.map((card) => (
           <li key={card.label} className="card px-4 py-3" title={card.help}>
             <p className="text-caption text-ink-muted">{card.label}</p>
-            <p className="mt-1 text-title font-semibold tabular-nums">{card.value.toLocaleString("en-IN")}</p>
+            <p className="mt-1 text-stat font-semibold tabular-nums">{card.value.toLocaleString("en-IN")}</p>
           </li>
         ))}
       </ul>

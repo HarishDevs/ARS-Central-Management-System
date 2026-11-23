@@ -153,7 +153,7 @@ export function KpiTiles({ tiles }: { tiles: { label: string; value: string; not
       {tiles.map((tile) => (
         <div key={tile.label} className="card px-4 py-3">
           <p className="text-label text-ink-muted">{tile.label}</p>
-          <p className="mt-1 text-card-title font-bold tabular-nums">{tile.value}</p>
+          <p className="mt-1 text-stat font-bold tabular-nums">{tile.value}</p>
           {tile.note && <p className="text-caption text-ink-muted">{tile.note}</p>}
         </div>
       ))}

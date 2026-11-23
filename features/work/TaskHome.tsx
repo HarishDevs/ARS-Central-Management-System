@@ -158,7 +158,7 @@ export async function TaskHome({
             <h1 className="mt-1 text-display font-semibold tracking-tight">{`${greeting}, ${user.name.split(" ")[0]}`}</h1>
           </>
         ) : (
-          <h2 className="mb-2 text-card-title font-semibold">My work</h2>
+          <h2 className="mb-2 text-section font-semibold">My work</h2>
         )}
         <div className="mt-3 inline-flex flex-wrap items-center justify-center gap-2 rounded-full bg-surface-muted px-4 py-1.5 text-label text-ink-muted">
           <span>My week</span>

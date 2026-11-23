@@ -65,7 +65,7 @@ export function SetPasswordPanel({ token, name, loginId, minLength }: { token: s
         <form onSubmit={finish} className="mt-8 space-y-5" noValidate>
           <CodeField code={code} onCode={setCode} />
           <ErrorBox message={error} />
-          <button type="submit" disabled={busy || code.length < 4} className="btn-primary">
+          <button type="submit" disabled={busy || code.length < 4} className="btn-primary btn-block">
             {busy ? "Saving…" : "Set password and sign in"}
           </button>
         </form>
@@ -85,7 +85,7 @@ export function SetPasswordPanel({ token, name, loginId, minLength }: { token: s
       <form onSubmit={sendCode} className="mt-8 space-y-5" noValidate>
         <NewPasswordFields password={password} confirm={confirm} onPassword={setPassword} onConfirm={setConfirm} minLength={minLength} />
         <ErrorBox message={error} />
-        <button type="submit" disabled={busy || !password || !confirm} className="btn-primary">
+        <button type="submit" disabled={busy || !password || !confirm} className="btn-primary btn-block">
           {busy ? "Sending code…" : "Continue"}
         </button>
       </form>

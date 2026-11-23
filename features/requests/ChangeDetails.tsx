@@ -109,11 +109,11 @@ function ChangeDetailsForm({ data, onDone }: { data: ChangeDetailsData; onDone: 
                     <div className="flex flex-wrap items-end gap-2">
                       <label className="min-w-0 flex-1 text-label">
                         <span className="field-label">Level name</span>
-                        <input className="field-input h-9" value={level.label} maxLength={100} onChange={(event) => update(index, { label: event.target.value })} />
+                        <input className="field-input field-compact" value={level.label} maxLength={100} onChange={(event) => update(index, { label: event.target.value })} />
                       </label>
                       <label className="text-label">
                         <span className="field-label">Who must approve</span>
-                        <select className="field-input h-9" value={level.rule} onChange={(event) => update(index, { rule: event.target.value as LevelRule })}>
+                        <select className="field-input field-compact" value={level.rule} onChange={(event) => update(index, { rule: event.target.value as LevelRule })}>
                           <option value="ALL">Everyone picked</option>
                           <option value="ANY_ONE">Any one of them</option>
                         </select>

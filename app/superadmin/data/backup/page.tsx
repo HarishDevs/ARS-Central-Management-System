@@ -87,7 +87,7 @@ async function OffsiteSettings() {
   const byKey = new Map(raw.map((row) => [row.key, row]));
   return (
     <section aria-labelledby="offsite-title" className="mt-8">
-      <h2 id="offsite-title" className="mb-3 text-subhead font-semibold">
+      <h2 id="offsite-title" className="mb-3 text-section">
         Off-site copies and schedule
       </h2>
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">

@@ -420,7 +420,7 @@ export function ProjectWorkspace({
               {layout === "BOARD" ? (
                 <label className="block text-caption text-ink-muted">
                   Columns by
-                  <select aria-label="Columns" value={groupField ?? ""} onChange={(event) => setGroupField(event.target.value ? Number(event.target.value) : null)} className="field-input mt-1 h-9 w-full text-label" data-testid="board-columns">
+                  <select aria-label="Columns" value={groupField ?? ""} onChange={(event) => setGroupField(event.target.value ? Number(event.target.value) : null)} className="field-input field-compact mt-1 w-full text-label" data-testid="board-columns">
                     <option value="">Sections</option>
                     {fields.map((field) => (
                       <option key={field.id} value={field.id}>
@@ -432,7 +432,7 @@ export function ProjectWorkspace({
               ) : (
                 <label className="block text-caption text-ink-muted">
                   Group by
-                  <select aria-label="Group" value={group} onChange={(event) => setGroup(event.target.value as GroupBy)} className="field-input mt-1 h-9 w-full text-label">
+                  <select aria-label="Group" value={group} onChange={(event) => setGroup(event.target.value as GroupBy)} className="field-input field-compact mt-1 w-full text-label">
                     <option value="section">Sections</option>
                     <option value="assignee">Assignee</option>
                     <option value="department">Department</option>
@@ -598,7 +598,7 @@ export function ProjectWorkspace({
                 {section ? (
                   <SectionHeader section={section} sections={sections} count={count} canEdit={canEdit} projectId={projectId} automations={automations} />
                 ) : (
-                  <h3 className="flex items-center gap-2 px-3 pb-2 pt-3 text-card-title font-semibold">
+                  <h3 className="flex items-center gap-2 px-3 pb-2 pt-3 text-section font-semibold">
                     {boardCol.name} <span className="text-caption font-normal text-ink-muted">{count}</span>
                   </h3>
                 )}
@@ -841,7 +841,7 @@ export function ProjectWorkspace({
                             disabled={!OPEN.has(task.status)}
                             onChange={(event) => void call(() => taskFieldsAction(task.id, { priority: event.target.value }), { success: false })}
                             {...priorityControlProps(task.priority)}
-                            className={`field-input h-8 w-full max-w-[100px] py-0 text-label ${priorityControlProps(task.priority).className}`}
+                            className={`field-input field-compact w-full max-w-[100px] py-0 text-label ${priorityControlProps(task.priority).className}`}
                           >
                             <option value="URGENT">Critical</option>
                             <option value="HIGH">Most Important</option>
@@ -1011,7 +1011,7 @@ function SectionHeader({ section, sections, count, canEdit, plain, projectId, au
           onChange={(event) => setName(event.target.value)}
           onKeyDown={(event) => event.key === "Enter" && (event.target as HTMLInputElement).blur()}
           onBlur={() => name.trim() && name.trim() !== section.name && void call(() => sectionAction(section.id, { name }), { success: false })}
-          className={`min-w-0 max-w-full rounded border border-transparent bg-transparent px-1 font-semibold text-ink [field-sizing:content] hover:border-line focus:border-primary-600 focus:outline-none ${plain ? "" : "flex-1"}`}
+          className={`grid-editor min-w-0 max-w-full rounded border border-transparent bg-transparent px-1 font-semibold text-ink [field-sizing:content] hover:border-line focus:border-primary-600 focus:outline-none ${plain ? "" : "flex-1"}`}
         />
       ) : (
         <h3 className={`font-semibold ${plain ? "" : "flex-1"}`}>{section.name}</h3>
@@ -1026,7 +1026,7 @@ function SectionHeader({ section, sections, count, canEdit, plain, projectId, au
       {deleting && (
         <div className="flex w-full flex-wrap items-center gap-2 rounded-md bg-danger-50 p-2 text-label" role="group" aria-label="Delete section">
           <span>Move its tasks to</span>
-          <select aria-label="Move its tasks to" value={moveTo} onChange={(event) => setMoveTo(Number(event.target.value))} className="field-input h-8 w-auto py-0 text-label">
+          <select aria-label="Move its tasks to" value={moveTo} onChange={(event) => setMoveTo(Number(event.target.value))} className="field-input field-compact w-auto py-0 text-label">
             {sections
               .filter((item) => item.id !== section.id)
               .map((item) => (
@@ -1112,7 +1112,7 @@ export function AddTask({
         placeholder={placeholder ?? "Add a task… (Enter to add)"}
         data-work-add
         data-section-add={sectionId}
-        className={compact ? "field-input h-8 w-full text-label" : "h-8 w-full bg-transparent text-label focus:outline-none"}
+        className={compact ? "field-input field-compact w-full text-label" : "h-8 w-full bg-transparent text-label focus:outline-none"}
       />
     </div>
   );
@@ -1165,7 +1165,7 @@ function AddSection({ projectId, afterId, board }: { projectId: number; afterId:
           if (event.key === "Escape" && !name) setOpen(false);
         }}
         placeholder="New section…"
-        className="field-input h-8 text-label"
+        className="field-input field-compact text-label"
       />
       <button type="submit" disabled={busy} aria-busy={busy || undefined} className="btn-secondary btn-compact mt-0 shrink-0">
         Add section

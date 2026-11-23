@@ -203,7 +203,7 @@ function Kpi({ label, value, note, change }: { label: string; value: string; not
   return (
     <div className="card px-4 py-3">
       <p className="text-caption text-ink-muted">{label}</p>
-      <p className="text-card-title font-semibold tabular-nums">{value}</p>
+      <p className="text-stat font-semibold tabular-nums">{value}</p>
       {note && <p className="text-caption text-ink-muted">{note}</p>}
       {change}
     </div>

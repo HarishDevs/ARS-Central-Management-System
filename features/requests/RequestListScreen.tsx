@@ -418,7 +418,7 @@ export function RequestListScreen({
                     <span className="leading-tight">{tab.label}</span>
                     <LinkPending className="h-3 w-3" />
                   </span>
-                  <span className="text-title font-semibold tabular-nums" aria-hidden="true">
+                  <span className="text-stat font-semibold tabular-nums" aria-hidden="true">
                     {(counts[tab.key] ?? 0).toLocaleString("en-IN")}
                   </span>
                 </Link>

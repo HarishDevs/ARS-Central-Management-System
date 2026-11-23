@@ -166,7 +166,7 @@ export function RulesEditor({ rules, maxChars }: { rules: { scope: string; conte
         <label htmlFor="rules-scope" className="text-label font-medium">
           Rules for
         </label>
-        <select id="rules-scope" value={scope} onChange={(event) => setScope(event.target.value)} className="field-input h-9 w-56">
+        <select id="rules-scope" value={scope} onChange={(event) => setScope(event.target.value)} className="field-input field-compact w-56">
           {Object.entries(SCOPE_LABEL).map(([value, label]) => (
             <option key={value} value={value}>
               {label}

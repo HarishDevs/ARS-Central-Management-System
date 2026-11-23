@@ -49,7 +49,7 @@ export function HomeNotepad({ initialText, version }: { initialText: string; ver
   return (
     <section className="card min-w-0 px-4 py-4 sm:px-5" aria-labelledby="home-notepad" data-testid="home-notepad">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <h2 id="home-notepad" className="flex items-center gap-2 text-[calc(17px*var(--text-scale,1))] font-semibold">
+        <h2 id="home-notepad" className="flex items-center gap-2 text-section">
           Private notepad <Lock aria-hidden="true" className="h-4 w-4 text-ink-faint" />
         </h2>
         <span className={`text-caption ${status === "error" ? "text-danger-600" : "text-ink-muted"}`} role="status" aria-live="polite" data-testid="note-status">

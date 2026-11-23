@@ -46,7 +46,7 @@ export function CreateTaskForm({
   const submissionKey = useMemo(() => crypto.randomUUID(), []);
   const { result, pending, onSubmit } = useActionForm(createTaskAction);
   return (
-    <form onSubmit={onSubmit} className="card space-y-5 px-5 py-5" encType="multipart/form-data" aria-label="New task">
+    <form onSubmit={onSubmit} className="card max-w-form space-y-5 px-5 py-5" encType="multipart/form-data" aria-label="New task">
       {/* D-234 (Active user): leaving with unsaved changes asks first. */}
       <UnsavedGuard />
       <input type="hidden" name="type" value={typeId} />

@@ -163,9 +163,11 @@ describe("first-review points", () => {
       .filter((file) => readFileSync(file, "utf8").split("\n").some((line) => /\buppercase\b/.test(line) && !line.trim().startsWith("//")));
     expect(offenders.map((file) => path.relative(root, file))).toEqual([]);
   });
-  it("uses the 12 / 14 / 16 / 20 / 28 type scale", () => {
+  it("uses the 12 / 14 / 16 / 20 type scale and the page-title / section / stat tokens (D-422: greeting and card-title retired)", () => {
     const tailwind = readFileSync(path.join(root, "tailwind.config.ts"), "utf8");
-    for (const [name, size] of [["micro", 12], ["caption", 12], ["label", 14], ["body", 14], ["subhead", 16], ["title", 20], ["greeting", 28]] as const) expect(tailwind).toMatch(new RegExp(`${name}: \\["calc\\(${size}px`));
+    for (const [name, size] of [["micro", 12], ["caption", 12], ["label", 14], ["body", 14], ["subhead", 16], ["title", 20]] as const) expect(tailwind).toMatch(new RegExp(`${name}: \\["calc\\(${size}px`));
+    for (const name of ['"page-title"', "section", "stat"]) expect(tailwind).toMatch(new RegExp(`${name}: \\["calc\\(var\\(--text-`));
+    expect(tailwind).not.toMatch(/greeting: \[|"card-title": \[/);
   });
   it("draws no icon tile in the page header", () => {
     const html = renderToStaticMarkup(<PageHeader title="Waiting for me" icon={ListTodo} />);

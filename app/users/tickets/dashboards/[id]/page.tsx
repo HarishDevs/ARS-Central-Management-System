@@ -88,7 +88,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
           <li key={tile.label}>
             <Link href={href({ status: tile.status, page: null })} aria-current={filter.status === tile.status ? "true" : undefined} className={`card block h-full px-4 py-3 hover:border-line-strong ${filter.status === tile.status && tile.status ? "border-primary-600" : ""}`}>
               <p className="text-label text-ink-muted">{tile.label}</p>
-              <p className={`text-title font-semibold tabular-nums ${tile.tone ?? ""}`}>{tile.value.toLocaleString("en-IN")}</p>
+              <p className={`text-stat font-semibold tabular-nums ${tile.tone ?? ""}`}>{tile.value.toLocaleString("en-IN")}</p>
               {tile.note && <p className="text-caption text-ink-muted">{tile.note}</p>}
             </Link>
           </li>

@@ -27,7 +27,7 @@ export function SaveTemplateForm({ requestId, spec, compact = false }: { request
           <label htmlFor={`templateName-${requestId ?? "form"}`} className="sr-only">
             Template name
           </label>
-          <input id={`templateName-${requestId ?? "form"}`} name="templateName" maxLength={80} placeholder="e.g. Purchase above 1 lakh" className="field-input h-9 w-56" />
+          <input id={`templateName-${requestId ?? "form"}`} name="templateName" maxLength={80} placeholder="e.g. Purchase above 1 lakh" className="field-input field-compact w-56" />
           <FieldError result={result} name="templateName" />
         </div>
         <SubmitButton pending={pending} variant="secondary" className="btn-compact">
@@ -77,7 +77,7 @@ export function TemplateCard({ template }: { template: TemplateCardData }) {
             <label className="sr-only" htmlFor={`rename-${template.id}`}>
               Template name
             </label>
-            <input id={`rename-${template.id}`} value={name} onChange={(event) => setName(event.target.value)} maxLength={80} className="field-input h-9 min-w-0 flex-1" autoFocus />
+            <input id={`rename-${template.id}`} value={name} onChange={(event) => setName(event.target.value)} maxLength={80} className="field-input field-compact min-w-0 flex-1" autoFocus />
             <button type="submit" className="btn-secondary btn-compact">
               Save
             </button>
@@ -176,7 +176,7 @@ export function SaveLevelsInline({ spec }: { spec: string }) {
         }}
         maxLength={80}
         placeholder="Template name"
-        className="field-input h-9 w-56"
+        className="field-input field-compact w-56"
         autoFocus
       />
       <button type="button" onClick={() => void save()} disabled={busy || name.trim().length < 2} className="btn-secondary btn-compact disabled:opacity-60">

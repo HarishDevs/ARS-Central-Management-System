@@ -33,7 +33,7 @@ export default async function Page() {
               <li key={category.id}>
                 <Link href={`/users/tickets/dashboards/${category.id}`} className="card block h-full px-5 py-4 hover:border-line-strong">
                   <p className="font-semibold">{category.name}</p>
-                  <p className="mt-1 text-title font-semibold tabular-nums">{open.toLocaleString("en-IN")}</p>
+                  <p className="mt-1 text-stat font-semibold tabular-nums">{open.toLocaleString("en-IN")}</p>
                   <p className="text-label text-ink-muted">
                     open · {count.NEW + count.REOPENED} to assign · {count.overdue} overdue
                   </p>

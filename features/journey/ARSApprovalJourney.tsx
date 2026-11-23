@@ -478,7 +478,7 @@ export function ARSApprovalJourney({ journey: initial, serverNow, fresh = false,
         <img src={APP_BRANDING.logoSmall} alt={APP_BRANDING.logoAlt} width={compact ? 36 : 54} height={compact ? 24 : 36} className={`shrink-0 rounded-[4px] ${compact ? "h-6 w-9" : "h-9 w-[54px]"}`} />
         <span aria-hidden="true" className={`w-px shrink-0 bg-white/20 ${compact ? "h-6" : "h-9"}`} />
         <div className={`jr-title min-w-0 ${!compact && collapsed ? "flex-none sm:max-w-[40%]" : "flex-1 basis-[180px]"}`}>
-          <h2 className={`font-bold leading-tight ${compact ? "text-[14px]" : "text-[17px] sm:text-[19px]"}`}>Approval Journey</h2>
+          <h2 className={`font-bold leading-tight ${compact ? "text-label" : "text-section"}`}>Approval Journey</h2>
           <p className={`leading-snug text-[color:var(--jr-text-2)] ${compact ? "truncate text-[12px]" : "break-words text-[12.5px] sm:text-[13px]"}`}>
             <span className="font-mono">{shown.requestNo}</span>
             {shown.title && (

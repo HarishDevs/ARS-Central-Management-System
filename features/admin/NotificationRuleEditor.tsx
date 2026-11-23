@@ -115,7 +115,7 @@ export function NotificationRuleEditor({
           </h2>
           <Hint text="Any field, including the form fields of approval and task types. Text ignores capitals; numbers compare as numbers. For 'is one of', separate values with commas. No conditions = every pending step or open task." align="start" />
           {rule.conditions.length > 1 && (
-            <select aria-label="Match" className="field-input h-8 w-auto" value={rule.match} onChange={(event) => set("match", event.target.value as RuleInput["match"])}>
+            <select aria-label="Match" className="field-input field-compact w-auto" value={rule.match} onChange={(event) => set("match", event.target.value as RuleInput["match"])}>
               <option value="ALL">All conditions must match</option>
               <option value="ANY">Any one condition is enough</option>
             </select>

@@ -49,7 +49,7 @@ export function MobileSearch({ tasks, projects }: { tasks: boolean; projects: bo
         </div>
       </form>
       <section aria-labelledby="m-quick">
-        <h2 id="m-quick" className="mb-3 text-[length:calc(20px*var(--text-scale,1))] font-semibold">
+        <h2 id="m-quick" className="mb-3 text-section">
           Quick filters
         </h2>
         <div className="flex flex-wrap gap-2.5">
@@ -62,7 +62,7 @@ export function MobileSearch({ tasks, projects }: { tasks: boolean; projects: bo
       </section>
       {shortcuts.length > 0 && (
         <section aria-labelledby="m-shortcuts">
-          <h2 id="m-shortcuts" className="mb-3 text-[length:calc(20px*var(--text-scale,1))] font-semibold">
+          <h2 id="m-shortcuts" className="mb-3 text-section">
             Shortcuts
           </h2>
           <div className="flex flex-wrap gap-2.5">

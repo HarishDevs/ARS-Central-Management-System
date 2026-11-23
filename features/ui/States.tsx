@@ -42,7 +42,7 @@ export function ErrorState({
         <AlertTriangle className="h-5 w-5" />
       </span>
       <div>
-        <p className={page ? "text-title font-semibold" : "font-semibold"}>{title}</p>
+        <p className={page ? "text-page-title" : "font-semibold"}>{title}</p>
         <p className={`mt-1 text-ink-muted ${page ? "mx-auto max-w-md" : "text-label"}`}>{body}</p>
       </div>
       <div className={`flex flex-wrap gap-2 ${page ? "justify-center" : ""}`}>
