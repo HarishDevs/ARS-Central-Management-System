@@ -144,7 +144,7 @@ export function TaskFieldRows({ data, canAssign }: { data: PanelData; canAssign:
               disabled={!canAssign}
               onClick={() => setPicking(true)}
               aria-label={`Assignee: ${data.assigneeName ?? "No assignee"}${canAssign ? ". Change" : ""}`}
-              className="inline-flex min-w-0 items-center gap-2 rounded-md px-1.5 py-1 text-label text-ink hover:bg-surface-muted disabled:cursor-default disabled:hover:bg-transparent"
+              className="inline-flex min-w-0 max-w-full items-center gap-2 rounded-md px-1.5 py-1 text-label text-ink hover:bg-surface-muted disabled:cursor-default disabled:hover:bg-transparent"
             >
               {data.assigneeName ? (
                 <Avatar name={data.assigneeName} src={null} size="sm" />

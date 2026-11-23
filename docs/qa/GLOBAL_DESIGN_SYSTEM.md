@@ -1,6 +1,35 @@
 # Global design system: proposal (UI/UX QA, phase 1)
 
-**Date:** 24 Nov 2026. **Build:** v1.88.0 (`893fb4b`). **Status:** a **proposal** for the owner. Nothing here is built yet.
+**Date:** 24 Nov 2026. **Build:** v1.88.0 (`893fb4b`). **Status (updated 24 Nov 2026, v1.89.0 stage 3a, D-421): ADOPTED** for the shell, type and control tokens: the owner said "go ahead with your recommendations" and the reference dimensions are now the app's tokens. §A below lists what is in the code; the original proposal follows unchanged (its "Current" columns are the v1.88.0 measurements). The page-by-page sweep that applies them everywhere is batch 2 ([UI_REFACTORING_LOG.md](UI_REFACTORING_LOG.md)).
+
+## A. Adopted tokens (v1.89.0, D-421)
+
+One source: `styles/globals.css` `:root` (phones: the `@media (max-width: 767.98px)` block under it). Tailwind maps them in `tailwind.config.ts`. Guarded by `tests/ui/shell-tokens-v189.test.ts`.
+
+| Group | Token | Value | Tailwind class | Applied in stage 3a |
+|---|---|---|---|---|
+| Shell | `--header-h` | 64; **56 below 768 in every area** | `h-topbar` | both headers, public header, MobileNav sheet |
+| Shell | `--sidebar-w` / `--sidebar-w-rail` | 250 / 72 | `w-sidebar` / `w-rail` | SidebarFrame |
+| Shell | `--page-px` / `--page-pt` | 24 / 24; 16 / 16 below 768 | `px-page` / `pt-page` | header, `main`, banners, public pages |
+| Shell | `--section-gap` | 24; 16 below 768 | `mb-section`, `gap-section` | PageHeader |
+| Shell | `--content-max` | 1600, left-aligned beside the sidebar (C16 option b) | `max-w-content` | `main` (not Classic) |
+| Shell | `--content-max-reading` / `--content-max-form` | 896 / 960 | `max-w-reading` / `max-w-form` | Help, Privacy, Terms (reading); forms: batch 2 |
+| Type | `--text-page-title` | 24 / 32, 600 | `text-page-title` | PageHeader + 23 custom h1s that used `text-title` |
+| Type | `--text-section` | 18 / 24, 600 | `text-section` | defined; h2 sweep in batch 2 |
+| Type | `--text-body` | 14 / 20 | `text-body` (unchanged) | |
+| Controls | `--control-h-sm / -md / -lg` | 32 / 40 / 48 | `h-control-sm/-md/-lg` | `btn-compact`, `btn-ghost`, `tb-btn`, `tb-split`, `pill-select` = sm; `btn-primary/-secondary/-danger/-danger-quiet` = md; `btn-lg` = lg; `Button size="sm/md/lg"` |
+| Controls | `--input-h` / `--input-h-sm` | **42** (owner) / 32 | `h-input` / `h-input-sm` | `field-input` / `field-compact` |
+| Controls | `--touch-min` | 44 on `pointer: coarse` | `min-h-touch` | every named control class |
+| Radius | `--radius-control / -card / -popover / -modal / -pill` | 8 / 12 / 12 / 16 / 9999 | `rounded-md/-lg/-xl` read them; `rounded-control/-card/-popover/-modal` | (values unchanged) |
+| Spacing | `--space-1 … --space-12` | 4 / 8 / 12 / 16 / 20 / 24 / 32 / 40 / 48 | Tailwind `1 2 3 4 5 6 8 10 12` | scale fixed; lint in batch 2 |
+
+**Decisions on the open questions (§9):** Q-UI-1 yes, with the owner's input height **42** and button **40** (they differ by 2 px on purpose; a field and its button in one row align by `items-center`). Q-UI-2: left-aligned, max 1600 (the owner's brief said ~1600 rather than the proposal's 1440). Q-UI-3: Classic kept as it is for now (its box, title bar and field override unchanged). Q-UI-4: yes, phone header 56 in every area. Q-UI-5: D-420. Q-UI-6: yes, rail by default **768-1279** (the owner extended the proposal's "below 1024" to below 1280); the person's saved choice wins.
+
+**Conflicts resolved (§0):** C1 (phone 56 everywhere, public 64), C2, C3, C4, C5, C6, C8 (shared title size; other h1 styles batch 2), C11 and C12 (tokens; page overrides batch 2), C13 / C14 (tokens), C16. Open for batch 2: C7 (section gap on pages without PageHeader), C9 (h2 sizes), C15 (spacing lint).
+
+---
+
+## Proposal (phase 1, unchanged)
 
 This proposal keeps the ARS brand. The tokens come from `D:\Omniroute\assets\tokens`, D-022, `styles/globals.css` and `tailwind.config.ts`. It maps the owner's reference dimensions onto those tokens and flags every conflict with a recommendation. The owner's reference values are "starting values, configurable via tokens". So every value below is a token, never a page-level number.
 

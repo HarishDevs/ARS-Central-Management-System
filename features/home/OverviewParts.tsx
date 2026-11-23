@@ -57,7 +57,7 @@ export function OverviewHeader({
       <header className="mb-5 flex flex-wrap items-start justify-between gap-4" data-tour={tour ? "page-header" : undefined} data-testid={testId}>
         <div className="flex min-w-0 items-start gap-3">
           <div className="min-w-0">
-            <h1 className="text-title font-semibold tracking-tight">{title}</h1>
+            <h1 className="text-page-title font-semibold tracking-tight">{title}</h1>
             {role && (
               <p className="text-label text-ink-muted" data-testid="overview-role">
                 {role}

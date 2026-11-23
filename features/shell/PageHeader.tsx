@@ -12,17 +12,23 @@ import type { LucideIcon } from "lucide-react";
 // title alone leads the page); `icon` is still accepted and ignored.
 export function PageHeader({ title, description, meta, children, badge }: { title: string; description?: string; meta?: string; icon?: LucideIcon; children?: React.ReactNode; badge?: React.ReactNode }) {
   return (
-    <div className="mb-6 flex flex-wrap items-center justify-between gap-4" data-tour="page-header">
-      <div className="flex min-w-0 items-center gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5">
-            <h1 className="text-title font-semibold tracking-tight">{typeof title === "string" ? <SafeText text={title} /> : title}</h1>
+    // v1.89.0 (UIQA-LAY-01, P1): every flex child on the title's path has
+    // min-w-0 (a flex item's min-width:auto was the whole unbroken word), and
+    // the h1 wraps anywhere, so a pasted URL or reference wraps inside the
+    // content column instead of scrolling the page sideways.
+    // D-421: the title is the page-title token (24) and the bottom margin the
+    // section gap (24; 16 on phones).
+    <div className="mb-section flex min-w-0 flex-wrap items-center justify-between gap-4" data-tour="page-header">
+      <div className="flex min-w-0 max-w-full items-center gap-3">
+        <div className="min-w-0 max-w-full">
+          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+            <h1 className="min-w-0 max-w-full text-page-title font-semibold tracking-tight [overflow-wrap:anywhere]">{typeof title === "string" ? <SafeText text={title} /> : title}</h1>
             {description && <Hint text={description} align="start" />}
             {/* v1.47.0: e.g. the request's Priority pill, beside the title. */}
             {badge}
           </div>
           {meta && (
-            <p className="mt-1 max-w-3xl text-label text-ink-muted">
+            <p className="mt-1 max-w-3xl text-label text-ink-muted [overflow-wrap:anywhere]">
               <SafeText text={meta} />
             </p>
           )}

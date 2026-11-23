@@ -9,6 +9,21 @@ import path from "node:path";
 const OUT = "audit/ui-qa";
 const RAW = path.join(OUT, "raw");
 const OWNER = { header: 64, sidebar: 250, rail: 72, padX: 24, padTop: 24, h1: 24, h2: 18, body: 14, button: 40, input: 42, cardRadius: 12, modalRadius: 16 };
+// v1.89.0 (D-421): the owner's values are now the app's tokens. The expected shell at a
+// viewport (desktop shell; Classic keeps its own box): header 64 (56 below 768), padding
+// and top 24 (16 below 768), sidebar 250 from 1280, the 72 rail at 768-1279 (no saved
+// choice), none on phones; content left = sidebar + padding; max-width 1600 (left-aligned).
+// A difference is listed in summary.conformance (and the overflow list must stay empty).
+const PHONE = 768;
+const TABLET_MAX = 1279;
+function expectedShell(r) {
+  const width = Number(String(r.vp).split("x")[0]);
+  if (!width || area(r) === "public" || r.view === "classic") return null;
+  const phone = width < PHONE;
+  const sidebar = phone ? null : r.rail || width <= TABLET_MAX ? OWNER.rail : OWNER.sidebar;
+  const pad = phone ? 16 : OWNER.padX;
+  return { headerH: phone ? 56 : OWNER.header, padL: pad, padT: phone ? 16 : OWNER.padTop, sidebarW: sidebar, contentLeft: (sidebar ?? 0) + pad, maxW: phone || r.layoutAttr === "mobile" ? null : "1600px" };
+}
 
 const records = [];
 for (const browser of fs.existsSync(RAW) ? fs.readdirSync(RAW) : []) {
@@ -36,7 +51,7 @@ const merge = (hists) => hists.reduce((acc, h) => {
 }, {});
 const top = (h, n = 8) => Object.fromEntries(Object.entries(h).sort((a, b) => b[1] - a[1]).slice(0, n));
 
-const summary = { generated: new Date().toISOString(), owner: OWNER, counts: {}, shell: {}, h1: {}, controls: {}, radius: {}, overflow: [], outside: [], errors: [], failed: [], axe: {}, cls: [], slow: [], formats: {}, status: [] };
+const summary = { generated: new Date().toISOString(), owner: OWNER, conformance: [], counts: {}, shell: {}, h1: {}, controls: {}, radius: {}, overflow: [], outside: [], errors: [], failed: [], axe: {}, cls: [], slow: [], formats: {}, status: [] };
 const byBrowser = groupBy(records, (r) => r.browser);
 for (const [browser, list] of Object.entries(byBrowser)) {
   summary.counts[browser] = { visits: list.length, ok: list.filter(ok).length, routes: new Set(list.map((r) => `${r.role} ${r.route}`)).size, viewports: [...new Set(list.map((r) => r.vp))] };
@@ -85,6 +100,12 @@ for (const [key, list] of Object.entries(groupBy(desk.filter((r) => r.browser ==
 }
 
 for (const r of records.filter(ok)) {
+  const want = expectedShell(r);
+  if (want) {
+    const got = { headerH: r.header?.h ?? null, padL: r.main.padL, padT: r.main.padT, sidebarW: r.sidebar?.w ?? null, contentLeft: r.main.contentLeft, maxW: want.maxW === null ? null : r.main.maxW };
+    const off = Object.keys(want).filter((key) => (typeof want[key] === "number" ? Math.abs((got[key] ?? -999) - want[key]) > 1 : got[key] !== want[key]));
+    if (off.length) summary.conformance.push({ browser: r.browser, vp: r.vp, role: r.role, rail: r.rail, path: r.path, off: Object.fromEntries(off.map((key) => [key, { want: want[key], got: got[key] }])) });
+  }
   if (r.overflowX > 1) summary.overflow.push({ browser: r.browser, vp: r.vp, role: r.role, path: r.path, overflowX: r.overflowX, outside: r.outside?.slice(0, 3) });
   else if (r.outsideCount > 0) summary.outside.push({ browser: r.browser, vp: r.vp, role: r.role, path: r.path, count: r.outsideCount, outside: r.outside?.slice(0, 3) });
   if (r.console?.length) summary.errors.push({ browser: r.browser, vp: r.vp, role: r.role, path: r.path, console: r.console });
@@ -104,4 +125,4 @@ for (const [mod, list] of Object.entries(groupBy(desk.filter((r) => r.browser ==
   for (const k of Object.keys(summary.formats[mod])) if (!summary.formats[mod][k]) delete summary.formats[mod][k];
 }
 fs.writeFileSync(path.join(OUT, "summary.json"), JSON.stringify(summary, null, 1));
-console.log(JSON.stringify({ counts: summary.counts, overflow: summary.overflow.length, outside: summary.outside.length, errors: summary.errors.length, failed: summary.failed.length, axeRules: Object.keys(summary.axe).length, cls: summary.cls.length, slow: summary.slow.length, status: summary.status.length }, null, 1));
+console.log(JSON.stringify({ counts: summary.counts, conformance: summary.conformance.length, overflow: summary.overflow.length, outside: summary.outside.length, errors: summary.errors.length, failed: summary.failed.length, axeRules: Object.keys(summary.axe).length, cls: summary.cls.length, slow: summary.slow.length, status: summary.status.length }, null, 1));

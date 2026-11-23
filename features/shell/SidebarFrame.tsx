@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { NavIcon, SectionIcon } from "@/features/shell/nav-icons";
 import { BrandLockup } from "@/features/ui/Brand";
 import { CreateMenu } from "@/features/shell/CreateMenu";
-import { SIDEBAR_COOKIE } from "@/features/shell/sidebar-cookie";
+import { SIDEBAR_COOKIE, SIDEBAR_WIDTH_COOKIE, TABLET_MAX_WIDTH, TABLET_MIN_WIDTH } from "@/features/shell/sidebar-cookie";
 import { MOTION_DELAY, MOTION_DURATION } from "@/features/ui/motion";
 
 // D-229 (owner: "make the sidebar collapsible like Asana for the whole
@@ -21,20 +21,40 @@ export type RailEntry = { kind: "item"; href: string; label: string } | { kind: 
 
 export function SidebarFrame({
   initialCollapsed,
+  savedChoice = false,
   homeHref,
   homeLabel,
   rail,
   create,
   children,
 }: {
-  initialCollapsed: boolean;
+  initialCollapsed: boolean | null;
+  savedChoice?: boolean;
   homeHref: string;
   homeLabel: string;
   rail: RailEntry[];
   create: { approval: boolean; task: boolean; project?: boolean; portfolio?: boolean; information: boolean; meeting?: boolean; ticket?: boolean } | null;
   children: React.ReactNode;
 }) {
-  const [collapsed, setCollapsed] = useState(initialCollapsed);
+  // v1.89.0 (D-421, UIQA-RESP-02): until the person folds or opens the
+  // sidebar themselves, it follows the window: the 72 px rail on a tablet
+  // (768-1279 px), open from 1280. The width class goes in a cookie so the
+  // server draws the same next time. `null` = the server can't know yet (a
+  // device's first page): both are drawn and CSS shows the right one at the
+  // first paint (no layout shift), until the effect below picks one.
+  const [collapsed, setCollapsed] = useState<boolean | null>(initialCollapsed);
+  const [saved, setSaved] = useState(savedChoice);
+  useEffect(() => {
+    if (saved) return;
+    const tablet = window.matchMedia(`(min-width: ${TABLET_MIN_WIDTH}px) and (max-width: ${TABLET_MAX_WIDTH + 0.98}px)`);
+    const follow = () => {
+      document.cookie = `${SIDEBAR_WIDTH_COOKIE}=${tablet.matches ? "tablet" : "wide"}; path=/; max-age=31536000; samesite=lax`;
+      setCollapsed(tablet.matches);
+    };
+    follow();
+    tablet.addEventListener("change", follow);
+    return () => tablet.removeEventListener("change", follow);
+  }, [saved]);
   // v1.87.0 (D-417, audit gaps 3–7): right after a toggle the labels fade and
   // slide in (open) or the rail's items fade in (folded); the state is kept
   // in the cookie as before.
@@ -71,6 +91,7 @@ export function SidebarFrame({
   const set = (value: boolean) => {
     hideTip();
     setJustToggled(true);
+    setSaved(true);
     setCollapsed(value);
     document.cookie = `${SIDEBAR_COOKIE}=${value ? "rail" : "open"}; path=/; max-age=31536000; samesite=lax`;
   };
@@ -84,15 +105,18 @@ export function SidebarFrame({
     set(false);
   };
   const here = (href: string) => pathname === href || (href.split("/").length > 2 && pathname.startsWith(`${href}/`));
+  // The first page on a device (collapsed === null): the rail below xl (1280), open from xl.
+  const auto = collapsed === null;
 
   return (
     <aside
-      className={`hidden shrink-0 flex-col border-r border-line bg-surface md:sticky md:top-0 md:flex md:h-dvh md:self-start ${collapsed ? "w-20" : "w-sidebar"}`}
+      className={`hidden shrink-0 flex-col border-r border-line bg-surface md:sticky md:top-0 md:flex md:h-dvh md:self-start ${auto ? "w-rail xl:w-sidebar" : collapsed ? "w-rail" : "w-sidebar"}`}
       data-testid="sidebar"
       data-collapsed={collapsed ? "true" : undefined}
+      data-sidebar-auto={auto ? "" : undefined}
       data-just-toggled={justToggled ? "" : undefined}
     >
-      <div className={`flex h-topbar shrink-0 items-center gap-2 border-b border-line ${collapsed ? "justify-center px-2" : "px-3"}`}>
+      <div className={`flex h-topbar shrink-0 items-center gap-2 border-b border-line ${auto ? "justify-center px-2 xl:justify-start xl:px-3" : collapsed ? "justify-center px-2" : "px-3"}`}>
         <button
           type="button"
           onClick={() => set(!collapsed)}
@@ -106,13 +130,13 @@ export function SidebarFrame({
         </button>
         {!collapsed && (
           // WEB-17 (v1.10.0): the logo goes to this space's first page.
-          <Link href={homeHref} aria-label={homeLabel} className="rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600">
+          <Link href={homeHref} aria-label={homeLabel} className={`rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 ${auto ? "hidden xl:inline-flex" : ""}`}>
             <BrandLockup size="sm" subtitle={false} />
           </Link>
         )}
       </div>
-      {collapsed ? (
-        <nav aria-label="Main" className="flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto overflow-x-hidden px-1 py-3" data-testid="sidebar-rail" data-just-toggled={justToggled ? "" : undefined} onPointerOver={(event) => showTip(event.target)} onPointerLeave={hideTip} onFocus={(event) => showTip(event.target)} onBlur={hideTip}>
+      {collapsed !== false && (
+        <nav aria-label="Main" className={`flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto overflow-x-hidden px-1 py-3 ${auto ? "xl:hidden" : ""}`} data-testid="sidebar-rail" data-just-toggled={justToggled ? "" : undefined} onPointerOver={(event) => showTip(event.target)} onPointerLeave={hideTip} onFocus={(event) => showTip(event.target)} onBlur={hideTip}>
           {create && <CreateMenu {...create} compact />}
           {rail.map((entry) => {
             const active = entry.kind === "item" ? here(entry.href) : false;
@@ -139,9 +163,9 @@ export function SidebarFrame({
             </span>
           )}
         </nav>
-      ) : (
-        children
       )}
+      {collapsed === false && children}
+      {auto && <div className="hidden min-h-0 flex-1 flex-col xl:flex">{children}</div>}
     </aside>
   );
 }

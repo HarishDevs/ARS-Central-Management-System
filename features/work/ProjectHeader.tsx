@@ -51,7 +51,7 @@ function ProjectTitle({ projectId, name }: { projectId: number; name: string }) 
     requestAnimationFrame(() => button.current?.focus());
   };
   return (
-    <h1 className="min-w-0 text-title font-semibold tracking-tight">
+    <h1 className="min-w-0 text-page-title font-semibold tracking-tight">
       {editing ? (
         <input
           autoFocus
@@ -186,7 +186,7 @@ export function ProjectHeader({
       )}
       <div className="min-w-0">
         <div className="flex items-center gap-1">
-          {canManage ? <ProjectTitle projectId={projectId} name={name} /> : <h1 className="truncate text-title font-semibold tracking-tight">{name}</h1>}
+          {canManage ? <ProjectTitle projectId={projectId} name={name} /> : <h1 className="truncate text-page-title font-semibold tracking-tight">{name}</h1>}
           <Menu label={`Actions for ${name}`} trigger={<ChevronDown aria-hidden="true" className="h-4 w-4" />} items={actions} align="left" menuClass="w-64" testId="project-actions" />
           <StarButton projectId={projectId} starred={starred} name={name} />
           {canEdit ? (

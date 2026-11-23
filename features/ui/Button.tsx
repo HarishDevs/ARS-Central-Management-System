@@ -7,7 +7,9 @@ import { Spinner } from "@/features/ui/Spinner";
 // pages and new components match. While busy the button keeps its width
 // (the label stays, hidden) and says what it is doing to screen readers.
 export type ButtonVariant = "primary" | "secondary" | "danger" | "danger-quiet" | "ghost";
-export type ButtonSize = "md" | "sm";
+// v1.89.0 (D-421): the named sizes only: sm 32 (--control-h-sm), md 40
+// (--control-h-md, the default), lg 48 (--control-h-lg); 44 on touch screens.
+export type ButtonSize = "md" | "sm" | "lg";
 
 const VARIANT: Record<ButtonVariant, string> = {
   primary: "btn-primary",
@@ -18,7 +20,7 @@ const VARIANT: Record<ButtonVariant, string> = {
 };
 
 export function buttonClass(variant: ButtonVariant = "primary", size: ButtonSize = "md", extra = ""): string {
-  return `${VARIANT[variant]} ${size === "sm" ? "btn-compact" : ""} ${extra}`.trim();
+  return `${VARIANT[variant]} ${size === "sm" ? "btn-compact" : size === "lg" ? "btn-lg" : ""} ${extra}`.trim();
 }
 
 type Props = React.ButtonHTMLAttributes<HTMLButtonElement> & {

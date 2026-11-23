@@ -16,7 +16,7 @@ export default async function SwitchedOffPage({ searchParams }: { searchParams: 
       <span aria-hidden="true" className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-muted text-ink-muted">
         <PowerOff className="h-6 w-6" />
       </span>
-      <h1 className="text-title font-semibold">{label ? `${label} is switched off` : "This part is switched off"}</h1>
+      <h1 className="text-page-title font-semibold">{label ? `${label} is switched off` : "This part is switched off"}</h1>
       <p className="max-w-md text-ink-muted">IT has switched this part of the app off for now. Your data in it is kept and comes back when it is switched on again.</p>
       <p className="max-w-md text-label text-ink-muted">If you need it for your work, ask IT.</p>
       <Link href="/users" className="btn-primary btn-compact">

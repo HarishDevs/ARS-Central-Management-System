@@ -176,7 +176,7 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
           id={panelId}
           role="dialog"
           aria-label="Latest notifications"
-          className="pop-in fixed inset-x-3 top-[calc(3.5rem+env(safe-area-inset-top)+0.25rem)] z-popover flex max-h-[calc(100dvh-3.5rem-4rem-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] flex-col overflow-hidden rounded-lg border border-line bg-surface shadow-overlay sm:absolute sm:inset-x-auto sm:right-0 sm:top-11 sm:max-h-[min(80vh,560px)] sm:w-[380px]"
+          className="pop-in fixed inset-x-3 top-[calc(var(--header-h)+env(safe-area-inset-top)+0.25rem)] z-popover flex max-h-[calc(100dvh-var(--header-h)-4rem-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] flex-col overflow-hidden rounded-lg border border-line bg-surface shadow-overlay sm:absolute sm:inset-x-auto sm:right-0 sm:top-11 sm:max-h-[min(80vh,560px)] sm:w-[380px]"
           data-testid="notification-dropdown"
         >
           {/* v1.49.4 (owner: layout issue): the header, filters and footer keep their height; only the list scrolls. */}

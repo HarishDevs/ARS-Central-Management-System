@@ -207,11 +207,12 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
     <>
       {mobile && (
         // v1.45.0 (owner's Asana task screen): back, Mark complete, copy link and … (the task's actions) stay at the top.
-        <div className="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-sticky -mx-4 -mt-4 mb-3 flex items-center gap-2 border-b border-line bg-surface px-2 py-2" data-testid="m-task-bar">
+        <div className="sticky top-[calc(var(--header-h)+env(safe-area-inset-top))] z-sticky -mx-page -mt-page mb-3 flex items-center gap-2 border-b border-line bg-surface px-2 py-2" data-testid="m-task-bar">
           <Link href={returnTo ? returnTo.href : fromProject ? `/users/work/projects/${fromProject.projectId}` : "/users/work/my-tasks"} aria-label={returnTo ? `Back to ${returnTo.label}` : "Back to tasks"} className="grid h-11 w-11 place-items-center rounded-full text-ink">
             <ArrowLeft aria-hidden="true" className="h-6 w-6" />
           </Link>
-          <span className="flex flex-1 justify-center">{canTick && <TaskCompleteButton taskId={task.id} done={task.status === "COMPLETED"} disabled={!(actions.has("COMPLETE") || actions.has("REOPEN"))} title={task.title} />}</span>
+          {/* v1.89.0 (UIQA-A11Y-01): min-w-0 so Mark complete shrinks (its words cut with …) instead of widening the page at 320 px (400 % zoom). */}
+          <span className="flex min-w-0 flex-1 justify-center">{canTick && <TaskCompleteButton taskId={task.id} done={task.status === "COMPLETED"} disabled={!(actions.has("COMPLETE") || actions.has("REOPEN"))} title={task.title} />}</span>
           <span className="grid h-11 w-11 place-items-center">
             <CopyLinkButton path={`/users/tasks/${task.id}`} />
           </span>
@@ -225,7 +226,7 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
           <p className="font-mono text-[12px] text-ink-muted">
             {task.taskNo} · {task.typeName}
           </p>
-          <h1 className="text-greeting font-semibold">{task.title}</h1>
+          <h1 className="text-greeting font-semibold [overflow-wrap:anywhere]">{task.title}</h1>
           <div className="flex flex-wrap gap-2">
             <Badge tone={STATUS_TONE[task.status]}>{TASK_STATUS_LABEL[task.status]}</Badge>
             <TaskPriorityPill priority={task.priority} showNormal />

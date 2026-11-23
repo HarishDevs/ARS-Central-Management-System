@@ -29,7 +29,7 @@ From the top:
 - **AI Assistant** (if Pico Bot is on for you), with your chats.
 - **Calendar** and **Analytics**.
 
-Groups open and close like a dropdown; the group of the page you're on opens by itself and the app remembers the rest. **☰** folds the sidebar into a narrow row of icons. You only see the modules IT gave you.
+Groups open and close like a dropdown; the group of the page you're on opens by itself and the app remembers the rest. **☰** folds the sidebar into a narrow row of icons. You only see the modules IT gave you. **(v1.89.0)** On a tablet-sized window (768 to 1,279 pixels wide) the sidebar starts folded to its icons, so the page has more room; **☰** opens it, and the app remembers your choice on that device from then on. On wide screens the page now uses the room beside the sidebar (up to 1,600 pixels wide) instead of a narrow centred column; help, privacy and terms keep a comfortable reading width. A very long title, such as a pasted link or reference, wraps inside the page instead of making it scroll sideways.
 
 ### Modules and "Coming soon"
 ARS-CMS has six main modules: **Approvals, Tasks, Projects, Information, Meeting Management** and **Ticketing** (and later the **AI Assistant**). They are switched on per person, one at a time as each is released. Home, Inbox, Calendar and Analytics are shared by every module.

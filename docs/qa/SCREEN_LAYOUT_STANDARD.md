@@ -2,7 +2,7 @@
 
 > **This document also covers GLOBAL_LAYOUT_ARCHITECTURE and RESPONSIVE_STANDARD.** Those two are sections 1 and 5 of this file, not separate files.
 
-**Date:** 24 Nov 2026. **Build:** v1.88.0. **Status:** a proposal (phase 1). The values are tokens from [GLOBAL_DESIGN_SYSTEM.md](GLOBAL_DESIGN_SYSTEM.md). "Measured" means the sweep (`audit/ui-qa/summary.json`, Chromium, 9 viewports).
+**Date:** 24 Nov 2026. **Build:** v1.88.0. **Status:** a proposal (phase 1); **the shell part (§2 tokens, §5 tablet rail) adopted in v1.89.0 stage 3a (D-421)**, measured after in §2. The values are tokens from [GLOBAL_DESIGN_SYSTEM.md](GLOBAL_DESIGN_SYSTEM.md). "Measured" means the sweep (`audit/ui-qa/summary.json`, Chromium, 9 viewports).
 
 ## 1. Global layout architecture (one shell)
 
@@ -55,12 +55,28 @@ The **measured** values are identical on every page of an area at each viewport.
 | all | public (Privacy, Terms) | **68-69** / 0 | none | 24 / 40 | **896** | centred | 40 |
 | all | public (landing, login, auth) | none (split screen) | none | 0 | none | 0 | n/a |
 
+**Measured after v1.89.0 stage 3a (D-421; the tokens adopted).** Chromium sweep (`UIQA=1`, 1,783 visits: 177 role × route pairs × 9 viewports plus 130 collapsed-sidebar visits), every users, admin and superadmin page identical at each viewport; `summary.conformance` (the analyzer's token check) = 0 differences, page overflow 0, elements outside the viewport 0, console / page errors 0, failed requests 0:
+
+| Viewport | Header h / px | Sidebar | main padding x / top | max-width | content left | Before (v1.88.0) |
+|---|---|---|---|---|---|---|
+| 1920×1080 | 64 / 24 | 250 (rail 72) | 24 / 24 | 1600, left-aligned | **274** (rail 96) | 462 (rail 392); 1280 centred; 32 / 40 |
+| 1440×900 | 64 / 24 | 250 (rail 72) | 24 / 24 | 1600 | 274 (rail 96) | 252 (rail 152) |
+| 1366×768 | 64 / 24 | 250 (rail 72) | 24 / 24 | 1600 | 274 (rail 96) | 252 (rail 115) |
+| 1280×720 | 64 / 24 | 250 (rail 72) | 24 / 24 | 1600 | 274 (rail 96) | 252 (rail 112) |
+| 1024×768 | 64 / 24 | **72 rail by default** | 24 / 24 | 1600 | 96 | 220 open, 252 |
+| 768×1024 (touch) | 64 / 24 | **72 rail by default** | 24 / 24 | 1600 | 96 | 220 open, 252 |
+| 430 / 390 / 360, users phone layout | **56 / 16** | none | 16 / 16 | none | 16 | 56 / 12; 16 / 16 |
+| 430 / 390 / 360, admin, superadmin | **56 / 16** | none (MobileNav) | 16 / **16** | (1600) | 16 | 64 / 16; 16 / 24 |
+| public Privacy / Terms | **64** (56 on phones) | none | 24 / 24 | 896 (reading) | centred | 68-69; 24 / 40 |
+
+The collapsed-sidebar sample (`UIQA_RAIL=1`, `ars_sidebar=rail`) measured the 72 rail and content left 96 at every desktop width in all areas. Page titles that use PageHeader (and the 23 custom h1s moved to the token) measure 24 / 600. The Classic view keeps its centred 1280 box (not measured by the sweep, which runs the Compact view).
+
 **Exceptions measured:**
 - `/users/work/my-tasks?task=<id>`: content right 452 at 1440. The side pane takes 440 px and the list keeps its room. This is by design (v1.83.0).
 - `/users/tasks/<id>` and `?task=` on phones: header → first block 0 (the task page's own sticky bar).
 - The page header's bottom margin is 24 on 63 users pages, **20** on the Home overviews (`OverviewParts`) and **0** on the request detail. 28 users pages have no PageHeader (Home, Task Summary, project, portfolio, AI assistant, the phone screens).
 
-**Proposed standard (tokens):**
+**Standard (tokens; proposed in phase 1, adopted v1.89.0 D-421: header 56 on phones in every area, sidebar 250 / 72, rail by default 768-1279, content left-aligned max 1600):**
 
 | Token | Desktop ≥ 1024 | Tablet 768-1023 | Phone < 768 |
 |---|---|---|---|
@@ -101,9 +117,9 @@ This section covers layout only. Routing and permission checks belong to NAVIGAT
 |---|---|---|---|
 | base | < 640 | Phone. Users area: the phone layout (`ars_layout=mobile` below 768, set by `LayoutSync`): top bar 56, MobileTabBar, More. Panels: the desktop shell with the MobileNav sheet. | One column, padding 16, cards instead of tables (proposed: every list) |
 | `sm` | ≥ 640 | Panels: header padding 24 | Padding 24 (proposed; today 32 from 640) |
-| `md` | ≥ 768 | Sidebar shows (today expanded; **proposed rail**). Users desktop layout. BottomNav hidden from md. | Two columns where the template has them only from `lg` |
-| `lg` | ≥ 1024 | Sidebar expanded by default; pane as a side panel (440) | Two-column detail |
-| `xl` | ≥ 1280 | | |
+| `md` | ≥ 768 | Sidebar shows (**rail by default 768-1279 since v1.89.0**, D-421). Users desktop layout. BottomNav hidden from md. | Two columns where the template has them only from `lg` |
+| `lg` | ≥ 1024 | Rail by default until 1279 (v1.89.0); pane as a side panel (440) | Two-column detail |
+| `xl` | ≥ 1280 | Sidebar open by default (250; v1.89.0) | |
 | `2xl` | ≥ 1536 | | content max-width applies (owner decision) |
 
 **Rules:**

@@ -30,7 +30,8 @@ export const metadata: Metadata = {
 // Drive folder; security records are deleted after 90 days.
 // v1.81.0 (D-408): full encrypted backups with every file and the server keys, restore and moves (Super Admin).
 // v1.82.0 (D-409): moves app to app with pairing codes, S3, links and database to database.
-const PRIVACY_EFFECTIVE = "23 November 2026";
+// v1.89.0 (D-421): the sidebar's two small cookies (ars_sidebar, the person's fold choice; ars_vw, the window's width class) are named.
+const PRIVACY_EFFECTIVE = "24 November 2026";
 
 export default function PrivacyPage() {
   return (
@@ -137,7 +138,10 @@ export default function PrivacyPage() {
         <p>
           On a screen narrower than 768 pixels ARS CMS shows its phone layout. To pick the right layout, the browser keeps one small cookie, <code>ars_layout</code>, holding only the word
           &ldquo;mobile&rdquo; or &ldquo;desktop&rdquo; for a year. It holds nothing about the person, and the app works the same without it. If you turn on
-          Compact mode in a phone list, a second small cookie, <code>ars_m_compact</code>, keeps that choice (&ldquo;1&rdquo; or &ldquo;0&rdquo;) on that device for a year.
+          Compact mode in a phone list, a second small cookie, <code>ars_m_compact</code>, keeps that choice (&ldquo;1&rdquo; or &ldquo;0&rdquo;) on that device for a year. On a
+          computer or tablet, folding or opening the sidebar is kept in <code>ars_sidebar</code> (&ldquo;rail&rdquo; or &ldquo;open&rdquo;); until you choose, a tablet-sized window starts with
+          the sidebar folded, and <code>ars_vw</code> keeps only the word &ldquo;tablet&rdquo; or &ldquo;wide&rdquo; so the next page opens the same way. Both stay on that device for a year
+          and hold nothing about the person.
         </p>
         <p>
           When you resize a column, the browser keeps the widths you chose (numbers only, per page and table) in its own storage on that device, so the table opens the same way next time. The

@@ -124,6 +124,46 @@
   --pane-w: 440px;
   --board-col-w: 296px; /* v1.72.2 (D-394, QA visual P11): one Board column width (My tasks and projects) */
   --z-popover: 50;
+  /* v1.89.0 (D-421, owner's reference dimensions, "go ahead with your
+     recommendations"): the shell and control sizes, in one place. Tailwind
+     maps them (tailwind.config.ts: h-topbar, w-sidebar, w-rail, px-page,
+     pt-page, max-w-content, h-control-*, h-input*, text-page-title,
+     text-section, rounded-card / -modal / -popover / -control). Phones
+     (below 768) take the values in the media block under :root. */
+  --header-h: 64px;
+  --header-h-mobile: 56px; /* every area on phones (D-421) */
+  --sidebar-w: 250px;
+  --sidebar-w-rail: 72px;
+  --page-px: 24px; /* header and content padding, one left line */
+  --page-pt: 24px; /* content top padding */
+  --section-gap: 24px;
+  --content-max: 1600px; /* left-aligned beside the sidebar (C16) */
+  --content-max-reading: 896px; /* long-form text: help, privacy, terms */
+  --content-max-form: 960px; /* narrow forms */
+  --control-h-sm: 32px; /* toolbar buttons, compact buttons and fields, pills */
+  --control-h-md: 40px; /* the default button */
+  --control-h-lg: 48px; /* phone decision bar, sign-in */
+  --input-h: 42px; /* the default field (owner: 42) */
+  --input-h-sm: 32px; /* toolbar and grid fields */
+  --touch-min: 44px; /* every control on a touch screen */
+  --text-page-title: 24px; /* PageHeader h1 */
+  --text-section: 18px; /* page section h2 */
+  --text-body: 14px;
+  --radius-control: 8px;
+  --radius-card: 12px;
+  --radius-popover: 12px;
+  --radius-modal: 16px;
+  --radius-pill: 9999px;
+  /* The spacing scale (the owner's): 4 / 8 / 12 / 16 / 20 / 24 / 32 / 40 / 48. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
   --font-mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Consolas, "Liberation Mono", monospace;
   /* v1.62.0 (D-368): the completion check's timings, on the motion scale since
      v1.89.0 (D-420; they were a private 160 / 120 / 200 ms set). */
@@ -157,6 +197,17 @@
   --road-lane: rgba(255, 255, 255, 0.85);
   --van-body: #e11d2a;
   --van-shade: #b5121d;
+}
+/* v1.89.0 (D-421): phones (below 768) in every area: one 56 px header, 16 px
+   padding and top, 16 px between sections (the users phone layout and the
+   Admin / Super Admin panels on a phone now measure the same). */
+@media (max-width: 767.98px) {
+  :root {
+    --header-h: var(--header-h-mobile);
+    --page-px: 16px;
+    --page-pt: 16px;
+    --section-gap: 16px;
+  }
 }
 
 /* Dark: chosen in Profile (data-theme on <html>), or the device setting when
@@ -342,28 +393,28 @@ body {
      active field, its background lifting; entered text stays high-contrast,
      placeholders stay readable; an invalid field shows red right away. */
   .field-input {
-    @apply h-11 w-full rounded-md border border-[color:var(--color-border-input)] bg-surface-muted px-3.5 text-body text-ink transition-[border-color,box-shadow,background-color] duration-fast placeholder:text-ink-faint hover:border-ink-muted focus:border-primary-600 focus:bg-surface focus:outline-none focus:ring-[3px] focus:ring-primary-600/25 aria-[invalid=true]:border-danger-600 aria-[invalid=true]:focus:ring-danger-600/20;
+    @apply h-input w-full rounded-md border border-[color:var(--color-border-input)] bg-surface-muted px-3.5 text-body text-ink transition-[border-color,box-shadow,background-color] duration-fast placeholder:text-ink-faint hover:border-ink-muted focus:border-primary-600 focus:bg-surface focus:outline-none focus:ring-[3px] focus:ring-primary-600/25 aria-[invalid=true]:border-danger-600 aria-[invalid=true]:focus:ring-danger-600/20;
   }
   /* v1.72.2 (D-394, QA visual R3): toolbar and filter fields, one height
-     (36 px, the same as btn-compact). Use with field-input. */
+     (the same as btn-compact). Use with field-input.
+     v1.89.0 (D-421): the named sizes: field-input = --input-h (42),
+     field-compact = --input-h-sm (32); btn-* = --control-h-md (40),
+     btn-compact / btn-ghost / tb-btn / pill-select = --control-h-sm (32),
+     btn-lg = --control-h-lg (48). No other control height. */
   .field-compact {
-    @apply h-9 px-2.5 text-label;
+    @apply h-input-sm px-2.5 text-label;
   }
   /* v1.72.2 (D-394, QA visual A1, H4): a small rounded select in a toolbar or
      a chat header, with the same hover and focus as the other fields. */
   .pill-select {
-    @apply h-8 cursor-pointer rounded-full border border-[color:var(--color-border-input)] bg-surface-muted px-3 text-label text-ink transition-[border-color,box-shadow] duration-fast hover:border-ink-muted focus:border-primary-600 focus:outline-none focus:ring-[3px] focus:ring-primary-600/25;
+    @apply h-control-sm cursor-pointer rounded-full border border-[color:var(--color-border-input)] bg-surface-muted px-3 text-label text-ink transition-[border-color,box-shadow] duration-fast hover:border-ink-muted focus:border-primary-600 focus:outline-none focus:ring-[3px] focus:ring-primary-600/25;
   }
   /* Disabled/busy: a muted blue that keeps white text at 4.72:1 (QA DEF-06). */
   .btn-primary {
-    @apply inline-flex h-[46px] w-full items-center justify-center gap-2 rounded-md bg-primary-solid px-5 text-body font-semibold text-on-solid shadow-button transition-colors hover:bg-primary-solid-hover disabled:cursor-not-allowed disabled:bg-primary-solid-disabled disabled:shadow-none;
+    @apply inline-flex h-control-md w-full items-center justify-center gap-2 rounded-md bg-primary-solid px-5 text-body font-semibold text-on-solid shadow-button transition-colors hover:bg-primary-solid-hover disabled:cursor-not-allowed disabled:bg-primary-solid-disabled disabled:shadow-none;
   }
   .btn-secondary {
-    @apply inline-flex h-[46px] w-full items-center justify-center gap-3 rounded-md border border-line bg-surface px-5 text-body font-medium text-ink transition-colors hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-60;
-  }
-  /* Compact buttons for tables and toolbars (combine with btn-primary / btn-secondary). */
-  .btn-compact {
-    @apply h-9 w-auto px-3 text-label;
+    @apply inline-flex h-control-md w-full items-center justify-center gap-3 rounded-md border border-line bg-surface px-5 text-body font-medium text-ink transition-colors hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-60;
   }
   .card {
     @apply rounded-lg border border-line bg-surface shadow-sm;
@@ -433,16 +484,16 @@ body {
   }
   /* v1.6.0 additions (UI-03). */
   .btn-danger {
-    @apply inline-flex h-[46px] w-full items-center justify-center gap-2 rounded-md bg-danger-solid px-5 text-body font-semibold text-on-solid transition-colors hover:bg-danger-solid-hover disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex h-control-md w-full items-center justify-center gap-2 rounded-md bg-danger-solid px-5 text-body font-semibold text-on-solid transition-colors hover:bg-danger-solid-hover disabled:cursor-not-allowed disabled:opacity-60;
   }
   /* D-234: an irreversible action (Reject, Withdraw, Delete) that is not the
      confirm button itself: outlined in danger red, never the same look as
      its neighbours; the dialog it opens uses btn-danger. */
   .btn-danger-quiet {
-    @apply inline-flex h-[46px] items-center justify-center gap-2 rounded-md border border-danger-200 bg-surface px-5 text-body font-semibold text-danger-600 transition-colors hover:bg-danger-50 disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex h-control-md items-center justify-center gap-2 rounded-md border border-danger-200 bg-surface px-5 text-body font-semibold text-danger-600 transition-colors hover:bg-danger-50 disabled:cursor-not-allowed disabled:opacity-60;
   }
   .btn-ghost {
-    @apply inline-flex h-9 items-center justify-center gap-1.5 rounded-md px-2.5 text-label font-medium text-ink-muted transition-colors hover:bg-surface-muted hover:text-ink disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex h-control-sm items-center justify-center gap-1.5 rounded-md px-2.5 text-label font-medium text-ink-muted transition-colors hover:bg-surface-muted hover:text-ink disabled:cursor-not-allowed disabled:opacity-60;
   }
   .field-invalid {
     @apply border-danger-600 focus:border-danger-600 focus:ring-danger-200;
@@ -454,7 +505,7 @@ body {
      a choice in use is a soft blue pill with its × inside; a thin line
      before Options. Used by TaskGrid and ListToolbar. */
   .tb-btn {
-    @apply inline-flex h-7 cursor-pointer list-none items-center gap-1 whitespace-nowrap rounded-md px-2 text-label font-medium text-ink-muted transition-colors hover:bg-surface-muted hover:text-ink;
+    @apply inline-flex h-control-sm cursor-pointer list-none items-center gap-1 whitespace-nowrap rounded-md px-2 text-label font-medium text-ink-muted transition-colors hover:bg-surface-muted hover:text-ink;
   }
   .tb-on {
     @apply bg-primary-50 text-primary-700 hover:bg-primary-100 hover:text-primary-700;
@@ -472,20 +523,30 @@ body {
     @apply mx-1 h-4 w-px bg-line-strong;
   }
   .tb-split {
-    @apply inline-flex h-7 cursor-pointer list-none items-center gap-1 border border-line-strong bg-surface px-2 text-label font-medium text-ink transition-colors hover:bg-surface-muted;
+    @apply inline-flex h-control-sm cursor-pointer list-none items-center gap-1 border border-line-strong bg-surface px-2 text-label font-medium text-ink transition-colors hover:bg-surface-muted;
+  }
+  /* Compact buttons for tables and toolbars (combine with btn-primary / btn-secondary).
+     v1.89.0 (D-421): the size modifiers come after every btn-* variant, so
+     btn-danger btn-compact is the sm size too (it stayed 46 before). */
+  .btn-compact {
+    @apply h-control-sm w-auto px-3 text-label;
+  }
+  /* v1.89.0 (D-421): the large size (phone decision bar, sign-in). */
+  .btn-lg {
+    @apply h-control-lg px-6;
   }
   .skip-link {
     @apply sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-palette focus:rounded-md focus:bg-primary-solid focus:px-4 focus:py-2 focus:text-on-solid;
   }
 }
 
-/* Phones and tablets (spec #5): fingers need bigger targets than a mouse. */
+/* Phones and tablets (spec #5): fingers need bigger targets than a mouse.
+   v1.89.0 (D-421, UIQA-RESP-05): every named control size, not only
+   btn-compact and field-input (the md button is 40 and the sm sizes 32). */
 @media (pointer: coarse) {
-  .btn-compact {
-    min-height: 44px;
-  }
+  :is(.btn-primary, .btn-secondary, .btn-danger, .btn-danger-quiet, .btn-ghost, .btn-compact, .tb-btn, .tb-split, .pill-select),
   .field-input {
-    min-height: 44px;
+    min-height: var(--touch-min);
   }
 }
 
@@ -857,8 +918,16 @@ select option:disabled {
 }
 
 /* A very long word (a pasted reference, a long title) wraps instead of
-   widening the page. Tables keep their own column widths. */
+   widening the page. Tables keep their own column widths.
+   v1.89.0 (UIQA-LAY-01, P1): "anywhere", not "break-word": break-word wraps
+   the word but still counts it whole in a flex or grid item's min-content
+   width, so a 190-character title widened the page by 1,809 px. "anywhere"
+   lowers the min-content too. Tables keep their column widths (the cells
+   have their own rules). */
 main {
+  overflow-wrap: anywhere;
+}
+main table {
   overflow-wrap: break-word;
 }
 
@@ -1595,10 +1664,10 @@ body:has([data-testid="m-comment-dock"][data-open="1"]) .picbot-launcher {
 
 /* v1.54.0 (owner): the New request bar stays put under the top bar while the page scrolls. */
 .request-sticky {
-  top: calc(64px + 0.5rem);
+  top: calc(var(--header-h) + 0.5rem);
 }
 [data-layout="mobile"] .request-sticky {
-  top: calc(3.5rem + env(safe-area-inset-top) + 0.25rem);
+  top: calc(var(--header-h) + env(safe-area-inset-top) + 0.25rem);
 }
 
 /* v1.61.0 (D-367): a person's row density (Profile-free: the list's Options).

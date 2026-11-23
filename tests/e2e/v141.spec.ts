@@ -31,13 +31,16 @@ test("folded sidebar: the Create menu opens beside the + and its items work", as
   if (await fold.isVisible()) await fold.click();
   const rail = page.getByTestId("sidebar-rail");
   await expect(rail).toBeVisible();
-  await rail.getByRole("button", { name: "Create" }).click();
+  const plus = rail.getByRole("button", { name: "Create" });
+  await plus.click();
   const menu = page.getByRole("menu", { name: "Create" });
   await expect(menu).toBeVisible();
-  // Fully inside the window, not clipped by the rail.
+  // Fully inside the window, not clipped by the rail: beside the + (v1.89.0, D-421:
+  // the rail is 72 px, so the menu starts at about 58; it was "> 60" with the 80 px rail).
   const box = await menu.boundingBox();
+  const plusBox = (await plus.boundingBox())!;
   expect(box && box.x + box.width).toBeLessThanOrEqual(1280);
-  expect(box && box.x).toBeGreaterThan(60);
+  expect(box!.x).toBeGreaterThanOrEqual(plusBox.x + plusBox.width);
   await menu.getByRole("menuitem", { name: /Approval request/ }).click();
   await expect(page).toHaveURL(/\/users\/custom$/);
   await page.getByRole("button", { name: "Open the sidebar" }).click();

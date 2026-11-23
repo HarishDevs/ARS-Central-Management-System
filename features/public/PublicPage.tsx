@@ -13,8 +13,9 @@ export const indiaYear = () => Number(new Intl.DateTimeFormat("en-IN", { timeZon
 export function PublicPage({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-full flex-col bg-page">
-      <header className="border-b border-line bg-surface">
-        <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+      {/* v1.89.0 (D-421, UIQA-LAY-02): the shell's header height and page padding; the reading width for the text. */}
+      <header className="h-topbar border-b border-line bg-surface">
+        <div className="mx-auto flex h-full max-w-reading items-center justify-between gap-4 px-page">
           {/* D-198: the app's name next to the company logo, so Google's review
               matches it to the consent screen's app name (Nov 2026: "ARS CMS";
               the Google Cloud consent screen must use the same name). */}
@@ -27,11 +28,11 @@ export function PublicPage({ children }: { children: React.ReactNode }) {
           </Link>
         </div>
       </header>
-      <main id="main" className="mx-auto w-full max-w-4xl flex-1 px-4 py-10 sm:px-6">
+      <main id="main" className="mx-auto w-full max-w-reading flex-1 px-page pb-10 pt-page">
         {children}
       </main>
       <footer className="border-t border-line bg-surface">
-        <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3 px-4 py-4 text-caption text-ink-muted sm:px-6">
+        <div className="mx-auto flex max-w-reading flex-wrap items-center justify-between gap-3 px-page py-4 text-caption text-ink-muted">
           <p>
             © {indiaYear()} {COMPANY}
           </p>

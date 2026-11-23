@@ -23,7 +23,7 @@ export default async function FormFillPage({ params }: { params: Promise<{ token
       <div className="mx-auto w-full max-w-2xl">
         <div className="card space-y-3 px-5 py-10 text-center" data-testid="form-unavailable">
           <Ban aria-hidden="true" className="mx-auto h-10 w-10 text-ink-faint" />
-          <h1 className="text-title font-semibold">{view.state === "CLOSED" ? "This form isn't accepting submissions" : "You can't submit this form"}</h1>
+          <h1 className="text-page-title font-semibold">{view.state === "CLOSED" ? "This form isn't accepting submissions" : "You can't submit this form"}</h1>
           <p className="text-label text-ink-muted">{view.state === "CLOSED" ? `“${view.name}” in ${view.projectName} has been unpublished.` : `“${view.name}” is open to some people only. Ask the owner of ${view.projectName} if you need it.`}</p>
           <Link href="/users" className="btn-secondary inline-flex">
             Go to Home

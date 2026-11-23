@@ -310,7 +310,7 @@ export function MyTasksTitle({ title, digestOn, feed, csvHref, readOnly = false 
   ];
   return (
     <span className="inline-flex items-center gap-1">
-      <h1 className="text-title font-semibold tracking-tight">{title}</h1>
+      <h1 className="text-page-title font-semibold tracking-tight">{title}</h1>
       <Menu label={`Actions for ${title}`} trigger={<ChevronDown aria-hidden="true" className="h-4 w-4" />} align="left" menuClass="w-64" testId="my-tasks-actions" items={items} />
     </span>
   );

@@ -95,7 +95,7 @@ export function NewProjectWizard({
       {step === "details" && (
         <section aria-labelledby="details-title" className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="space-y-4">
-            <h1 id="details-title" className="text-title font-semibold">
+            <h1 id="details-title" className="text-page-title font-semibold">
               New project
             </h1>
             <div>
@@ -177,7 +177,7 @@ export function NewProjectWizard({
       {step === "sections" && (
         <form onSubmit={create.onSubmit} aria-labelledby="sections-title" className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="space-y-4">
-            <h1 id="sections-title" className="text-title font-semibold">
+            <h1 id="sections-title" className="text-page-title font-semibold">
               Add sections to get started
             </h1>
             <p className="text-label text-ink-muted">Sections group your tasks (stages, weeks, teams…). You can change them any time.</p>
@@ -219,7 +219,7 @@ export function NewProjectWizard({
 
       {step === "template" && (
         <form onSubmit={fromTemplate.onSubmit} aria-labelledby="template-title" className="space-y-4">
-          <h1 id="template-title" className="text-title font-semibold">
+          <h1 id="template-title" className="text-page-title font-semibold">
             Use a template
           </h1>
           <fieldset>

@@ -249,12 +249,12 @@ export function TaskCompleteButton({ taskId, done, disabled, title }: { taskId: 
         });
       }}
       data-testid="mark-complete"
-      className={`inline-flex h-8 items-center gap-1.5 rounded-md border px-3 text-label font-medium transition disabled:cursor-not-allowed disabled:opacity-60 ${
+      className={`inline-flex h-8 min-w-0 max-w-full items-center gap-1.5 rounded-md border px-3 text-label font-medium transition disabled:cursor-not-allowed disabled:opacity-60 ${
         shown ? "border-success-600 bg-success-50 text-success-600" : "border-line-strong text-ink hover:border-success-600 hover:text-success-600"
       }`}
     >
-      <Check aria-hidden="true" className="h-4 w-4" strokeWidth={3} />
-      {shown ? "Completed" : "Mark complete"}
+      <Check aria-hidden="true" className="h-4 w-4 shrink-0" strokeWidth={3} />
+      <span className="truncate">{shown ? "Completed" : "Mark complete"}</span>
     </button>
   );
 }

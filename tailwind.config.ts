@@ -72,8 +72,12 @@ const config: Config = {
         greeting: ["calc(28px * var(--text-scale, 1))", "calc(36px * var(--text-scale, 1))"],
         display: ["calc(32px * var(--text-scale, 1))", "calc(40px * var(--text-scale, 1))"],
         kpi: ["calc(44px * var(--text-scale, 1))", "calc(52px * var(--text-scale, 1))"],
+        // v1.89.0 (D-421, owner's reference): the page title (PageHeader h1) and a page section heading.
+        "page-title": ["calc(var(--text-page-title) * var(--text-scale, 1))", "calc(32px * var(--text-scale, 1))"],
+        section: ["calc(var(--text-section) * var(--text-scale, 1))", "calc(24px * var(--text-scale, 1))"],
       },
-      borderRadius: { sm: "4px", md: "8px", lg: "12px", xl: "16px" },
+      // v1.89.0 (D-421): md / lg / xl keep their values (8 / 12 / 16) and read the radius tokens.
+      borderRadius: { sm: "4px", md: "var(--radius-control)", lg: "var(--radius-card)", xl: "var(--radius-modal)", control: "var(--radius-control)", card: "var(--radius-card)", popover: "var(--radius-popover)", modal: "var(--radius-modal)" },
       boxShadow: {
         card: "var(--shadow-card)",
         button: "var(--shadow-button)",
@@ -86,7 +90,23 @@ const config: Config = {
       transitionDuration: { DEFAULT: "var(--motion-fast)", instant: "var(--motion-instant)", fast: "var(--motion-fast)", standard: "var(--motion-standard)", smooth: "var(--motion-smooth)", emphasis: "var(--motion-emphasis)" },
       transitionTimingFunction: { DEFAULT: "var(--ease-standard)", standard: "var(--ease-standard)", enter: "var(--ease-enter)", exit: "var(--ease-exit)", linear: "var(--ease-linear)" },
       zIndex: { header: "var(--z-header)", sticky: "var(--z-sticky)", drawer: "var(--z-drawer)", dialog: "var(--z-dialog)", toast: "var(--z-toast)", palette: "var(--z-palette)", popover: "var(--z-popover)", splash: "var(--z-splash)" },
-      spacing: { sidebar: "220px", topbar: "64px", row: "var(--row-h)", "row-compact": "var(--row-h-compact)", "header-row": "var(--header-row-h)", pane: "var(--pane-w)", "board-col": "var(--board-col-w)" },
+      // v1.89.0 (D-421, owner's reference dimensions): the shell and control sizes
+      // are CSS variables in styles/globals.css (phones switch them below 768).
+      spacing: {
+        sidebar: "var(--sidebar-w)",
+        rail: "var(--sidebar-w-rail)",
+        topbar: "var(--header-h)",
+        page: "var(--page-px)",
+        "page-top": "var(--page-pt)",
+        section: "var(--section-gap)",
+        "control-sm": "var(--control-h-sm)",
+        "control-md": "var(--control-h-md)",
+        "control-lg": "var(--control-h-lg)",
+        input: "var(--input-h)",
+        "input-sm": "var(--input-h-sm)",
+        touch: "var(--touch-min)", row: "var(--row-h)", "row-compact": "var(--row-h-compact)", "header-row": "var(--header-row-h)", pane: "var(--pane-w)", "board-col": "var(--board-col-w)",
+      },
+      maxWidth: { content: "var(--content-max)", reading: "var(--content-max-reading)", form: "var(--content-max-form)" },
     },
   },
   // dark: variants follow the chosen theme (rarely needed: tokens switch by themselves).

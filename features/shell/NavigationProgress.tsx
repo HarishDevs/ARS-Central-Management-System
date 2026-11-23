@@ -135,7 +135,7 @@ export function NavigationProgress({ mobile = false }: { mobile?: boolean }) {
     <>
       {wide && <DesktopSkeleton kind={wide} />}
       {screen && (
-        <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] top-[calc(3.5rem+env(safe-area-inset-top))] z-[calc(var(--z-header)-1)] overflow-hidden bg-[color:var(--m-bg)] px-4 pt-4" data-testid="nav-skeleton">
+        <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] top-[calc(var(--header-h)+env(safe-area-inset-top))] z-[calc(var(--z-header)-1)] overflow-hidden bg-[color:var(--m-bg)] px-4 pt-4" data-testid="nav-skeleton">
           <MobileSkeleton screen={screen} label="Loading the page…" />
         </div>
       )}

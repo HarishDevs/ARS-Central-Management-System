@@ -21,6 +21,17 @@ One release in stages (owner): navigation fixes, then the motion and transition 
 - **Fixed:** with page transitions on, Safari (WebKit) could freeze for up to 4 s on a slow page and stop answering after quick clicks; a "Transition was skipped" error was reported on quick clicks.
 - **Owner steps:** nothing for most installations: page transitions are now **On by default**. If **Super Admin → Settings → Features → Page transitions** was ever saved as **Off**, that saved choice is kept: set it to **On** (or leave Off to keep them off). The switch remains the off switch.
 
+**Stage 3a: one layout and sizes for every screen** (D-421, the owner's reference dimensions; from `docs/qa/UI_UX_DEFECT_REPORT.md` batches 0 and 1; record in `docs/qa/UI_REFACTORING_LOG.md` and `BUG_FIX_LOG.md`):
+- **Fixed:** a very long title with no spaces (a pasted link, reference or code) made the task page, and any page whose title is a record's name, scroll sideways by up to 1,800 pixels. It now wraps inside the page.
+- **Fixed:** at 400 % zoom (320 pixels wide) the task page no longer scrolls sideways; a long assignee name is shortened with "…".
+- **Wider pages:** on large screens the page now uses the room beside the sidebar (up to 1,600 pixels) and starts right next to it, instead of a centred 1,280-pixel column. Help, Privacy and Terms keep a comfortable reading width.
+- **The same frame everywhere:** top bar 64 pixels (56 on phones, now in Admin and Super Admin too), sidebar 250 pixels (72 when folded, icons centred), 24 pixels of space around the page (16 on phones). Page titles are 24 pixels on every page that uses the shared title.
+- **Tablets** (768 to 1,279 pixels wide) start with the sidebar folded to its icons, so the page has more room; **☰** opens it and your choice is remembered on that device.
+- **Buttons and fields have one set of sizes:** buttons 40 pixels (compact and toolbar buttons 32), fields 42 (compact fields 32); on touch screens every button and field is at least 44 pixels tall.
+- **Privacy:** the cookies paragraph now names the sidebar's two small cookies (`ars_sidebar`, your fold choice; `ars_vw`, "tablet" or "wide"); effective date 24 November 2026.
+- **The Classic view is unchanged** (owner's decision for now).
+- **Owner steps:** none.
+
 ## v1.88.0 (23 Nov 2026): simple formulas
 No migration (D-418, owner: "use all these as simple formulas in my app"):
 - **Formula fields take functions** (names in any case): ADD, SUBTRACT, MULTIPLY, DIVIDE, DATEADD, DATESUBTRACT and ROLLUP (as in Asana), plus DAYS, WORKDAYS (on the Working calendar), IF with > < >= <= = <>, ROUND, MIN, MAX, ABS and COALESCE. Open **Functions** in the formula editor for a help card with an example; **Insert** puts the function in.

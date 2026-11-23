@@ -10,7 +10,7 @@ import { SideNav, type NavItem } from "@/features/shell/SideNav";
 import { CreateMenu } from "@/features/shell/CreateMenu";
 import { NavigationProgress } from "@/features/shell/NavigationProgress";
 import { SidebarFrame, type RailEntry } from "@/features/shell/SidebarFrame";
-import { SIDEBAR_COOKIE } from "@/features/shell/sidebar-cookie";
+import { SIDEBAR_COOKIE, SIDEBAR_WIDTH_COOKIE, initialSidebar } from "@/features/shell/sidebar-cookie";
 import { cookies } from "next/headers";
 import { isApproverDesignation, photoVersion } from "@/lib/db/repositories/profile.repository";
 import { photoUrl } from "@/server/profile/photo";
@@ -224,7 +224,9 @@ export async function AppShell({ area, user, nav, children, settingsIndex }: { a
     if (!item.section) rail.push({ kind: "item", href: item.href, label: item.label });
     else if (!rail.some((entry) => entry.kind === "group" && entry.section === item.section)) rail.push({ kind: "group", section: item.section, href: item.href, label: item.section });
   }
-  const sidebarCollapsed = (await cookies()).get(SIDEBAR_COOKIE)?.value === "rail";
+  // v1.89.0 (D-421): the saved choice wins; with none, a tablet starts on the rail.
+  const jar = await cookies();
+  const sidebarStart = initialSidebar(jar.get(SIDEBAR_COOKIE)?.value, jar.get(SIDEBAR_WIDTH_COOKIE)?.value);
   // v1.62.0 (D-368): Starred and department projects under the links (Projects module and "pm_foundations").
   const workSidebar = area === "users" && visible("/users/work/projects") && hasModule(user, "PROJECT") && (await featureOn("pm_foundations", user).catch(() => false)) ? await loadSidebar(user, portfoliosOn).catch(() => null) : null;
   // D-233: IT's maintenance notice, if any (a failed read shows none).
@@ -266,7 +268,8 @@ export async function AppShell({ area, user, nav, children, settingsIndex }: { a
       {theme && <ThemeSync theme={parseTheme(theme)} />}
       {!classic && !mobile && (
         <SidebarFrame
-          initialCollapsed={sidebarCollapsed}
+          initialCollapsed={sidebarStart.collapsed}
+          savedChoice={sidebarStart.saved}
           homeHref={`/${area}`}
           homeLabel={`ARS Green Steel: ${SPACE_LABEL[area]} home`}
           rail={rail}
@@ -290,8 +293,9 @@ export async function AppShell({ area, user, nav, children, settingsIndex }: { a
       <div className="flex min-w-0 flex-1 flex-col">
         {mobile ? (
           // The mobile top bar: the mark and name, search, notifications, account.
+          // v1.89.0 (D-421): the phone header token (56) and the page padding (16), as the panels on a phone.
           <header
-            className="mob-topbar sticky top-0 z-header flex h-[calc(3.5rem+env(safe-area-inset-top))] min-h-14 items-center gap-2 border-b border-line bg-surface/95 px-3 pt-[env(safe-area-inset-top)] backdrop-blur"
+            className="mob-topbar sticky top-0 z-header flex h-[calc(var(--header-h)+env(safe-area-inset-top))] min-h-topbar items-center gap-2 border-b border-line bg-surface/95 px-page pt-[env(safe-area-inset-top)] backdrop-blur"
             data-testid="mobile-topbar"
           >
             <Link href="/users" aria-label="ARS CMS home" className="flex min-w-0 flex-1 items-center gap-2">
@@ -317,7 +321,8 @@ export async function AppShell({ area, user, nav, children, settingsIndex }: { a
           </header>
         ) : null}
         {mobile ? null : (
-          <header className="sticky top-0 z-header flex h-topbar items-center justify-between gap-4 border-b border-line bg-surface px-4 sm:px-6">
+          // v1.89.0 (D-421): --header-h (64; 56 on phones) and --page-px (24; 16 on phones), so the header and the content share one left line.
+          <header className="sticky top-0 z-header flex h-topbar items-center justify-between gap-4 border-b border-line bg-surface px-page">
             <MobileNav items={sideItems} spaceLabel={SPACE_LABEL[area]} home={`/${area}`} collapsible chats={chats} storageKey={panel ? `ars.nav.groups.${area}.${user.id}` : undefined} top={panel && settingsIndex ? <SettingsSearch index={settingsIndex} compact /> : undefined} footer={panel ? backToApp : undefined} />
             {/* D-210: Classic has no sidebar, so the logo leads back to the Gateway from the top bar. */}
             {classic && (
@@ -353,7 +358,7 @@ export async function AppShell({ area, user, nav, children, settingsIndex }: { a
         )}
         {classic && !mobile && <ClassicForms />}
         {maintenance && (
-          <p role="status" data-testid="maintenance-notice" className="flex items-center gap-2 border-b border-info-600/30 bg-info-50 px-4 py-2 text-label text-info-600 sm:px-8">
+          <p role="status" data-testid="maintenance-notice" className="flex items-center gap-2 border-b border-info-600/30 bg-info-50 px-page py-2 text-label text-info-600">
             <Wrench aria-hidden="true" className="h-4 w-4 shrink-0" />
             <span>
               <strong>Planned maintenance:</strong> {maintenance}
@@ -382,22 +387,30 @@ export async function AppShell({ area, user, nav, children, settingsIndex }: { a
         {area === "users" && <OnboardingTour steps={tourStepsFor(visible)} autoStart={!tourDone && !user.isDemo && !user.triedBy} />}
         <ViewOnlyNote patterns={access.viewOnly} />
         {user.triedBy && (
-          <p role="status" className="border-b border-warning-600/30 bg-warning-50 px-4 py-2 text-label text-warning-600 sm:px-8" data-testid="try-as-banner">
+          <p role="status" className="border-b border-warning-600/30 bg-warning-50 px-page py-2 text-label text-warning-600" data-testid="try-as-banner">
             Viewing as {displayName(user.name)}, view-only (opened by {displayName(user.triedBy)}). Nothing can be changed here. Close this window when you&apos;re done.
           </p>
         )}
         {user.isDemo && (
-          <p role="status" className="border-b border-warning-600/30 bg-warning-50 px-4 py-2 text-label text-warning-600 sm:px-8">
+          <p role="status" className="border-b border-warning-600/30 bg-warning-50 px-page py-2 text-label text-warning-600">
             You&apos;re trying the app as {user.name}, a demo person. Sign out and sign in again to return to your own account.
           </p>
         )}
+        {/* v1.89.0 (D-421, owner's reference dimensions; UIQA-RESP-07, C16): the
+            content is fluid and left-aligned beside the sidebar (max 1600), with
+            the page padding and top from the tokens (24 / 24; 16 / 16 on phones).
+            Long-form pages (help, privacy, terms) and narrow forms keep their
+            own reading width inside it. The Classic view keeps its centred
+            1280 box (owner: Classic stays as it is for now). */}
         <main
           id="main"
           tabIndex={-1}
           className={
             mobile
-              ? "mob-main w-full flex-1 px-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] pt-4 focus:outline-none"
-              : `mx-auto w-full max-w-7xl flex-1 px-4 pt-6 focus:outline-none sm:px-8 sm:pt-10 md:pb-10 ${area === "users" ? "pb-28" : "pb-10"}`
+              ? "mob-main w-full flex-1 px-page pb-[calc(5.5rem+env(safe-area-inset-bottom))] pt-page focus:outline-none"
+              : classic
+                ? `mx-auto w-full max-w-7xl flex-1 px-4 pt-6 focus:outline-none sm:px-8 sm:pt-10 md:pb-10 ${area === "users" ? "pb-28" : "pb-10"}`
+                : `w-full max-w-content flex-1 px-page pt-page focus:outline-none md:pb-10 ${area === "users" ? "pb-28" : "pb-10"}`
           }
         >
           {children}

@@ -105,7 +105,7 @@ export function PortfolioHeader({
       </span>
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-1">
-          <h1 className="truncate text-title font-semibold tracking-tight">{portfolio.name}</h1>
+          <h1 className="truncate text-page-title font-semibold tracking-tight">{portfolio.name}</h1>
           <Menu
             label={`Actions for ${portfolio.name}`}
             trigger={<ChevronDown aria-hidden="true" className="h-4 w-4" />}

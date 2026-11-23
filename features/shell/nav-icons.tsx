@@ -109,7 +109,9 @@ const ICONS: Record<string, LucideIcon> = {
 };
 
 // v1.9.2: the collapsible groups of the user sidebar.
-const SECTION_ICONS: Record<string, LucideIcon> = { "My Approvals": ClipboardCheck, Tasks: ListTodo, "Tasks & projects": ListTodo, Information: Newspaper, Meetings: CalendarClock, Tickets: Ticket, AI: Sparkles, "AI Assistant": MessagesSquare, "AI Details": Sparkles };
+const SECTION_ICONS: Record<string, LucideIcon> = { "My Approvals": ClipboardCheck, Tasks: ListTodo, Projects: Folder /* v1.89.0 (D-421): the rail showed the Projects group without an icon */, "Tasks & projects": ListTodo, Information: Newspaper, Meetings: CalendarClock, Tickets: Ticket, AI: Sparkles, "AI Assistant": MessagesSquare, "AI Details": Sparkles,
+  // v1.89.0 (D-421): the Admin and Super Admin groups in the folded rail (tablets now start folded) had no icon.
+  Overview: LayoutDashboard, "People & organisation": UsersRound, "Set-up": Settings, Records: FileSearch, Insights: ChartLine, Connections: Plug, "Security & access": ShieldCheck, Monitoring: Activity, Data: Database, Health: Gauge };
 
 export function SectionIcon({ section, className = "h-4 w-4" }: { section: string; className?: string }) {
   const Icon = SECTION_ICONS[section];
