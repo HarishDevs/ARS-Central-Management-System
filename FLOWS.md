@@ -28,7 +28,7 @@ The number of levels and how they combine is unlimited. There are no fixed "Leve
 | F-PM-PANE | Task pane beside the view, resize kept; reactions; complete and delete with Undo; celebrations | Built 22 Nov 2026 (v1.62.0) |
 | F-ADMIN-RECORDS | Admin Records: five tabs, power-search chips, the record pane (side, dialog, full page) | Built 23 Nov 2026 (v1.85.0) |
 | F-PANELS | Admin and Super Admin navigation: five groups each, Health console, Search settings, old addresses redirect | Built 23 Nov 2026 (v1.84.0 Super Admin; v1.85.0 Admin) |
-| F-TASK-PANE-EVERYWHERE | Every task opens in the side pane on every screen; ⤢ dialog (kept per person); Open full page; full page for direct visits and phones | Built 23 Nov 2026 (v1.83.0) |
+| F-TASK-PANE-EVERYWHERE | Every task opens in the side pane on every screen; ⤢ dialog (kept per person); Open full page; full page for direct visits and phones; unknown /users addresses a real 404 | Built 23 Nov 2026 (v1.83.0; 404 fixed v1.85.1) |
 | F-PM-SIDEBAR | Starred and department projects in the sidebar, sort and reorder | Built 22 Nov 2026 (v1.62.0) |
 | F-PM-PURGE | Deleted tasks and projects removed for good after 30 days | Built 22 Nov 2026 (v1.62.0) |
 | F-01 | Google sign-in | Built 28 Sep 2026 (live test pending Firebase Admin values) |
@@ -2676,6 +2676,7 @@ flowchart LR
   DG -->|× or Escape| C
   E[Email, shared or copied link, refresh of /users/tasks/id] --> F
   PH[Phone layout] -->|task link| F
+  U[An address under /users that no page has] -->|middleware, build-time route list, v1.85.1| NF[Root 404 page, status 404; no layout runs]
 ```
 - The @pane slot checks the session, the Tasks module and switch and the task page access; TaskDetail checks the task (else "not found"). Back and refresh keep ?task, so the pane stays open. Below 1024 px the side pane is the centred popup; at phone width, full screen.
 

@@ -141,6 +141,15 @@ export async function startVerify(input: { name: string; passphrase: string }, a
   return { id: created.id, token: created.token! };
 }
 
+// v1.85.1 (D-413): the package file is the one that was checked: same size and
+// the same modified time to the millisecond. The time went through the run's
+// JSON column, and MySQL keeps a double to fewer digits than the file system's
+// sub-millisecond time (…926.7817 came back as …926.7815), so an exact
+// comparison refused an untouched package now and then.
+export function samePackageFile(stat: { size: number; mtimeMs: number }, checked: Record<string, unknown>): boolean {
+  return stat.size === Number(checked.size) && Math.abs(stat.mtimeMs - Number(checked.mtime)) < 1;
+}
+
 export async function startRestore(
   input: { verifyRunId: number; mode: engine.RestoreMode; tables: string[]; confirm: string; acceptWarnings: boolean },
   actor: Actor,
@@ -151,7 +160,7 @@ export async function startRestore(
   if (!verified || verified.kind !== "VERIFY" || verified.status !== "DONE" || !verified.packageName || !verified.summary) throw new CentreError("Check the package first (Check package), then restore.");
   const file = packagePath(verified.packageName);
   const stat = file ? await fsp.stat(file).catch(() => null) : null;
-  if (!file || !stat || stat.size !== Number(verified.options.size) || stat.mtimeMs !== Number(verified.options.mtime)) throw new CentreError("The package changed or was removed since it was checked. Check it again.");
+  if (!file || !stat || !samePackageFile(stat, verified.options)) throw new CentreError("The package changed or was removed since it was checked. Check it again.");
   const summary = verified.summary as unknown as engine.PackageSummary & { warnings?: string[] };
   const includes = summary.includes ?? { database: true, files: false, secrets: false };
   if ((input.mode === "full" || input.mode === "database" || input.mode === "tables") && !includes.database) throw new CentreError("This package has no database. Choose Files only.");

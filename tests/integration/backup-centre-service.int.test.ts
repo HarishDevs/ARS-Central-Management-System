@@ -112,6 +112,23 @@ describe("Backup centre service (D-408)", { timeout: 300_000 }, () => {
     expect(work).toEqual([]);
   });
 
+  it("v1.85.1 (D-413): a sub-millisecond file time that the run's JSON column rounds still counts as the checked package", async () => {
+    const file = path.join(work, "backups", "packages", packageName);
+    // 17 significant digits in milliseconds: more than MySQL keeps for a JSON double.
+    fs.utimesSync(file, 1795413084.9267817, 1795413084.9267817);
+    const verify = await service.startVerify({ name: packageName, passphrase: PASSPHRASE }, actor);
+    await drive(verify.id);
+    const started = await service.startRestore({ verifyRunId: verify.id, mode: "database", tables: [], confirm: process.env.DB_NAME!, acceptWarnings: true }, actor);
+    expect((await service.cancelRun(started.id, actor)).status).toBe("CANCELLED");
+    // A real change is still refused.
+    fs.utimesSync(file, 1795413090, 1795413090);
+    await expect(service.startRestore({ verifyRunId: verify.id, mode: "database", tables: [], confirm: process.env.DB_NAME!, acceptWarnings: true }, actor)).rejects.toThrow(/changed or was removed/);
+  });
+
+  it("v1.85.1 (D-413): a database-only package has no server secrets to show", async () => {
+    await expect(service.revealSecrets(packageName, PASSPHRASE, actor)).rejects.toThrow(/no server secrets/);
+  });
+
   it("asks for the passphrase again when the key isn't held (after a restart)", async () => {
     const started = await service.startBackup({ include: "database", keepOnServer: true, copyToDrive: false, passphrase: PASSPHRASE }, actor);
     await service.stepRun(started.id, { passphrase: PASSPHRASE }, actor, 1);

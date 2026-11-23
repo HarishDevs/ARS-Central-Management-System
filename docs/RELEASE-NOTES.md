@@ -1,5 +1,11 @@
 # Release notes
 
+## v1.85.1 (23 Nov 2026): fixes
+No migration (D-413):
+- A mistyped or old address under /users shows "This page isn't available" again for everyone (with a real 404), instead of "You don't have access" for some people. Tasks still open beside every screen.
+- Super Admin → Backup, restore & migrate: **Secrets** on a package (Show the server secrets, Download .env for a VPS) works; it answered "unexpected answer" before. **Restore** no longer now and then refuses a package that was just checked ("The package changed or was removed since it was checked").
+- **Owner steps:** publish v1.85.1 (nothing else).
+
 ## v1.85.0 (23 Nov 2026): the Admin panel, reorganised
 No migration. Admin (IT team) only (D-412, owner-approved redesign, docs/ops/ADMIN-REDESIGN-BRIEF.md):
 - **Five groups:** Overview, Records, Insights, Set-up, People & organisation (31 entries in 9 groups before).

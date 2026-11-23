@@ -17,6 +17,8 @@ next-env.d.ts
 *.key
 *secret*
 !**/*secret*.md
+# v1.85.1 (D-413): app code whose address says "secrets" (no secret values in it).
+!/app/api/superadmin/backup-centre/packages/*/secrets/
 
 # local data
 backups/

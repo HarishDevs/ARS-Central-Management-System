@@ -7,6 +7,7 @@ import { pickRequestId, REQUEST_ID_HEADER } from "@/lib/logging/request-id";
 import { PATH_HEADER, PATH_SIGNATURE_HEADER, signPath, WRITE_HEADER, NEXT_HEADER } from "@/lib/security/path-signature";
 import { sessionCookieLooksValid } from "@/lib/security/session-cookie-edge";
 import { panelRedirectUrl } from "@/lib/routing/panel-redirects";
+import { isUnknownUsersPath, UNKNOWN_PAGE_REWRITE } from "@/lib/routing/unknown-users-path";
 
 // Layer 1 of 3 (P1-30a): only checks that a session cookie is present.
 // Roles and the session row are checked on the server in every layout,
@@ -165,7 +166,12 @@ export async function middleware(request: NextRequest) {
   requestHeaders.set("x-nonce", nonce);
   requestHeaders.set("Content-Security-Policy", csp);
   requestHeaders.set(REQUEST_ID_HEADER, requestId);
-  const response = NextResponse.next({ request: { headers: requestHeaders } });
+  // v1.85.1 (D-413): an address under /users that no page has gets the real
+  // 404 (root not-found page, status 404) before any layout runs. The @pane
+  // catch-all slot (D-410) would otherwise make it a route of the users layout.
+  const response = isUnknownUsersPath(pathname)
+    ? NextResponse.rewrite(new URL(UNKNOWN_PAGE_REWRITE, request.url), { request: { headers: requestHeaders } })
+    : NextResponse.next({ request: { headers: requestHeaders } });
   if (!FILE_ROUTE.test(pathname)) response.headers.set("Content-Security-Policy", csp);
   response.headers.set(REQUEST_ID_HEADER, requestId);
   // SEC-18 (v1.10.0): signed-in pages and API answers are never kept by
