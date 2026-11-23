@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { SideNav, type NavItem } from "@/features/shell/SideNav";
+import { useOverlay } from "@/features/ui/overlay-stack";
 import type { ChatSummary } from "@/features/shell/ChatList";
 
 // Below 768 px the sidebar is hidden; this button opens it as a drawer
@@ -18,6 +19,7 @@ export function MobileNav({ items, spaceLabel, home, collapsible = false, chats 
   const pathname = usePathname();
   const opener = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
+  const sheet = useRef<HTMLDivElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
   const wasOpen = useRef(false);
   useEffect(() => setOpen(false), [pathname]);
@@ -29,25 +31,10 @@ export function MobileNav({ items, spaceLabel, home, collapsible = false, chats 
       wasOpen.current = false;
       opener.current?.focus();
     }
-    if (!open) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
-      if (event.key !== "Tab" || !panel.current) return;
-      const focusable = Array.from(panel.current.querySelectorAll<HTMLElement>("a[href], button:not([disabled])")).filter((element) => element.offsetParent !== null);
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (!first || !last) return;
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
   }, [open]);
+  // v1.87.0 (D-417): the overlay stack keeps Tab inside, locks the page's
+  // scroll, makes the rest inert and closes it with Escape when it is on top.
+  useOverlay(open, sheet, { kind: "sheet", modal: true, restoreFocus: false, onEscape: () => setOpen(false) });
 
   return (
     <div className="md:hidden">
@@ -57,8 +44,8 @@ export function MobileNav({ items, spaceLabel, home, collapsible = false, chats 
         </svg>
       </button>
       {open && (
-        <div className="fixed inset-0 z-drawer flex" role="dialog" aria-modal="true" aria-label="Menu">
-          <div ref={panel} className="flex h-dvh w-72 max-w-[85vw] flex-col bg-surface shadow-xl">
+        <div ref={sheet} className="fixed inset-0 z-drawer flex" role="dialog" aria-modal="true" aria-label="Menu">
+          <div ref={panel} className="motion-fade-in flex h-dvh w-72 max-w-[85vw] flex-col bg-surface shadow-xl">
             <div className="flex h-topbar shrink-0 items-center justify-between border-b border-line px-4">
               <Link href={home} aria-label={`ARS Green Steel: ${spaceLabel} home`} className="rounded-md">
                 <BrandLockup size="sm" subtitle={false} />

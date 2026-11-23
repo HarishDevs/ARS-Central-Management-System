@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronRight, Inbox, SearchX } from "lucide-react";
 import { SafeText } from "@/features/ui/SafeText";
 import { LinkPending } from "@/features/ui/PendingLink";
+import { OriginLink } from "@/features/ui/OriginLink";
 
 // Display components (UI-03). Server-friendly: no client state.
 export type Tone = "neutral" | "primary" | "success" | "warning" | "danger" | "info";
@@ -146,9 +147,10 @@ export function Breadcrumbs({ items }: { items: { href?: string; label: string }
           <li key={`${item.label}-${index}`} className="flex items-center gap-1">
             {index > 0 && <ChevronRight aria-hidden="true" className="h-3.5 w-3.5 text-ink-faint" />}
             {item.href && index < items.length - 1 ? (
-              <Link href={item.href} className="hover:text-ink hover:underline">
+              // v1.87.0 (D-417): back to the list with the sort, filters and page it was left with.
+              <OriginLink href={item.href} className="hover:text-ink hover:underline">
                 {item.label}
-              </Link>
+              </OriginLink>
             ) : (
               <span aria-current={index === items.length - 1 ? "page" : undefined} className="max-w-[16rem] truncate text-ink">
                 {item.label}

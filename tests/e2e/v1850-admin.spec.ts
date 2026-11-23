@@ -65,7 +65,8 @@ test("Records: five tabs, power-search chips in the address, the record pane (si
   await expect(pane).toHaveAttribute("data-pane-mode", "dialog");
   await pane.getByTestId("record-pane-to-side").click();
   await expect(pane).toHaveAttribute("data-pane-mode", "side");
-  await expect(pane.getByTestId("record-pane-full")).toHaveAttribute("href", /^\/users\/requests\/\d+$/);
+  // v1.87.0 (D-417, intended change): Open full page carries ?from= (the way back to this list).
+  await expect(pane.getByTestId("record-pane-full")).toHaveAttribute("href", /^\/users\/requests\/\d+(\?from=[^&]+)?$/);
   await page.keyboard.press("Escape");
   await expect(page.getByTestId("record-pane")).toHaveCount(0);
 

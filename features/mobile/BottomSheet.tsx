@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { COMPACT_COOKIE } from "@/lib/ui/layout";
 import { useSwipeDown } from "@/features/ui/swipe";
+import { useOverlay } from "@/features/ui/overlay-stack";
+import { MOTION_DURATION } from "@/features/shell/motion-rules";
 import { Check, ChevronsUpDown, Minimize2, MoreHorizontal, SlidersHorizontal } from "lucide-react";
 
 // v1.45.0 (owner: "This is asana app, use this also as reference"): the
@@ -16,27 +18,37 @@ import { Check, ChevronsUpDown, Minimize2, MoreHorizontal, SlidersHorizontal } f
 
 export function BottomSheet({ open, onClose, title, subtitle, action, children }: { open: boolean; onClose: () => void; title?: string; subtitle?: string; action?: React.ReactNode; children: React.ReactNode }) {
   const panel = useRef<HTMLDivElement>(null);
+  const root = useRef<HTMLDivElement>(null);
   const titleId = useId();
   // v1.80.0 (D-407, point 14): a swipe down on the handle or title closes it.
   const swipe = useSwipeDown(true, onClose);
+  // v1.87.0 (D-417, audit gaps 8, 10–12): on the overlay stack (Escape when it
+  // is on top, Tab kept inside, page scroll locked, the rest inert, focus back
+  // to the button that opened it), and it slides away on close (150 ms).
+  const [shown, setShown] = useState(open);
+  const [closing, setClosing] = useState(false);
+  if (open && !shown) setShown(true);
   useEffect(() => {
-    if (!open) return;
-    const back = document.activeElement as HTMLElement | null;
-    const onKey = (event: KeyboardEvent) => event.key === "Escape" && onClose();
-    document.addEventListener("keydown", onKey);
-    const { overflow } = document.body.style;
-    document.body.style.overflow = "hidden";
-    panel.current?.querySelector<HTMLElement>("a[href], button:not([disabled]), input, select, textarea")?.focus();
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = overflow;
-      back?.focus?.();
-    };
-  }, [open, onClose]);
-  if (!open) return null;
+    if (open || !shown) {
+      setClosing(false);
+      return;
+    }
+    setClosing(true);
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const timer = window.setTimeout(() => {
+      setShown(false);
+      setClosing(false);
+    }, reduce ? 0 : MOTION_DURATION.fast);
+    return () => window.clearTimeout(timer);
+  }, [open, shown]);
+  useOverlay(open, root, { kind: "sheet", modal: true, onEscape: onClose });
+  useEffect(() => {
+    if (open) panel.current?.querySelector<HTMLElement>("a[href], button:not([disabled]), input, select, textarea")?.focus();
+  }, [open]);
+  if (!shown) return null;
   return (
-    <div className="fixed inset-0 z-dialog" data-testid="m-sheet">
-      <button type="button" aria-label="Close" tabIndex={-1} onClick={onClose} className="mob-sheet-backdrop absolute inset-0 bg-overlay" />
+    <div ref={root} className="fixed inset-0 z-dialog" data-testid="m-sheet" data-closing={closing || undefined}>
+      <button type="button" aria-label="Close" tabIndex={-1} onClick={onClose} className="mob-sheet-backdrop absolute inset-0 bg-overlay" data-closing={closing || undefined} />
       <div
         ref={panel}
         role="dialog"
@@ -44,6 +56,7 @@ export function BottomSheet({ open, onClose, title, subtitle, action, children }
         aria-labelledby={title ? titleId : undefined}
         aria-label={title ? undefined : "Options"}
         data-sheet=""
+        data-closing={closing || undefined}
         className="mob-sheet absolute inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-t-2xl border-t border-line bg-surface pb-[calc(1rem+env(safe-area-inset-bottom))]"
         // A tap on a link inside closes the sheet (the page then changes).
         onClick={(event) => (event.target as HTMLElement).closest("a[href]") && onClose()}

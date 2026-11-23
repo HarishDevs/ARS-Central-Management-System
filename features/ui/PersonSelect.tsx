@@ -3,7 +3,7 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { ChevronDown, Search, X } from "lucide-react";
 import { useFitPanel } from "@/features/ui/fit";
-import { inside } from "@/features/ui/inside";
+import { useOverlay } from "@/features/ui/overlay-stack";
 
 // v1.52.1 (owner: "wherever we select a name the format is Name - Employee
 // code with the department below; the dropdown opens where it is clearly
@@ -116,14 +116,8 @@ export function PersonSelect({
   }, [value, defaultValue]);
 
   // Closes on a click outside and on Escape.
-  useEffect(() => {
-    if (!open) return;
-    const outside = (event: MouseEvent) => {
-      if (box.current && !inside(event, box.current)) setOpen(false);
-    };
-    document.addEventListener("mousedown", outside);
-    return () => document.removeEventListener("mousedown", outside);
-  }, [open]);
+  // v1.87.0 (D-417): through the overlay stack (top overlay only).
+  useOverlay(open, box, { kind: "popover", restoreFocus: false, onOutside: () => setOpen(false), onEscape: () => setOpen(false) });
   useEffect(() => {
     if (open) {
       setActive(0);

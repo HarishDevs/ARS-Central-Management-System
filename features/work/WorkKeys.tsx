@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { isTyping } from "@/features/shell/shortcuts";
-import { requestPaneClose } from "@/features/ui/pane-draft";
 import { CREATE_TASK_EVENT } from "@/features/work/client";
 import { useProjectsOn } from "@/features/work/projects-access";
 
@@ -45,12 +44,7 @@ export function WorkKeys() {
       if (key === "escape") {
         // v1.62.0 (D-368): Escape first cancels a Board card lifted from the keyboard.
         if (document.querySelector("[data-lifted]")) return;
-        const pane = document.querySelector<HTMLElement>("[data-task-pane]");
-        if (pane?.dataset.closeHref) {
-          take();
-          const to = pane.dataset.closeHref;
-          requestPaneClose(pane, () => router.push(to, { scroll: false }));
-        }
+        // v1.87.0 (D-417): the open pane takes Escape through the overlay stack (PaneControl).
         return;
       }
       if (Date.now() - awaitingG.current < 1500) {

@@ -183,6 +183,11 @@ export function useActionForm(action: Action, options: ConfirmOptions = {}) {
   function dispatch(formData: FormData) {
     if (busy.current) return;
     busy.current = true;
+    // v1.87.0 (D-417, race guard): the form this request belongs to. If it is
+    // gone when the answer arrives (its pane or dialog was closed), the answer
+    // may not move the page (no successHref, no redirect): it can't reopen or
+    // overwrite what the person moved on to.
+    const sentFrom = formRef.current;
     // v1.86.0: the form says it is saving (a pane asks before closing over it).
     formRef.current?.setAttribute("aria-busy", "true");
     setPending(true);
@@ -191,10 +196,11 @@ export function useActionForm(action: Action, options: ConfirmOptions = {}) {
         // v1.52.0: a save that opens its new record is not a result for the
         // form (forms read their own data from results): the form is marked
         // saved, keeps its spinner, and the new page opens.
+        const stale = Boolean(sentFrom && !sentFrom.isConnected);
         if (next.ok && next.data?.redirected) {
           formRef.current?.dispatchEvent(new Event(SAVED_EVENT));
           const to = typeof next.data.to === "string" ? next.data.to : null;
-          if (to) {
+          if (to && !stale) {
             if (next.data.replace) router.replace(to);
             else router.push(to);
           }
@@ -205,7 +211,7 @@ export function useActionForm(action: Action, options: ConfirmOptions = {}) {
         // The action's revalidatePath answer doesn't always repaint a page
         // that streams behind a loading skeleton (v1.6.0 testing); ask for
         // the page again so what's shown always matches the server.
-        if (next.ok && options.successHref) router.replace(options.successHref, { scroll: false });
+        if (next.ok && options.successHref && !stale) router.replace(options.successHref, { scroll: false });
         else if (next.ok) router.refresh();
         // A refused save leaves the form's changes unsaved (UnsavedGuard asks again).
         if (!next.ok) formRef.current?.dispatchEvent(new Event(SAVE_FAILED_EVENT));
@@ -213,6 +219,7 @@ export function useActionForm(action: Action, options: ConfirmOptions = {}) {
       .finally(() => {
         busy.current = false;
         formRef.current?.removeAttribute("aria-busy");
+        formRef.current?.setAttribute("data-sent-at", String(Date.now())); // v1.87.0: a pane closing just after a send waits for the box to empty
         setPending(false);
       });
   }

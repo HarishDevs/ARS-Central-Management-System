@@ -20,7 +20,23 @@ Updated as items are fixed. **Fixed** means a test or a measurement shows it (na
 | Gap 16 | Scroll jump when the pane opens | **Not a defect.** The probe clicked a link above the viewport, and Playwright scrolls an element into view before clicking. With the link in view the page stays put. | v1.86.0 | e2e gap 16 (≤ 40 px) |
 | Gap 21 | Regression e2e for H-01..H-03 | **Done** | v1.86.0 | `v1860-header-consistency.spec.ts` |
 | Gap 22 | Hub tabs affordance | **Fixed** (= H-04) | v1.86.0 | e2e H-04 |
-| Gaps 1–13, 15, 17–20, 23, 24 | P2 and P3 | Planned | v1.87.0 | — |
+| Gap 1 | One token scale | **Fixed** (owner's values; old names aliased; Tailwind) | v1.87.0 (D-417) | unit `navigation-continuity.test.ts` (CSS = TS), `motion-review.test.tsx` |
+| Gap 2 | Shared utilities; raw timings moved | **Fixed** (fade, slide, scale, expand, stagger; no `transition-all` left) | v1.87.0 | unit `navigation-continuity.test.ts` |
+| Gap 3 | Fixed icon column on collapse | **Not built**: it would redesign the D-229 rail. The change is smoothed instead (gaps 4–7). | — | — |
+| Gaps 4–7 | Sidebar labels, moving indicator, group expand, tooltips | **Built** (not asserted by a test: visual only) | v1.87.0 | — |
+| Gap 8 | Floating parts and sheet / palette exits | **Built**; the palette's exit plays in Firefox and Safari only | v1.87.0 | e2e v1870 (sheet closes with Escape) |
+| Gap 9 | Pane enter / exit | **Fixed** | v1.87.0 | e2e v1870 reduced motion (no motion) |
+| Gap 10 | One overlay stack | **Fixed** | v1.87.0 | unit `overlay-stack*.test.ts`; e2e v1870 (menu and palette over the pane) |
+| Gap 11 | Focus trap | **Fixed** (pane dialog mode, sheets, MobileNav) | v1.87.0 | unit (Tab wrap); e2e v1870 (Tab ×12 stays in the pane) |
+| Gap 12 | Scroll lock and inert behind the pane dialog | **Fixed** | v1.87.0 | e2e v1870 (html overflow hidden, main inert, both undone) |
+| Gap 13 | Confirm busy / double submit | **Fixed** (locked while busy; fires once) | v1.87.0 | not asserted by an e2e |
+| Gap 15 | Saving hold | **Fixed** | v1.87.0 | e2e v1870 (Escape right after Send: closes after the save; comment stored once) |
+| Gap 17 | Close without a history entry | **Fixed** (back or replace) | v1.87.0 | e2e v1870 (history length unchanged; Back leaves the list) |
+| Gap 18 | Fold and place memory | **Fixed** (TaskGrid, GroupFold; place from panes, used once) | v1.87.0 | e2e v1870 (fold kept after full page and Back) |
+| Gap 19 | Breadcrumbs with query; Admin Records origin | **Fixed** (OriginLink; validated `?from=`) | v1.87.0 | unit `return-to`; e2e v1870 (owner's scenario; forged `?from=` ignored; queue breadcrumb keeps the sort) |
+| Gap 20 | Record pane Escape after Back | **Fixed** (the router dropped a move: close is asked again) | v1.87.0 | e2e v1870 (3 rounds); 50-cycle perf run (failed on v1.85.3) |
+| Gap 23 | Page transitions default | Owner's call: stays Off | — | — |
+| Gap 24 | Tests and the implementation document | **Done** | v1.87.0 | `docs/GLOBAL_MOTION_NAVIGATION_IMPLEMENTATION.md` |
 
 **Evidence after the fixes:** the probe spec `zz-audit-header.spec.ts` was replaced by the regression spec `tests/e2e/v1860-header-consistency.spec.ts`. The 72 screenshots and the `.jsonl` files under `audit/header/` stay local evidence only. They are not committed (`audit/` is git-ignored).
 

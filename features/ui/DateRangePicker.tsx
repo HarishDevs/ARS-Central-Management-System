@@ -2,7 +2,7 @@
 
 import { CalendarDays, ChevronLeft, ChevronRight, Clock, Plus, Repeat, X } from "lucide-react";
 import { useCallback, useEffect, useId, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type Ref } from "react";
-import { inside } from "@/features/ui/inside";
+import { useOverlay } from "@/features/ui/overlay-stack";
 import {
   addDays,
   addMonths,
@@ -229,14 +229,16 @@ export function DateRangePicker({
   );
 
   // Outside clicks close (and commit); Escape is handled on the panel.
-  useEffect(() => {
-    if (!open) return;
-    const away = (event: MouseEvent) => {
-      if (!inside(event, panel.current) && !inside(event, trigger.current)) close(false);
-    };
-    document.addEventListener("mousedown", away);
-    return () => document.removeEventListener("mousedown", away);
-  }, [open, close]);
+  // v1.87.0 (D-417): through the overlay stack, so only the top overlay reacts
+  // (a date picker in the task pane closes; the pane stays).
+  useOverlay(open, panel, {
+    kind: "popover",
+    modal: phone,
+    restoreFocus: false,
+    onOutside: () => close(false),
+    onEscape: () => close(),
+    ignore: (target) => Boolean(trigger.current?.contains(target)),
+  });
 
   // Placement: against the window (position fixed) so a scrolling table or a
   // dialog can't clip it; corrected when an ancestor's transform moves "fixed".
@@ -654,8 +656,8 @@ export function DateRangePicker({
             }}
             className={
               phone
-                ? "fixed inset-x-0 bottom-0 z-popover max-h-[90dvh] overflow-y-auto rounded-t-2xl border-t border-line bg-raised pb-[env(safe-area-inset-bottom)] text-ink shadow-overlay"
-                : "fixed z-popover w-[19.5rem] rounded-lg border border-line bg-raised text-ink shadow-overlay"
+                ? "mob-sheet fixed inset-x-0 bottom-0 z-popover max-h-[90dvh] overflow-y-auto rounded-t-2xl border-t border-line bg-raised pb-[env(safe-area-inset-bottom)] text-ink shadow-overlay"
+                : "pop-in fixed z-popover w-[19.5rem] rounded-lg border border-line bg-raised text-ink shadow-overlay"
             }
             style={phone ? undefined : { left: 0, top: 0 }}
             data-testid={testId ? `${testId}-panel` : "date-picker-panel"}

@@ -12,6 +12,9 @@ import { nextWaitingHref } from "@/features/requests/next-waiting";
 import { MessagesSquare, Paperclip, Repeat2, ShieldCheck, Copy, ListChecks, CornerDownRight } from "lucide-react";
 import { TASK_STATUS_LABEL } from "@/server/modules/task-rules";
 import { requireArea } from "@/server/authorization/guards";
+import { evaluateAreaAccess } from "@/server/authorization/policy";
+import { parseReturnTo } from "@/lib/nav/return-to";
+import { OriginLink } from "@/features/ui/OriginLink";
 import { PageHeader } from "@/features/shell/PageHeader";
 import { Hint } from "@/features/ui/Hint";
 import { RequestStatusPill } from "@/features/requests/StatusPill";
@@ -78,7 +81,7 @@ export default async function RequestPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ submitted?: string; files?: string; act?: string; decided?: string; nextwaiting?: string; after?: string; flow?: string }>;
+  searchParams: Promise<{ submitted?: string; files?: string; act?: string; decided?: string; nextwaiting?: string; after?: string; flow?: string; from?: string }>;
 }) {
   const { user } = await requireArea("users");
   const { id } = await params;
@@ -187,10 +190,16 @@ export default async function RequestPage({
           : collaborators.some((row) => row.userId === user.id)
             ? { href: "/users/collaborating", label: "Collaborating" }
             : { href: "/users/search", label: "Search" };
+  // v1.87.0 (D-417, audit gap 19): opened from another area's list (Admin →
+  // Records' Open full page), the way back is named after it and keeps its
+  // query. ?from= is validated (same site, allow-listed path, an area this
+  // person may open: checked here on the server); otherwise ignored.
+  const returnTo = parseReturnTo(query.from, (area) => evaluateAreaAccess(user, area).allowed);
+  const way = returnTo ? { href: returnTo.href, label: returnTo.label } : backTo;
   return (
     <>
       {/* D-234 (Jakob): ← Back goes to the list the breadcrumb names. */}
-      <Breadcrumbs items={[{ href: "/users", label: "Home" }, backTo, { label: view.requestNo }]} />
+      <Breadcrumbs items={[{ href: "/users", label: "Home" }, way, { label: view.requestNo }]} />
       <NavOwner href={backTo.href} />
       {/* v1.42.1 (owner's sketch): the title and number across the top; D-273: the approval journey below them, full width. */}
       <div className="mb-6 grid items-center gap-4" data-testid="request-top">
@@ -203,9 +212,15 @@ export default async function RequestPage({
               <a href={`/api/requests/${view.id}/summary.pdf`} className="link text-label" download>
                 Download PDF
               </a>
-              <Link href={backTo.href} className="link text-label">
-                ← Back to {backTo.label}
-              </Link>
+              {returnTo ? (
+                <Link href={returnTo.href} className="link text-label" data-testid="return-to">
+                  ← Back to {returnTo.label}
+                </Link>
+              ) : (
+                <OriginLink href={backTo.href} className="link text-label" testId="back-to-list">
+                  ← Back to {backTo.label}
+                </OriginLink>
+              )}
             </div>
           </PageHeader>
         </div>

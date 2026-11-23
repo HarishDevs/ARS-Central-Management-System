@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Check, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
-import { inside } from "@/features/ui/inside";
+import { useOverlay } from "@/features/ui/overlay-stack";
 import { menuMove, menuTypeahead } from "@/features/ui/menu-keys";
 
 // A dropdown menu (UI-03), v1.72.0 (D-387, owner: "use dropdowns wherever
@@ -141,12 +141,19 @@ export function Menu({
     if (!open) return;
     const entries = focusables(list.current);
     (firstFocus.current === "last" ? entries.at(-1) : entries[0])?.focus();
-    const onDown = (event: MouseEvent) => {
-      if (box.current && !inside(event, box.current)) setOpen(false);
-    };
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
   }, [open, setOpen]);
+  // v1.87.0 (D-417): on the overlay stack. A click outside closes the menu
+  // when it is the top overlay (its own keys handle Escape inside the list;
+  // the stack closes it if focus has gone elsewhere).
+  useOverlay(open, box, {
+    kind: "menu",
+    restoreFocus: false,
+    onOutside: () => setOpen(false),
+    onEscape: () => {
+      setOpen(false);
+      button.current?.focus();
+    },
+  });
 
   const close = (refocus: boolean) => {
     setOpen(false);

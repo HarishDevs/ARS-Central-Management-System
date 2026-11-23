@@ -9,6 +9,7 @@ import { queryHrefMatches } from "@/features/shell/nav-routes";
 import { NavIcon, SectionIcon } from "@/features/shell/nav-icons";
 import { ChatList, type ChatSummary } from "@/features/shell/ChatList";
 import { useNavOwner } from "@/features/shell/nav-owner";
+import { NavIndicator } from "@/features/shell/NavIndicator";
 
 export interface NavItem {
   href: string;
@@ -102,8 +103,11 @@ export function SideNav({ items, collapsible = false, chats = [], storageKey = S
     );
   }
 
+  // v1.87.0 (D-417, audit gap 5): the moving bar beside the current page.
+  const watch = `${pathname}?${search.toString()}|${Object.entries(open).filter(([, value]) => value).map(([key]) => key).join()}`;
   return (
-    <nav className="space-y-0.5 p-2" aria-label="Main">
+    <nav className="relative space-y-0.5 p-2" aria-label="Main">
+      <NavIndicator watch={watch} />
       {list.map((block) =>
         block.kind === "item" ? (
           <EntryLink key={block.item.href} item={block.item} active={isActive(block.item)} />
@@ -117,6 +121,13 @@ export function SideNav({ items, collapsible = false, chats = [], storageKey = S
 
 function NavGroup({ section, items, chats, open, current, onToggle, isActive }: { section: string; items: NavItem[]; chats: ChatSummary[] | null; open: boolean; current: boolean; onToggle: () => void; isActive: (item: NavItem) => boolean }) {
   const id = useId();
+  // v1.87.0 (D-417, audit gap 6): a group the person opens glides open (its
+  // entries fade and drop 4 px); on the first draw it is simply there.
+  const [revealed, setRevealed] = useState(false);
+  const toggleGroup = () => {
+    setRevealed(!open);
+    onToggle();
+  };
   // A waiting count inside a closed group shows on its header.
   const waiting = items.reduce((sum, item) => sum + (item.count ?? 0), 0);
   const router = useRouter();
@@ -153,7 +164,7 @@ function NavGroup({ section, items, chats, open, current, onToggle, isActive }: 
         type="button"
         aria-expanded={open}
         aria-controls={id}
-        onClick={onToggle}
+        onClick={toggleGroup}
         className={`mt-2 flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-left text-caption font-semibold transition-colors ${current && !open ? "bg-primary-50 text-primary-700" : "text-ink-faint hover:text-ink"}`}
       >
         <ChevronDown aria-hidden="true" className={`h-3 w-3 shrink-0 transition-transform motion-reduce:transition-none ${open ? "" : "-rotate-90"}`} />
@@ -166,7 +177,7 @@ function NavGroup({ section, items, chats, open, current, onToggle, isActive }: 
         )}
       </button>
       {(
-        <ul id={id} hidden={!open} className="mt-0.5 space-y-0.5">
+        <ul id={id} hidden={!open} className="mt-0.5 space-y-0.5" data-nav-group-body="" data-revealed={revealed && open ? "" : undefined}>
           {items.map((item) => (
             <li key={item.href}>
               <EntryLink item={item} active={isActive(item)} />

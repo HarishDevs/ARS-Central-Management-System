@@ -1,5 +1,14 @@
 # Release notes
 
+## v1.87.0 (23 Nov 2026): smoother screens that keep your place
+No migration (D-417, the owner's "Global Smooth Motion, Navigation Continuity & Interaction Experience System", built from the header and motion audit; details in `docs/GLOBAL_MOTION_NAVIGATION_IMPLEMENTATION.md`):
+- **Closing a task or record beside a list** (×, Esc, a click outside) leaves the list exactly as it was (height, filters, sort) and adds no step to Back: Back no longer reopens what you closed.
+- **Folded groups and sections stay folded** when you come back to a page in the same tab (after a task's full page and Back, for example).
+- **Breadcrumbs and "← Back to …" return to the list as you left it** (sort, filters, page). A request opened from **Admin → Records** offers **← Back to Admin → Records** for people who can open Admin.
+- **Esc and a click outside close only what is on top** (a menu, picker, the bell or the search over a task closes first). A task or record in its centred window keeps the keyboard inside it and the page still behind it. Esc while a comment is still sending waits for it ("Saving…"). A confirmation can't be pressed twice; it can't be closed while it is working.
+- **Motion:** one set of timings everywhere (100 / 150 / 220 / 280 / 350 / 450 ms); tasks and records slide in and out; menus, the bell, pickers, filter panels and the search unfold; phone sheets slide away; the sidebar's labels, current-page bar and groups move smoothly, and the folded sidebar shows names beside its icons; only a changed figure on an overview card is emphasised. **Reduced motion** on your device turns all of it off.
+- **Owner steps:** publish v1.87.0 (nothing else). Page transitions stay Off (your call).
+
 ## v1.86.0 (23 Nov 2026): Home's header buttons stay put; unsent comments are safe
 No migration (D-416, from the header and motion audit, `docs/qa/HEADER-AND-MOTION-AUDIT.md`):
 - **+ Add widgets** and **Customise** no longer disappear when you move between the Task Management and Meetings overviews (they came back only after a refresh).

@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Button, type ButtonVariant } from "@/features/ui/Button";
 import { closeTopLayer, supportsTopLayerExit } from "@/features/ui/top-layer";
+import { openOverlay, type OverlayHandle } from "@/features/ui/overlay-stack";
 import { useSwipeDown } from "@/features/ui/swipe";
 
 // Dialogs and drawers (UI-03) on the native <dialog> element: showModal()
@@ -27,6 +28,7 @@ export function Dialog({
   role,
   testId,
   guardDraft = false,
+  locked = false,
 }: {
   open: boolean;
   onClose: () => void;
@@ -39,11 +41,16 @@ export function Dialog({
   role?: "alertdialog";
   testId?: string;
   guardDraft?: boolean;
+  /** v1.87.0 (D-417, audit gap 13): while true (an action under way) Escape, × and a click outside don't close it. */
+  locked?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const opener = useRef<Element | null>(null);
   const dirty = useRef(false);
   const [asking, setAsking] = useState(false);
+  const stackEntry = useRef<OverlayHandle | null>(null);
+  const lockedRef = useRef(locked);
+  lockedRef.current = locked;
   // The content stays while the closing animation plays.
   const [shown, setShown] = useState(open);
   if (open && !shown) setShown(true);
@@ -59,6 +66,9 @@ export function Dialog({
       dialog.removeAttribute("data-closing");
       dialog.style.removeProperty("translate");
       dialog.showModal();
+      // v1.87.0 (D-417): on the overlay stack (the browser keeps Escape, trap and inert).
+      stackEntry.current?.release();
+      stackEntry.current = openOverlay({ element: dialog, kind: "dialog", native: true, restoreFocus: false });
       // showModal focuses the first control (the close button); a field
       // marked data-autofocus (e.g. the comment box) is where typing starts.
       requestAnimationFrame(() => dialog.querySelector<HTMLElement>("[data-autofocus]")?.focus());
@@ -71,6 +81,8 @@ export function Dialog({
     const dialog = ref.current;
     if (!dialog) return;
     const onNativeClose = () => {
+      stackEntry.current?.release();
+      stackEntry.current = null;
       setShown(false);
       if (opener.current instanceof HTMLElement && opener.current.isConnected) opener.current.focus();
       onClose();
@@ -82,7 +94,7 @@ export function Dialog({
   // A close the person may not have meant (Escape, ×, outside click).
   const requestClose = useCallback(() => {
     const dialog = ref.current;
-    if (!dialog) return;
+    if (!dialog || lockedRef.current) return;
     if (guardDraft && dirty.current) {
       setAsking(true);
       return;
@@ -96,6 +108,10 @@ export function Dialog({
     // Escape: route through requestClose so it animates (Firefox, Safari)
     // and asks about a draft. Chrome animates its own close already.
     const onCancel = (event: Event) => {
+      if (lockedRef.current) {
+        event.preventDefault();
+        return;
+      }
       if (guardDraft && dirty.current) {
         event.preventDefault();
         setAsking(true);
@@ -156,7 +172,7 @@ export function Dialog({
                 </div>
               )}
             </div>
-            <button type="button" onClick={requestClose} aria-label="Close" className="-mr-2 -mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-ink-muted hover:bg-surface-muted hover:text-ink">
+            <button type="button" onClick={requestClose} aria-label="Close" disabled={locked} className="-mr-2 -mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-ink-muted hover:bg-surface-muted hover:text-ink">
               <X aria-hidden="true" className="h-4 w-4" />
             </button>
           </div>
@@ -229,6 +245,24 @@ export function ConfirmDialog({
   tone?: Extract<ButtonVariant, "primary" | "danger">;
   children?: React.ReactNode;
 }) {
+  // v1.87.0 (D-417, audit gap 13): one confirmation per opening, even on a
+  // quick double click before `busy` arrives; busy also stops Escape, × and
+  // a click outside from closing it mid-way.
+  const fired = useRef(false);
+  const busyRef = useRef(busy);
+  busyRef.current = busy;
+  useEffect(() => {
+    if (!open || !busy) fired.current = false;
+  }, [open, busy]);
+  const confirm = () => {
+    if (fired.current || busy) return;
+    fired.current = true;
+    onConfirm();
+    // A confirmation that doesn't report busy can be pressed again a moment later (e.g. after a refusal).
+    window.setTimeout(() => {
+      if (!busyRef.current) fired.current = false;
+    }, 800);
+  };
   return (
     <Dialog
       open={open}
@@ -237,12 +271,13 @@ export function ConfirmDialog({
       description={body}
       size="sm"
       role="alertdialog"
+      locked={busy}
       footer={
         <>
           <Button variant="secondary" size="sm" onClick={onCancel} disabled={busy}>
             Cancel
           </Button>
-          <Button variant={tone} size="sm" onClick={onConfirm} loading={busy} loadingLabel={busyLabel}>
+          <Button variant={tone} size="sm" onClick={confirm} loading={busy} loadingLabel={busyLabel}>
             {confirmLabel}
           </Button>
         </>

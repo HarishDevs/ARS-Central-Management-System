@@ -78,7 +78,7 @@ export function CircularProgress({ value, label = "Processing…", size = 88 }: 
       <span className="relative grid place-items-center" style={{ width: size, height: size }} role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}>
         <svg viewBox="0 0 48 48" className="absolute inset-0 h-full w-full -rotate-90" aria-hidden="true">
           <circle cx="24" cy="24" r="20" fill="none" stroke="var(--brand-wave-2)" strokeWidth="4" />
-          <circle cx="24" cy="24" r="20" fill="none" stroke="var(--brand-accent)" strokeWidth="4" strokeLinecap="round" strokeDasharray={`${(percent / 100) * circumference} ${circumference}`} className="motion-safe:transition-[stroke-dasharray] motion-safe:duration-500" />
+          <circle cx="24" cy="24" r="20" fill="none" stroke="var(--brand-accent)" strokeWidth="4" strokeLinecap="round" strokeDasharray={`${(percent / 100) * circumference} ${circumference}`} className="motion-safe:transition-[stroke-dasharray] motion-safe:duration-slower" />
         </svg>
         <span className="text-title font-bold tabular-nums">{percent}%</span>
       </span>
@@ -100,7 +100,7 @@ export function UploadProgress({ value, label = "Uploading…" }: { value: numbe
         {percent === null ? (
           <span className="loader-bar absolute inset-y-0 left-0 w-2/5 rounded-full bg-[color:var(--brand-accent)]" />
         ) : (
-          <span className="absolute inset-y-0 left-0 rounded-full bg-[color:var(--brand-accent)] motion-safe:transition-[width] motion-safe:duration-300" style={{ width: `${percent}%` }} />
+          <span className="absolute inset-y-0 left-0 rounded-full bg-[color:var(--brand-accent)] motion-safe:transition-[width] motion-safe:duration-moderate" style={{ width: `${percent}%` }} />
         )}
       </span>
       <span className="text-label text-ink-muted">

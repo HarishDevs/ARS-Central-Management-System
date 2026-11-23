@@ -2661,6 +2661,41 @@ flowchart TD
   OLD[Old address, bookmark or email link] --> MW[Middleware: redirect map] --> R308[308 to the new address, query kept]
 ```
 
+## F-OVERLAY-STACK: Escape, outside clicks and focus across overlays (v1.87.0, D-417)
+```mermaid
+flowchart TD
+  O[An overlay opens: dialog, palette, sheet, menu, bell, picker, filter panel, task or record pane] --> R[openOverlay: pushed on the one stack, opener remembered]
+  R --> M{modal and not a native dialog? pane in dialog mode or below 1024 px, sheet, phone picker}
+  M -- yes --> L[Tab kept inside, page scroll locked, the rest inert]
+  M -- no --> W[waits]
+  L --> W
+  W --> E{Escape or a click outside}
+  E -->|top is a native dialog, or an unregistered modal dialog is above| B[the browser closes that dialog]
+  E -->|top is a menu, picker, bell, Drop or filter panel| C[it closes; what is below stays]
+  E -->|top is a pane| P[PaneControl: saving? wait. unsent comment? Discard draft?]
+  C --> X[release: inert and scroll lock undone, focus back to the opener]
+  P --> X
+```
+
+## F-NAV-CONTINUITY: Closing a pane, Back, breadcrumbs and the way back across areas (v1.87.0, D-417)
+```mermaid
+flowchart TD
+  L[List with sort, filters, page, folds, scroll] -->|row or task link: push| P[Same list + ?open= / ?task=]
+  P -->|× / Esc / dimmed page| C{entry before = same list, reached forwards in this tab?}
+  C -- yes --> BK[history.back: no new entry]
+  C -- no --> RP[router.replace: no new entry]
+  BK --> L
+  RP --> L
+  P -->|Open full page| F[Record page; PlaceMemory notes scroll, link, list origin, folds]
+  F -->|browser Back| P
+  F -->|breadcrumb / Back to the list| L2[The list with the query it was left with: OriginLink]
+  AR[Admin → Records pane] -->|Open full page + ?from=list| RQ[/users/requests/id]
+  RQ --> V{parseReturnTo: same site, allow-listed path, area the person may open - server}
+  V -- yes --> WB[Breadcrumb and ← Back to Admin → Records with its query]
+  V -- no --> OB[The page's own way back]
+```
+- Roles and areas never change on the client; every page keeps its server checks. Folds are kept per page in this tab (sessionStorage); the list origin 60 min, the place 30 min (used once).
+
 ## F-TASK-PANE-EVERYWHERE: Every task opens in the side pane (v1.83.0, D-410)
 ```mermaid
 flowchart LR

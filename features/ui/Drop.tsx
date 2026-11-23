@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { useFitPanel } from "@/features/ui/fit";
-import { inside } from "@/features/ui/inside";
+import { useOverlay } from "@/features/ui/overlay-stack";
 
 // A toolbar dropdown: a button and a panel that closes on outside clicks.
 // v1.52.1 (owner): the panel opens where it is fully visible (above the button
@@ -19,25 +19,22 @@ export function Drop({ label, icon, buttonClass, panelClass = "left-0 w-56", tes
   const [open, setOpen] = useState(false);
   const [edge, setEdge] = useState<React.CSSProperties>({});
   const fit = useFitPanel(open, summary, panel);
-  useEffect(() => {
-    const close = (event: MouseEvent) => {
-      if (box.current?.open && !inside(event, box.current)) box.current.open = false;
-    };
-    const escape = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && box.current?.open) {
-        // v1.72.0 (D-387): focus goes back to the button that opened the panel.
-        const within = box.current.contains(document.activeElement);
-        box.current.open = false;
-        if (within) summary.current?.focus();
-      }
-    };
-    document.addEventListener("mousedown", close);
-    document.addEventListener("keydown", escape);
-    return () => {
-      document.removeEventListener("mousedown", close);
-      document.removeEventListener("keydown", escape);
-    };
-  }, []);
+  // v1.87.0 (D-417): on the overlay stack: Escape and a click outside close
+  // the panel only when it is the top overlay (a pane below stays open).
+  useOverlay(open, box, {
+    kind: "popover",
+    restoreFocus: false,
+    onOutside: () => {
+      if (box.current) box.current.open = false;
+    },
+    onEscape: () => {
+      if (!box.current?.open) return;
+      // v1.72.0 (D-387): focus goes back to the button that opened the panel.
+      const within = box.current.contains(document.activeElement);
+      box.current.open = false;
+      if (within) summary.current?.focus();
+    },
+  });
   // Keep the panel inside the screen sideways.
   useLayoutEffect(() => {
     if (!open || !panel.current) {

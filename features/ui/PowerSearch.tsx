@@ -41,6 +41,8 @@ export function powerChips(fields: readonly PowerField[], params: Record<string,
 
 export { powerHref } from "@/features/ui/power-href";
 import { powerHref } from "@/features/ui/power-href";
+import { useOverlay } from "@/features/ui/overlay-stack";
+import { navigateSurely } from "@/features/ui/sure-nav";
 
 export function PowerSearch({ base, fields, params, label = "Filters" }: { base: string; fields: PowerField[]; params: Record<string, string | undefined>; label?: string }) {
   const router = useRouter();
@@ -59,23 +61,29 @@ export function PowerSearch({ base, fields, params, label = "Filters" }: { base:
     setValue(field?.input === "flag" ? "1" : "");
   }, [field]);
   useEffect(() => {
-    if (!open) return;
-    panel.current?.querySelector<HTMLElement>("select, input")?.focus();
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setOpen(false);
-        opener.current?.focus();
-      }
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    if (open) panel.current?.querySelector<HTMLElement>("select, input")?.focus();
   }, [open]);
+  // v1.87.0 (D-417): the filter panel is on the overlay stack: Escape and a
+  // click outside close it when it is on top (a record pane below stays).
+  useOverlay(open, panel, {
+    kind: "popover",
+    restoreFocus: false,
+    onEscape: () => {
+      setOpen(false);
+      opener.current?.focus();
+    },
+    onOutside: (target) => {
+      if (!target.closest("[data-power-backdrop]")) setOpen(false);
+    },
+    ignore: (target) => Boolean(opener.current?.contains(target)),
+  });
 
   const apply = (event: React.FormEvent) => {
     event.preventDefault();
     if (!field || !operatorParam || !value) return;
     setOpen(false);
-    router.push(powerHref(base, params, { [operatorParam]: value }));
+    // v1.87.0 (D-417): a dropped move is asked again (sure-nav).
+    navigateSurely(router, powerHref(base, params, { [operatorParam]: value }));
   };
 
   return (
@@ -111,7 +119,7 @@ export function PowerSearch({ base, fields, params, label = "Filters" }: { base:
             id={`${id}-panel`}
             role="dialog"
             aria-label="Add a filter"
-            className="fixed inset-x-0 bottom-0 z-drawer rounded-t-xl border border-line bg-surface p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-overlay sm:absolute sm:inset-x-auto sm:bottom-auto sm:left-0 sm:top-full sm:z-popover sm:mt-1 sm:w-[26rem] sm:rounded-md sm:pb-4"
+            className="pop-in fixed inset-x-0 bottom-0 z-drawer rounded-t-xl border border-line bg-surface p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-overlay sm:absolute sm:inset-x-auto sm:bottom-auto sm:left-0 sm:top-full sm:z-popover sm:mt-1 sm:w-[26rem] sm:rounded-md sm:pb-4"
             data-testid="power-panel"
           >
             <form onSubmit={apply} className="grid gap-3 sm:grid-cols-3">

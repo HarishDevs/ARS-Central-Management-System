@@ -3,6 +3,7 @@ import type { LucideIcon } from "lucide-react";
 import { AlertTriangle, ArrowDownRight, ArrowRight, ArrowUpRight, Minus } from "lucide-react";
 import { PeriodPicker } from "@/features/home/HomeClient";
 import type { Period } from "@/server/work/period";
+import { LiveNumber } from "@/features/ui/LiveNumber";
 
 // v1.79.0 (D-406, owner: "Match all 3 Overview Screens, it should be
 // identically featured"): the parts every Home overview shares: the header,
@@ -96,7 +97,8 @@ export function SummaryCards({ cards, testId, cardTestId, tour = false }: { card
             <card.icon className="h-5 w-5" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className={`block text-card-title font-bold tabular-nums leading-tight ${card.alert ? (card.danger ? "text-danger-600" : "text-primary-700") : ""}`}>{card.value}</span>
+            {/* v1.87.0 (D-417): a figure that changed on a refresh gets a short emphasis; the others stay still. */}
+            <LiveNumber value={card.value} className={`block text-card-title font-bold tabular-nums leading-tight ${card.alert ? (card.danger ? "text-danger-600" : "text-primary-700") : ""}`} />
             <span className="block text-label font-medium">{card.label}</span>
             <span className="block truncate text-caption text-ink-muted">{card.note}</span>
             {/* v1.74.1 (D-397): the change sits under the note; beside it, it squeezed the label into two lines on a tablet. */}

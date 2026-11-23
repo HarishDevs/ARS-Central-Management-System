@@ -125,8 +125,11 @@ describe("dialogs close with their animation (point 1)", () => {
 });
 
 describe("one motion system (globals.css)", () => {
+  // v1.87.0 (D-417, intended change): the v1.80 names now point at the owner's scale
+  // (hover 100, menu 150, dialog in 220, out 150, page 150); see navigation-continuity.test.ts.
   it("has the motion tokens of the brief", () => {
-    for (const [name, value] of [["--motion-hover", "120ms"], ["--motion-menu", "190ms"], ["--motion-dialog-in", "220ms"], ["--motion-dialog-out", "160ms"], ["--motion-page", "120ms"]]) expect(css).toContain(`${name}: ${value};`);
+    for (const [name, value] of [["--motion-hover", "var(--motion-instant)"], ["--motion-menu", "var(--motion-fast)"], ["--motion-dialog-in", "var(--motion-base)"], ["--motion-dialog-out", "var(--motion-fast)"], ["--motion-page", "var(--motion-fast)"]]) expect(css).toContain(`${name}: ${value};`);
+    for (const [name, value] of [["--motion-instant", "100ms"], ["--motion-fast", "150ms"], ["--motion-base", "220ms"]]) expect(css).toContain(`${name}: ${value};`);
   });
   it("animates dialogs with @starting-style, allow-discrete and overlay, and the closing step", () => {
     expect(css).toContain("transition-property: opacity, transform, display, overlay;");
@@ -143,7 +146,7 @@ describe("one motion system (globals.css)", () => {
   it("only animates opacity and transform in the new motion block", () => {
     const block = css.slice(css.indexOf("---- v1.80.0 (D-407)"));
     const properties = [...block.matchAll(/transition(?:-property)?:\s*([^;]+);/g)].flatMap((match) => match[1]!.split(",").map((part) => part.trim().split(/\s+/)[0]!));
-    for (const property of properties) expect(["opacity", "transform", "translate", "rotate", "display", "overlay", "background-color", "outline-color", "none", "block-size"]).toContain(property);
+    for (const property of properties) expect(["opacity", "transform", "translate", "rotate", "display", "overlay", "background-color", "outline-color", "none", "block-size", "visibility"]).toContain(property);
   });
 });
 

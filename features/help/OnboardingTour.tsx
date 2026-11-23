@@ -236,7 +236,7 @@ export function OnboardingTour({ steps, autoStart }: { steps: TourStep[]; autoSt
         <div
           aria-hidden="true"
           data-testid="tour-spotlight"
-          className="pointer-events-none fixed rounded-lg ring-2 ring-primary-600 transition-all duration-200 motion-reduce:transition-none"
+          className="pointer-events-none fixed rounded-lg ring-2 ring-primary-600 transition-[top,left,width,height] duration-base ease-standard motion-reduce:transition-none"
           style={{ top: box.top, left: box.left, width: box.width, height: box.height, boxShadow: "0 0 0 9999px var(--color-overlay)" }}
         />
       ) : (
@@ -260,7 +260,7 @@ export function OnboardingTour({ steps, autoStart }: { steps: TourStep[]; autoSt
           </button>
         </div>
         <div className="mt-2 h-1 overflow-hidden rounded-full bg-surface-muted" aria-hidden="true">
-          <div className="h-full rounded-full bg-primary-600 transition-all motion-reduce:transition-none" style={{ width: `${((index + 1) / steps.length) * 100}%` }} />
+          <div className="h-full rounded-full bg-primary-600 transition-[width] duration-base ease-standard motion-reduce:transition-none" style={{ width: `${((index + 1) / steps.length) * 100}%` }} />
         </div>
         <h2 id="tour-title" ref={heading} tabIndex={-1} className="mt-3 text-card-title font-semibold focus:outline-none">
           {step.title}

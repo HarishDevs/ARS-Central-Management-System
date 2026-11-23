@@ -5,7 +5,7 @@ import { TaskDetail } from "@/features/work/TaskDetail";
 import { LiveRefresh } from "@/features/work/useLiveRefresh";
 import { PaneModeButton, PaneResizer } from "@/features/work/PaneParts";
 import { PaneFocus } from "@/features/work/TaskPaneHost";
-import { PaneDraftGuard } from "@/features/ui/PaneDraftGuard";
+import { PaneControl } from "@/features/ui/PaneControl";
 import type { PaneMode } from "@/server/work/pm-rules";
 import type { AuthenticatedUser } from "@/types/auth";
 export { visibilityText } from "@/features/work/visibility";
@@ -30,8 +30,8 @@ export async function TaskPane({ taskId, user, closeHref, mode, width }: { taskI
         <style>{`:root{--pane-w:${width}px}`}</style>
         <LiveRefresh />
         <PaneFocus key={taskId} taskId={taskId} />
-        <PaneDraftGuard />
-        <Link href={closeHref} scroll={false} aria-label="Close task" tabIndex={-1} className="fixed inset-0 cursor-default bg-overlay lg:hidden" />
+        <PaneControl />
+        <Link href={closeHref} scroll={false} aria-label="Close task" tabIndex={-1} data-pane-close className="fixed inset-0 cursor-default bg-overlay lg:hidden" />
         <div tabIndex={-1} data-pane-focus className="relative h-full w-full max-w-6xl overflow-y-auto overscroll-contain bg-page shadow-2xl focus:outline-none sm:h-auto sm:max-h-full sm:rounded-xl lg:h-full lg:max-h-none lg:max-w-none lg:rounded-none lg:border-l lg:border-line lg:shadow-overlay" data-testid="task-pane-body">
           <PaneResizer initial={width} />
           <div className="p-4 sm:p-5">
@@ -45,9 +45,9 @@ export async function TaskPane({ taskId, user, closeHref, mode, width }: { taskI
       {/* v1.61.0 (D-366): the open task stays fresh (15 s, focus, after changes). */}
       <LiveRefresh />
       <PaneFocus key={taskId} taskId={taskId} />
-        <PaneDraftGuard />
+        <PaneControl />
       {/* The dimmed page behind: a click on it closes the popup. */}
-      <Link href={closeHref} scroll={false} aria-label="Close task" tabIndex={-1} className="fixed inset-0 cursor-default bg-overlay" />
+      <Link href={closeHref} scroll={false} aria-label="Close task" tabIndex={-1} data-pane-close className="fixed inset-0 cursor-default bg-overlay" />
       <div tabIndex={-1} data-pane-focus className="relative h-full w-full max-w-6xl overflow-y-auto overscroll-contain rounded-none bg-page shadow-2xl focus:outline-none sm:h-auto sm:max-h-full sm:rounded-xl">
         <div className="sticky top-0 z-10 flex items-center justify-end gap-1 rounded-t-xl border-b border-line bg-surface px-3 py-2">
           <PaneModeButton to="SIDE" />
@@ -55,7 +55,7 @@ export async function TaskPane({ taskId, user, closeHref, mode, width }: { taskI
           <Link href={`/users/tasks/${taskId}`} data-full-page className="inline-flex items-center gap-1 rounded px-2 py-1 text-label text-ink-muted hover:bg-surface-muted hover:text-ink" data-testid="pane-full">
             <ExternalLink aria-hidden="true" className="h-4 w-4" /> Open full page
           </Link>
-          <Link href={closeHref} scroll={false} aria-label="Close task" aria-keyshortcuts="Escape" className="rounded p-1 text-ink-muted hover:bg-surface-muted hover:text-ink" data-testid="close-pane">
+          <Link href={closeHref} scroll={false} aria-label="Close task" aria-keyshortcuts="Escape" data-pane-close className="rounded p-1 text-ink-muted hover:bg-surface-muted hover:text-ink" data-testid="close-pane">
             <X aria-hidden="true" className="h-5 w-5" />
           </Link>
         </div>

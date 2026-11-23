@@ -2,8 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
-import { isTyping } from "@/features/shell/shortcuts";
-import { requestPaneClose } from "@/features/ui/pane-draft";
 import { paneHref, PANE_HOST_ATTR, rememberOpener, takeOpener, taskIdFromHref } from "@/features/work/pane-open";
 
 // v1.83.0 (D-410, owner): every task opens in the side pane beside the
@@ -38,26 +36,17 @@ export function TaskPaneHost() {
       const pane = anchor.closest<HTMLElement>("[data-task-pane]");
       if (pane && pane.dataset.taskId === String(id)) return;
       event.preventDefault();
+      // v1.87.0 (D-417): a second click on the same task (double click) adds nothing.
+      if (new URLSearchParams(window.location.search).get("task") === String(id)) return;
       if (!pane) rememberOpener(anchor);
       routerRef.current.push(paneHref(id, window.location), { scroll: false });
     };
-    // Escape closes the pane on every screen (the Tasks area's keys, WorkKeys,
-    // take it first there and stop it).
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key !== "Escape" || event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
-      if (isTyping(event.target) || document.querySelector("dialog[open], [data-date-picker-open], [data-lifted]")) return;
-      const pane = document.querySelector<HTMLElement>("[data-task-pane]");
-      if (!pane?.dataset.closeHref) return;
-      event.preventDefault();
-      const to = pane.dataset.closeHref;
-      requestPaneClose(pane, () => routerRef.current.push(to, { scroll: false }));
-    };
+    // v1.87.0 (D-417): Escape is the overlay stack's (PaneControl in the
+    // pane): it reaches the pane only when nothing is open above it.
     document.addEventListener("click", onClick, true);
-    document.addEventListener("keydown", onKey);
     return () => {
       root.removeAttribute(PANE_HOST_ATTR);
       document.removeEventListener("click", onClick, true);
-      document.removeEventListener("keydown", onKey);
     };
   }, []);
 

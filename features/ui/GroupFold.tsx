@@ -1,7 +1,9 @@
 "use client";
 
 import { ChevronDown, ChevronRight, ChevronsDownUp, ChevronsUpDown } from "lucide-react";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
+import { foldKey, readFold, writeFold } from "@/features/ui/fold-memory";
 
 // v1.57.4 (D-342, owner: "make all the Group by as a collapsible sections"):
 // a group's heading folds its rows away and opens them again, in a table
@@ -44,10 +46,24 @@ export function FoldAllButtons({ onAll, testId = "fold-all" }: { onAll: (open: b
 // v1.80.0 (D-407, motion review point 3): `revealed` is true once the group
 // was opened by the person (not on the first draw), so its rows glide in
 // (globals.css [data-revealed]: a 190 ms fade and a 4 px drop).
-function useGroupOpen(): [boolean, () => void, boolean] {
+// v1.87.0 (D-417, audit gap 18): each group's open state is kept per page in
+// this tab (fold-memory), so leaving and coming back finds it as left.
+function useGroupOpen(label: React.ReactNode): [boolean, () => void, boolean] {
   const signal = useContext(FoldContext);
   const [open, setOpen] = useState(signal?.open ?? false);
   const [revealed, setRevealed] = useState(false);
+  const pathname = usePathname();
+  const reactId = useId();
+  const key = foldKey(pathname, `group:${typeof label === "string" ? label : reactId}`);
+  const restored = useRef(false);
+  useLayoutEffect(() => {
+    const saved = readFold(key);
+    if (saved) setOpen(!saved.closed);
+    restored.current = true;
+  }, [key]);
+  useEffect(() => {
+    if (restored.current) writeFold(key, { closed: !open, toggled: [] });
+  }, [open, key]);
   useEffect(() => {
     if (signal && signal.n > 0) {
       setOpen(signal.open);
@@ -75,7 +91,7 @@ function Toggle({ open, onToggle, label, count, hint }: { open: boolean; onToggl
 }
 
 export function FoldTbody({ label, count, colSpan, hint, headClass = "", children, testId }: { label: React.ReactNode; count: number; colSpan: number; hint?: React.ReactNode; headClass?: string; children: React.ReactNode; testId?: string }) {
-  const [open, toggle, revealed] = useGroupOpen();
+  const [open, toggle, revealed] = useGroupOpen(label);
   // One tbody: the heading row stays, the rows after it hide when folded.
   return (
     <tbody data-testid={testId} data-folded={open ? undefined : "1"} data-revealed={revealed || undefined} aria-label={typeof label === "string" ? `${label}: ${count}` : undefined} className={open ? "" : "[&>tr:not(:first-child)]:hidden"}>
@@ -90,7 +106,7 @@ export function FoldTbody({ label, count, colSpan, hint, headClass = "", childre
 }
 
 export function FoldListGroup({ label, count, children }: { label: React.ReactNode; count: number; children: React.ReactNode }) {
-  const [open, toggle, revealed] = useGroupOpen();
+  const [open, toggle, revealed] = useGroupOpen(label);
   return (
     <>
       <li className="bg-surface-muted px-4 py-1.5 text-label">

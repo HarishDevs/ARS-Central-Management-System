@@ -235,7 +235,7 @@ export function PaneMoreMenu({ taskId, title, canDelete, closeHref, automations 
                 onClick={() =>
                   void remove([taskId], `Deleted: ${title}`).then((result) => {
                     dialog.current?.close();
-                    if (result?.ok) router.push(closeHref, { scroll: false });
+                    if (result?.ok) router.replace(closeHref, { scroll: false }); // v1.87.0: no history entry for a closed pane
                   })
                 }
                 data-testid="pane-delete-confirm"

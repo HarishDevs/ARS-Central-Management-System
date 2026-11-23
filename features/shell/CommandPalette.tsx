@@ -7,6 +7,8 @@ import { SHORTCUTS, isTyping } from "@/features/shell/shortcuts";
 import { Hint } from "@/features/ui/Hint";
 import { Avatar } from "@/features/ui/Avatar";
 import { openTaskHref } from "@/features/work/pane-open";
+import { openOverlay, type OverlayHandle } from "@/features/ui/overlay-stack";
+import { closeTopLayer } from "@/features/ui/top-layer";
 
 // WS-03 (Ctrl+K) → D-232 (owner's screenshots of Asana's search): one search
 // for the whole app at the top of every page. Type chips (Requests, Tasks,
@@ -89,6 +91,8 @@ export function CommandPalette({ pages, saved }: { pages: PaletteLink[]; saved?:
   const [extra, setExtra] = useState<string[]>([]);
   const dialog = useRef<HTMLDialogElement>(null);
   const helpDialog = useRef<HTMLDialogElement>(null);
+  const paletteEntry = useRef<OverlayHandle | null>(null);
+  const helpEntry = useRef<OverlayHandle | null>(null);
   const input = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const pathname = usePathname();
@@ -136,19 +140,32 @@ export function CommandPalette({ pages, saved }: { pages: PaletteLink[]; saved?:
     if (!node) return;
     if (open && !node.open) {
       node.showModal();
+      // v1.87.0 (D-417): on the overlay stack, so Escape closes the palette only (not a pane below).
+      paletteEntry.current?.release();
+      paletteEntry.current = openOverlay({ element: node, kind: "palette", native: true, restoreFocus: false });
       setQuery("");
       setChip("all");
       setFiltersOpen(false);
       setActive(0);
       setRecents(readRecents());
       requestAnimationFrame(() => input.current?.focus());
-    } else if (!open && node.open) node.close();
+    } else if (!open && node.open) void closeTopLayer(node);
+    if (!open) {
+      paletteEntry.current?.release();
+      paletteEntry.current = null;
+    }
   }, [open]);
   useEffect(() => {
     const node = helpDialog.current;
     if (!node) return;
-    if (help && !node.open) node.showModal();
-    else if (!help && node.open) node.close();
+    if (help && !node.open) {
+      node.showModal();
+      helpEntry.current = openOverlay({ element: node, kind: "dialog", native: true, restoreFocus: false });
+    } else if (!help && node.open) void closeTopLayer(node);
+    if (!help) {
+      helpEntry.current?.release();
+      helpEntry.current = null;
+    }
   }, [help]);
 
   // Debounced; the latest answer wins.
@@ -323,7 +340,7 @@ export function CommandPalette({ pages, saved }: { pages: PaletteLink[]; saved?:
         aria-label="Search ARS CMS"
         onClose={() => setOpen(false)}
         onClick={(event) => event.target === dialog.current && setOpen(false)}
-        className="z-palette mt-2 w-[calc(100%-1rem)] max-w-2xl rounded-xl border border-line bg-raised p-0 text-ink shadow-overlay backdrop:bg-overlay/40"
+        className="palette-dialog z-palette mt-2 w-[calc(100%-1rem)] max-w-2xl rounded-xl border border-line bg-raised p-0 text-ink shadow-overlay backdrop:bg-overlay/40"
         data-testid="search-panel"
       >
         {open && (
@@ -644,7 +661,7 @@ export function CommandPalette({ pages, saved }: { pages: PaletteLink[]; saved?:
         aria-labelledby={`${listId}-help`}
         onClose={() => setHelp(false)}
         onClick={(event) => event.target === helpDialog.current && setHelp(false)}
-        className="z-palette w-[calc(100%-2rem)] max-w-md rounded-xl border border-line bg-raised p-0 text-ink shadow-overlay backdrop:bg-overlay"
+        className="palette-dialog z-palette w-[calc(100%-2rem)] max-w-md rounded-xl border border-line bg-raised p-0 text-ink shadow-overlay backdrop:bg-overlay"
       >
         {help && (
           <div className="p-5">

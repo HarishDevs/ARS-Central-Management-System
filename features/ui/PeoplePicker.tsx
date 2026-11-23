@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { useFitPanel } from "@/features/ui/fit";
 import { Hint } from "@/features/ui/Hint";
-import { inside } from "@/features/ui/inside";
+import { useOverlay } from "@/features/ui/overlay-stack";
 
 // Pick several people (v1.6.1 collaborators). Type to search by name or
 // user id, choose with the mouse or the arrow keys and Enter; each chosen
@@ -93,14 +93,8 @@ export function PeoplePicker({
   const wrap = useRef<HTMLDivElement>(null);
   const list = useRef<HTMLUListElement>(null);
   const fit = useFitPanel(showList, wrap, list);
-  useEffect(() => {
-    if (!showList) return;
-    const outside = (event: MouseEvent) => {
-      if (wrap.current && !inside(event, wrap.current)) setOpen(false);
-    };
-    document.addEventListener("mousedown", outside);
-    return () => document.removeEventListener("mousedown", outside);
-  }, [showList]);
+  // v1.87.0 (D-417): on the overlay stack (outside click and Escape, top only).
+  useOverlay(showList, wrap, { kind: "popover", restoreFocus: false, onOutside: () => setOpen(false), onEscape: () => setOpen(false) });
 
   return (
     <div>

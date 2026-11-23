@@ -8,8 +8,9 @@ import { DateRangePicker } from "@/features/ui/DateRangePicker";
 import Link from "next/link";
 import { useProjectsOn } from "@/features/work/projects-access";
 import { LockedProjectName } from "@/features/ui/ComingSoon";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { foldKey as foldStoreKey, readFold, writeFold } from "@/features/ui/fold-memory";
 import { FoldAllButtons } from "@/features/ui/GroupFold";
 import { deleteViewAction, densityAction, myTasksTabAction, projectTabAction, saveViewAction, taskFieldsAction, updateViewAction } from "@/app/users/work/actions";
 import { UnsavedView } from "@/features/work/UnsavedView";
@@ -208,6 +209,20 @@ export function TaskGrid({
   }, [syncUrl, urlState, router]);
   const foldKey = `${config.group}:${config.groupField ?? ""}`;
   if (fold.group !== foldKey) setFold({ group: foldKey, closed: groupsStartFolded(config.group, config.groupField), toggled: new Set() });
+  // v1.87.0 (D-417, audit gap 18): the folds are kept per page and grouping in
+  // this tab, so a full page and Back (or a reload) finds them as left.
+  const foldPath = usePathname();
+  const foldStore = foldStoreKey(foldPath, `grid:${foldKey}`);
+  const foldRead = useRef<string | null>(null);
+  useLayoutEffect(() => {
+    if (foldRead.current === foldStore) return;
+    foldRead.current = foldStore;
+    const saved = readFold(foldStore);
+    if (saved) setFold({ group: foldKey, closed: saved.closed, toggled: new Set(saved.toggled) });
+  }, [foldStore, foldKey]);
+  useEffect(() => {
+    if (foldRead.current === foldStore && fold.group === foldKey) writeFold(foldStore, { closed: fold.closed, toggled: [...fold.toggled] });
+  }, [fold, foldStore, foldKey]);
   const toggleGroup = (key: string) => setFold((value) => ({ ...value, toggled: new Set(value.toggled.has(key) ? [...value.toggled].filter((item) => item !== key) : [...value.toggled, key]) }));
   const foldAll = (open: boolean) => setFold((value) => ({ ...value, closed: !open, toggled: new Set() }));
   const today = indiaDayOf(new Date(nowIso));

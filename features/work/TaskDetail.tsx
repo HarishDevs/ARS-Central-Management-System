@@ -275,7 +275,7 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
               <ExternalLink aria-hidden="true" className="h-4 w-4" />
             </Link>
             <PaneMoreMenu taskId={task.id} title={task.title} canDelete={rights.edit && !task.deletedAt} closeHref={popup.closeHref} automations={manualRules} copy={{ projectId: (fromProject ?? links[0])?.projectId ?? null, description: task.description ?? "", priority: task.priority }} />
-            <Link href={popup.closeHref} scroll={false} aria-label="Close task" aria-keyshortcuts="Escape" title="Close" className="grid h-8 w-8 place-items-center rounded-md text-ink-muted hover:bg-surface-muted hover:text-ink" data-testid="close-pane">
+            <Link href={popup.closeHref} scroll={false} aria-label="Close task" aria-keyshortcuts="Escape" title="Close" data-pane-close className="grid h-8 w-8 place-items-center rounded-md text-ink-muted hover:bg-surface-muted hover:text-ink" data-testid="close-pane">
               <ArrowRightToLine aria-hidden="true" className="h-5 w-5" />
             </Link>
           </div>

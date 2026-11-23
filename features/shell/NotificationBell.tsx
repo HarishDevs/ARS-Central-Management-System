@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Bell } from "lucide-react";
 import { Spinner } from "@/features/ui/Spinner";
-import { inside } from "@/features/ui/inside";
+import { useOverlay } from "@/features/ui/overlay-stack";
 import { openTaskHref } from "@/features/work/pane-open";
 
 // v1.9.0 (owner, D-146): the bell opens a dropdown with the latest 10
@@ -110,24 +110,17 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
   }, [recount]);
 
   // Close on Escape or a click outside; focus goes back to the bell.
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setOpen(false);
-        button.current?.focus();
-      }
-    };
-    const onClick = (event: MouseEvent) => {
-      if (!inside(event, panel.current) && !inside(event, button.current)) setOpen(false);
-    };
-    document.addEventListener("keydown", onKey);
-    document.addEventListener("mousedown", onClick);
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.removeEventListener("mousedown", onClick);
-    };
-  }, [open]);
+  // v1.87.0 (D-417): through the overlay stack (only when the list is on top).
+  useOverlay(open, panel, {
+    kind: "popover",
+    restoreFocus: false,
+    onEscape: () => {
+      setOpen(false);
+      button.current?.focus();
+    },
+    onOutside: () => setOpen(false),
+    ignore: (target) => Boolean(button.current?.contains(target)),
+  });
 
   const post = (body: unknown) => fetch("/api/me/notifications", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 
@@ -183,7 +176,7 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
           id={panelId}
           role="dialog"
           aria-label="Latest notifications"
-          className="fixed inset-x-3 top-[calc(3.5rem+env(safe-area-inset-top)+0.25rem)] z-popover flex max-h-[calc(100dvh-3.5rem-4rem-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] flex-col overflow-hidden rounded-lg border border-line bg-surface shadow-overlay sm:absolute sm:inset-x-auto sm:right-0 sm:top-11 sm:max-h-[min(80vh,560px)] sm:w-[380px]"
+          className="pop-in fixed inset-x-3 top-[calc(3.5rem+env(safe-area-inset-top)+0.25rem)] z-popover flex max-h-[calc(100dvh-3.5rem-4rem-env(safe-area-inset-top)-env(safe-area-inset-bottom)-1rem)] flex-col overflow-hidden rounded-lg border border-line bg-surface shadow-overlay sm:absolute sm:inset-x-auto sm:right-0 sm:top-11 sm:max-h-[min(80vh,560px)] sm:w-[380px]"
           data-testid="notification-dropdown"
         >
           {/* v1.49.4 (owner: layout issue): the header, filters and footer keep their height; only the list scrolls. */}

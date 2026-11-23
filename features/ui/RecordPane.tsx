@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { ExternalLink, Maximize2, PanelRight, X } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { requestPaneClose } from "@/features/ui/pane-draft";
-import { PaneDraftGuard } from "@/features/ui/PaneDraftGuard";
+import { PaneControl } from "@/features/ui/PaneControl";
+import { returnParam } from "@/lib/nav/return-to";
 
 // v1.85.0 (D-412, owner's Admin redesign): the record pane, generalised from
 // the v1.83.0 task pane (D-410): a row opens the record beside the table
@@ -14,6 +14,11 @@ import { PaneDraftGuard } from "@/features/ui/PaneDraftGuard";
 // to the record's own page. Below 1024 px the side pane is the centred
 // dialog; on a phone it fills the screen. Escape and × close it; focus moves
 // in when it opens and back to the row's link when it closes.
+// v1.87.0 (D-417): PaneControl runs it (the overlay stack's Escape, so a
+// menu or picker above closes first, and Escape after Back always works;
+// closing adds no history entry; enter and exit motion; trap, scroll lock
+// and inert in dialog mode). Open full page carries ?from= (this list's
+// address), so a page in another area can offer the way back by name.
 type Mode = "side" | "dialog";
 const KEY = "ars.recordPane.mode";
 
@@ -26,30 +31,22 @@ function readMode(): Mode {
 }
 
 export function RecordPane({ title, closeHref, fullHref, children, testId = "record-pane" }: { title: string; closeHref: string; fullHref: string; children: React.ReactNode; testId?: string }) {
-  const router = useRouter();
   const [mode, setMode] = useState<Mode>("side");
   const body = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+  const search = useSearchParams();
+  const fullWithReturn = `${fullHref}${fullHref.includes("?") ? "&" : "?"}${returnParam({ pathname, search: `?${search.toString()}` })}`;
   useEffect(() => setMode(readMode()), []);
   useEffect(() => {
     body.current?.focus({ preventScroll: true });
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key !== "Escape" || event.defaultPrevented) return;
-      if (document.querySelector("dialog[open], [data-testid=power-panel]")) return;
-      event.preventDefault();
-      const pane = document.querySelector<HTMLElement>("[data-record-pane]");
-      if (pane) requestPaneClose(pane, () => router.push(closeHref, { scroll: false }));
-      else router.push(closeHref, { scroll: false });
-    };
-    document.addEventListener("keydown", onKey);
     return () => {
-      document.removeEventListener("keydown", onKey);
       // Back to the row that opened it (its number link), if still there.
       requestAnimationFrame(() => {
         if (document.querySelector("[data-record-pane]")) return;
         document.querySelector<HTMLElement>(`#main a[data-open-link="${CSS.escape(fullHref)}"]`)?.focus({ preventScroll: false });
       });
     };
-  }, [closeHref, fullHref, router]);
+  }, [fullHref]);
   const switchTo = (next: Mode) => {
     setMode(next);
     try {
@@ -65,15 +62,17 @@ export function RecordPane({ title, closeHref, fullHref, children, testId = "rec
       aria-modal={side ? undefined : true}
       aria-label={title}
       data-record-pane
+      data-close-href={closeHref}
       data-pane-mode={side ? "side" : "dialog"}
       data-testid={testId}
       className={side ? "fixed inset-0 z-drawer flex items-center justify-center p-0 sm:p-6 lg:inset-auto lg:bottom-0 lg:right-0 lg:top-topbar lg:z-sticky lg:block lg:w-pane lg:p-0" : "fixed inset-0 z-drawer flex items-center justify-center p-0 sm:p-6"}
     >
-      <PaneDraftGuard />
-      <Link href={closeHref} scroll={false} aria-label="Close" tabIndex={-1} className={`fixed inset-0 cursor-default bg-overlay ${side ? "lg:hidden" : ""}`} />
+      <PaneControl />
+      <Link href={closeHref} scroll={false} aria-label="Close" tabIndex={-1} data-pane-close className={`fixed inset-0 cursor-default bg-overlay ${side ? "lg:hidden" : ""}`} />
       <div
         ref={body}
         tabIndex={-1}
+        data-pane-panel
         className={`relative flex h-full w-full flex-col overflow-hidden bg-page shadow-2xl focus:outline-none sm:h-auto sm:max-h-full sm:max-w-3xl sm:rounded-xl ${side ? "lg:h-full lg:max-h-none lg:max-w-none lg:rounded-none lg:border-l lg:border-line lg:shadow-overlay" : ""}`}
       >
         <div className="flex shrink-0 items-center gap-1 border-b border-line bg-surface px-3 py-2">
@@ -88,10 +87,10 @@ export function RecordPane({ title, closeHref, fullHref, children, testId = "rec
           >
             {side ? <Maximize2 aria-hidden="true" className="h-4 w-4" /> : <PanelRight aria-hidden="true" className="h-4 w-4" />}
           </button>
-          <Link href={fullHref} className="inline-flex items-center gap-1 rounded px-2 py-1 text-label text-ink-muted hover:bg-surface-muted hover:text-ink" data-testid="record-pane-full">
+          <Link href={fullWithReturn} className="inline-flex items-center gap-1 rounded px-2 py-1 text-label text-ink-muted hover:bg-surface-muted hover:text-ink" data-testid="record-pane-full">
             <ExternalLink aria-hidden="true" className="h-4 w-4" /> Open full page
           </Link>
-          <Link href={closeHref} scroll={false} aria-label="Close" aria-keyshortcuts="Escape" className="rounded p-1 text-ink-muted hover:bg-surface-muted hover:text-ink" data-testid="record-pane-close">
+          <Link href={closeHref} scroll={false} aria-label="Close" aria-keyshortcuts="Escape" data-pane-close className="rounded p-1 text-ink-muted hover:bg-surface-muted hover:text-ink" data-testid="record-pane-close">
             <X aria-hidden="true" className="h-5 w-5" />
           </Link>
         </div>

@@ -43,3 +43,58 @@ export function readPlace(raw: string | null, now: number): Place | null {
     return null;
   }
 }
+
+// v1.87.0 (D-417, gap 1): the owner's motion scale, the same values as the CSS
+// variables in styles/globals.css (tests/ui/motion-tokens.test.ts keeps them
+// in step). For code that has to wait for a motion or set one inline.
+export const MOTION_DURATION = { instant: 100, fast: 150, base: 220, moderate: 280, slow: 350, slower: 450 } as const;
+export const MOTION_EASE = {
+  standard: "cubic-bezier(0.22, 1, 0.36, 1)",
+  enter: "cubic-bezier(0.16, 1, 0.3, 1)",
+  exit: "cubic-bezier(0.4, 0, 1, 1)",
+  linear: "linear",
+} as const;
+export const MOTION_DISTANCE = { 1: 2, 2: 4, 3: 8, 4: 16, 5: 24, 6: 32 } as const;
+// Where each part of the app takes its timing from (the documented mapping).
+export const MOTION_ROLE = {
+  hover: "instant",
+  menu: "fast",
+  tooltip: "fast",
+  dialogIn: "base",
+  dialogOut: "fast",
+  page: "fast",
+  pane: "moderate",
+  sheet: "moderate",
+  expand: "base",
+  emphasis: "slow",
+  hero: "slower",
+} as const satisfies Record<string, keyof typeof MOTION_DURATION>;
+
+// v1.87.0 (D-417, gap 19): the list a page was opened from (its address with
+// the sort, filters and page, never an open pane), kept for that page in this
+// tab, so its breadcrumb and Back link return to the same list.
+export const ORIGIN_KEY = "ars.origin";
+export const ORIGIN_TTL_MS = 60 * 60 * 1000;
+const PANE_PARAMS = ["task", "open"];
+
+export function listHref(location: { pathname: string; search: string }): string {
+  const query = new URLSearchParams(location.search);
+  for (const name of PANE_PARAMS) query.delete(name);
+  const text = query.toString();
+  return `${location.pathname}${text ? `?${text}` : ""}`;
+}
+
+// The remembered list for `fallback`'s page, when it is the same page (path); else the fallback.
+export function originFor(fallback: string, raw: string | null, now: number): string {
+  if (!raw) return fallback;
+  try {
+    const value = JSON.parse(raw) as { href?: unknown; at?: unknown };
+    if (typeof value.href !== "string" || typeof value.at !== "number" || now - value.at > ORIGIN_TTL_MS) return fallback;
+    if (!value.href.startsWith("/") || value.href.startsWith("//")) return fallback;
+    const want = new URL(fallback, "https://same.origin.invalid");
+    const got = new URL(value.href, "https://same.origin.invalid");
+    return got.origin === want.origin && got.pathname === want.pathname ? `${got.pathname}${got.search}` : fallback;
+  } catch {
+    return fallback;
+  }
+}
