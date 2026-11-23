@@ -293,8 +293,8 @@ export function BackupCentre({ initial, databaseName, driveReady, serverKeySet, 
         <p className="mt-1 text-label text-ink-muted">
           {schedule === "OFF" ? "Off." : `${schedule === "DAILY" ? "Every day" : "Every week"}: a full package (database, attachments, secrets) encrypted with the server's BACKUP_ENCRYPTION_KEY, made by the job runner.`}{" "}
           {!serverKeySet && "BACKUP_ENCRYPTION_KEY isn't set on this server, so scheduled packages can't be made yet."} Change it in{" "}
-          <a className="link" href="/superadmin/settings">
-            Providers &amp; security → Backups
+          <a className="link" href="#settings-BACKUP">
+            the settings below
           </a>
           . The daily database backup (Overview → Backups) carries on as before.
         </p>

@@ -47,9 +47,9 @@ describe("orderBySql", () => {
 
 describe("listHref", () => {
   it("keeps the other parameters, drops paging, removes empties", () => {
-    expect(listHref("/superadmin/audit", { action: "LOGIN", before: "50", page: "2", group: "day" }, { group: null })).toBe("/superadmin/audit?action=LOGIN");
-    expect(listHref("/superadmin/audit", { action: "LOGIN", sortBy: "who", dir: "asc" }, { page: 3 })).toBe("/superadmin/audit?action=LOGIN&sortBy=who&dir=asc&page=3");
-    expect(listHref("/superadmin/logins", {}, {})).toBe("/superadmin/logins");
+    expect(listHref("/superadmin/monitoring/audit", { action: "LOGIN", before: "50", page: "2", group: "day" }, { group: null })).toBe("/superadmin/monitoring/audit?action=LOGIN");
+    expect(listHref("/superadmin/monitoring/audit", { action: "LOGIN", sortBy: "who", dir: "asc" }, { page: 3 })).toBe("/superadmin/monitoring/audit?action=LOGIN&sortBy=who&dir=asc&page=3");
+    expect(listHref("/superadmin/security/sign-in-history", {}, {})).toBe("/superadmin/security/sign-in-history");
   });
 });
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { loadDemoAction, retireDemoAction, tryAsAction } from "@/app/superadmin/demo/actions";
+import { loadDemoAction, retireDemoAction, tryAsAction } from "@/app/superadmin/data/danger-zone/demo/actions";
 import { FieldError, ResultMessage, SubmitButton, useActionForm } from "@/features/ui/form";
 import { DEMO_CONFIRM_WORD } from "@/server/demo/demo-data";
 

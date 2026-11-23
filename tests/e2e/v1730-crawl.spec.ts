@@ -193,8 +193,8 @@ test("set up: one of each record the detail screens need", async ({ page, contex
     const hrefs = await page.locator("main a[href]").evaluateAll((links) => links.map((link) => link.getAttribute("href") ?? ""));
     return hrefs.find((href) => pattern.test(href.split("?")[0]!)) ?? null;
   };
-  ids.templatePath = (await firstLink("/superadmin/templates", /^\/superadmin\/templates\/[^/]+$/)) ?? "/superadmin/templates/none";
-  ids.pageRulePath = (await firstLink("/superadmin/pages", /^\/superadmin\/pages\/[^/]+$/)) ?? "/superadmin/pages/none";
+  ids.templatePath = (await firstLink("/superadmin/connections/whatsapp/templates", /^\/superadmin\/connections\/whatsapp\/templates\/[^/]+$/)) ?? "/superadmin/connections/whatsapp/templates/none";
+  ids.pageRulePath = (await firstLink("/superadmin/security/pages", /^\/superadmin\/security\/pages\/[^/]+$/)) ?? "/superadmin/security/pages/none";
   ids.reportPath = (await firstLink("/admin/reports", /^\/admin\/reports\/[a-z_]+$/)) ?? "/admin/reports/none";
   writeFileSync(`${mkdir(DIR)}/ids.json`, JSON.stringify(ids, null, 2));
 });
@@ -304,7 +304,6 @@ const ROUTES: Route[] = [
     "/admin/dashboards/utilisation",
     "/admin/doa",
     "/admin/groups",
-    "/admin/import",
     "/admin/information-types",
     () => `/admin/information-types/${ids.infoType}`,
     "/admin/insights",
@@ -335,25 +334,31 @@ const ROUTES: Route[] = [
   ...R(
     "E2E_SUPER",
     "/superadmin",
-    "/superadmin/ai",
-    "/superadmin/ai/data-sources",
-    "/superadmin/ai/history",
-    "/superadmin/ai/reports",
-    "/superadmin/audit",
-    "/superadmin/automation",
-    "/superadmin/deliveries",
-    "/superadmin/demo",
-    "/superadmin/import",
-    "/superadmin/integrations",
-    "/superadmin/integrations/google-calendar",
-    "/superadmin/logins",
-    "/superadmin/pages",
+    "/superadmin/connections/ai",
+    "/superadmin/connections/ai/data-sources",
+    "/superadmin/monitoring/ai-history",
+    "/superadmin/monitoring/ai-reports",
+    "/superadmin/monitoring/audit",
+    "/superadmin/monitoring/jobs",
+    "/superadmin/monitoring/deliveries",
+    "/superadmin/data/danger-zone/demo",
+    "/superadmin/data/import",
+    "/superadmin/connections/google",
+    "/superadmin/connections/whatsapp",
+    "/superadmin/connections/push",
+    "/superadmin/security/sign-in",
+    "/superadmin/security/general",
+    "/superadmin/security/features",
+    "/superadmin/data/danger-zone",
+    "/superadmin/data/backup",
+    "/superadmin/security/sign-in-history",
+    "/superadmin/security/pages",
     () => ids.pageRulePath!,
-    "/superadmin/requests",
-    "/superadmin/retention",
-    "/superadmin/salesforce",
-    "/superadmin/settings",
-    "/superadmin/templates",
+    "/superadmin/data/danger-zone/requests",
+    "/superadmin/data/retention",
+    "/superadmin/connections/salesforce",
+    "/superadmin/connections/email",
+    "/superadmin/connections/whatsapp/templates",
     () => ids.templatePath!,
     "/admin",
     "/users",

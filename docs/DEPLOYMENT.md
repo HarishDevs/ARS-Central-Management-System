@@ -220,9 +220,9 @@ Stops anyone reaching the GoDaddy server directly, around Cloudflare (and faking
 
 ### G0z. Backup, restore & migrate centre (v1.81.0)
 1. Publish v1.81.0. The migration `202611241100_backup_centre.sql` runs on start (no triggers, nothing optional): it adds `backup_runs` and `backup_uploads`.
-2. Super Admin → Providers & security → Feature switches → **Backup, restore & migrate centre** → **On** (only the Super Admin sees it in any case).
+2. Super Admin → Security & access → Feature switches → **Backup, restore & migrate centre** → **On** (only the Super Admin sees it in any case).
 3. Super Admin → **Backup, restore & migrate** → Make a backup → Everything → a passphrase you store in your password manager → keep on the server and download. Check it once: Restore… → Check package (nothing changes).
-4. Optional: Providers & security → Backups → **Scheduled full package** → Daily, **Scheduled packages to keep** (default 7), **Also copy each scheduled package to the Google Drive folder**. Needs `BACKUP_ENCRYPTION_KEY` (already set for the daily backup, D-246). Mind Private Storage space: each package holds every attachment.
+4. Optional: Data → Backup, restore & migrate → Off-site copies and schedule → **Scheduled full package** → Daily, **Scheduled packages to keep** (default 7), **Also copy each scheduled package to the Google Drive folder**. Needs `BACKUP_ENCRYPTION_KEY` (already set for the daily backup, D-246). Mind Private Storage space: each package holds every attachment.
 5. No new secret or cron entry (the existing job runner does the scheduled work). Packages live in `/private/backups/packages`.
 6. **Never use Database Manager → Import** to restore or move data: it deletes every table first. Use the centre (Part P4).
 
@@ -380,7 +380,7 @@ The app can send from the hosting's own mailbox, **no_reply@cms.arssteels.net**,
 5. **The From address is the SMTP user.** The mail server sends only as its own mailbox. Replies still go to the Reply-to address.
 
 ### G2. Email (Resend)
-1. **Super Admin → Providers & security → Email**:
+1. **Super Admin → Connections → Email**:
    - paste the Resend key (A5);
    - From address **`no_reply@approval.arssteels.net`** (already the default; it needs `approval.arssteels.net` verified in Resend);
    - Reply-to `itadmin@arssteels.co.in` (the default), so replies reach IT;
@@ -395,7 +395,7 @@ The app can send from the hosting's own mailbox, **no_reply@cms.arssteels.net**,
 
 ### G3. WhatsApp (CEOITBox)
 1. **Admin → Users & roles → IT Admin (Super Admin)** → WhatsApp number **9150091870** → **Save changes**. The app stores it as 919150091870.
-2. **Super Admin → Providers & security → WhatsApp**:
+2. **Super Admin → Connections → WhatsApp**:
    - base URL `https://official.ceoitbox.com`;
    - Phone ID `558214737370188`;
    - API key: the **new** key from A4;
@@ -413,7 +413,7 @@ Review the **Authentication** group. The defaults are fine: lockout after 5 wron
 
 ### G6. Optional: WhatsApp delivery receipts (v1.4.0, S8-03)
 Message deliveries can then show **DELIVERED** and **READ** for WhatsApp, not only SENT.
-1. Make a secret of 24+ characters. **Super Admin → Providers & security → WhatsApp → Webhook secret** → paste → **Save**.
+1. Make a secret of 24+ characters. **Super Admin → Connections → WhatsApp → Webhook secret** → paste → **Save**.
 2. In CEOITBox, set the delivery/read webhook to `https://approval.arssteels.net/api/webhooks/ceoitbox`, with header `x-webhook-secret` = the same secret.
 3. Send a test WhatsApp (G3). Within a minute its row on **Message deliveries** should change to DELIVERED, then READ. If it stays SENT, send CEOITBox's sample payload to IT: the app reads Meta's format and a flat `{ id, status }` one.
 
@@ -530,7 +530,7 @@ Choose one:
   4. **Admin → Workflows → New workflow**: form fields; the **DoA matrix** (limits across, levels down, tick the bands); **test mode**; **Publish**.
   5. If demo data was loaded: swap the real people into the groups and HOD slots, then **Super Admin → Demo data → Retire demo staff**.
 - **Approver designations (v1.2.0):** in **Admin → Departments → Designations**, tick **Approver** on Manager and above, and untick the rest. Only people with a ticked designation can be picked as approvers, HODs, reporting managers, group members or delegates. Give the Super Admin a ticked designation if they approve.
-- **Real staff in bulk (v1.1.0):** **Admin → Import data**, or **Super Admin → Import data** (the same screen). Import in this order, because each step uses codes from the one before:
+- **Real staff in bulk (v1.1.0):** **Super Admin → Data → Import data** (v1.84.0: the only one; Admin → Import data moved there). Import in this order, because each step uses codes from the one before:
   1. **Designations**;
   2. **Departments**, with the HOD column empty;
   3. **Users**: a manager can be another row of the same file;
@@ -597,7 +597,7 @@ To rebuild a full import file for a brand-new environment: apply the migrations 
 ### Roll back
 - In GoDaddy, redeploy the previous good commit or tag. Or, on GitHub, revert the bad commit on `main` and let it redeploy.
 - The database doesn't need rolling back: migrations are additive.
-- If a provider key leaks: switch it off at the provider, create a new one, and paste it in **Super Admin → Providers & security**.
+- If a provider key leaks: switch it off at the provider, create a new one, and paste it on its page in **Super Admin → Connections**.
 
 ---
 
@@ -679,7 +679,7 @@ The automated version of this drill runs in every CI build (`tests/integration/b
 
 ### P4. The Backup, restore & migrate centre (v1.81.0, D-408)
 The preferred way from v1.81.0: Super Admin → **Backup, restore & migrate**.
-- **Full backup:** Make a backup → Everything (database, every attachment, the server secrets) → passphrase → download it and keep it off GoDaddy. Scheduled packages: Providers & security → Backups.
+- **Full backup:** Make a backup → Everything (database, every attachment, the server secrets) → passphrase → download it and keep it off GoDaddy. Scheduled packages: Data → Backup, restore & migrate → Off-site copies and schedule.
 - **Restore on the same server:** Restore… → Check package → choose what → type the database's name → Restore now. A safety snapshot comes first; a failure undoes itself.
 - **Move to a VPS (or back to GoDaddy):** on the new server install the same version, `npm ci && npm run build && npm start` with an `.env` holding at least `DB_*`, `SESSION_SECRET`, `ENCRYPTION_KEY` (its own) and `APP_BASE_URL`; sign in as the Super Admin (the seed makes `itadmin`), switch the centre on, **Upload a package** → Restore… → Everything. Then **Show the server secrets** and copy the ones marked Different or Not set (**Copy as .env**), keep that server's own `DB_*` and `ENCRYPTION_KEY`, and restart. On GoDaddy: the same, with Secrets → Publish.
 - **Without the app (command line or start-up):** `node scripts/database/restore.js <package.arsbak> --confirm-database=<DB_NAME> [--mode=full|database|files]` asks for the passphrase (or reads `RESTORE_PASSPHRASE`). On GoDaddy at start-up: put the package in the app folder and set the secrets `RESTORE_CONFIRM` = the database name, `RESTORE_FILE` = its path, `RESTORE_PASSPHRASE` (or `RESTORE_BACKUP_KEY` for a scheduled package / safety snapshot), optional `RESTORE_MODE`; remove them after the log says `[restore-on-start] restored`.
@@ -741,7 +741,7 @@ After publishing:
    - check AI → Data Sources.
 
 **If anything goes wrong:**
-- Providers & security → Feature switches → **AI module: OFF** hides AI at once.
+- Security & access → Feature switches → **AI module: OFF** hides AI at once.
 - Rollback: redeploy v1.14.0. The new tables and column are ignored by the old version.
 - Details: `docs/ai-module/release-and-rollback.md`.
 

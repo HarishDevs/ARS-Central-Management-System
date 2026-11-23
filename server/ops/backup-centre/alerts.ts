@@ -38,8 +38,8 @@ export async function alertBackupEvent(event: BackupEvent, detail: string, actor
         userId,
         title,
         message,
-        deepLink: `${base}/superadmin/backup`,
-        email: { subject: `ARS CMS: ${title.toLowerCase()}`, text: `${message}\n\n${base}/superadmin/backup` },
+        deepLink: `${base}/superadmin/data/backup`,
+        email: { subject: `ARS CMS: ${title.toLowerCase()}`, text: `${message}\n\n${base}/superadmin/data/backup` },
         whatsappVariables: { title, message, alert: title, detail: message },
         priority: "HIGH",
       });

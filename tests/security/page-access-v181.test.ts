@@ -43,7 +43,7 @@ describe("isOpenAddress (V181-A7)", () => {
     expect(isOpenAddress("/api/me/sign-out-everywhere")).toBe(true);
     expect(isOpenAddress("/users/not-a-page")).toBe(false);
     expect(isOpenAddress("/admin/not-a-page")).toBe(false);
-    expect(isOpenAddress("/superadmin/import")).toBe(false);
+    expect(isOpenAddress("/superadmin/data/import")).toBe(false);
     expect(isOpenAddress("/")).toBe(false);
   });
 
@@ -92,7 +92,7 @@ describe("checkPageAccess on an address that is no configured page (V181-A7)", (
   });
 
   it("restricted, but the security page and API routes still work", async () => {
-    state.rules = [hide("admin.import")];
+    state.rules = [hide("admin.budgets")];
     state.path = "/users/security";
     expect(await checkPageAccess(admin, true)).toEqual({ ok: true, level: null });
     state.path = "/api/me/sign-out-everywhere";
@@ -100,12 +100,12 @@ describe("checkPageAccess on an address that is no configured page (V181-A7)", (
   });
 
   it("Super Admin addresses refuse everyone else, restricted or not (G-3)", async () => {
-    state.path = "/superadmin/import";
+    state.path = "/superadmin/data/import";
     expect(await checkPageAccess(admin, true)).toMatchObject({ ok: false, reason: "UNKNOWN_PAGE" });
   });
 
   it("the Super Admin is never restricted", async () => {
-    state.rules = [hide("admin.import")];
+    state.rules = [hide("admin.budgets")];
     state.path = "/users/not-a-page";
     expect(await checkPageAccess({ ...admin, roles: ["SUPER_ADMIN"] }, true)).toEqual({ ok: true, level: null });
   });
@@ -119,9 +119,9 @@ describe("checkPageAccess on an address that is no configured page (V181-A7)", (
 });
 
 describe("an action that names its page (G-3 / V181-A7)", () => {
-  it("admin.import Hidden: the import action's own key is refused wherever it is posted", async () => {
-    state.rules = [hide("admin.import")];
-    expect(await checkPageKey(admin, "admin.import", true)).toMatchObject({ ok: false, reason: "HIDDEN", pageKey: "admin.import" });
+  it("admin.budgets Hidden: the import action's own key is refused wherever it is posted", async () => {
+    state.rules = [hide("admin.budgets")];
+    expect(await checkPageKey(admin, "admin.budgets", true)).toMatchObject({ ok: false, reason: "HIDDEN", pageKey: "admin.budgets" });
   });
 
   it("admin.users View-only: setting out-of-office for someone else (admin.users) is refused", async () => {

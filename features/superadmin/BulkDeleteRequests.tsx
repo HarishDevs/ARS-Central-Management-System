@@ -2,10 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { deleteRequestsAction } from "@/app/superadmin/requests/actions";
+import { deleteRequestsAction } from "@/app/superadmin/data/danger-zone/requests/actions";
 import { FieldError, ResultMessage, useActionForm } from "@/features/ui/form";
 import { Spinner } from "@/features/ui/Spinner";
 import { clearTicks, RowSelectBox, SelectAllBox, useTickedCount } from "@/features/ui/BulkSelect";
+import { useTypedConfirm } from "@/features/ui/DangerZone";
+import { BULK_DELETE_WORD } from "@/features/superadmin/danger-words";
 
 // v1.49.5 (owner: "add select and Delete option in this Super admin"):
 // a tick box on each row of Super Admin → Requests and one Delete for the
@@ -27,14 +29,19 @@ export function BulkDeleteRequests() {
   const [open, setOpen] = useState(false);
   const { result, pending, onSubmit } = useActionForm(deleteRequestsAction);
   const router = useRouter();
+  // v1.84.0 (D-411, Danger zone): the button stays off until DELETE is typed (the server checks it too).
+  const typed = useTypedConfirm(BULK_DELETE_WORD);
 
   // After a delete the rows that went are gone; untick the rest so the count starts again.
   useEffect(() => {
     if (result?.data?.deleted) {
       setOpen(false);
       clearTicks(BULK_FORM);
+      typed.reset();
       router.refresh();
     }
+    // typed.reset is a new function each render; the result alone decides.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [result, router]);
   useEffect(() => {
     if (count === 0) setOpen(false);
@@ -65,11 +72,13 @@ export function BulkDeleteRequests() {
           </label>
           <textarea id="bulk-reason" name="reason" rows={2} maxLength={500} required className="field-input h-auto py-2" placeholder="e.g. Test requests raised by mistake" />
           <FieldError result={result} name="reason" />
+          {typed.field}
+          <FieldError result={result} name="confirmText" />
           <p className="text-caption text-ink-muted">They disappear from every screen, queue and dashboard, and pending approvals are cancelled. Each stays in the audit log with this reason. A request under a legal hold is skipped. There is no undo.</p>
           <div className="flex flex-wrap gap-2">
             <button
               type="submit"
-              disabled={pending}
+              disabled={pending || !typed.ready}
               className="btn-compact inline-flex h-9 items-center gap-2 rounded-md bg-danger-solid px-3 text-label font-semibold text-on-solid hover:bg-danger-solid-hover disabled:opacity-60"
               data-testid="bulk-delete-confirm"
             >

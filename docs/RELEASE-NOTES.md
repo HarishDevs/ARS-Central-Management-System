@@ -1,5 +1,16 @@
 # Release notes
 
+## v1.84.0 (23 Nov 2026): the Super Admin panel, reorganised
+No migration. Super Admin only, plus the shared panel parts for both Admin and Super Admin (D-411, owner-approved redesign, docs/ops/ADMIN-REDESIGN-BRIEF.md):
+- **Five groups in the sidebar:** Health, Connections, Security & access, Data, Monitoring. Groups fold and stay as you left them; **Search settings** at the top finds any page or setting across both panels (only what you may open); **Back to the app** at the bottom. The Admin sidebar folds its groups too.
+- **Health console** (the start page): a card per provider, job, backup and delivery, each saying **OK**, **Warning**, **Failed** or **Not set up** with an icon (never colour alone), when it was last checked, and a **Test** or **Open**; a **Needs action** list says what to fix first.
+- **Providers & security is split up:** **Email**, **WhatsApp** (with WhatsApp templates), **Phone & desktop notifications**, **Google sign-in & calendar**, **Salesforce** and **AI providers** each have one page with their status, settings and Test together; **Sign-in security**, **General** and **Feature switches** have their own pages.
+- **No more duplicates:** the S3 and Google Drive backup settings live in **Backup, restore & migrate**; the retention values in **Retention & legal holds**; **Import data** is the Super Admin's alone (Admin → Import data moves there; the Admin copy was the same screen with the same kinds).
+- **Danger zone:** deleting requests and Demo data left the everyday pages. Deleting ticked requests now asks you to type **DELETE** (checked on the server too); Demo data still asks for **LOAD DEMO**.
+- Sentence case everywhere ("Salesforce", "AI activity history", "AI reports", "Job runner & automation").
+- **Every old address still works** (bookmarks, emails, help links): it moves on to the new page by itself.
+- **Owner steps:** publish v1.84.0 (nothing else).
+
 ## v1.83.0 (23 Nov 2026): every task opens in the side pane
 No migration. For everyone with Tasks (D-410, owner's request):
 - **Click a task anywhere** (My Tasks and Task Summary, project List, Board, Calendar and Timeline, the Tasks lists, Home and its widgets, Task search and the search bar, the Inbox and the bell, Calendar, meeting action items, people, requests, tickets) and it opens in the **side pane** on the right, beside the screen you are on. The screen stays where it was and keeps working. The address keeps the screen with `?task=…`, so Back and refresh keep the task open. The pane is the one from project views: resizable, at your saved width.

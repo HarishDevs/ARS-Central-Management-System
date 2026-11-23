@@ -30,8 +30,8 @@ test("IT sees Needs attention with reasons and filters; requesters get a 404", a
 
 test("the Super Admin runs one automation now and sees it in the history", async ({ page, context }) => {
   await as(context, "E2E_SUPER");
-  await page.goto("/superadmin/automation");
-  await expect(page.getByRole("heading", { name: "Automation", exact: true })).toBeVisible();
+  await page.goto("/superadmin/monitoring/jobs");
+  await expect(page.getByRole("heading", { name: "Job runner & automation", exact: true })).toBeVisible();
   const inventory = page.getByRole("region", { name: "Inventory" });
   const row = inventory.getByRole("row", { name: /Stuck-request scan/ });
   // 26 automations fill more than one page of 25 (the order follows the last runs): turn the page if needed.
@@ -46,6 +46,6 @@ test("the Super Admin runs one automation now and sees it in the history", async
   await expect(page.getByRole("region", { name: /Messages not sent/ })).toBeVisible();
 
   await as(context, "E2E_ADMIN");
-  const response = await page.goto("/superadmin/automation");
+  const response = await page.goto("/superadmin/monitoring/jobs");
   expect(response?.status()).toBe(404);
 });

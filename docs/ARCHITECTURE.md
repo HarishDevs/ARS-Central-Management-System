@@ -79,7 +79,7 @@ Three layers. Hiding a link is never the protection.
    - `requireArea(area)` for pages and layouts: no session → sign-in (or `/signed-out?reason=…`); signed in without the role → a plain 404, so `/admin` and `/superadmin` don't confirm they exist. Every denial is audited (`AREA_ACCESS_DENIED`).
    - `requireApiArea(area, { change, page })` for route handlers and Server Actions: throws `ForbiddenError`, which the caller maps to a generic "not found".
    - The roles per area are in `server/authorization/policy.ts` (`AREA_ROLES`).
-3. **Page access** (`server/authorization/page-access.ts`, set by the Super Admin at `/superadmin/pages`): each page of My approvals and the Admin space is Full, View only or Hidden, for everyone, a department or a person (the most specific rule wins). Both guards apply it: a hidden page is a 404 (`PAGE_ACCESS_DENIED` audited); a view-only page can be read but its actions refuse. An action names its page so the rule holds wherever it is posted from. A module the person doesn't have is refused like a hidden page (D-168). The Super Admin is never limited.
+3. **Page access** (`server/authorization/page-access.ts`, set by the Super Admin at `/superadmin/security/pages`): each page of My approvals and the Admin space is Full, View only or Hidden, for everyone, a department or a person (the most specific rule wins). Both guards apply it: a hidden page is a 404 (`PAGE_ACCESS_DENIED` audited); a view-only page can be read but its actions refuse. An action names its page so the rule holds wherever it is posted from. A module the person doesn't have is refused like a hidden page (D-168). The Super Admin is never limited.
 
 Then, **per record**, `server/` checks who may see or act on each request, task, project, information item or file (e.g. `lib/db/repositories/visibility.ts`; only the approver of a pending task or their active delegate can decide it). Feature switches (`server/settings/features.ts`) turn modules on or off; they are not access checks.
 
@@ -117,7 +117,7 @@ Every provider call happens on the server. A provider failure is recorded and re
 
 ## 8. Settings and encryption
 
-- **Settings** are defined in `server/settings/definitions.ts` (key, group, type, zod schema, default, `encrypted` flag) and stored in the database. The Super Admin edits them in the settings console (`/superadmin/settings`). `server/settings/values.ts` resolves a value on the server and decrypts secrets there; secret values are never sent back to the browser.
+- **Settings** are defined in `server/settings/definitions.ts` (key, group, type, zod schema, default, `encrypted` flag) and stored in the database. The Super Admin edits them in the settings console (`/superadmin/connections/email`). `server/settings/values.ts` resolves a value on the server and decrypts secrets there; secret values are never sent back to the browser.
 - **Encryption:** AES-256-GCM (`lib/security/encryption.ts`), stored as base64(iv ‖ auth tag ‖ ciphertext), with the 32-byte key from env var `ENCRYPTION_KEY`. **Losing `ENCRYPTION_KEY` makes every saved provider key unreadable**: keep it in the password manager, never in the repository.
 - **Server secrets** (`SESSION_SECRET`, `ENCRYPTION_KEY`, `JOB_RUNNER_SECRET`, `ORIGIN_SECRET`, `FIREBASE_PRIVATE_KEY`, database credentials) are GoDaddy environment variables only (`config/environment.ts`). Provider keys are never environment variables. Nothing secret is committed.
 

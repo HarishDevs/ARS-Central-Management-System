@@ -43,9 +43,9 @@ test("every column of every server-sorted list sorts both ways", async ({ page, 
     ["/admin/records/requests", Object.keys(SORTS.requests), "sort", "dir"],
     ["/admin/records/tasks", Object.keys(SORTS.tasks), "sort", "dir"],
     ["/admin/records/information", Object.keys(SORTS.information), "sort", "dir"],
-    ["/superadmin/audit", AUDIT_COLUMNS, "sortBy", "dir"],
-    ["/superadmin/logins", LOGIN_COLUMNS, "sortBy", "dir"],
-    ["/superadmin/requests", REQUEST_COLUMNS, "sortBy", "dir"],
+    ["/superadmin/monitoring/audit", AUDIT_COLUMNS, "sortBy", "dir"],
+    ["/superadmin/security/sign-in-history", LOGIN_COLUMNS, "sortBy", "dir"],
+    ["/superadmin/data/danger-zone/requests", REQUEST_COLUMNS, "sortBy", "dir"],
   ];
   // v1.58.1 (owner: a request's Priority sorts in every table): the Home tables.
   for (const prefix of ["hq", "ha"]) lists.push(["/users?home=approvals", ["title", "priority", "from", "step", "since", "due"].map((column) => `${prefix}.${column}`), "sortBy", "dir"]);
@@ -63,7 +63,7 @@ const priorityHead = (page: import("@playwright/test").Page) => page.locator("th
 
 test("a request's Priority is a sort link on the records register, Super Admin requests and Home", async ({ page, context }) => {
   await context.addCookies([await sessionCookie("E2E_SUPER")]);
-  for (const url of ["/admin/records/requests", "/superadmin/requests"]) {
+  for (const url of ["/admin/records/requests", "/superadmin/data/danger-zone/requests"]) {
     await page.goto(url);
     // The tables show their columns only once there is a request (earlier specs raise them).
     test.skip((await page.locator("main table").count()) === 0, "no requests in this run");
@@ -71,7 +71,7 @@ test("a request's Priority is a sort link on the records register, Super Admin r
   }
   await page.goto("/admin/records/requests?sort=priority&dir=asc");
   await expect(priorityHead(page)).toHaveAttribute("aria-sort", "ascending");
-  await page.goto("/superadmin/requests?sortBy=priority&dir=desc");
+  await page.goto("/superadmin/data/danger-zone/requests?sortBy=priority&dir=desc");
   await expect(priorityHead(page)).toHaveAttribute("aria-sort", "descending");
 });
 

@@ -11,15 +11,18 @@ import { personLabel } from "@/lib/people/label";
 export const metadata: Metadata = { title: "Approver groups" };
 
 export default async function GroupsPage() {
-  await requireArea("admin");
+  const { user } = await requireArea("admin");
   const [groups, people] = await Promise.all([listGroups(), listApproverOptions()]);
   const options = people.map((person) => ({ id: person.id, label: personLabel(person), detail: person.departmentName ?? undefined }));
   return (
     <>
       <PageHeader title="Approver groups" description="A group can be an approver on any step, e.g. any one of the Finance checkers. Changes apply to steps that start after the change.">
-        <Link href="/admin/import?kind=groups" className="btn-secondary btn-compact">
+        {/* v1.84.0 (D-411): Import data is the Super Admin's alone now. */}
+        {user.roles.includes("SUPER_ADMIN") && (
+        <Link href="/superadmin/data/import?kind=groups" className="btn-secondary btn-compact">
           Import
         </Link>
+        )}
       </PageHeader>
       <section className="card divide-y divide-line">
         {groups.map((group) => (

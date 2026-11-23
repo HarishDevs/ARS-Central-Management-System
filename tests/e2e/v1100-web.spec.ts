@@ -46,8 +46,8 @@ const PAGES: { who: string; paths: string[] }[] = [
       "/users/help",
     ],
   },
-  { who: "E2E_ADMIN", paths: ["/admin", "/admin/users", "/admin/task-types", "/admin/reports", "/admin/analytics", "/admin/dashboards", "/admin/import"] },
-  { who: "E2E_SUPER", paths: ["/superadmin", "/superadmin/integrations/google-calendar", "/superadmin/settings", "/superadmin/audit", "/superadmin/pages"] },
+  { who: "E2E_ADMIN", paths: ["/admin", "/admin/users", "/admin/task-types", "/admin/reports", "/admin/analytics", "/admin/dashboards"] },
+  { who: "E2E_SUPER", paths: ["/superadmin", "/superadmin/connections/google", "/superadmin/connections/email", "/superadmin/monitoring/audit", "/superadmin/security/pages"] },
 ];
 
 // Some pages navigate once more right after loading (a redirect or a
@@ -153,6 +153,9 @@ test("WEB-03: the phone menu takes focus, keeps Tab inside, closes on Escape and
   await expect(dialog).toBeHidden();
   await expect(opener).toBeFocused();
   await opener.click();
+  // v1.84.0 (D-411): the Admin menu folds its groups; open the one with Users & roles.
+  const people = dialog.getByRole("button", { name: /organisation/i }).first();
+  if ((await people.getAttribute("aria-expanded")) === "false") await people.click();
   await dialog.getByRole("link", { name: /Users & roles/ }).first().click();
   await expect(page).toHaveURL(/\/admin\/users/);
   await expect(page.getByRole("dialog", { name: "Menu" })).toBeHidden();
@@ -214,6 +217,6 @@ test("SEC-09: someone else's request, task, PDF and files answer a plain 404", a
   expect((await page.request.get("/api/files/999999999")).status()).toBe(404);
   // Admin and Super Admin addresses are a plain 404 for a person without the role.
   expect((await page.goto("/admin/users"))?.status()).toBe(404);
-  expect((await page.goto("/superadmin/settings"))?.status()).toBe(404);
+  expect((await page.goto("/superadmin/connections/email"))?.status()).toBe(404);
   expect((await page.request.get("/api/superadmin/audit")).status()).toBe(404);
 });

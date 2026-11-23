@@ -87,7 +87,7 @@ describe("swipe down to close a bottom sheet (point 14)", () => {
 
 describe("desktop skeletons (point 8)", () => {
   it("gives the lists a table skeleton on a wide screen", () => {
-    for (const page of ["/users/queue", "/users/queue/sent-back", "/users/requests", "/users/approved", "/users/inbox", "/users/tasks", "/superadmin/audit"]) expect(desktopSkeletonFor(page)).toBe("table");
+    for (const page of ["/users/queue", "/users/queue/sent-back", "/users/requests", "/users/approved", "/users/inbox", "/users/tasks", "/superadmin/monitoring/audit"]) expect(desktopSkeletonFor(page)).toBe("table");
     expect(desktopSkeletonFor("/users/requests/12")).toBeNull();
     expect(desktopSkeletonFor("/users")).toBeNull();
   });

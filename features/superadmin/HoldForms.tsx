@@ -1,6 +1,6 @@
 "use client";
 
-import { createHoldAction, releaseHoldAction } from "@/app/superadmin/retention/actions";
+import { createHoldAction, releaseHoldAction } from "@/app/superadmin/data/retention/actions";
 import { FieldError, ResultMessage, SubmitButton, useActionForm } from "@/features/ui/form";
 import { Hint } from "@/features/ui/Hint";
 

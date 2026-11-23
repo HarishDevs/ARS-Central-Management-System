@@ -339,8 +339,8 @@ test("TC-023 TC-033 data and empty periods: dashboards show data or an empty sta
 });
 
 test("TC-025 TC-034 TC-050 downloads: a failed download says so; a good one arrives; buttons lock while busy", async ({ page, context }) => {
-  await as(context, "E2E_ADMIN");
-  await page.goto("/admin/import?kind=departments");
+  await as(context, "E2E_SUPER");
+  await page.goto("/superadmin/data/import?kind=departments");
   await page.route("**/api/admin/import/**", async (route) => {
     await new Promise((resolve) => setTimeout(resolve, 1500));
     return route.fulfill({ status: 400, body: "{}" });
@@ -362,7 +362,7 @@ test("TC-027 TC-067 TC-084 no access: plain user gets 404 pages and 404 APIs; a 
   });
   const victimId = Number(victim.split("/").pop());
   await as(context, "E2E_SUPER");
-  await page.goto("/superadmin/requests");
+  await page.goto("/superadmin/data/danger-zone/requests");
   // Capture the real Delete action (blocked before it reaches the server).
   let captured: { url: string; headers: Record<string, string>; body: string } | null = null;
   await page.route("**/*", async (route) => {
@@ -488,7 +488,7 @@ test("TC-041 pagination shows the right page", async ({ page, context }) => {
     [stamp, `QA base ${stamp}`],
   );
   await as(context, "E2E_SUPER");
-  await page.goto("/superadmin/requests");
+  await page.goto("/superadmin/data/danger-zone/requests");
   await delayNavigations(page, 2000, { documents: true });
   const firstPage = await page.getByRole("row").nth(1).innerText();
   await watchBusy(page);
@@ -564,10 +564,10 @@ test("TC-049 an upload cut off midway fails safely", async ({ page, context }) =
 });
 
 test("TC-051 TC-052 TC-075 TC-078 CSV export and import: status, problems, all-or-nothing, the shared status bar clears", async ({ page, context }) => {
-  await as(context, "E2E_ADMIN");
+  await as(context, "E2E_SUPER");
   await page.goto("/admin/dashboards/approvers");
   const [csv] = await Promise.all([page.waitForEvent("download"), page.getByRole("link", { name: "Download CSV" }).click()]);
-  await page.goto("/admin/import?kind=holidays");
+  await page.goto("/superadmin/data/import?kind=holidays");
   await page.getByLabel("Holidays CSV file").setInputFiles({ name: "h.csv", mimeType: "text/csv", buffer: Buffer.from("date,name\n2099-05-01,May Day\nnot-a-date,Bad") });
   const gate = await interceptActions(page, { delayMs: 1500, times: 1 });
   await page.getByRole("button", { name: "Check file" }).click();
@@ -586,8 +586,8 @@ test("TC-051 TC-052 TC-075 TC-078 CSV export and import: status, problems, all-o
 
 // ---- F/G. Visual, accessibility, performance ------------------------------------------------
 test("TC-060 TC-061 TC-080 loaders stay visible on resize, on a phone and at 200% zoom", async ({ page, context }) => {
-  await as(context, "E2E_ADMIN");
-  await page.goto("/admin/import?kind=holidays");
+  await as(context, "E2E_SUPER");
+  await page.goto("/superadmin/data/import?kind=holidays");
   await page.getByLabel("Holidays CSV file").setInputFiles({ name: "h.csv", mimeType: "text/csv", buffer: Buffer.from("date,name\n2099-06-01,Test") });
   const gate = await interceptActions(page, { hold: true, times: 1 });
   await page.getByRole("button", { name: "Check file" }).click();
@@ -614,8 +614,8 @@ test("TC-060 TC-061 TC-080 loaders stay visible on resize, on a phone and at 200
 });
 
 test("TC-062 TC-068 slow CPU: the import check still completes; main-thread long tasks measured", async ({ page, context }) => {
-  await as(context, "E2E_ADMIN");
-  await page.goto("/admin/import?kind=holidays");
+  await as(context, "E2E_SUPER");
+  await page.goto("/superadmin/data/import?kind=holidays");
   const cdp = await context.newCDPSession(page);
   await cdp.send("Emulation.setCPUThrottlingRate", { rate: 6 });
   await page.evaluate(() => {
@@ -657,8 +657,8 @@ test("TC-063 TC-064 keyboard use, and what screen readers are told", async ({ pa
   await expect(page.getByText("Keyboard comment").first()).toBeVisible({ timeout: 15_000 });
   await clearIntercepts(page);
   // The import screen, for comparison.
-  await as(context, "E2E_ADMIN");
-  await page.goto("/admin/import?kind=holidays");
+  await as(context, "E2E_SUPER");
+  await page.goto("/superadmin/data/import?kind=holidays");
   await page.getByLabel("Holidays CSV file").setInputFiles({ name: "h.csv", mimeType: "text/csv", buffer: Buffer.from("date,name\n2099-07-01,Test") });
   const gate2 = await interceptActions(page, { hold: true, times: 1 });
   await page.getByRole("button", { name: "Check file" }).click();
@@ -672,9 +672,9 @@ test("TC-063 TC-064 keyboard use, and what screen readers are told", async ({ pa
 });
 
 test("TC-065 TC-066 TC-081 reduced motion, contrast of loaders, dark preference", async ({ page, context }) => {
-  await as(context, "E2E_ADMIN");
+  await as(context, "E2E_SUPER");
   await page.emulateMedia({ reducedMotion: "reduce", colorScheme: "dark" });
-  await page.goto("/admin/import?kind=holidays");
+  await page.goto("/superadmin/data/import?kind=holidays");
   await page.getByLabel("Holidays CSV file").setInputFiles({ name: "h.csv", mimeType: "text/csv", buffer: Buffer.from("date,name\n2099-08-01,Test") });
   const gate = await interceptActions(page, { hold: true, times: 1 });
   await page.getByRole("button", { name: "Check file" }).click();
@@ -697,8 +697,8 @@ test("TC-065 TC-066 TC-081 reduced motion, contrast of loaders, dark preference"
 });
 
 test("TC-069 ten check/fail cycles leave no extra overlays or listeners", async ({ page, context }) => {
-  await as(context, "E2E_ADMIN");
-  await page.goto("/admin/import?kind=holidays");
+  await as(context, "E2E_SUPER");
+  await page.goto("/superadmin/data/import?kind=holidays");
   await page.getByLabel("Holidays CSV file").setInputFiles({ name: "h.csv", mimeType: "text/csv", buffer: Buffer.from("date,name\nbad,Bad") });
   const heapBefore = await page.evaluate(() => (performance as unknown as { memory?: { usedJSHeapSize: number } }).memory?.usedJSHeapSize ?? 0);
   const nodesBefore = await page.evaluate(() => document.querySelectorAll("*").length);

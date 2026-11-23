@@ -1,6 +1,6 @@
 "use client";
 
-import { disconnectSalesforceAction, syncSalesforceAction, testProviderAction, testSalesforceAction } from "@/app/superadmin/ai/actions";
+import { disconnectSalesforceAction, syncSalesforceAction, testProviderAction, testSalesforceAction } from "@/app/superadmin/connections/ai/actions";
 import { useState } from "react";
 import { guardAction, ResultMessage, SubmitButton, useActionForm } from "@/features/ui/form";
 import type { ActionResult } from "@/lib/http/action-result";

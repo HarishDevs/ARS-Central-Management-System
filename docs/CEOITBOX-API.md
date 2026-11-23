@@ -9,8 +9,8 @@ Both are dated 8 October 2026 and kept outside the repository. No key, Phone ID 
 ## Connection
 | Item | Where it lives in the app |
 |---|---|
-| Base URL `https://official.ceoitbox.com` | /superadmin → Providers & security (`whatsapp.ceoitbox_base_url`) |
-| API key, sent as the `x-api-key` header | /superadmin → Providers & security, stored encrypted (`whatsapp.ceoitbox_api_key`). Never an env var, never in logs, never shown again after saving |
+| Base URL `https://official.ceoitbox.com` | /superadmin/connections/whatsapp (`whatsapp.ceoitbox_base_url`) |
+| API key, sent as the `x-api-key` header | /superadmin/connections/whatsapp, stored encrypted (`whatsapp.ceoitbox_api_key`). Never an env var, never in logs, never shown again after saving |
 | Phone ID, sent as `x-phone-id` | Optional while the account has one number (as of 8 Oct 2026). Set it if more numbers are connected |
 
 Use a **separate API key for this app**, named for example "ARS Approvals – prod". Don't reuse the Power BI, Salesforce or Google Sheet keys. Rotate it every 90 days: create a new key, paste it in /superadmin, send a test, switch the old key off, then delete it.
@@ -19,8 +19,8 @@ Use a **separate API key for this app**, named for example "ARS Approvals – pr
 | What | Call | Used by |
 |---|---|---|
 | Send a template message | `POST /api/v1/whatsapp/sendMessage` with `{to, templateName, language, templateVariables[], userMessageId}` | Every notification (`userMessageId` = `ars-n<notification id>`), sign-in codes, test sends |
-| Create a template for Meta to approve | `POST /api/v1/messageTemplate/create` with `{name, language, category, components[]}`. BODY carries `{{1}}`… and `example.body_text`; FOOTER is optional | /superadmin/templates → Submit |
-| Pull the latest status from Meta | `GET /api/v1/whatsapp/syncTemplatesFromMeta` (empty 200) | /superadmin/templates → Sync status |
+| Create a template for Meta to approve | `POST /api/v1/messageTemplate/create` with `{name, language, category, components[]}`. BODY carries `{{1}}`… and `example.body_text`; FOOTER is optional | /superadmin/connections/whatsapp/templates → Submit |
+| Pull the latest status from Meta | `GET /api/v1/whatsapp/syncTemplatesFromMeta` (empty 200) | /superadmin/connections/whatsapp/templates → Sync status |
 | List templates and their status | `POST /api/v1/messageTemplate/getTemplates` with `{pagination{current,pageSize}, order[], search[]}`. Each result's `template` holds Meta's `name, language, category, status, rejected_reason` | Sync status |
 
 ## How replies are handled

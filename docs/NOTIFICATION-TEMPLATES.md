@@ -4,7 +4,7 @@ Generated from `server/notifications/templates.ts`. Don't edit by hand; run `nod
 
 ## How to create them
 The app creates them for you, through the CEOITBox API (D-076, docs/CEOITBOX-API.md):
-1. Open **/superadmin/templates** and pick a message. The suggested wording below is filled in. Change it if you like, using the named placeholders such as `{{request_no}}`.
+1. Open **/superadmin/connections/whatsapp/templates** and pick a message. The suggested wording below is filled in. Change it if you like, using the named placeholders such as `{{request_no}}`.
 2. Press **Save draft**, check the preview, then **Submit to Meta for approval**. The app sends it as category **Utility**, language **English**, with the sample values.
 3. Meta usually decides within minutes to a day. Press **Sync status**: an approved template goes live by itself; a rejected one shows Meta's reason.
 4. Until a template is live, that WhatsApp message is skipped. Email and in-app messages still go out.
@@ -1012,4 +1012,4 @@ If you didn't expect this, contact IT (itadmin@arssteels.co.in).
 | `PASSWORD_RESET_LINK` | Reset your ARS CMS password | Owner choice (D-166): the reset link goes to the email on record; the WhatsApp code then confirms it. |
 
 ## Emails
-Every message above is also sent by email from itadmin@arssteels.co.in (through Resend), with the subject shown and the same details as plain text. Emails need no approval: they work as soon as the Resend key is entered in /superadmin/settings.
+Every message above is also sent by email from itadmin@arssteels.co.in (through Resend), with the subject shown and the same details as plain text. Emails need no approval: they work as soon as the Resend key is entered in /superadmin/connections/email.

@@ -2,44 +2,22 @@ import { requireArea } from "@/server/authorization/guards";
 import { AppShell } from "@/features/shell/AppShell";
 import { after } from "next/server";
 import { checkJobRunnerStopped } from "@/server/ops/alerts";
+import { SUPERADMIN_NAV } from "@/server/panels/superadmin-nav";
+import { settingsIndexFor } from "@/server/panels/settings-index";
 
 export const dynamic = "force-dynamic";
 
 // Super Admin only (itadmin@, D-039): providers, security, integrations,
 // system health, audit export, break-glass. 404 for everyone else.
+// v1.84.0 (D-411, owner's redesign): five groups (Health, Connections,
+// Security & access, Data, Monitoring); old addresses redirect
+// (lib/routing/panel-redirects.ts).
 export default async function SuperAdminLayout({ children }: { children: React.ReactNode }) {
   const { user } = await requireArea("superadmin");
   // A5: a stopped job runner is noticed when IT opens a page (after it renders).
   after(() => checkJobRunnerStopped().then(() => undefined));
   return (
-    <AppShell
-      area="superadmin"
-      user={user}
-      nav={[
-        { href: "/superadmin", label: "Overview" },
-        { href: "/superadmin/settings", label: "Providers & security" },
-        { href: "/superadmin/integrations", label: "Integrations" },
-        { href: "/superadmin/ai", label: "AI settings" },
-        // D-181 (owner): Salesforce has its own settings page.
-        { href: "/superadmin/salesforce", label: "Salesforce Settings" },
-        // D-180 (owner): the AI details moved here from the AI module.
-        { href: "/superadmin/ai/data-sources", label: "Data Sources", section: "AI Details" },
-        { href: "/superadmin/ai/reports", label: "AI Reports", section: "AI Details" },
-        { href: "/superadmin/ai/history", label: "AI Activity History", section: "AI Details" },
-        { href: "/superadmin/pages", label: "Page access" },
-        { href: "/superadmin/templates", label: "WhatsApp templates" },
-        { href: "/superadmin/requests", label: "Requests" },
-        { href: "/superadmin/import", label: "Import data" },
-        { href: "/superadmin/demo", label: "Demo data" },
-        { href: "/superadmin/automation", label: "Automation" },
-        { href: "/superadmin/retention", label: "Retention & legal holds" },
-        // v1.81.0 (D-408, BK-1): the Backup, restore & migrate centre.
-        { href: "/superadmin/backup", label: "Backup, restore & migrate" },
-        { href: "/superadmin/deliveries", label: "Message deliveries" },
-        { href: "/superadmin/audit", label: "Audit log" },
-        { href: "/superadmin/logins", label: "Sign-in history" },
-      ]}
-    >
+    <AppShell area="superadmin" user={user} nav={[...SUPERADMIN_NAV]} settingsIndex={await settingsIndexFor(user)}>
       {children}
     </AppShell>
   );

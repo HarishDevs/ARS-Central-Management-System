@@ -69,7 +69,7 @@ For the owner and IT, in order. Nothing here was done on production by Claude: t
 | 1.1 | GitHub Actions green on the v1.6.0 commit / tag `v1.6.0` | IT | All jobs green |
 | 1.2 | Super Admin → Overview → **Back up now**; download the file off GoDaddy | Super Admin / IT | Today's backup listed; file saved |
 | 1.3 | Read BACKUP_RESTORE_AND_ROLLBACK §4 (rollback levers) | IT | Done |
-| 1.4 | Decide the first feature-switch settings. Suggestion: IT_ONLY for scheduled reports and alerts, and for amendments, during the first week. | Owner | Super Admin → Providers & security → Feature switches |
+| 1.4 | Decide the first feature-switch settings. Suggestion: IT_ONLY for scheduled reports and alerts, and for amendments, during the first week. | Owner | Super Admin → Security & access → Feature switches |
 
 ## 2. Publish
 | # | Step | Who | Check |

@@ -11,16 +11,19 @@ export const metadata: Metadata = { title: "Working calendar" };
 
 // F-31 / D-067: response times count only working days.
 export default async function CalendarPage() {
-  await requireArea("admin");
+  const { user } = await requireArea("admin");
   const [workingDays, holidays] = await Promise.all([getWorkingDays(), listHolidays()]);
   return (
     <>
       <PageHeader
         title="Working calendar"
         description="Response times (“respond within N hours”) only count working days. Changes apply to approvals that start afterwards.">
-        <Link href="/admin/import?kind=holidays" className="btn-secondary btn-compact">
+        {/* v1.84.0 (D-411): Import data is the Super Admin's alone now. */}
+        {user.roles.includes("SUPER_ADMIN") && (
+        <Link href="/superadmin/data/import?kind=holidays" className="btn-secondary btn-compact">
           Import holidays
         </Link>
+        )}
       </PageHeader>
       <div className="grid gap-6 xl:grid-cols-2">
         <section className="card">

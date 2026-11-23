@@ -19,6 +19,6 @@ export function templatesNeedingAttention(board: readonly Pick<BoardEntry, "entr
       code: item.entry.code,
       label: templateLabel(item.entry.eventType),
       state: item.latest ? versionStatus(item.latest).label : "Not created",
-      href: `/superadmin/templates/${item.entry.code}`,
+      href: `/superadmin/connections/whatsapp/templates/${item.entry.code}`,
     }));
 }

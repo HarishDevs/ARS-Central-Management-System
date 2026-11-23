@@ -114,7 +114,7 @@ test("D-206/D-235: choice and skip appear on New request only when IT switches t
 
 test("the Super Admin hides a page and makes another view-only", async ({ page, context }) => {
   await as(context, "E2E_SUPER");
-  await page.goto("/superadmin/pages");
+  await page.goto("/superadmin/security/pages");
   await page.getByLabel("Calendar: for everyone", { exact: true }).selectOption("HIDDEN");
   await page.getByLabel("Calendar: for everyone", { exact: true }).locator("xpath=ancestor::form").getByRole("button", { name: "Save" }).click();
   // V181-A8 (AUD-25): hiding a page from everyone asks first.
@@ -122,7 +122,7 @@ test("the Super Admin hides a page and makes another view-only", async ({ page, 
   await expect(page.getByText(/Saved\. It applies from the person's next page/).first()).toBeVisible();
   const requester = await userIdByLogin("E2E_REQ");
   await sql("INSERT INTO page_access_rules (page_key, scope, scope_id, level) VALUES ('users.collaborating', 'USER', ?, 'VIEW')", [requester]);
-  await page.goto(`/superadmin/pages?person=${requester}`);
+  await page.goto(`/superadmin/security/pages?person=${requester}`);
   const effective = page.getByTestId("effective-access");
   await expect(effective.getByRole("listitem").filter({ hasText: /^Calendar/ })).toContainText("Hidden");
   await expect(effective.getByRole("listitem").filter({ hasText: /^Collaborating/ })).toContainText("View only");

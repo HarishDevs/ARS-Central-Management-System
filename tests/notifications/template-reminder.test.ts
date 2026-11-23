@@ -15,8 +15,8 @@ describe("template reminder (Q-013)", () => {
       { entry: third!, live: null, latest: null },
     ]);
     expect(pending.map((item) => [item.code, item.state, item.href])).toEqual([
-      [second!.code, "Waiting for Meta", `/superadmin/templates/${second!.code}`],
-      [third!.code, "Not created", `/superadmin/templates/${third!.code}`],
+      [second!.code, "Waiting for Meta", `/superadmin/connections/whatsapp/templates/${second!.code}`],
+      [third!.code, "Not created", `/superadmin/connections/whatsapp/templates/${third!.code}`],
     ]);
   });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { retryNowAction } from "@/app/superadmin/deliveries/actions";
+import { retryNowAction } from "@/app/superadmin/monitoring/deliveries/actions";
 import { ResultMessage, useActionForm } from "@/features/ui/form";
 
 export function RetryButton({ deliveryId }: { deliveryId: number }) {

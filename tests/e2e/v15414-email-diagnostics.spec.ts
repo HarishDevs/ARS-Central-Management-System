@@ -8,7 +8,7 @@ import { sessionCookie } from "./db";
 test("Email diagnostics panel and the deliveries' Provider column", async ({ page, context }) => {
   await context.addCookies([await sessionCookie("E2E_SUPER")]);
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/superadmin/settings");
+  await page.goto("/superadmin/connections/email");
   const panel = page.getByTestId("email-diagnostics");
   await expect(panel.getByRole("heading", { name: "Email diagnostics" })).toBeVisible();
   await expect(panel.getByLabel("Test recipient")).toHaveAttribute("type", "email");
@@ -21,12 +21,12 @@ test("Email diagnostics panel and the deliveries' Provider column", async ({ pag
   // A delivery to list: locally no email provider is set up, so the test send fails at once (nothing leaves the PC).
   await page.getByRole("button", { name: "Send test email" }).click();
   await expect(page.getByText(/EMAIL_NOT_CONFIGURED|Test email sent/).first()).toBeVisible();
-  await page.goto("/superadmin/deliveries");
+  await page.goto("/superadmin/monitoring/deliveries");
   await expect(page.getByRole("columnheader", { name: "Provider", exact: true })).toBeVisible();
 });
 
 test("a plain user can't reach the diagnostic", async ({ page, context }) => {
   await context.addCookies([await sessionCookie("E2E_REQ")]);
-  const response = await page.goto("/superadmin/settings");
+  const response = await page.goto("/superadmin/connections/email");
   expect(response?.status()).toBe(404);
 });

@@ -101,7 +101,6 @@ export const PAGES: readonly PageDef[] = [
   { key: "admin.records", area: "admin", label: "Records", what: "Every approval request, task and information item, with filters and a CSV download.", paths: [under("/admin/records")], apis: [/^\/api\/admin\/records\//] },
   { key: "admin.users", area: "admin", label: "Users & roles", what: "People, roles and hand-overs.", paths: [under("/admin/users")] },
   { key: "admin.organisation", area: "admin", label: "Departments", what: "Departments and designations.", paths: [under("/admin/organisation")] },
-  { key: "admin.import", area: "admin", label: "Import data", what: "Bulk import of users and masters.", paths: [under("/admin/import")], apis: [/^\/api\/admin\/import\//] },
 ];
 
 export const PAGE = Object.fromEntries(PAGES.map((page) => [page.key, page])) as Record<string, PageDef>;

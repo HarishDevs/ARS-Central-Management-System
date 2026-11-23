@@ -50,7 +50,7 @@ test("the Super Admin deletes a request with a reason; it leaves the approver's 
   await page.getByRole("button", { name: "Delete" }).click();
   await page.getByLabel(/Why\?/).fill("Raised by mistake in testing");
   await page.getByRole("button", { name: "Yes, delete" }).click();
-  await expect(page).toHaveURL(/\/superadmin\/requests\?tab=deleted/);
+  await expect(page).toHaveURL(/\/superadmin\/data\/danger-zone\/requests\?tab=deleted/);
   await expect(page.getByText(requestNo)).toBeVisible();
   await expect(page.getByText("Raised by mistake in testing")).toBeVisible();
 

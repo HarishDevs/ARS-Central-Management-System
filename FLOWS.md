@@ -26,6 +26,7 @@ The number of levels and how they combine is unlimited. There are no fixed "Leve
 | F-TS-R1 | Task Summary: range per tab, My sections (landing, moves, rules at midnight), CSV | Built 23 Nov 2026 (v1.76.0, behind pm_foundations) |
 | F-PM-BOARD-KEYS | Board: move a card from the keyboard (Space, arrows, Enter, Escape), announced | Built 22 Nov 2026 (v1.62.0, behind pm_foundations) |
 | F-PM-PANE | Task pane beside the view, resize kept; reactions; complete and delete with Undo; celebrations | Built 22 Nov 2026 (v1.62.0) |
+| F-PANELS | Admin and Super Admin navigation: five groups each, Health console, Search settings, old addresses redirect | Built 23 Nov 2026 (v1.84.0 Super Admin; v1.85.0 Admin) |
 | F-TASK-PANE-EVERYWHERE | Every task opens in the side pane on every screen; ⤢ dialog (kept per person); Open full page; full page for direct visits and phones | Built 23 Nov 2026 (v1.83.0) |
 | F-PM-SIDEBAR | Starred and department projects in the sidebar, sort and reorder | Built 22 Nov 2026 (v1.62.0) |
 | F-PM-PURGE | Deleted tasks and projects removed for good after 30 days | Built 22 Nov 2026 (v1.62.0) |
@@ -2617,6 +2618,27 @@ flowchart TD
   F -->|Alt + Up / Down, Alt + Shift + Up / Down| M[Moved at once, as before]
 ```
 - The server checks every move (moveInProject): only owners and editors; anyone else is refused.
+
+## F-PANELS: Admin and Super Admin navigation (v1.84.0, D-411; v1.85.0, D-412)
+```mermaid
+flowchart TD
+  A[Open /superadmin or /admin] --> B{requireArea on the server}
+  B -- not allowed --> X[Plain 404]
+  B -- allowed --> C[Panel sidebar: five folding groups, kept per person]
+  C --> S[Search settings: index built on the server for this person]
+  S --> P[Open the page or setting found]
+  C --> H[Super Admin: Health console]
+  H --> N{Card not OK?}
+  N -- yes --> NA[Needs action: what to do, Open or Test]
+  N -- no --> OK[Nothing needs action]
+  C --> CN[Connections page: status card, settings, Test together]
+  CN --> SV[One Save per section; leaving with changes asks]
+  C --> DZ[Data → Danger zone]
+  DZ --> TC{Typed word matches?}
+  TC -- no --> OFF[Button stays off; the server refuses too]
+  TC -- yes --> RUN[Action runs, audited]
+  OLD[Old address, bookmark or email link] --> MW[Middleware: redirect map] --> R308[308 to the new address, query kept]
+```
 
 ## F-TASK-PANE-EVERYWHERE: Every task opens in the side pane (v1.83.0, D-410)
 ```mermaid

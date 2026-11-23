@@ -12,7 +12,8 @@ import type { ChatSummary } from "@/features/shell/ChatList";
 // WEB-03 (v1.10.0): focus moves into the drawer when it opens, Tab stays
 // inside it, and focus returns to the menu button when it closes. The logo
 // links to the space's first page (WEB-17); the list scrolls on short screens.
-export function MobileNav({ items, spaceLabel, home, collapsible = false, chats = [] }: { items: NavItem[]; spaceLabel: string; home: string; collapsible?: boolean; chats?: ChatSummary[] }) {
+// v1.84.0 (D-411): the panels add Search settings (top) and Back to the app (footer).
+export function MobileNav({ items, spaceLabel, home, collapsible = false, chats = [], storageKey, top, footer }: { items: NavItem[]; spaceLabel: string; home: string; collapsible?: boolean; chats?: ChatSummary[]; storageKey?: string; top?: React.ReactNode; footer?: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const opener = useRef<HTMLButtonElement>(null);
@@ -68,8 +69,10 @@ export function MobileNav({ items, spaceLabel, home, collapsible = false, chats 
             </div>
             <p className="shrink-0 px-6 pt-3 text-caption font-semibold text-ink-faint">{spaceLabel}</p>
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-              <SideNav items={items} collapsible={collapsible} chats={chats} />
+              {top && <div className="px-4 pt-3">{top}</div>}
+              <SideNav items={items} collapsible={collapsible} chats={chats} storageKey={storageKey} />
             </div>
+            {footer}
           </div>
           {/* The dimmed area: a tap closes the menu (the ✕ button is the keyboard way). */}
           <button type="button" aria-hidden="true" tabIndex={-1} onClick={() => setOpen(false)} className="flex-1 bg-overlay" />

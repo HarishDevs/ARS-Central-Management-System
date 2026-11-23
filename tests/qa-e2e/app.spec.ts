@@ -172,7 +172,7 @@ test("QA-AZ-01 people only see their own requests (direct URL and attachments)",
 
 test("QA-AZ-02 an IT Admin can't use Super Admin pages or grant the Super Admin role", async ({ page, context }) => {
   await as(context, "E2E_ADMIN");
-  const pages = await Promise.all(["/superadmin", "/superadmin/settings", "/superadmin/requests", "/superadmin/audit"].map(async (url) => (await page.request.get(url)).status()));
+  const pages = await Promise.all(["/superadmin", "/superadmin/connections/email", "/superadmin/data/danger-zone/requests", "/superadmin/monitoring/audit"].map(async (url) => (await page.request.get(url)).status()));
   await page.goto("/admin/users/new");
   const superBox = await page.getByRole("checkbox", { name: /Super Admin/ }).count();
   const superEnabled = superBox ? await page.getByRole("checkbox", { name: /Super Admin/ }).first().isEnabled() : false;
@@ -312,7 +312,7 @@ test("QA-SEC-02 SQL-injection text in searches is treated as text", async ({ pag
   const probes = ["' OR 1=1 -- ", "%' UNION SELECT password_hash FROM users -- ", "\\' ; DROP TABLE users; --"];
   const results: Record<string, unknown>[] = [];
   for (const q of probes) {
-    const response = await page.goto(`/superadmin/requests?q=${encodeURIComponent(q)}`);
+    const response = await page.goto(`/superadmin/data/danger-zone/requests?q=${encodeURIComponent(q)}`);
     results.push({ q, status: response?.status(), rows: await page.getByRole("row").count(), shown: await page.getByText(/No requests match|request/).first().isVisible() });
   }
   const users = await count("SELECT COUNT(*) AS n FROM users");
@@ -467,7 +467,7 @@ test("QA-A11Y-01 every form control has a name; one h1; page language set; image
   await page.goto("/login");
   await check("/login");
   await as(context, "E2E_ADMIN");
-  for (const url of ["/users", "/users/new", "/users/custom", "/admin/import", "/admin/dashboards/utilisation", "/admin/organisation"]) {
+  for (const url of ["/users", "/users/new", "/users/custom", "/admin/dashboards/utilisation", "/admin/organisation"]) {
     await page.goto(url);
     await check(url);
   }
@@ -504,7 +504,7 @@ test("QA-UI-01 phone width: key pages have no sideways scrolling", async ({ page
   await page.setViewportSize({ width: 375, height: 800 });
   await as(context, "E2E_ADMIN");
   const results: Record<string, boolean> = {};
-  for (const url of ["/users", "/users/new", "/users/requests", "/admin", "/admin/dashboards/utilisation", "/admin/import"]) {
+  for (const url of ["/users", "/users/new", "/users/requests", "/admin", "/admin/dashboards/utilisation"]) {
     await page.goto(url);
     results[url] = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);
   }

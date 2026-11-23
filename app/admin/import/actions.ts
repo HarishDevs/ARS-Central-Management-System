@@ -1,14 +1,16 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getAdminActor } from "@/server/admin/actor";
+import { requireApiArea } from "@/server/authorization/guards";
+import { getActionContext } from "@/lib/http/request-context";
+import type { AdminActor } from "@/server/admin/users";
 import { checkImport, readUpload, runImport } from "@/server/import/service";
 import { isImportKind, type ImportKind } from "@/server/import/kinds";
 import type { ImportPlan } from "@/server/import/plan";
 import { logError } from "@/lib/logging/logger";
 
-// Bulk import actions (S10, F-59). Used from both the Admin and the Super
-// Admin space; each call re-checks the caller on the server. The browser
+// Bulk import actions (S10, F-59). v1.84.0 (D-411): the Super Admin only
+// (one Import data page); each call re-checks the Super Admin area on the server. The browser
 // gets the row results, never the planned writes.
 export type ImportPreview = Omit<ImportPlan, "ops">;
 export type ImportActionResult = { ok: boolean; message: string; preview?: ImportPreview };
@@ -23,10 +25,20 @@ const REVALIDATE: Record<ImportKind, string[]> = {
   holidays: ["/admin/calendar", "/admin"],
 };
 
+async function superAdminActor(): Promise<AdminActor | null> {
+  try {
+    const session = await requireApiArea("superadmin");
+    const { ipAddress } = await getActionContext();
+    return { id: session.user.id, roles: session.user.roles, sessionId: session.sessionId, ipAddress };
+  } catch {
+    return null;
+  }
+}
+
 const preview = (plan: ImportPlan): ImportPreview => ({ kind: plan.kind, fileProblems: plan.fileProblems, rows: plan.rows, summary: plan.summary });
 
 export async function checkImportAction(formData: FormData): Promise<ImportActionResult> {
-  const actor = await getAdminActor("admin.import");
+  const actor = await superAdminActor();
   if (!actor) return NOT_FOUND;
   const kind = formData.get("kind");
   if (!isImportKind(kind)) return { ok: false, message: "Choose what to import." };
@@ -54,7 +66,7 @@ export async function checkImportAction(formData: FormData): Promise<ImportActio
 }
 
 export async function runImportAction(formData: FormData): Promise<ImportActionResult> {
-  const actor = await getAdminActor("admin.import");
+  const actor = await superAdminActor();
   if (!actor) return NOT_FOUND;
   const kind = formData.get("kind");
   if (!isImportKind(kind)) return { ok: false, message: "Choose what to import." };

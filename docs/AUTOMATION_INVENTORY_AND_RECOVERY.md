@@ -2,7 +2,7 @@
 
 Applies to v1.46.0 (2 Nov 2026). Earlier: v1.39.0 (31 Oct 2026).
 
-Unified prompt FN2, FN8, FN11 and Addendum B (monitoring). The live version of this table is **Super Admin → Automation** (`/superadmin/automation`), built from `server/ops/automation.ts`. That page also shows each job's health, its last run, its 24-hour failures and its run history.
+Unified prompt FN2, FN8, FN11 and Addendum B (monitoring). The live version of this table is **Super Admin → Automation** (`/superadmin/monitoring/jobs`), built from `server/ops/automation.ts`. That page also shows each job's health, its last run, its 24-hour failures and its run history.
 
 ## How automations run
 

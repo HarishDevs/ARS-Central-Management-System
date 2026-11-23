@@ -7,11 +7,11 @@ test("Message deliveries: totals, charts, filters that also filter the list", as
   await context.addCookies([await sessionCookie("E2E_SUPER")]);
   await page.setViewportSize({ width: 1440, height: 900 });
   // A delivery to count: locally no email provider is set, so the test send fails at once (nothing leaves the PC).
-  await page.goto("/superadmin/settings");
+  await page.goto("/superadmin/connections/email");
   await page.getByRole("button", { name: "Send test email" }).click();
   await expect(page.getByText(/EMAIL_NOT_CONFIGURED|Test email sent/).first()).toBeVisible();
 
-  await page.goto("/superadmin/deliveries");
+  await page.goto("/superadmin/monitoring/deliveries");
   const dashboard = page.getByTestId("delivery-dashboard");
   await expect(dashboard.getByRole("list", { name: "Totals" }).getByRole("link")).toHaveCount(5);
   await expect(dashboard.getByRole("figure", { name: "Messages per day" })).toBeVisible();

@@ -57,9 +57,12 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
   return (
     <>
       <PageHeader title="Users & roles" description="Only people added here can sign in. People are made inactive, never deleted, so their history stays.">
-        <Link href="/admin/import?kind=users" className="btn-secondary btn-compact">
+        {/* v1.84.0 (D-411): Import data is the Super Admin's alone now. */}
+        {actor.roles.includes("SUPER_ADMIN") && (
+        <Link href="/superadmin/data/import?kind=users" className="btn-secondary btn-compact">
           Import
         </Link>
+        )}
         <Link href="/admin/users/new" className="btn-primary btn-compact">
           Add user
         </Link>

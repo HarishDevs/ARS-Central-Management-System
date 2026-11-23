@@ -10,11 +10,11 @@ import { logError } from "@/lib/logging/logger";
 
 // Import downloads (S10-04, F-59): ?type=template (header row only) or
 // ?type=data (the current records in the same columns). v1.49.1: Excel
-// workbooks (owner). Admin space only;
+// workbooks (owner). v1.84.0 (D-411): Super Admin only (the one Import data page);
 // anything else gets the same plain 404.
 export async function GET(request: NextRequest, { params }: { params: Promise<{ kind: string }> }) {
   try {
-    const session = await requireApiArea("admin");
+    const session = await requireApiArea("superadmin");
     const { kind } = await params;
     const type = request.nextUrl.searchParams.get("type");
     if (!isImportKind(kind) || (type !== "template" && type !== "data")) return apiError("NOT_FOUND", "Not found.", 404);

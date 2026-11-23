@@ -154,7 +154,7 @@ export function UserForm({
         )}
 
         {/* D-172: Pico Bot chat access. Only takes effect with the AI module, and
-            only for modes the Super Admin has switched on (AI settings).
+            only for modes the Super Admin has switched on (AI providers).
             D-176: the Super Admin has every chat and all Salesforce records. */}
         {values.roles.includes("SUPER_ADMIN") ? (
           <div className="sm:col-span-2" data-testid="chat-access">
@@ -167,7 +167,7 @@ export function UserForm({
         <fieldset className="sm:col-span-2" data-testid="chat-access" disabled={Boolean(moduleLock)}>
           <legend className="field-label">
             Pico Bot: what this person may ask about{" "}
-            <Hint text="Needs the AI module; each chat must also be on in AI settings." align="start" />
+            <Hint text="Needs the AI module; each chat must also be on in AI providers." align="start" />
           </legend>
           {!moduleLock && <input type="hidden" name="chatShown" value="1" />}
           <div className="grid gap-2 sm:grid-cols-2">

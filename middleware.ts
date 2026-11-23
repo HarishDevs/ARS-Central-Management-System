@@ -6,6 +6,7 @@ import { FILE_ROUTE } from "@/lib/security/file-routes";
 import { pickRequestId, REQUEST_ID_HEADER } from "@/lib/logging/request-id";
 import { PATH_HEADER, PATH_SIGNATURE_HEADER, signPath, WRITE_HEADER, NEXT_HEADER } from "@/lib/security/path-signature";
 import { sessionCookieLooksValid } from "@/lib/security/session-cookie-edge";
+import { panelRedirectUrl } from "@/lib/routing/panel-redirects";
 
 // Layer 1 of 3 (P1-30a): only checks that a session cookie is present.
 // Roles and the session row are checked on the server in every layout,
@@ -112,6 +113,14 @@ export async function middleware(request: NextRequest) {
   // there; the app's own pages are same-origin and never send one.
   if (request.method === "OPTIONS" && pathname.startsWith("/api/")) {
     return new NextResponse(null, { status: 204, headers: { Allow: "GET, POST, HEAD", Vary: "Origin", "Cache-Control": "no-store" } });
+  }
+
+  // v1.84.0 / v1.85.0 (D-411, D-412): the Admin and Super Admin addresses from
+  // before the redesign go on to their new place for good (308, query kept).
+  // Before the session check, so a signed-out visit signs in to the new address.
+  if ((request.method === "GET" || request.method === "HEAD") && /^\/(admin|superadmin)\//.test(pathname)) {
+    const moved = panelRedirectUrl(pathname, request.nextUrl.search);
+    if (moved) return NextResponse.redirect(new URL(moved, request.url), 308);
   }
 
   const nonce = createNonce();

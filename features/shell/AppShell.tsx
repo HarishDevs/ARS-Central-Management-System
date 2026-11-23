@@ -55,6 +55,8 @@ import type { AppArea, AuthenticatedUser } from "@/types/auth";
 import { WorkSidebar } from "@/features/work/WorkSidebar";
 import { loadSidebar } from "@/server/work/sidebar";
 import { featureOn } from "@/server/settings/features";
+import { SettingsSearch, type SettingsIndexEntry } from "@/features/ui/SettingsSearch";
+import { ArrowLeft } from "lucide-react";
 
 // The three spaces of the one app (D-034, S9-03: called "spaces" on screen).
 export const SPACE_LABEL: Record<AppArea, string> = { users: "Central Management System", admin: "Admin", superadmin: "Super Admin" };
@@ -80,7 +82,10 @@ function initialsOf(name: string): string {
   );
 }
 
-export async function AppShell({ area, user, nav, children }: { area: AppArea; user: AuthenticatedUser; nav: NavItem[]; children: React.ReactNode }) {
+// v1.84.0 (D-411): the Admin and Super Admin panels pass `settingsIndex`
+// (what the person may find with Search settings); their sidebar folds its
+// groups (kept per person) and ends with Back to the app.
+export async function AppShell({ area, user, nav, children, settingsIndex }: { area: AppArea; user: AuthenticatedUser; nav: NavItem[]; children: React.ReactNode; settingsIndex?: SettingsIndexEntry[] }) {
   const spaces = areasForUser(user);
   const [unread, theme, waiting, access, tourDone, picbot, chats, savedView, savedText] = await Promise.all([
     countUnread(user.id).catch(() => 0),
@@ -234,6 +239,13 @@ export async function AppShell({ area, user, nav, children }: { area: AppArea; u
   // area (docs/mobile/MOBILE_REDESIGN_ARCHITECTURE.md); everything else, and
   // every window from 768 px, renders exactly as before.
   const layout = await layoutMode();
+  // v1.84.0 (D-411): the two panels (Admin, Super Admin).
+  const panel = area !== "users";
+  const backToApp = (
+    <Link href="/users" className="m-2 flex min-h-9 shrink-0 items-center gap-2 rounded-md border-t border-line px-3 pt-2 text-label text-ink-muted hover:bg-surface-muted hover:text-ink" data-testid="back-to-app">
+      <ArrowLeft aria-hidden="true" className="h-4 w-4" /> Back to the app
+    </Link>
+  );
   const mobile = area === "users" && layout === "mobile";
 
   return (
@@ -261,10 +273,16 @@ export async function AppShell({ area, user, nav, children }: { area: AppArea; u
         >
           {area === "users" && <CreateMenu approval={items.some((item) => item.href === "/users/custom")} task={tasksOn} project={projectsOn} portfolio={portfoliosOn} information={items.some((item) => item.href === "/users/information/new")} meeting={items.some((item) => item.href === "/users/meetings/new")} ticket={items.some((item) => item.href === "/users/tickets/new")} />}
           <p className="shrink-0 px-6 pt-4 text-caption font-semibold text-ink-faint">{SPACE_LABEL[area]}</p>
+          {panel && settingsIndex && (
+            <div className="shrink-0 px-3 pt-2">
+              <SettingsSearch index={settingsIndex} compact />
+            </div>
+          )}
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain" data-testid="sidebar-scroll">
-            <SideNav items={sideItems} collapsible={area !== "admin"} chats={chats} />
+            <SideNav items={sideItems} collapsible chats={chats} storageKey={panel ? `ars.nav.groups.${area}.${user.id}` : undefined} />
             {workSidebar && <WorkSidebar starred={workSidebar.starred} departments={workSidebar.departments} departmentName={workSidebar.departments.departmentName} portfolios={workSidebar.portfolios} />}
           </div>
+          {panel && backToApp}
         </SidebarFrame>
       )}
 
@@ -299,7 +317,7 @@ export async function AppShell({ area, user, nav, children }: { area: AppArea; u
         ) : null}
         {mobile ? null : (
           <header className="sticky top-0 z-header flex h-topbar items-center justify-between gap-4 border-b border-line bg-surface px-4 sm:px-6">
-            <MobileNav items={sideItems} spaceLabel={SPACE_LABEL[area]} home={`/${area}`} collapsible={area !== "admin"} chats={chats} />
+            <MobileNav items={sideItems} spaceLabel={SPACE_LABEL[area]} home={`/${area}`} collapsible chats={chats} storageKey={panel ? `ars.nav.groups.${area}.${user.id}` : undefined} top={panel && settingsIndex ? <SettingsSearch index={settingsIndex} compact /> : undefined} footer={panel ? backToApp : undefined} />
             {/* D-210: Classic has no sidebar, so the logo leads back to the Gateway from the top bar. */}
             {classic && (
               <Link href="/users" aria-label="ARS CMS: Central Management System" className="hidden items-center gap-3 rounded-md md:flex" data-testid="classic-home">

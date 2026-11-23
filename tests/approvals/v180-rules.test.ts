@@ -20,7 +20,7 @@ describe("pageForPath", () => {
     expect(pageForPath("/api/reports/request_register")?.key).toBe("admin.reports");
     expect(pageForPath("/users/reports/x")?.key).toBe("admin.reports");
     expect(pageForPath("/admin/workflows/7/compare")).toBeNull(); // v1.54.0 (D-309): IT approval types are gone
-    expect(pageForPath("/superadmin/settings")).toBeNull();
+    expect(pageForPath("/superadmin/connections/email")).toBeNull();
     expect(pageForPath("/users/requestsX")).toBeNull();
   });
   it("every page has a unique key and at least one address", () => {

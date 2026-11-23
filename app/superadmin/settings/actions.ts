@@ -17,7 +17,7 @@ import { maskEmail } from "@/server/auth/errors";
 import nodemailerPackage from "nodemailer/package.json";
 const NODEMAILER_VERSION = String((nodemailerPackage as { version?: string }).version ?? "unknown");
 
-// Server Actions for /superadmin/settings (F-52). Each re-checks the Super
+// Server Actions for the Super Admin settings pages (F-52; v1.84.0: Connections, Security & access, Data). Each re-checks the Super
 // Admin area on the server; Next.js also rejects cross-site calls by
 // comparing Origin and Host (D-048).
 const GROUPS = new Set<SettingDefinition["group"]>(["GENERAL", "AUTHENTICATION", "EMAIL", "WHATSAPP", "FEATURES", "RETENTION", "AI", "AI_DATA", "BACKUP", "GDRIVE_BACKUP", "PUSH"]);
@@ -71,7 +71,7 @@ export async function testSendAction(_previous: ActionResult | null, formData: F
         : channel === "WHATSAPP"
           ? await sendTestWhatsApp(session.user, session.sessionId)
           : { ok: false, message: "Unknown channel." };
-    revalidatePath("/superadmin/deliveries");
+    revalidatePath("/superadmin/monitoring/deliveries");
     return result.ok ? { ok: true, message: result.message } : { ok: false, message: result.message };
   } catch (error) {
     logError("testSendAction failed", error);
@@ -137,7 +137,7 @@ export async function generatePushKeysAction(_previous: ActionResult | null, for
     const result = await saveSettingsGroup("PUSH", { "push.vapid_public_key": keys.publicKey, "push.vapid_private_key": keys.privateKey }, new Set(), { userId: session.user.id, sessionId: session.sessionId, ipAddress });
     if (Object.keys(result.errors).length) return { ok: false, message: "Couldn't save the keys." };
     clearPushConfigCache();
-    revalidatePath("/superadmin/settings");
+    revalidatePath("/superadmin/connections/push");
     return { ok: true, message: existing ? "New keys saved. Devices register again on their next visit." : "Keys saved. People can now turn on notifications in Profile → App & devices." };
   } catch (error) {
     logError("generatePushKeysAction failed", error);

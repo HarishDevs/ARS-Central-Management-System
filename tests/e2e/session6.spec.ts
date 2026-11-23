@@ -14,7 +14,7 @@ async function as(context: BrowserContext, loginId: string) {
 
 test("the Super Admin loads the demo staff and approval types", async ({ page, context }) => {
   await as(context, "E2E_SUPER");
-  await page.goto("/superadmin/demo");
+  await page.goto("/superadmin/data/danger-zone/demo");
   // V181-A8: the typed word, then the confirmation.
   await page.getByLabel(/Type LOAD DEMO to confirm/).fill("LOAD DEMO");
   await page.getByRole("button", { name: "Load demo data" }).click();
@@ -33,11 +33,11 @@ test("the Super Admin loads the demo staff and approval types", async ({ page, c
 
 test("the template creator drafts a message; submitting needs the CEOITBox key", async ({ page, context }) => {
   await as(context, "E2E_SUPER");
-  await page.goto("/superadmin/templates");
+  await page.goto("/superadmin/connections/whatsapp/templates");
   await expect(page.getByRole("progressbar", { name: "Templates live" })).toHaveAttribute("aria-valuenow", "0");
   await expect(page.getByText("of 26 messages")).toBeVisible(); // 20 + 6 from v1.4.0 (D-097, D-098)
   await page.getByRole("row", { name: /waiting for this person's approval/ }).getByRole("link", { name: "Create" }).click();
-  await expect(page).toHaveURL(/\/superadmin\/templates\/WA_APPROVAL_NEEDED_V1$/);
+  await expect(page).toHaveURL(/\/superadmin\/connections\/whatsapp\/templates\/WA_APPROVAL_NEEDED_V1$/);
   await expect(page.getByText("Ravi Kumar needs your approval for PUR-2026-000123", { exact: false })).toBeVisible();
   await page.getByRole("button", { name: "Save draft" }).click();
   await expect(page.getByText("Draft version 1 saved", { exact: false })).toBeVisible();

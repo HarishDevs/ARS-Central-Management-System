@@ -37,7 +37,7 @@ describe("saved list views", () => {
     expect(isListTarget("DASHBOARD")).toBe(false);
     expect(isListTarget("list_x;drop")).toBe(false);
     expect(isListPath("/users/tickets/dashboards/3")).toBe(true);
-    expect(isListPath("/superadmin/audit")).toBe(true);
+    expect(isListPath("/superadmin/monitoring/audit")).toBe(true);
     expect(isListPath("https://evil.example")).toBe(false);
     expect(isListPath("/users/../x")).toBe(false);
   });

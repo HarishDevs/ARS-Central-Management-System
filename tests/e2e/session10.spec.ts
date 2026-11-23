@@ -7,8 +7,9 @@ import { readXlsxRows } from "../../server/import/xlsx-read";
 // Session 10 (F-59): download a template, upload a file, check it (with a
 // loader), fix nothing-saved problems, then import.
 test("IT downloads the template, checks a file with a problem, then imports a fixed one", async ({ page, context }) => {
-  await context.addCookies([await sessionCookie("E2E_ADMIN")]);
-  await page.goto("/admin/import?kind=designations");
+  // v1.84.0 (D-411): Import data is the Super Admin's alone now.
+  await context.addCookies([await sessionCookie("E2E_SUPER")]);
+  await page.goto("/superadmin/data/import?kind=designations");
   await expect(page.getByRole("heading", { name: "Import data" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Designations" })).toHaveAttribute("aria-selected", "true");
 
@@ -42,7 +43,7 @@ test("IT downloads the template, checks a file with a problem, then imports a fi
 
 test("the Super Admin has the same import screen; a plain user can't download", async ({ page, context, request }) => {
   await context.addCookies([await sessionCookie("E2E_SUPER")]);
-  await page.goto("/superadmin/import?kind=holidays");
+  await page.goto("/superadmin/data/import?kind=holidays");
   await expect(page.getByRole("tab", { name: "Holidays" })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByRole("link", { name: "Import data" })).toBeVisible();
 

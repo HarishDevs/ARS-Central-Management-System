@@ -48,7 +48,7 @@ export async function checkPageAccess(person: Person, change: boolean): Promise<
     // refused (fail closed); nobody else is affected.
     if (!known) return restricted ? { ok: false, reason: "UNKNOWN_PAGE", pageKey: null } : { ok: true, level: null };
     // G-3 (v1.10.0): Super Admin pages are never a way in for anyone else
-    // (an admin action posted to /superadmin/import skipped the rules).
+    // (an admin action posted to /superadmin/data/import skipped the rules).
     if (!page) {
       const path = await requestPath();
       if (path?.startsWith("/superadmin")) return { ok: false, reason: "UNKNOWN_PAGE", pageKey: null };

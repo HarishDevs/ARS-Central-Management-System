@@ -7,7 +7,7 @@ test("Message deliveries shows when the job runner last ran, and warns when it i
   const connection = await db();
   try {
     await connection.query("DELETE FROM jobs WHERE job_type = 'RUNNER_HEARTBEAT'");
-    await page.goto("/superadmin/deliveries");
+    await page.goto("/superadmin/monitoring/deliveries");
     await expect(page.getByRole("status").filter({ hasText: "Job runner" })).toContainText("has never run");
 
     await connection.query("INSERT INTO jobs (job_type, status, locked_at, attempts) VALUES ('RUNNER_HEARTBEAT', 'DONE', DATE_SUB(CURRENT_TIMESTAMP, INTERVAL 40 MINUTE), 3)");

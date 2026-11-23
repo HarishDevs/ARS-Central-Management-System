@@ -1,6 +1,6 @@
 "use client";
 
-import { saveCalendarConfigAction } from "@/app/superadmin/integrations/google-calendar/actions";
+import { saveCalendarConfigAction } from "@/app/superadmin/connections/google/actions";
 import { ResultMessage, SubmitButton, useActionForm } from "@/features/ui/form";
 import { Hint } from "@/features/ui/Hint";
 import type { ActionResult } from "@/lib/http/action-result";

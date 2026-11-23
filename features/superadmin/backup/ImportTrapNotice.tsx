@@ -13,7 +13,7 @@ export function ImportTrapNotice({ withLink = false }: { withLink?: boolean }) {
         {withLink ? (
           <>
             Use{" "}
-            <Link className="link font-medium" href="/superadmin/backup">
+            <Link className="link font-medium" href="/superadmin/data/backup">
               Backup, restore &amp; migrate
             </Link>{" "}
             instead: it checks the package first, makes a safety snapshot and can undo a failed restore.

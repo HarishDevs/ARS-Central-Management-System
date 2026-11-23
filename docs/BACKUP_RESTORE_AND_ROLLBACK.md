@@ -81,7 +81,7 @@ Migrations run once each, by file name, when the app starts (`npm start` → `sc
 
 Use the lightest lever that solves the problem:
 
-1. **Switch the feature off.** Super Admin → Providers & security → **Feature switches**: analytics, reports, scheduled reports and alerts, amendments, templates. Choose OFF, or IT_ONLY to keep testing with the IT team. Nothing is deleted, and switching back on restores everything.
+1. **Switch the feature off.** Super Admin → Security & access → **Feature switches**: analytics, reports, scheduled reports and alerts, amendments, templates. Choose OFF, or IT_ONLY to keep testing with the IT team. Nothing is deleted, and switching back on restores everything.
 2. **Undo a configuration change.**
    - Approval types: restore an earlier version as a draft and publish it.
    - Requests moved to the new version: move them back (the migration assistant re-checks each one).

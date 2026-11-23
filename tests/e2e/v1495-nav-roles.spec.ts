@@ -100,11 +100,14 @@ test("Super Admin → Requests: tick a request and Delete selected", async ({ pa
     const [rows] = await connection.query<(RowDataPacket & { request_no: string })[]>("SELECT request_no FROM approval_requests WHERE id = ?", [requestId]);
     const requestNo = rows[0]!.request_no;
     await as(context, "E2E_SUPER");
-    await page.goto(`/superadmin/requests?q=${encodeURIComponent(requestNo)}`);
+    await page.goto(`/superadmin/data/danger-zone/requests?q=${encodeURIComponent(requestNo)}`);
     await page.getByRole("checkbox", { name: `Select ${requestNo}` }).check();
     await expect(page.getByText("1 selected")).toBeVisible();
     await page.getByRole("button", { name: "Delete selected" }).click();
     await page.getByLabel("Delete 1 request? Why?").fill("Navigation test request");
+    // v1.84.0 (D-411, Danger zone): the button stays off until DELETE is typed.
+    await expect(page.getByRole("button", { name: "Yes, delete 1" })).toBeDisabled();
+    await page.getByTestId("typed-confirm").fill("DELETE");
     await page.getByRole("button", { name: "Yes, delete 1" }).click();
     await expect(page.getByText("1 request deleted.")).toBeVisible();
     await expect

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { saveTemplateDraftAction, submitTemplateAction, syncTemplatesAction, testTemplateAction } from "@/app/superadmin/templates/actions";
+import { saveTemplateDraftAction, submitTemplateAction, syncTemplatesAction, testTemplateAction } from "@/app/superadmin/connections/whatsapp/templates/actions";
 import { FieldError, ResultMessage, SubmitButton, useActionForm } from "@/features/ui/form";
 import { compileNamedBody, MAX_BODY, previewNamed } from "@/server/notifications/template-authoring";
 import type { TemplateVariable } from "@/server/notifications/templates";

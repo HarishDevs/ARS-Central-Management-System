@@ -620,12 +620,12 @@ export default async function RequestPage({
           )}
           {isSuperAdmin && (
             <div className="flex flex-wrap items-center justify-end gap-2">
-              <Link href={`/superadmin/requests?q=${encodeURIComponent(view.requestNo)}`} className="btn-secondary btn-compact inline-flex items-center gap-1.5">
+              <Link href={`/superadmin/data/danger-zone/requests?q=${encodeURIComponent(view.requestNo)}`} className="btn-secondary btn-compact inline-flex items-center gap-1.5">
                 <ShieldCheck aria-hidden="true" className="h-4 w-4" />
                 Super Admin
               </Link>
               <Hint text="Remove this request from every screen." align="end" />
-              <DeleteRequestButton requestId={view.id} requestNo={view.requestNo} redirectTo="/superadmin/requests?tab=deleted" />
+              <DeleteRequestButton requestId={view.id} requestNo={view.requestNo} redirectTo="/superadmin/data/danger-zone/requests?tab=deleted" />
             </div>
           )}
         </div>

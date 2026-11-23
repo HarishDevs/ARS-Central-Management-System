@@ -40,16 +40,18 @@ function blocks(items: NavItem[]): Block[] {
   return out;
 }
 
-function readStored(): Record<string, boolean> {
+function readStored(key: string): Record<string, boolean> {
   try {
-    const value = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "{}") as unknown;
+    const value = JSON.parse(window.localStorage.getItem(key) ?? "{}") as unknown;
     return value && typeof value === "object" ? (value as Record<string, boolean>) : {};
   } catch {
     return {};
   }
 }
 
-export function SideNav({ items, collapsible = false, chats = [] }: { items: NavItem[]; collapsible?: boolean; chats?: ChatSummary[] }) {
+// v1.84.0 (D-411): `storageKey` keeps the open groups per person and panel
+// (the Admin and Super Admin panel sidebars); the users area keeps its key.
+export function SideNav({ items, collapsible = false, chats = [], storageKey = STORAGE_KEY }: { items: NavItem[]; collapsible?: boolean; chats?: ChatSummary[]; storageKey?: string }) {
   // v1.49.5: a request lights the list it was reached from (NavOwner).
   const pathname = useNavOwner(usePathname());
   // Only the most specific entry is highlighted (My tasks vs Assigned by me
@@ -71,13 +73,13 @@ export function SideNav({ items, collapsible = false, chats = [] }: { items: Nav
   // group opens when they arrive on it.
   const [open, setOpen] = useState<Record<string, boolean>>(() => (activeName ? { [activeName]: true } : {}));
   useEffect(() => {
-    setOpen((current) => ({ ...current, ...readStored(), ...(activeName ? { [activeName]: true } : {}) }));
-  }, [activeName]);
+    setOpen((current) => ({ ...current, ...readStored(storageKey), ...(activeName ? { [activeName]: true } : {}) }));
+  }, [activeName, storageKey]);
   const toggle = (section: string) =>
     setOpen((current) => {
       const next = { ...current, [section]: !current[section] };
       try {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+        window.localStorage.setItem(storageKey, JSON.stringify(next));
       } catch {
         // storage blocked: the choice lasts for this page only
       }

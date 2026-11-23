@@ -5,11 +5,11 @@ export function ProviderNotice({ isSuperAdmin }: { isSuperAdmin: boolean }) {
     <p className="text-label text-ink-muted">
       No AI provider is set up yet.{" "}
       {isSuperAdmin ? (
-        <Link href="/superadmin/ai" className="link">
-          Set one up in AI settings
+        <Link href="/superadmin/connections/ai" className="link">
+          Set one up in AI providers
         </Link>
       ) : (
-        "The Super Admin sets one up in AI settings."
+        "The Super Admin sets one up in AI providers."
       )}
     </p>
   );

@@ -14,7 +14,7 @@ export const metadata: Metadata = { title: "Departments" };
 // P1-01 / S2-03a. The HOD set here is who "requester's department HOD" and
 // "department HOD" resolve to in workflows.
 export default async function OrganisationPage() {
-  await requireArea("admin");
+  const { user } = await requireArea("admin");
   const [departments, designations] = await Promise.all([listDepartments(), listDesignations()]);
   // D-085: a HOD must be an approver; each department's current HOD stays listed.
   const people = await listApproverOptions(departments.map((department) => department.hodUserId));
@@ -23,9 +23,12 @@ export default async function OrganisationPage() {
   return (
     <>
       <PageHeader title="Departments" description="Departments and their heads (HOD) drive who approves at the HOD level. Designations are job titles.">
-        <Link href="/admin/import?kind=departments" className="btn-secondary btn-compact">
+        {/* v1.84.0 (D-411): Import data is the Super Admin's alone now. */}
+        {user.roles.includes("SUPER_ADMIN") && (
+        <Link href="/superadmin/data/import?kind=departments" className="btn-secondary btn-compact">
           Import departments or designations
         </Link>
+        )}
       </PageHeader>
       <div className="space-y-6">
         <section className="card divide-y divide-line">

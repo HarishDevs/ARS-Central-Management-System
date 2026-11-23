@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { setPageRuleAction } from "@/app/superadmin/pages/actions";
+import { setPageRuleAction } from "@/app/superadmin/security/pages/actions";
 import { FieldError, ResultMessage, SubmitButton, useActionForm } from "@/features/ui/form";
 import { PersonSelect } from "@/features/ui/PersonSelect";
 import { LEVEL_LABEL, PAGE_LEVELS, type PageLevel } from "@/server/authorization/pages";

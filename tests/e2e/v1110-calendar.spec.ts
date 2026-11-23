@@ -26,9 +26,11 @@ test.afterAll(async () => {
 test("Super Admin sets up Google Calendar; the secret is stored but never shown again", async ({ page, context }) => {
   await as(context, "E2E_SUPER");
   await page.goto("/superadmin");
-  await page.locator("aside nav").getByRole("link", { name: "Integrations" }).click();
-  await page.getByRole("link", { name: "Google Calendar" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "Google Calendar" })).toBeVisible();
+  // v1.84.0 (D-411): Connections → Google sign-in & calendar.
+  const nav = page.locator("aside nav").first();
+  await nav.getByRole("button", { name: "Connections" }).click();
+  await nav.getByRole("link", { name: "Google sign-in & calendar" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Google sign-in & calendar" })).toBeVisible();
   await expect(page.getByTestId("gcal-redirect")).toContainText("/api/integrations/google-calendar/callback");
   await page.getByLabel("Client ID").fill("123456789012-e2etest.apps.googleusercontent.com");
   await page.getByLabel("Client secret").fill(SECRET);
@@ -43,7 +45,7 @@ test("Super Admin sets up Google Calendar; the secret is stored but never shown 
 
 test("nobody else reaches the Super Admin integration page", async ({ page, context }) => {
   await as(context, "E2E_ADMIN");
-  expect((await page.goto("/superadmin/integrations/google-calendar"))?.status()).toBe(404);
+  expect((await page.goto("/superadmin/connections/google"))?.status()).toBe(404);
 });
 
 test("a person's Calendar tab says when the integration is off", async ({ page, context }) => {

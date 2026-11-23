@@ -20,7 +20,7 @@ async function dragEdge(page: Page, by: number) {
 test("a column widens by dragging its edge, stays after a reload, and double-click resets it", async ({ page, context }) => {
   await context.addCookies([await sessionCookie("E2E_SUPER", { tourDone: true })]);
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/superadmin/audit");
+  await page.goto("/superadmin/monitoring/audit");
   await expect(header(page)).toBeVisible();
   const url = page.url();
   const before = (await header(page).boundingBox())!.width;
@@ -41,7 +41,7 @@ test("a column widens by dragging its edge, stays after a reload, and double-cli
 
 test("long text in a table cell stops at two lines", async ({ page, context }) => {
   await context.addCookies([await sessionCookie("E2E_SUPER", { tourDone: true })]);
-  await page.goto("/superadmin/audit");
+  await page.goto("/superadmin/monitoring/audit");
   const result = await page.evaluate(() => {
     const table = document.createElement("table");
     table.className = "data-table";

@@ -1,7 +1,7 @@
 "use client";
 
 import { recheckRequestAction, resendRequestMessagesAction, snoozeStuckAction } from "@/app/admin/attention/actions";
-import { resendOutboxAction, runJobsNowAction } from "@/app/superadmin/automation/actions";
+import { resendOutboxAction, runJobsNowAction } from "@/app/superadmin/monitoring/jobs/actions";
 import { FieldError, ResultMessage, SubmitButton, useActionForm } from "@/features/ui/form";
 
 // FN2 / FN11 small forms for Needs attention and Automation.

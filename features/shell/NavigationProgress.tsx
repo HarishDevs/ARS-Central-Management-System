@@ -38,7 +38,7 @@ const TABLE_PAGES = [
   /^\/users\/(queue|queue\/sent-back|requests|approved|approved-by-me|collaborating|search|inbox|tasks|tickets|meetings|meetings\/follow-ups)$/,
   /^\/users\/work\/search$/,
   /^\/admin\/(requests|users|attention|notifications|workload|budgets)$/,
-  /^\/superadmin\/(audit|logins|requests|deliveries|automation)$/,
+  /^\/superadmin\/(monitoring\/(audit|deliveries|jobs)|security\/sign-in-history|data\/danger-zone\/requests)$/, // v1.84.0 (D-411): the moved Super Admin lists
 ];
 export function desktopSkeletonFor(pathname: string): "project" | "settings" | "table" | null {
   if (/^\/users\/work\/projects\/\d+$/.test(pathname)) return "project";

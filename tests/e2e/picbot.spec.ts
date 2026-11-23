@@ -175,14 +175,14 @@ test("10 signed-in clients ask at the same time over HTTP: every answer reaches 
 
 test("the Super Admin sees the Salesforce connection with its callback URL; Connect without an app explains what's missing", async ({ page, context }) => {
   await context.addCookies([await sessionCookie("E2E_SUPER")]);
-  await page.goto("/superadmin/salesforce");
+  await page.goto("/superadmin/connections/salesforce");
   const card = page.getByTestId("sf-connection");
   await expect(card).toContainText("Not connected");
   await expect(card).toContainText(`${BASE}/api/integrations/salesforce/callback`);
   await card.getByRole("link", { name: "Connect Salesforce" }).click();
-  await expect(page).toHaveURL(/\/superadmin\/salesforce\?salesforce=CONFIG$/);
+  await expect(page).toHaveURL(/\/superadmin\/connections\/salesforce\?salesforce=CONFIG$/);
   await expect(page.getByText("Enter the Salesforce app's consumer key and secret")).toBeVisible();
-  await page.goto("/superadmin/ai");
+  await page.goto("/superadmin/connections/ai");
   await expect(page.getByTestId("ai-live")).toContainText("being answered");
 });
 

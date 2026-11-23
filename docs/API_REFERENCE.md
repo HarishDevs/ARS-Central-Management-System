@@ -81,7 +81,7 @@ Routes that answer differently are noted below.
 | `/api/reports/[key]` | GET | `requireApiArea("users")` + reports + export permission | Export a catalogue report (CSV/XLSX/PDF) |
 | `/api/analytics/export` | GET | `requireApiArea("users"` or `"admin")` + analytics + export permission | CSV of an analytics board |
 | `/api/admin/dashboards/[slug]` | GET | `requireApiArea("admin", page admin.dashboards)` | CSV of an admin dashboard |
-| `/api/admin/import/[kind]` | GET | `requireApiArea("admin")` | Import template or current data as an Excel workbook (.xlsx: the sheet and "How to fill") |
+| `/api/admin/import/[kind]` | GET | `requireApiArea("superadmin")` (v1.84.0) | Import template or current data as an Excel workbook (.xlsx: the sheet and "How to fill") |
 | `/api/admin/records/[kind]` | GET | `requireApiArea("admin", page admin.records)` + export permission | CSV of an Admin register |
 | `/api/admin/workflows/[id]/export` | GET | `requireApiArea("admin", page admin.workflows)` | Approval type configuration as JSON |
 | `/api/superadmin/audit` | GET | `requireApiArea("superadmin")` | Audit log CSV export |
@@ -244,7 +244,7 @@ All answer a file with `Content-Disposition: attachment` (or `inline` where note
 - `200` CSV `ars-<slug>-<from>-to-<to>.csv`; `404` (unknown slug or denied); `429`.
 
 ### GET `/api/admin/import/[kind]`
-- Auth: `requireApiArea("admin")` (no page key).
+- Auth: `requireApiArea("superadmin")` (v1.84.0, D-411: Import data is the Super Admin's alone; the address is unchanged).
 - `kind`: an import kind (`isImportKind`). Query: `type` = `template` (header row only) or `data` (current records, audited as `IMPORT_DATA_DOWNLOADED`).
 - `200` CSV; `404` for anything else.
 
@@ -305,11 +305,11 @@ These answer with redirects. Denied: `404` JSON.
 
 ### GET `/api/integrations/salesforce/connect`
 - Auth: `requireApiArea("superadmin")`. Starts OAuth 2.0 with PKCE; the state is tied to this Super Admin for 10 minutes. Audited.
-- `303` to Salesforce; not set up: redirect to `/superadmin/salesforce?salesforce=CONFIG`; error: `?salesforce=ERROR`.
+- `303` to Salesforce; not set up: redirect to `/superadmin/connections/salesforce?salesforce=CONFIG`; error: `?salesforce=ERROR`.
 
 ### GET `/api/integrations/salesforce/callback`
 - Auth: `requireApiArea("superadmin")`. Query: `code`, `state`, `error`. Code exchanged with the PKCE verifier; tokens stored encrypted. Audited (connected or failed).
-- Redirect to `/superadmin/salesforce?salesforce=CONNECTED` or `?salesforce=<reason>`; `Referrer-Policy: no-referrer`.
+- Redirect to `/superadmin/connections/salesforce?salesforce=CONNECTED` or `?salesforce=<reason>`; `Referrer-Policy: no-referrer`.
 
 ---
 
@@ -354,7 +354,7 @@ Push uses standard Web Push with VAPID; the server queues one delivery per devic
 
 ### Server actions
 - `/admin/notifications`: `previewBroadcastAction` (who an audience reaches) and `sendBroadcastAction` (IT Admin and Super Admin; 5 a minute; audited `NOTIFICATION_BROADCAST`; queued through the notification outbox).
-- `/superadmin/settings`: `generatePushKeysAction` (Super Admin; keys saved through the settings store, audited).
+- `/superadmin/connections/email`: `generatePushKeysAction` (Super Admin; keys saved through the settings store, audited).
 - `/users`:
   - `dismissInstallInviteAction` ("Maybe later" remembered on the account);
   - `saveListColumnsAction` (a list's columns).

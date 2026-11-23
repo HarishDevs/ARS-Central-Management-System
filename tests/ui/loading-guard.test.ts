@@ -16,15 +16,14 @@ const ALLOWED = [
   "app/admin/records/tasks/loading.tsx",
   "app/admin/dashboards/loading.tsx",
   "app/admin/doa/loading.tsx",
-  "app/admin/import/loading.tsx", // results come back in the action's answer, not a refresh
   "app/admin/insights/loading.tsx",
   "app/admin/users/(list)/loading.tsx",
   "app/admin/workload/loading.tsx",
-  "app/superadmin/audit/loading.tsx",
-  "app/superadmin/import/loading.tsx",
-  "app/superadmin/logins/loading.tsx",
-  "app/superadmin/requests/loading.tsx", // delete redirects
-  "app/superadmin/templates/(list)/loading.tsx",
+  "app/superadmin/monitoring/audit/loading.tsx",
+  "app/superadmin/data/import/loading.tsx",
+  "app/superadmin/security/sign-in-history/loading.tsx",
+  "app/superadmin/data/danger-zone/requests/loading.tsx", // delete redirects
+  "app/superadmin/connections/whatsapp/templates/(list)/loading.tsx",
   "app/users/help/loading.tsx",
   "app/users/new/(list)/loading.tsx",
   // v1.72.1 (D-395, QA F-09): only the Profile tab itself (calendar and devices have actions); it no longer calls notFound().

@@ -107,7 +107,7 @@ export default async function AiAnalyticsPage({ searchParams }: { searchParams: 
     <>
       <PageHeader
         title="AI Analytics"
-        description="How Pico Bot is used: adoption, questions, answers, speed, tokens and cost, by chat, provider, department and person. Changes compare with the period just before. Cost is an estimate from the prices entered in AI settings."
+        description="How Pico Bot is used: adoption, questions, answers, speed, tokens and cost, by chat, provider, department and person. Changes compare with the period just before. Cost is an estimate from the prices entered in AI providers."
         meta={`${period.label}: ${period.from} to ${period.to} · compared with ${before.from} to ${before.to}`}
       />
 
@@ -160,7 +160,7 @@ export default async function AiAnalyticsPage({ searchParams }: { searchParams: 
         <Tile label="Average answer time" value={duration(totals.avgLatencyMs)} sub={`90% within ${duration(totals.p90LatencyMs)}`} delta={change(totals.avgLatencyMs, previous.avgLatencyMs)} lowerIsBetter hint="Time from the question to the answer, including data lookups." />
         <Tile label="Conversations" value={compact(totals.conversations)} sub={`${totals.askers ? (totals.questions / totals.askers).toFixed(1) : "0"} questions per active user`} delta={change(totals.conversations, previous.conversations)} hint="New chats started in this period." />
         <Tile label="Tokens used" value={compact(totals.inputTokens + totals.outputTokens)} sub={`${compact(totals.inputTokens)} in · ${compact(totals.outputTokens)} out`} delta={change(totals.inputTokens + totals.outputTokens, previous.inputTokens + previous.outputTokens)} hint="What the AI providers count and bill." />
-        <Tile label="Estimated cost" value={cost === null ? "—" : `₹${cost.toLocaleString("en-IN")}`} sub={cost === null ? "Enter prices in AI settings" : "from the prices in AI settings"} hint="An estimate only; the provider's bill is the real figure." />
+        <Tile label="Estimated cost" value={cost === null ? "—" : `₹${cost.toLocaleString("en-IN")}`} sub={cost === null ? "Enter prices in AI providers" : "from the prices in AI providers"} hint="An estimate only; the provider's bill is the real figure." />
         <Tile label="Answers using company data" value={`${percent(totals.withData, totals.answers) ?? 0}%`} sub={`${totals.calculated} with figures Pico Bot calculated`} delta={change(percent(totals.withData, totals.answers), percent(previous.withData, previous.answers))} hint="Answers that read ARS or Salesforce data, rather than general answers." />
       </div>
 
@@ -294,7 +294,7 @@ export default async function AiAnalyticsPage({ searchParams }: { searchParams: 
           <section className="card px-4 py-3" aria-labelledby="ai-limit">
             <h2 id="ai-limit" className="flex items-center gap-1.5 font-semibold">
               Daily limit
-              <Hint text="Days on which someone used up their daily question limit. Raise the limit in AI settings if this is common." align="start" />
+              <Hint text="Days on which someone used up their daily question limit. Raise the limit in AI providers if this is common." align="start" />
             </h2>
             <p className="mt-1 text-label">
               <strong className="tabular-nums">{limitDays.people}</strong> {limitDays.people === 1 ? "person" : "people"} reached the limit of {dailyLimit} questions, on <strong className="tabular-nums">{limitDays.personDays}</strong> {limitDays.personDays === 1 ? "day" : "days"}.

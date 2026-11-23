@@ -79,7 +79,7 @@ export default async function AdminNotificationsPage({ searchParams }: { searchP
       <PageHeader title="Notifications" icon={Send} description="Send a notification to people's Inbox and their phones and computers, and see what happened to it." />
       {!pushReady(config) && (
         <p className="mb-4 rounded-md border border-warning-600/40 bg-warning-50 px-4 py-3 text-label" role="status">
-          Phone and desktop notifications are off or have no keys yet (Super Admin → Settings → Phone & desktop notifications). Notices still reach everyone&apos;s Inbox.
+          Phone and desktop notifications are off or have no keys yet (Super Admin → Connections → Phone & desktop notifications). Notices still reach everyone&apos;s Inbox.
         </p>
       )}
       <ul className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6" data-testid="push-overview">

@@ -22,7 +22,7 @@ async function axe(page: Page) {
 
 test("the centre is for the Super Admin only", async ({ page, context }) => {
   await as(context, "E2E_ADMIN");
-  expect((await page.goto("/superadmin/backup"))?.status()).toBe(404);
+  expect((await page.goto("/superadmin/data/backup"))?.status()).toBe(404);
   expect((await page.request.get("/api/superadmin/backup-centre/runs")).status()).toBe(404);
   await as(context, "E2E_REQ");
   expect((await page.request.post("/api/superadmin/backup-centre/runs", { data: { action: "backup", include: "database", keepOnServer: true, copyToDrive: false, passphrase: PASSPHRASE } })).status()).toBe(404);
@@ -39,7 +39,7 @@ test("Overview warns about GoDaddy's Import and links the centre", async ({ page
 test("make, check, restore a chosen table and download", async ({ page, context }) => {
   test.setTimeout(300_000);
   await as(context, "E2E_SUPER");
-  await page.goto("/superadmin/backup");
+  await page.goto("/superadmin/data/backup");
   expect(await axe(page)).toEqual([]);
 
   // Make a database-only package.
@@ -121,7 +121,7 @@ test("make, check, restore a chosen table and download", async ({ page, context 
 
 test("moving: a one-time pairing code, shown once, refused when wrong, withdrawn (D-409)", async ({ page, context }) => {
   await as(context, "E2E_SUPER");
-  await page.goto("/superadmin/backup");
+  await page.goto("/superadmin/data/backup");
   const move = page.getByRole("region", { name: /Move to another server/ });
   await expect(move.getByRole("tab", { name: "Receive here" })).toHaveAttribute("aria-selected", "true");
   await move.getByRole("button", { name: "Make a pairing code" }).click();
@@ -158,7 +158,7 @@ test("moving: a one-time pairing code, shown once, refused when wrong, withdrawn
 test("the centre in dark mode and at phone width passes axe", async ({ page, context }) => {
   await as(context, "E2E_SUPER");
   await page.emulateMedia({ colorScheme: "dark" });
-  await page.goto("/superadmin/backup");
+  await page.goto("/superadmin/data/backup");
   expect(await axe(page)).toEqual([]);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.reload();
@@ -172,7 +172,7 @@ test("switched off, the page says so and the API is closed", async ({ page, cont
   try {
     await conn.query("UPDATE system_settings SET value = 'OFF' WHERE setting_key = 'features.backup_centre'");
     await as(context, "E2E_SUPER");
-    await page.goto("/superadmin/backup");
+    await page.goto("/superadmin/data/backup");
     await expect(page.getByText("The centre is switched off.")).toBeVisible();
     expect((await page.request.get("/api/superadmin/backup-centre/runs")).status()).toBe(404);
   } finally {

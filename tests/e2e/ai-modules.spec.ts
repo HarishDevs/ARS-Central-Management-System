@@ -122,7 +122,7 @@ test("without the AI module: no AI group, every AI address is a 404, and the AI 
   await expect(page.getByTestId("sidebar").getByTestId("nav-group-AI Assistant")).toHaveCount(0);
   for (const path of AI_PAGES) await expectNoAccess(page, path);
   // Super Admin pages stay a plain 404 for everyone else (D-016).
-  for (const path of ["/superadmin/ai", "/superadmin/salesforce", "/superadmin/ai/reports", "/superadmin/ai/data-sources", "/superadmin/ai/history"]) {
+  for (const path of ["/superadmin/connections/ai", "/superadmin/connections/salesforce", "/superadmin/monitoring/ai-reports", "/superadmin/connections/ai/data-sources", "/superadmin/monitoring/ai-history"]) {
     const response = await page.goto(path);
     expect(response?.status(), path).toBe(404);
   }
@@ -130,7 +130,7 @@ test("without the AI module: no AI group, every AI address is a 404, and the AI 
 
 test("the Super Admin's AI settings: seven providers, encrypted key fields; Salesforce and AI Details on their own pages", async ({ page, context }) => {
   await context.addCookies([await sessionCookie("E2E_SUPER")]);
-  await page.goto("/superadmin/ai");
+  await page.goto("/superadmin/connections/ai");
   const providers = page.getByTestId("ai-providers");
   for (const name of ["Claude (Anthropic)", "ChatGPT (OpenAI)", "Grok (xAI)", "DeepSeek", "Groq", "Gemini (Google AI Studio)", "NVIDIA (Nemotron)"]) await expect(providers).toContainText(name);
   await expect(providers.getByText("Not set up")).toHaveCount(7);
@@ -138,14 +138,14 @@ test("the Super Admin's AI settings: seven providers, encrypted key fields; Sale
   await expect(page.getByTestId("ai-general").getByRole("switch", { name: "Emergency stop" })).not.toBeChecked();
   await expect(page.getByLabel("Active provider", { exact: true })).toBeVisible();
   await expect(page.getByText("Salesforce sync")).toHaveCount(0);
-  await page.goto("/superadmin/salesforce");
+  await page.goto("/superadmin/connections/salesforce");
   await expect(page.getByText("Salesforce sync")).toBeVisible();
-  await page.goto("/superadmin/ai/reports");
+  await page.goto("/superadmin/monitoring/ai-reports");
   await expect(page.getByText("No questions yet").first()).toBeVisible();
-  await page.goto("/superadmin/ai/data-sources");
+  await page.goto("/superadmin/connections/ai/data-sources");
   await expect(page.getByTestId("ai-sources")).toContainText("Salesforce");
-  await page.goto("/superadmin/ai/history");
-  await expect(page.getByRole("heading", { level: 1, name: "AI Activity History" })).toBeVisible();
-  const group = page.getByTestId("sidebar").getByTestId("nav-group-AI Details");
+  await page.goto("/superadmin/monitoring/ai-history");
+  await expect(page.getByRole("heading", { level: 1, name: "AI activity history" })).toBeVisible();
+  const group = page.getByTestId("sidebar").getByTestId("nav-group-Monitoring");
   await expect(group).toBeVisible();
 });

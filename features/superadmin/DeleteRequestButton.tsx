@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { deleteRequestAction } from "@/app/superadmin/requests/actions";
+import { deleteRequestAction } from "@/app/superadmin/data/danger-zone/requests/actions";
 import { FieldError, ResultMessage, useActionForm } from "@/features/ui/form";
 import { Spinner } from "@/features/ui/Spinner";
 

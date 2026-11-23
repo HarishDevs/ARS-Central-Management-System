@@ -54,7 +54,7 @@ describe("middleware headers (SEC-07, SEC-08, SEC-18)", () => {
 
 describe("page access (G-3, SEC-17)", () => {
   it("Super Admin addresses are no configured page (refused for others by checkPageAccess)", () => {
-    expect(pageForPath("/superadmin/import")).toBeNull();
+    expect(pageForPath("/superadmin/data/import")).toBeNull();
   });
 
   it("SEC-17: Sign-in & devices can't be restricted, so signing out a lost device always works", () => {
