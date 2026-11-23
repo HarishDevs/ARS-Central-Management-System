@@ -19,7 +19,7 @@ The number of levels and how they combine is unlimited. There are no fixed "Leve
 |---|---|---|
 | A-01…A-12 | Asana reference flows | Reference |
 | F-NEXT-WAITING | Next waiting for you after a decision from Waiting for me | Built 23 Nov 2026 (v1.80.0) |
-| F-MOTION | Page changes: pending feedback, skeletons, place memory, toasts vs inline errors, page transitions (switch) | Built 23 Nov 2026 (v1.80.0) |
+| F-MOTION | Page changes: pending feedback, skeletons, place memory, toasts vs inline errors, page transitions (switch) | Built 23 Nov 2026 (v1.80.0); page transitions on by default and the WebKit hold fixed 24 Nov 2026 (v1.89.0, D-420) |
 | F-212 | Meeting Management: schedule, points and MOM approval, action tasks, follow-ups | Built 10 Nov 2026 (v1.51.0) |
 | F-PM-TABS | Project tabs for every view, Save view / Reset | Built 22 Nov 2026 (v1.61.0, behind pm_foundations) |
 | F-PM-LIST | The List as a keyboard treegrid, windowed; 15 s refresh | Built 22 Nov 2026 (v1.61.0) |
@@ -155,16 +155,17 @@ flowchart TD
   SK -- yes --> TS[after 150 ms: table skeleton over main]
   SK -- no --> BAR[after 150 ms: top bar; phone: screen skeleton]
   C --> PM[PlaceMemory: remember scroll + link for this page, 30 min, this tab]
-  C --> VT{page_transitions switch on, browser has view transitions, no reduce motion?}
-  VT -- no --> PLAIN[Page changes as before]
-  VT -- yes --> X[startViewTransition: main cross-fades 120 ms; row title → page heading]
+  C --> VT{page_transitions on (default ON since v1.89.0), view transitions, no reduce motion, not a task link that opens the pane, no transition running?}
+  VT -- no --> PLAIN[Page changes as before; a click during a running transition ends it at once]
+  VT -- yes --> X[startViewTransition: old main fades out 150 ms, new main fades in + 4 px 200 ms; row title → page heading 250 ms]
   X --> SLOW{new page committed within 300 ms?}
-  SLOW -- no --> SKIP[skipTransition: page simply appears]
-  SLOW -- yes --> FOCUS[focus the new h1]
-  BACK[Back / Forward] --> RESTORE[PlaceMemory: same height, the link focused, its row lit 1.6 s]
+  SLOW -- no --> SKIP[skip AND end the update callback: page simply appears, then fades in if a skeleton showed]
+  SLOW -- yes --> FOCUS[focus the new h1 unless focus moved elsewhere]
+  BACK[Back / Forward: never animated, a running transition ends] --> RESTORE[PlaceMemory: same height, the link focused, its row lit 1.6 s]
   SAVE[Form saved] --> TOAST[Toast repeating the verb; nothing inline]
   FAIL[Form refused] --> INLINE[Inline error; field errors under fields]
 ```
+- v1.89.0 (D-420): timings are the owner's tokens (GLOBAL_MOTION_TOKENS.md); dialogs 250 in / 150 out, drawers and panes 250 / 150, menus 150; raw `<dialog>`s close through the same exit as Dialog; toasts fade out before they go.
 - Dialogs: open = showModal + CSS @starting-style fade/scale (drawer: slide); close = Chrome/Edge CSS exit (overlay + allow-discrete), Firefox/Safari data-closing → wait for the animation → close(); focus back to the opener. guardDraft: Escape, × or backdrop after typing → Discard draft? (Keep editing / Discard).
 - Bottom sheets and phone drawers: drag down ≥ 80 px or a quick flick closes; otherwise they spring back.
 

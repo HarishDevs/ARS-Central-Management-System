@@ -11,6 +11,7 @@ import { openCreateTask, useDeleteWithUndo, useWorkCall } from "@/features/work/
 import { Menu, type MenuItem } from "@/features/ui/Menu";
 import { runAutomationOnTaskAction } from "@/app/users/work/automation-actions";
 import { clampPaneWidth, PANE_DEFAULT, PANE_MAX, PANE_MIN } from "@/server/work/pm-rules";
+import { closeTopLayer } from "@/features/ui/top-layer";
 
 // v1.62.0 (D-368, spec CMP-27 / PRJ views §13): the parts of the task pane
 // beside a project view: its resize handle (drag, or ← / → on the focused
@@ -234,7 +235,7 @@ export function PaneMoreMenu({ taskId, title, canDelete, closeHref, automations 
                 className="btn-danger btn-compact"
                 onClick={() =>
                   void remove([taskId], `Deleted: ${title}`).then((result) => {
-                    dialog.current?.close();
+                    if (dialog.current) void closeTopLayer(dialog.current);
                     if (result?.ok) router.replace(closeHref, { scroll: false }); // v1.87.0: no history entry for a closed pane
                   })
                 }
@@ -242,7 +243,7 @@ export function PaneMoreMenu({ taskId, title, canDelete, closeHref, automations 
               >
                 Yes, delete
               </button>
-              <button type="button" className="btn-secondary btn-compact" onClick={() => dialog.current?.close()}>
+              <button type="button" className="btn-secondary btn-compact" onClick={() => dialog.current && void closeTopLayer(dialog.current)}>
                 Keep it
               </button>
             </div>

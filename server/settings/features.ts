@@ -14,6 +14,7 @@ import { getSettingValue } from "@/server/settings/values";
 // v1.67.0 (D-375): "pm_reporting" switches phase D reporting: project dashboards and Workload (default OFF).
 // v1.68.0 (D-380): "pm_automations" switches phase D project automations (rules; default OFF).
 // v1.80.0 (D-407): "page_transitions" switches the page transitions (motion review point 4; default OFF).
+// v1.89.0 (D-420): "page_transitions" is ON by default (the switch is the kill switch).
 // v1.81.0 (D-408): "backup_centre" switches the Backup, restore & migrate centre (Super Admin only; default OFF).
 export type Feature = "analytics" | "reports" | "scheduled_reports" | "amendments" | "templates" | "tasks" | "information" | "ai" | "pm_foundations" | "pm_planning" | "pm_forms" | "pm_reporting" | "pm_automations" | "pm_portfolios" | "pm_extras" | "page_transitions" | "backup_centre";
 

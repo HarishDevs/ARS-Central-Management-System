@@ -41,9 +41,10 @@ export function AssistantForm({ conversationId, enabled, maxChars, modes, sugges
           <p className="ml-auto w-fit max-w-[85%] whitespace-pre-wrap break-words rounded-2xl bg-primary-50 px-4 py-2.5 text-primary-700">{asked}</p>
           <p className="flex items-center gap-2 text-label text-ink-muted">
             <span className="inline-flex gap-1" aria-hidden="true">
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-ink-faint" />
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-ink-faint [animation-delay:120ms]" />
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-ink-faint [animation-delay:240ms]" />
+              {/* v1.89.0 (D-420): the brand's dot fade (opacity only, still under reduced motion), not a bounce. */}
+              <span className="brand-dot-fade h-1.5 w-1.5 rounded-full bg-ink-faint" />
+              <span className="brand-dot-fade h-1.5 w-1.5 rounded-full bg-ink-faint [animation-delay:calc(var(--motion-stagger-step)*4)]" />
+              <span className="brand-dot-fade h-1.5 w-1.5 rounded-full bg-ink-faint [animation-delay:calc(var(--motion-stagger-step)*8)]" />
             </span>
             Analysing…
           </p>

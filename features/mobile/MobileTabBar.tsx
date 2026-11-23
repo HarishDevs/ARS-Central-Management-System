@@ -39,8 +39,10 @@ export function MobileTabBar({ waiting, unread, hidden }: { waiting: number; unr
                 className={`relative flex h-16 flex-col items-center justify-center gap-0.5 text-[length:calc(12px*var(--text-scale,1))] font-medium ${active ? "text-ink" : "text-ink-muted"}`}
               >
                 {/* v1.45.0 (Asana reference): the open tab sits in a pill and says its name. */}
-                <span aria-hidden="true" className={`grid h-8 place-items-center rounded-full transition-[width,background-color] ${active ? "w-14 bg-surface-muted" : "w-10"}`}>
-                  <Icon className="h-[22px] w-[22px]" strokeWidth={active ? 2.4 : 1.8} />
+                {/* v1.89.0 (D-420): the pill grows by transform and fades in (it animated width). */}
+                <span aria-hidden="true" className="relative grid h-8 w-14 place-items-center">
+                  <span className={`absolute inset-0 rounded-full bg-surface-muted transition-[transform,opacity] duration-fast ease-standard ${active ? "scale-x-100 opacity-100" : "scale-x-75 opacity-0"}`} />
+                  <Icon className="relative h-[22px] w-[22px]" strokeWidth={active ? 2.4 : 1.8} />
                 </span>
                 <span className={active ? "" : "sr-only"}>{tab.label}</span>
                 {count > 0 && (

@@ -230,7 +230,8 @@ export async function AppShell({ area, user, nav, children, settingsIndex }: { a
   // D-233: IT's maintenance notice, if any (a failed read shows none).
   const maintenance = await getSettingValue("general.maintenance_notice").catch(() => null);
   // v1.80.0 (D-407, motion review point 4): page transitions, a Super Admin
-  // switch (default OFF). Off, nothing is mounted and pages change as before.
+  // switch (v1.89.0, D-420: default ON; the switch is the kill switch). Off,
+  // nothing is mounted and pages change as before.
   const pageTransitions = await featureOn("page_transitions", user).catch(() => false);
   // D-230: the person's photo in the account menu.
   const [photo, approverPicture] = await Promise.all([photoVersion(user.id).catch(() => null), isApproverDesignation(user.id).catch(() => false)]);

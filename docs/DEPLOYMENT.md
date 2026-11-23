@@ -228,7 +228,7 @@ Stops anyone reaching the GoDaddy server directly, around Cloudflare (and faking
 
 ### G0y. Motion, loading and keyboard flow (v1.80.0)
 1. Publish v1.80.0. **No migration.**
-2. A new feature switch, **Page transitions** (`features.page_transitions`), starts **Off**: pages change as before. To try it: Super Admin → Settings → Feature switches → Page transitions → **IT team only** (then **On** for everyone). Off again at any time, with nothing to undo.
+2. A new feature switch, **Page transitions** (`features.page_transitions`), starts **Off**: pages change as before. To try it: Super Admin → Settings → Feature switches → Page transitions → **IT team only** (then **On** for everyone). Off again at any time, with nothing to undo. **v1.89.0 (D-420): the default is now On.** An installation that never saved the switch gets On; a saved Off (a row in `system_settings`) is kept. No migration.
 3. No new job or cron entry. Check: Waiting for me → J / K move between rows; a dialog fades in and out; back from a request keeps the list's place.
 
 ### G0x. The three Home overviews identically featured (v1.79.0)

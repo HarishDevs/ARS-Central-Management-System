@@ -79,9 +79,12 @@ const config: Config = {
         button: "var(--shadow-button)",
         overlay: "var(--shadow-overlay)",
       },
-      // v1.87.0 (D-417): the owner's scale (styles/globals.css).
-      transitionDuration: { instant: "var(--motion-instant)", fast: "var(--motion-fast)", base: "var(--motion-base)", moderate: "var(--motion-moderate)", slow: "var(--motion-slow)", slower: "var(--motion-slower)" },
-      transitionTimingFunction: { standard: "var(--ease-standard)", enter: "var(--ease-enter)", exit: "var(--ease-exit)" },
+      // v1.89.0 (D-420): the owner's scale (styles/globals.css). DEFAULT puts every
+      // bare `transition` / `transition-colors` / `transition-transform` (no
+      // duration class) on the tokens instead of Tailwind's 150 ms (0.4,0,0.2,1).
+      // The v1.87 names base / moderate / slow / slower are retired (D-420).
+      transitionDuration: { DEFAULT: "var(--motion-fast)", instant: "var(--motion-instant)", fast: "var(--motion-fast)", standard: "var(--motion-standard)", smooth: "var(--motion-smooth)", emphasis: "var(--motion-emphasis)" },
+      transitionTimingFunction: { DEFAULT: "var(--ease-standard)", standard: "var(--ease-standard)", enter: "var(--ease-enter)", exit: "var(--ease-exit)", linear: "var(--ease-linear)" },
       zIndex: { header: "var(--z-header)", sticky: "var(--z-sticky)", drawer: "var(--z-drawer)", dialog: "var(--z-dialog)", toast: "var(--z-toast)", palette: "var(--z-palette)", popover: "var(--z-popover)", splash: "var(--z-splash)" },
       spacing: { sidebar: "220px", topbar: "64px", row: "var(--row-h)", "row-compact": "var(--row-h-compact)", "header-row": "var(--header-row-h)", pane: "var(--pane-w)", "board-col": "var(--board-col-w)" },
     },

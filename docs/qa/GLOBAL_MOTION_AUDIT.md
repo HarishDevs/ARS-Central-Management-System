@@ -2,6 +2,29 @@
 
 **Date:** 24 Nov 2026. **Build:** v1.88.0 (`893fb4b`). **Status:** an audit. **No motion was changed.**
 
+## Fix status (v1.89.0 stage 2, D-420)
+
+| Finding | Status | Where / how |
+|---|---|---|
+| §1 Token conflict (new brief vs D-417) | **Fixed** | New scale and easings in globals.css + `features/ui/motion.ts`; roles page 200, modal / drawer 250, dropdown 150; v1.87 names retired; Tailwind DEFAULT set (GLOBAL_MOTION_TOKENS.md) |
+| §1 point 5: hard-coded timers | **Fixed** | PicBot, LandingWelcome, SidebarFrame, LiveNumber, NextFlash, PlaceMemory, NavigationProgress, Classic, pane-close, celebrate, OnboardingTour, PageTransitions read the mirror; top-layer cap named |
+| §1 point 6: raw CSS values | **Fixed** (exceptions documented) | `--t-*`, picbot curve, `duration-150`, InstallInvite, AssistantForm, reduce 100 ms, stagger, tooltip delay → tokens; loops and the journey's scene timings are documented exceptions |
+| §1 point 7: wrong comments | **Fixed** | PageTransitions, globals (120 / 160), GroupFold (190), NavIndicator (220) |
+| §2 Missing / abrupt transitions (14) | **Mostly fixed** | Skeleton swap, raw dialog exits, `role=dialog` divs, Create task window, toasts' exit, PeoplePicker / PersonSelect. Kept instant on purpose: dropdown / menu / bell closes (reason in GLOBAL_MOTION_DESIGN_SYSTEM §5). Deferred: new comment entrance, drag-and-drop drops, file preview content during the exit |
+| §2 Width / height / top / left animations (11) | **Fixed** | Sidebar (no width animation), tour spotlight and progress, phone tab pill, journey vans and fill, Display / StepMap / ApprovalRoad / Loaders bars: all transform; a unit test forbids new ones |
+| §2 Reduced motion (2 confirmed) | **Fixed** | Field and ReadinessPanel use `scrollBehavior()`; a unit test forbids an unguarded smooth scroll; bouncing dots replaced by an opacity fade |
+| §2 Unused motion code | Kept | `.motion-slide-up` is now used (install invite); the others stay as shared classes and are shown in the Motion Playground |
+| §3.1 Mismatched dropdown easings | **Fixed** | menus, folds and `pop-in` all use the enter easing |
+| §3.1b / §3.2 Sidebar and content | **Fixed** (alt.) | one-step width change, labels fade in at the same time (MOT-03) |
+| §3.3 MOT-01 "Transition was skipped" | **Fixed** | every transition promise handled; e2e asserts no page errors |
+| §3.3 MOT-02 WebKit crash | **Fixed** | root cause: the update callback held the old picture up to 4 s after a skip; now ends at 300 ms; GLOBAL_MOTION_DESIGN_SYSTEM §3 |
+| §3.3 Scroll after Back with the switch ON | **Measured** | Back is not animated; e2e "Back restores the list's place" passes (scrollY 673 after Back in Chromium) |
+| §3.4 CLS Analytics (0.25-0.55) | **Fixed** | 0.000-0.021 measured (Chromium); two causes: the page bar inserted above the sections, and a hidden `grid` section that stayed visible |
+| §3.4 CLS Task Summary with a task (0.36-0.38) | **Not reproduced** | 0 measured at 1280 / 1366 / 1440 for a staff member and a manager on the test database; guarded by the e2e (see PERFORMANCE_VALIDATION) |
+| §4 Page transitions ON | **Done** | default ON, fade + 4 px rise, Back / Forward instant, switch = kill switch |
+| §5 Motion Playground | **Done** | `/superadmin/dev/motion`, Super Admin only (404 for everyone else, no title leak); no extra switch was added (Super Admin only is enough; the page changes nothing) |
+
+
 **Full transition inventory:** [GLOBAL_TRANSITION_INVENTORY.md](GLOBAL_TRANSITION_INVENTORY.md). It covers the 50 areas, each with file:line, current, appropriate?, the recommended token and property, and the risk.
 
 **Background (not repeated here):**

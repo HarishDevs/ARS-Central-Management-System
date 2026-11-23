@@ -17,7 +17,7 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 **Multi-level approvals in any custom manner.** The engine must support any number of levels in any combination: sequential, parallel, any-one, any-N-of-M, conditional and hybrid. Approvers can come from any source, and levels can be added or skipped by rules. Build the engine for this from the first engine phase (P2). The drag-and-drop designer (P3) is only the screen for building it. Check every task against this.
 
 ## Now / Next
-- **Now (24 Nov 2026):** **v1.89.0, in progress** (one release, owner: navigation fixes → motion and transition system → UI unification → visual baselines and sign-off). **Stage 1 done on branch release-189 (D-419):** the navigation audit's NAV-01..08 fixed in shared code, plus the Firefox and WebKit harness. Not on main, not tagged, version not bumped until the last stage. **Next:** stage 2 (motion and transition system) in the same worktree.
+- **Now (24 Nov 2026):** **v1.89.0, in progress** (one release, owner: navigation fixes → motion and transition system → UI unification → visual baselines and sign-off). **Stage 1 done on branch release-189 (D-419):** the navigation audit's NAV-01..08 fixed in shared code, plus the Firefox and WebKit harness. Not on main, not tagged, version not bumped until the last stage. **Stage 2 done (D-420):** the motion and transition system (owner's tokens, page transitions on by default, WebKit crash fixed, Analytics CLS fixed, Motion Playground). **Next:** stage 3 (UI unification) in the same worktree.
 - [x] NAV-01 (24 Nov 2026) a refused area's 404 names no page: admin/superadmin layouts' generateMetadata → areaMetadata (role + page access), title template without %s; unit scan of all pages; e2e
 - [x] NAV-02 (24 Nov 2026) session end keeps path + query: returnAddress in SessionWatch and the middleware (safeNextPath-validated)
 - [x] NAV-03 (24 Nov 2026) ← All users / pages / templates keep the list's search and sort (OriginLink)
@@ -29,7 +29,19 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 - [x] NAV-H1 (24 Nov 2026) Firefox launch on this machine: diagnosed (Windows 26H2 refuses the unsigned build under %LOCALAPPDATA%), copy at D:\pw-firefox-1543 + E2E_FIREFOX_PATH, E2E_BROWSER switch
 - [x] NAV-H2 (24 Nov 2026) WebKit on http://localhost: CSP leaves out upgrade-insecure-requests only for a loopback Host outside production or with E2E_LOCAL_HTTP=1; production policy unchanged (unit test)
 - [x] NAV-T (24 Nov 2026) tests/e2e/v1890-navigation.spec.ts (NAV-01..08 + S1, S2, S3, S5, S6, S7, S8, S9, S10, S11, S12) replaces zz-nav-audit; unit tests/security/v1890-navigation.test.ts; general pages (User Guide, Help, release notes in progress); living files; NAVIGATION-AUDIT.md Fix status
-- [ ] v1.89.0 stage 2: motion and transition system
+- [x] v1.89.0 stage 2 (24 Nov 2026): motion and transition system (D-420)
+- [x] MOT-1 (24 Nov 2026) WebKit page-transition crash (UIQA-MOT-02) reproduced, root cause found (update callback held after a skip), fixed; MOT-01 promises handled
+- [x] MOT-2 (24 Nov 2026) owner's tokens 100/150/200/250/300 + standard/enter/exit easings; one CSS source + TS mirror features/ui/motion.ts; v1.87 names retired; Tailwind DEFAULT
+- [x] MOT-3 (24 Nov 2026) no hard-coded durations / easings in interface code (timers, Pico Bot, --t-*, literals); documented exceptions
+- [x] MOT-4 (24 Nov 2026) no width/height/top/left animation (sidebar, progress bars, tour, phone tab pill, journey)
+- [x] MOT-5 (24 Nov 2026) page transitions ON by default (fade + 4 px, 200 ms, enter); switch = kill switch; a saved Off respected; Back/Forward instant
+- [x] MOT-6 (24 Nov 2026) the 50 inventory areas implemented or marked not appropriate / deferred with a reason (docs/qa/TRANSITION_IMPLEMENTATION_REPORT.md)
+- [x] MOT-7 (24 Nov 2026) CLS: Analytics 0.25-0.55 → ≤ 0.021 (page bar below, hidden grid sections hidden); Task Summary ?task not reproduced (0), guarded
+- [x] MOT-8 (24 Nov 2026) reduced motion everywhere (smooth scroll guarded, no bounce, playground toggle)
+- [x] MOT-9 (24 Nov 2026) Motion Playground /superadmin/dev/motion (Super Admin only, 404 and no title for others, not linked)
+- [x] MOT-T (24 Nov 2026) unit motion-tokens-v189; e2e v1890-motion in Chromium, Firefox, WebKit; existing motion/nav specs re-run; docs/qa deliverables; general pages; living files
+- [ ] MOT-D1 deferred: drag-and-drop lift / FLIP reorder (inventory 15, 35), new-comment entrance (38), file preview kept during the exit (34): candidates for stage 3
+- [ ] MOT-D2 check page transitions on a real Safari (only Playwright WebKit on Windows was available)
 - [ ] v1.89.0 stage 3: UI unification
 - [ ] v1.89.0 stage 4: visual baselines and sign-off; then version bump, release-notes heading, merge to main and tag
 

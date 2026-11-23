@@ -32,7 +32,7 @@ function RoadSummary({ road, now }: { road: Road; now: number }) {
         <dd className="mt-1 flex items-center gap-2">
           <span className="text-title font-semibold tabular-nums text-success-600">{road.percent}%</span>
           <span className="h-2 flex-1 overflow-hidden rounded-full bg-line" role="progressbar" aria-label="Levels done" aria-valuemin={0} aria-valuemax={road.levels} aria-valuenow={road.levelsDone}>
-            <span className="block h-full rounded-full bg-success-solid motion-safe:transition-[width] motion-safe:duration-slower" style={{ width: `${road.percent}%` }} />
+            <span className="block h-full w-full rounded-full bg-success-solid motion-safe:transition-transform motion-safe:duration-emphasis" style={{ transform: `translateX(${road.percent - 100}%)` }} />
           </span>
         </dd>
       </div>

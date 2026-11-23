@@ -10,6 +10,7 @@ import { useWorkCall } from "@/features/work/client";
 import { PersonSelect } from "@/features/ui/PersonSelect";
 import { PRIVACY, PRIVACY_LABEL, PROJECT_ROLE_LABEL, PROJECT_ROLES, type ProjectRole } from "@/server/work/access";
 import { COPY_BLOCKED, copyText } from "@/features/ui/clipboard";
+import { closeTopLayer } from "@/features/ui/top-layer";
 
 // D-220 (owner's screenshot: Asana's Share dialog): share a project or a
 // task from its own screen. Project: invite people or a department with a
@@ -20,7 +21,7 @@ function useDialog(open: boolean, onClose: () => void) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     if (open && ref.current && !ref.current.open) ref.current.showModal();
-    if (!open && ref.current?.open) ref.current.close();
+    if (!open && ref.current?.open) void closeTopLayer(ref.current); // v1.89.0 (D-420): with its exit animation
   }, [open]);
   return { ref, props: { onClose, onCancel: onClose } };
 }

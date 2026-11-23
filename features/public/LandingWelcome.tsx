@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { BellRing, CalendarDays, GitBranch, ListChecks, Sparkles } from "lucide-react";
 import { MailLink } from "@/features/ui/MailLink";
+import { MOTION_DURATION } from "@/features/ui/motion";
 
 // D-190 (owner): the welcome on the split layout. Signing in fades this out
 // and the sign-in form fades in (AuthLayout's .auth-enter), while the brand
@@ -16,7 +17,8 @@ import { MailLink } from "@/features/ui/MailLink";
 // says what it is for, lists what people can do, who can use it and how
 // Google data is used, and links the privacy policy, on every screen size.
 const SIGN_IN = "/login";
-const LEAVE_MS = 200;
+// v1.89.0 (D-420, UIQA-MOT-05): the same value as .auth-leave (--motion-standard).
+const LEAVE_MS = MOTION_DURATION.standard;
 
 const FEATURES = [
   { icon: GitBranch, text: "Multi-level approvals: route a request through as many levels as it needs" },

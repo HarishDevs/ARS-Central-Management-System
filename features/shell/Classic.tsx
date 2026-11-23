@@ -8,6 +8,7 @@ import { navigationHeld } from "@/features/ui/UnsavedGuard";
 import { ChevronRight } from "lucide-react";
 import { useNavOwner } from "@/features/shell/nav-owner";
 import { GATEWAY, locate, MENU_BASE, pageHotkeys, type ClassicModule } from "@/features/shell/classic-modules";
+import { MOTION_DELAY } from "@/features/ui/motion";
 
 // D-210 (owner): the Classic (Tally-style) view.
 const typing = (target: EventTarget | null) => {
@@ -157,7 +158,7 @@ export function ClassicBar({ modules }: { modules: ClassicModule[] }) {
   }, [routeKey]);
   useEffect(() => {
     if (!loading) return;
-    const show = window.setTimeout(() => setShowLoader(true), 150);
+    const show = window.setTimeout(() => setShowLoader(true), MOTION_DELAY.loader);
     // A click that turned out not to change the page doesn't leave the box up.
     const giveUp = window.setTimeout(() => setLoading(null), 12_000);
     return () => {

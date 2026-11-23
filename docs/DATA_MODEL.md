@@ -1202,7 +1202,7 @@ Setting: `features.pm_extras` (ON / OFF / IT_ONLY, default OFF). Imports and exp
 - Files (not in the database): `<backup folder>/packages/ars-<kind>-YYYYMMDD-HHMMSS[-id].arsbak` with `.sha256` and `.json` (summary, no secrets) beside it. Format: `scripts/database/arsbak.js`.
 
 ## Page transitions switch (v1.80.0, D-407; no migration)
-Setting: `features.page_transitions` (ON / OFF / IT_ONLY, default OFF) in `system_settings` (group FEATURES). Nothing else is stored on the server. In the browser tab's own session storage only: `ars.place:<path>` (a list's scroll height and the link opened from it, read back for 30 minutes on Back) and `ars.flow.queue` (the request last opened from Waiting for me, for "Next waiting for you").
+Setting: `features.page_transitions` (ON / OFF / IT_ONLY; default OFF until v1.89.0, **default ON since v1.89.0**, D-420: no row = ON, a saved row is respected; no migration) in `system_settings` (group FEATURES). Nothing else is stored on the server. In the browser tab's own session storage only: `ars.place:<path>` (a list's scroll height and the link opened from it, read back for 30 minutes on Back) and `ars.flow.queue` (the request last opened from Waiting for me, for "Next waiting for you").
 
 ## Project automations (v1.68.0, D-380; migration 202611221700_pm_d_automations.sql)
 

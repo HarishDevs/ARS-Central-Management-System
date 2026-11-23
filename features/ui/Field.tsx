@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef } from "react";
 import { Hint } from "@/features/ui/Hint";
+import { scrollBehavior } from "@/features/ui/motion";
 
 // Form controls (UI-03). Field wires label, hint and error to the control
 // (aria-describedby, aria-invalid) so screen readers read them together.
@@ -174,7 +175,7 @@ export function ErrorSummary({ errors, labels = {} }: { errors: Record<string, s
                 if (target instanceof HTMLElement) {
                   event.preventDefault();
                   target.focus();
-                  target.scrollIntoView({ block: "center", behavior: "smooth" });
+                  target.scrollIntoView({ block: "center", behavior: scrollBehavior() }); // UIQA-A11Y-03: instant with reduced motion
                 }
               }}
             >

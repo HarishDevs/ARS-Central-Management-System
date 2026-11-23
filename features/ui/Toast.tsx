@@ -4,6 +4,7 @@ import { AlertTriangle, CheckCircle2, Info, X, XCircle } from "lucide-react";
 import { BrandAnimation } from "@/features/ui/BrandAnimation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { afterMotion } from "@/features/ui/motion";
 
 // Toasts (FB-03). Polite announcements for success and info, assertive for
 // errors. Each has an icon and words (never colour alone), can be closed,
@@ -105,19 +106,24 @@ function ToastCard({ item, onDismiss }: { item: ToastItem; onDismiss: (id: numbe
   const tone = item.tone ?? "success";
   const Icon = ICON[tone];
   const [paused, setPaused] = useState(false);
+  // v1.89.0 (D-420): a toast leaves with a short fade (toast out = fast), then goes.
+  const [leaving, setLeaving] = useState(false);
+  const leave = useCallback(() => setLeaving(true), []);
+  useEffect(() => (leaving ? afterMotion("toastOut", () => onDismiss(item.id)) : undefined), [leaving, item.id, onDismiss]);
   const duration = item.durationMs ?? (item.action ? 8000 : tone === "error" ? 10000 : 5000);
   useEffect(() => {
-    if (paused) return;
-    const timer = setTimeout(() => onDismiss(item.id), duration);
+    if (paused || leaving) return;
+    const timer = setTimeout(leave, duration);
     return () => clearTimeout(timer);
-  }, [paused, duration, item.id, onDismiss]);
+  }, [paused, leaving, duration, leave]);
   return (
     <div
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}
       onBlur={() => setPaused(false)}
-      className="pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-lg border border-line bg-raised px-4 py-3 text-label shadow-overlay motion-safe:animate-[toast-in_var(--motion-menu)_var(--ease-standard)]"
+      className={`pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-lg border border-line bg-raised px-4 py-3 text-label shadow-overlay ${leaving ? "toast-out" : "toast-in"}`}
+      data-leaving={leaving ? "" : undefined}
     >
       {/* v1.42.0: the animated tick (a task done, a save) or cross; the others keep their icon. */}
       {tone === "success" ? <BrandAnimation name="task-done" className="mt-0.5 h-5 w-5" /> : tone === "error" ? <BrandAnimation name="failed" className="mt-0.5 h-5 w-5" /> : <Icon aria-hidden="true" className={`mt-0.5 h-5 w-5 shrink-0 ${STYLE[tone]}`} />}
@@ -129,7 +135,7 @@ function ToastCard({ item, onDismiss }: { item: ToastItem; onDismiss: (id: numbe
             type="button"
             className="link mt-1"
             onClick={async () => {
-              onDismiss(item.id);
+              leave();
               await item.action?.onClick();
             }}
           >
@@ -137,7 +143,7 @@ function ToastCard({ item, onDismiss }: { item: ToastItem; onDismiss: (id: numbe
           </button>
         )}
       </div>
-      <button type="button" onClick={() => onDismiss(item.id)} aria-label="Dismiss" className="-mr-1 flex h-7 w-7 shrink-0 items-center justify-center rounded text-ink-muted hover:bg-surface-muted hover:text-ink">
+      <button type="button" onClick={leave} aria-label="Dismiss" className="-mr-1 flex h-7 w-7 shrink-0 items-center justify-center rounded text-ink-muted hover:bg-surface-muted hover:text-ink">
         <X aria-hidden="true" className="h-4 w-4" />
       </button>
     </div>

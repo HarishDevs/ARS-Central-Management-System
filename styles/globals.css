@@ -50,33 +50,41 @@
   --shadow-card: 0 8px 24px rgba(15, 23, 42, 0.08);
   --shadow-button: 0 4px 12px rgba(0, 83, 152, 0.22);
   --shadow-overlay: 0 20px 48px rgba(15, 23, 42, 0.22);
-  /* v1.87.0 (D-417): the owner's motion scale, the one set of values
-     (features/shell/motion-rules.ts mirrors it; tests/ui/navigation-continuity
-     keeps them in step). Only opacity and transform move. Reduce motion:
-     nothing moves (end of file). */
-  --motion-instant: 100ms; /* hover, press */
-  --motion-fast: 150ms; /* menus, tooltips, exits, page fade */
-  --motion-base: 220ms; /* dialogs in, expand */
-  --motion-moderate: 280ms; /* panes, drawers, sheets */
-  --motion-slow: 350ms; /* emphasis */
-  --motion-slower: 450ms; /* large moves only, never under reduced motion */
-  --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
-  --ease-linear: linear;
+  /* v1.89.0 (D-420, supersedes the D-417 values): the owner's motion scale,
+     the one source of motion values. features/ui/motion.ts mirrors it for
+     JS-driven motion (tests/ui/motion-tokens-v189.test.ts keeps them equal).
+     Only opacity and transform move. Reduce motion: fades of 100 ms at most
+     and nothing moves (the reduced-motion blocks below and at the end). */
+  --motion-instant: 100ms; /* hover, press, colour */
+  --motion-fast: 150ms; /* dropdowns, menus, tooltips, exits */
+  --motion-standard: 200ms; /* page transition, toasts, new items */
+  --motion-smooth: 250ms; /* modals, drawers, panes, sheets */
+  --motion-emphasis: 300ms; /* a changed figure, the sign-in screen, highlights */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1); /* moves within the screen */
+  --ease-enter: cubic-bezier(0, 0, 0.2, 1); /* things appearing (decelerate) */
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1); /* things leaving (accelerate) */
+  --ease-linear: linear; /* colour and opacity-only fades */
   --motion-distance-1: 2px;
   --motion-distance-2: 4px;
   --motion-distance-3: 8px;
   --motion-distance-4: 16px;
   --motion-distance-5: 24px;
   --motion-distance-6: 32px;
-  /* v1.80.0 (D-407) names, kept as aliases of the scale (no second set). */
+  /* Delays (not durations): a tooltip waits before it shows; a loader or
+     skeleton shows only when a wait is longer than this; list stagger step. */
+  --motion-delay-tooltip: 300ms;
+  --motion-delay-loader: 150ms;
+  --motion-stagger-step: 30ms;
+  /* Roles: where each part of the app takes its timing from (D-420). */
   --motion-hover: var(--motion-instant);
-  --motion-menu: var(--motion-fast);
-  --motion-dialog-in: var(--motion-base);
+  --motion-menu: var(--motion-fast); /* dropdown / menu 150 */
+  --motion-dialog-in: var(--motion-smooth); /* modal 250 */
   --motion-dialog-out: var(--motion-fast);
-  --motion-page: var(--motion-fast);
-  --ease-out: var(--ease-enter);
+  --motion-drawer: var(--motion-smooth); /* drawer / pane / sheet 250 */
+  --motion-page: var(--motion-standard); /* page transition 200 */
+  --motion-page-out: var(--motion-fast);
+  --motion-reduced: var(--motion-instant); /* the longest fade under reduce motion */
+  --ease-out: var(--ease-enter); /* v1.80 name, an alias */
   --z-header: 30;
   --z-sticky: 35;
   --z-drawer: 40;
@@ -117,10 +125,11 @@
   --board-col-w: 296px; /* v1.72.2 (D-394, QA visual P11): one Board column width (My tasks and projects) */
   --z-popover: 50;
   --font-mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Consolas, "Liberation Mono", monospace;
-  /* v1.62.0 (D-368): the completion check's timings (fast, like the spec's ≤250 ms). */
-  --t-check: 160ms;
-  --t-fill: 120ms;
-  --t-pop: 200ms;
+  /* v1.62.0 (D-368): the completion check's timings, on the motion scale since
+     v1.89.0 (D-420; they were a private 160 / 120 / 200 ms set). */
+  --t-check: var(--motion-fast);
+  --t-fill: var(--motion-instant);
+  --t-pop: var(--motion-standard);
   /* D-253: the approval road (TMT road tracker). */
   /* v1.72.2 (D-394, QA visual J1): the approval journey panel is always dark
      (both themes); its surface and text colours live here. */
@@ -333,7 +342,7 @@ body {
      active field, its background lifting; entered text stays high-contrast,
      placeholders stay readable; an invalid field shows red right away. */
   .field-input {
-    @apply h-11 w-full rounded-md border border-[color:var(--color-border-input)] bg-surface-muted px-3.5 text-body text-ink transition-[border-color,box-shadow,background-color] duration-150 placeholder:text-ink-faint hover:border-ink-muted focus:border-primary-600 focus:bg-surface focus:outline-none focus:ring-[3px] focus:ring-primary-600/25 aria-[invalid=true]:border-danger-600 aria-[invalid=true]:focus:ring-danger-600/20;
+    @apply h-11 w-full rounded-md border border-[color:var(--color-border-input)] bg-surface-muted px-3.5 text-body text-ink transition-[border-color,box-shadow,background-color] duration-fast placeholder:text-ink-faint hover:border-ink-muted focus:border-primary-600 focus:bg-surface focus:outline-none focus:ring-[3px] focus:ring-primary-600/25 aria-[invalid=true]:border-danger-600 aria-[invalid=true]:focus:ring-danger-600/20;
   }
   /* v1.72.2 (D-394, QA visual R3): toolbar and filter fields, one height
      (36 px, the same as btn-compact). Use with field-input. */
@@ -343,7 +352,7 @@ body {
   /* v1.72.2 (D-394, QA visual A1, H4): a small rounded select in a toolbar or
      a chat header, with the same hover and focus as the other fields. */
   .pill-select {
-    @apply h-8 cursor-pointer rounded-full border border-[color:var(--color-border-input)] bg-surface-muted px-3 text-label text-ink transition-[border-color,box-shadow] duration-150 hover:border-ink-muted focus:border-primary-600 focus:outline-none focus:ring-[3px] focus:ring-primary-600/25;
+    @apply h-8 cursor-pointer rounded-full border border-[color:var(--color-border-input)] bg-surface-muted px-3 text-label text-ink transition-[border-color,box-shadow] duration-fast hover:border-ink-muted focus:border-primary-600 focus:outline-none focus:ring-[3px] focus:ring-primary-600/25;
   }
   /* Disabled/busy: a muted blue that keeps white text at 4.72:1 (QA DEF-06). */
   .btn-primary {
@@ -490,6 +499,21 @@ body {
     transform: none;
   }
 }
+/* v1.89.0 (D-420): toasts come in (standard, enter) and leave (fast, exit),
+   transform and opacity only; reduce motion: no movement, a short fade out. */
+@keyframes toast-out {
+  to {
+    opacity: 0;
+    transform: translateY(var(--motion-distance-2));
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .toast-in { animation: toast-in var(--motion-standard) var(--ease-enter) both; }
+  .toast-out { animation: toast-out var(--motion-fast) var(--ease-exit) both; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast-out { opacity: 0; }
+}
 
 /* D-186 (owner): thin scrollbars in the theme's own colours, barely there
    until needed; no arrow buttons. Both light and dark use the tokens. */
@@ -540,8 +564,8 @@ html,
 @keyframes auth-leave {
   to { opacity: 0; transform: translateY(-10px); }
 }
-.auth-enter { animation: auth-enter var(--motion-slow) var(--ease-standard) both; }
-.auth-leave { animation: auth-leave var(--motion-base) var(--ease-exit) forwards; }
+.auth-enter { animation: auth-enter var(--motion-emphasis) var(--ease-enter) both; }
+.auth-leave { animation: auth-leave var(--motion-standard) var(--ease-exit) forwards; }
 @media (prefers-reduced-motion: reduce) {
   .auth-enter,
   .auth-leave { animation: none; }
@@ -1077,7 +1101,7 @@ body:has([data-testid="nav-skeleton"]) .mob-decision-bar {
    caret of a collapsible group turns when it is closed. */
 @keyframes mob-sheet-in { from { transform: translateY(100%); } to { transform: translateY(0); } }
 @keyframes mob-fade-in { from { opacity: 0; } to { opacity: 1; } }
-.mob-sheet { animation: mob-sheet-in var(--motion-moderate) var(--ease-enter) both; }
+.mob-sheet { animation: mob-sheet-in var(--motion-drawer) var(--ease-enter) both; }
 body:has([data-testid="m-sheet"]) .picbot-launcher { display: none; }
 /* v1.46.0: the task's comment box rests on the tab bar; the page keeps room
    for it and Pico Bot moves above it. */
@@ -1090,7 +1114,7 @@ body:has([data-testid="m-comment-dock"]) [data-layout="mobile"] .picbot-launcher
 body:has([data-testid="m-comment-dock"][data-open="1"]) .picbot-launcher {
   display: none;
 }
-.mob-sheet-backdrop { animation: mob-fade-in var(--motion-base) var(--ease-standard) both; }
+.mob-sheet-backdrop { animation: mob-fade-in var(--motion-drawer) var(--ease-linear) both; }
 .mob-switch {
   appearance: none;
   position: relative;
@@ -1125,12 +1149,13 @@ body:has([data-testid="m-comment-dock"][data-open="1"]) .picbot-launcher {
 }
 /* v1.46.0 (owner): Pico Bot's panel (75% of the screen) grows out of the bot
    and shrinks back into it; the origin is set from the bot's position. */
-@keyframes picbot-grow { from { transform: scale(0.06); opacity: 0; border-radius: 40px; } to { transform: scale(1); opacity: 1; } }
-@keyframes picbot-shrink { from { transform: scale(1); opacity: 1; } to { transform: scale(0.06); opacity: 0; border-radius: 40px; } }
+/* v1.89.0 (D-420): transform and opacity only (the radius no longer animates). */
+@keyframes picbot-grow { from { transform: scale(0.06); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes picbot-shrink { from { transform: scale(1); opacity: 1; } to { transform: scale(0.06); opacity: 0; } }
 .picbot-panel { transform-origin: 100% 100%; }
-/* v1.87.0: on the scale's durations; the launcher keeps its own small overshoot (a character, not a surface). */
-.picbot-in { animation: picbot-grow var(--motion-moderate) cubic-bezier(0.2, 0.9, 0.3, 1.05) both; }
-.picbot-out { animation: picbot-shrink var(--motion-base) var(--ease-exit) both; pointer-events: none; }
+/* v1.89.0 (D-420): a drawer's timing (smooth in, fast out; enter / exit easing). PicBot.tsx waits MOTION_DURATION for the exit. */
+.picbot-in { animation: picbot-grow var(--motion-drawer) var(--ease-enter) both; }
+.picbot-out { animation: picbot-shrink var(--motion-dialog-out) var(--ease-exit) both; pointer-events: none; }
 @media (prefers-reduced-motion: reduce) {
   .picbot-in, .picbot-out { animation: none; }
 }
@@ -1182,9 +1207,21 @@ body:has([data-testid="m-comment-dock"][data-open="1"]) .picbot-launcher {
 @keyframes jr-dash {
   to { background-position-x: -40px; }
 }
+/* v1.89.0 (D-420): the vans and the green fill move by transform (they moved
+   by left / width); the journey keeps its own scene timings (owner feature D-273,
+   an illustration, not interface motion: documented exception in
+   docs/qa/GLOBAL_MOTION_TOKENS.md). */
 .jr-vanwrap {
-  transition-property: left;
+  transition-property: transform;
   transition-timing-function: cubic-bezier(0.45, 0.05, 0.25, 1); /* pulls away, slows to a stop */
+}
+@media (prefers-reduced-motion: no-preference) {
+  .jr-headvan {
+    transition: transform 700ms var(--ease-standard);
+  }
+  .jr-fill {
+    transition: transform 1200ms var(--ease-standard);
+  }
 }
 .jr-wheel {
   transform-box: fill-box;
@@ -1575,7 +1612,7 @@ body:has([data-testid="m-comment-dock"][data-open="1"]) .picbot-launcher {
    spring pop. Theme tokens only; under reduced motion it just shows the end
    state. The celebration layer (features/work/celebrate.tsx) is decorative. */
 .pm-check-done {
-  transition: background-color var(--t-fill) ease, border-color var(--t-fill) ease;
+  transition: background-color var(--t-fill) var(--ease-standard), border-color var(--t-fill) var(--ease-standard);
 }
 .pm-check-draw {
   stroke-dasharray: 24;
@@ -1586,7 +1623,7 @@ body:has([data-testid="m-comment-dock"][data-open="1"]) .picbot-launcher {
     animation: pm-check-pop var(--t-pop) linear(0, 0.25 8%, 0.82 22%, 1.08 34%, 1.12 40%, 1.04 54%, 0.99 68%, 1) var(--t-fill) both;
   }
   .pm-check-anim .pm-check-draw {
-    animation: pm-check-draw var(--t-check) ease-out both;
+    animation: pm-check-draw var(--t-check) var(--ease-enter) both;
   }
 }
 @keyframes pm-check-draw { from { stroke-dashoffset: 24; } to { stroke-dashoffset: 0; } }
@@ -1630,9 +1667,9 @@ body:has([data-testid="m-comment-dock"][data-open="1"]) .picbot-launcher {
    "accordion" and "same-document-transitions". */
 
 /* 1. Dialogs and drawers (features/ui/Dialog.tsx and the plain <dialog>s with
-   .ars-dialog). In: 220 ms ease-out, a fade and a small scale (dialogs) or a
+   .ars-dialog). In: smooth 250 ms (enter easing), a fade and a small scale (dialogs) or a
    slide (drawers: up from the bottom on a phone, in from the right on wider
-   screens). Out: 160 ms. The backdrop fades with it. Chrome and Edge animate
+   screens). Out: fast 150 ms (exit easing). The backdrop fades with it. Chrome and Edge animate
    the close in CSS (overlay + discrete display); Firefox and Safari get
    data-closing first (top-layer.ts), so the exit plays before close(). */
 dialog.ars-dialog {
@@ -1645,7 +1682,7 @@ dialog.ars-dialog {
 dialog.ars-dialog:is([open]):where(:not([data-closing])) {
   opacity: 1;
   transition-duration: var(--motion-dialog-in);
-  transition-timing-function: var(--ease-out);
+  transition-timing-function: var(--ease-enter);
 }
 @starting-style {
   dialog.ars-dialog:is([open]):where(:not([data-closing])) {
@@ -1655,10 +1692,10 @@ dialog.ars-dialog:is([open]):where(:not([data-closing])) {
 @media (prefers-reduced-motion: no-preference) {
   dialog.ars-dialog[data-variant="dialog"],
   dialog.ars-dialog:not([data-variant]) {
-    transform: scale(0.96);
+    transform: scale(0.98);
   }
   dialog.ars-dialog[data-variant="drawer"] {
-    transform: translateY(32px);
+    transform: translateY(var(--motion-distance-4));
   }
   dialog.ars-dialog:is([open]):where(:not([data-closing])) {
     transform: none;
@@ -1666,23 +1703,23 @@ dialog.ars-dialog:is([open]):where(:not([data-closing])) {
   @starting-style {
     dialog.ars-dialog[data-variant="dialog"]:is([open]):where(:not([data-closing])),
     dialog.ars-dialog:not([data-variant]):is([open]):where(:not([data-closing])) {
-      transform: scale(0.96);
+      transform: scale(0.98);
     }
     dialog.ars-dialog[data-variant="drawer"]:is([open]):where(:not([data-closing])) {
-      transform: translateY(32px);
+      transform: translateY(var(--motion-distance-4));
     }
   }
 }
 @media (prefers-reduced-motion: no-preference) and (min-width: 640px) {
   dialog.ars-dialog[data-variant="drawer"] {
-    transform: translateX(32px);
+    transform: translateX(var(--motion-distance-4));
   }
   dialog.ars-dialog[data-variant="drawer"]:is([open]):where(:not([data-closing])) {
     transform: none;
   }
   @starting-style {
     dialog.ars-dialog[data-variant="drawer"]:is([open]):where(:not([data-closing])) {
-      transform: translateX(32px);
+      transform: translateX(var(--motion-distance-4));
     }
   }
 }
@@ -1726,7 +1763,7 @@ dialog.ars-dialog:is([open]):where(:not([data-closing]))::backdrop {
 @media (prefers-reduced-motion: no-preference) {
   details[open] > :not(summary),
   .menu-pop {
-    animation: menu-in var(--motion-menu) var(--ease-standard);
+    animation: menu-in var(--motion-menu) var(--ease-enter);
   }
   details > summary :is(svg.lucide-chevron-down, svg.lucide-chevron-right):not([class*="rotate"]) {
     transition: rotate var(--motion-menu) var(--ease-standard);
@@ -1741,7 +1778,7 @@ details[open] > summary svg.lucide-chevron-right:not([class*="rotate"]) {
 @media (prefers-reduced-motion: reduce) {
   details[open] > :not(summary),
   .menu-pop {
-    animation: fade-in-only 100ms linear !important;
+    animation: fade-in-only var(--motion-reduced) var(--ease-linear) !important;
   }
 }
 
@@ -1756,7 +1793,7 @@ details[open] > summary svg.lucide-chevron-right:not([class*="rotate"]) {
 @media (prefers-reduced-motion: no-preference) {
   [data-revealed] > tr:not(:first-child),
   [data-revealed] > ul > li {
-    animation: fold-reveal var(--motion-menu) var(--ease-standard) both;
+    animation: fold-reveal var(--motion-menu) var(--ease-enter) both;
   }
 }
 
@@ -1769,6 +1806,7 @@ html[data-nav-pending] main :is(table, [data-dim-on-nav]) {
 }
 [data-link-pending] {
   opacity: 0.7;
+  transition: opacity var(--motion-hover) var(--ease-linear); /* v1.89.0 (D-420) */
 }
 
 /* 11. Long lists stay light: wide tables keep room for their scrollbar, and
@@ -1782,7 +1820,7 @@ html[data-nav-pending] main :is(table, [data-dim-on-nav]) {
 }
 
 /* 13. Keyboard flow: the row j / k moved to, and the "Next waiting for you"
-   landing, show a short highlight (a colour change, 120 ms). */
+   landing, show a short highlight (a colour change, instant 100 ms). */
 :is(tr, li, a)[data-row-current] {
   background-color: var(--color-row-active);
   transition: background-color var(--motion-hover) linear;
@@ -1790,7 +1828,7 @@ html[data-nav-pending] main :is(table, [data-dim-on-nav]) {
 [data-next-flash] {
   outline: 2px solid var(--color-primary-600);
   outline-offset: 2px;
-  transition: outline-color var(--motion-slow) linear;
+  transition: outline-color var(--motion-emphasis) var(--ease-linear);
 }
 
 /* 15. No content jumps: room kept for what arrives late (the Home overviews'
@@ -1800,11 +1838,59 @@ html[data-nav-pending] main :is(table, [data-dim-on-nav]) {
   min-width: calc(17rem * var(--text-scale, 1));
 }
 
-/* 4. Page transitions (the "page_transitions" switch, default OFF;
-   features/shell/PageTransitions.tsx). Only the main area cross-fades
-   (120 ms, linear); the sidebar and top bar stay still. Opening a request or
-   ticket from a list, its title moves into the page heading. Reduce motion:
-   no view-transition animation at all. */
+/* v1.89.0 (D-420, UIQA-PERF-01): a board section FitPages hides really goes.
+   A section that is itself a grid or flex box (`mb-8 grid …`) kept its display
+   over the hidden attribute, so it stayed on the first page and jumped when
+   the sections above it were hidden (the Analytics flicker and layout shift). */
+.fit-pages > div > [hidden] {
+  display: none !important;
+}
+
+/* v1.89.0 (D-420): the Motion Playground (/superadmin/dev/motion). The
+   tracks run across their row; "Reduce motion" applies the app's reduced
+   motion rule to the playground only. */
+.motion-lab { --lab-run: min(16rem, 40vw); }
+.lab-page-in { animation: page-in var(--motion-page) var(--ease-enter) both; }
+.motion-lab[data-reduce-motion] *,
+.motion-lab[data-reduce-motion] *::before,
+.motion-lab[data-reduce-motion] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .lab-page-in { animation: none; }
+}
+
+/* v1.89.0 (D-420): the page that replaces a loading skeleton fades in (fast,
+   opacity only; NavigationProgress sets data-nav-reveal for that moment). */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-nav-reveal] main#main {
+    animation: motion-fade var(--motion-fast) var(--ease-enter) both;
+  }
+}
+
+/* v1.89.0 (D-420): hover and press feedback on the shared buttons. Colour
+   changes take the hover role (instant 100 ms, standard easing); a press
+   gives a slight scale (transform only), none under reduced motion. */
+:is(.btn-primary, .btn-secondary, .btn-danger, .btn-danger-quiet, .btn-ghost, .tb-btn, .tb-split) {
+  transition-property: color, background-color, border-color, transform;
+  transition-duration: var(--motion-hover);
+  transition-timing-function: var(--ease-standard);
+}
+@media (prefers-reduced-motion: no-preference) {
+  :is(.btn-primary, .btn-secondary, .btn-danger, .btn-danger-quiet, .btn-ghost):not(:disabled):active {
+    transform: scale(0.98);
+  }
+}
+
+/* 4. Page transitions (the "page_transitions" switch, default ON since
+   v1.89.0, D-420; features/shell/PageTransitions.tsx). Only the main area
+   moves; the sidebar and top bar stay still. The old page fades out (fast,
+   exit easing); the new one fades in and rises 4 px (page = standard 200 ms,
+   enter easing): opacity and transform only. Opening a request or ticket
+   from a list, its title moves into the page heading (smooth). Reduce
+   motion: no view-transition animation at all. */
 html[data-vt] main#main {
   view-transition-name: page-main;
 }
@@ -1816,14 +1902,29 @@ html[data-vt="title"] main#main [data-tour="page-header"] h1 {
 ::view-transition-new(root) {
   animation: none;
 }
-::view-transition-old(page-main),
-::view-transition-new(page-main) {
+::view-transition-group(page-main) {
   animation-duration: var(--motion-page);
-  animation-timing-function: linear;
+}
+::view-transition-old(page-main) {
+  animation: page-out var(--motion-page-out) var(--ease-exit) both;
+}
+::view-transition-new(page-main) {
+  animation: page-in var(--motion-page) var(--ease-enter) both;
+}
+@keyframes page-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-distance-2));
+  }
 }
 ::view-transition-group(page-title) {
-  animation-duration: var(--motion-dialog-in);
-  animation-timing-function: var(--ease-out);
+  animation-duration: var(--motion-smooth);
+  animation-timing-function: var(--ease-standard);
 }
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(*),
@@ -1839,7 +1940,7 @@ html[data-vt="title"] main#main [data-tour="page-header"] h1 {
 @media (prefers-reduced-motion: reduce) {
   dialog.ars-dialog,
   dialog.ars-dialog::backdrop {
-    transition-duration: 100ms !important;
+    transition-duration: var(--motion-reduced) !important;
   }
 }
 
@@ -1880,7 +1981,7 @@ html[data-vt="title"] main#main [data-tour="page-header"] h1 {
   from { opacity: 0; translate: var(--motion-distance-4) 0; }
 }
 @keyframes motion-scale {
-  from { opacity: 0; scale: 0.97; }
+  from { opacity: 0; scale: 0.98; }
 }
 @keyframes motion-expand {
   from { opacity: 0; translate: 0 calc(var(--motion-distance-2) * -1); }
@@ -1892,42 +1993,42 @@ html[data-vt="title"] main#main [data-tour="page-header"] h1 {
   to { opacity: 0; translate: var(--motion-distance-4) 0; }
 }
 @keyframes motion-scale-out {
-  to { opacity: 0; scale: 0.97; }
+  to { opacity: 0; scale: 0.98; }
 }
 @keyframes motion-sheet-out {
   to { opacity: 0.4; translate: 0 100%; }
 }
 .motion-fade-in { animation: motion-fade var(--motion-fast) var(--ease-enter) both; }
-.motion-slide-up { animation: motion-slide-up var(--motion-base) var(--ease-enter) both; }
+.motion-slide-up { animation: motion-slide-up var(--motion-standard) var(--ease-enter) both; }
 .motion-slide-down { animation: motion-slide-down var(--motion-fast) var(--ease-enter) both; }
-.motion-scale-in { animation: motion-scale var(--motion-base) var(--ease-enter) both; }
-.motion-expand { animation: motion-expand var(--motion-base) var(--ease-standard) both; }
+.motion-scale-in { animation: motion-scale var(--motion-dialog-in) var(--ease-enter) both; }
+.motion-expand { animation: motion-expand var(--motion-standard) var(--ease-standard) both; }
 /* Stagger: children enter one after another (30 ms apart, the first 8 only). */
-.motion-stagger > * { animation: motion-slide-up var(--motion-base) var(--ease-enter) both; }
-.motion-stagger > :nth-child(2) { animation-delay: 30ms; }
-.motion-stagger > :nth-child(3) { animation-delay: 60ms; }
-.motion-stagger > :nth-child(4) { animation-delay: 90ms; }
-.motion-stagger > :nth-child(5) { animation-delay: 120ms; }
-.motion-stagger > :nth-child(6) { animation-delay: 150ms; }
-.motion-stagger > :nth-child(7) { animation-delay: 180ms; }
-.motion-stagger > :nth-child(n + 8) { animation-delay: 210ms; }
+.motion-stagger > * { animation: motion-slide-up var(--motion-standard) var(--ease-enter) both; }
+.motion-stagger > :nth-child(2) { animation-delay: calc(var(--motion-stagger-step) * 1); }
+.motion-stagger > :nth-child(3) { animation-delay: calc(var(--motion-stagger-step) * 2); }
+.motion-stagger > :nth-child(4) { animation-delay: calc(var(--motion-stagger-step) * 3); }
+.motion-stagger > :nth-child(5) { animation-delay: calc(var(--motion-stagger-step) * 4); }
+.motion-stagger > :nth-child(6) { animation-delay: calc(var(--motion-stagger-step) * 5); }
+.motion-stagger > :nth-child(7) { animation-delay: calc(var(--motion-stagger-step) * 6); }
+.motion-stagger > :nth-child(n + 8) { animation-delay: calc(var(--motion-stagger-step) * 7); }
 
-/* Panes (task pane, record pane): in from the side (280 ms) or, in dialog
-   mode and as the centred popup, a fade with a small scale (220 ms); out in
+/* Panes (task pane, record pane): in from the side (drawer = smooth 250 ms) or, in dialog
+   mode and as the centred popup, a fade with a small scale (modal = smooth 250 ms); out in
    150 ms (pane-close.ts waits for it). The dimmed page fades with them. */
 [data-task-pane] > [data-pane-focus],
 [data-record-pane] > [data-pane-panel] {
-  animation: motion-scale var(--motion-base) var(--ease-enter) both;
+  animation: motion-scale var(--motion-dialog-in) var(--ease-enter) both;
 }
 @media (min-width: 1024px) {
   [data-task-pane][data-pane-mode="side"] > [data-pane-focus],
   [data-record-pane][data-pane-mode="side"] > [data-pane-panel] {
-    animation: motion-slide-left var(--motion-moderate) var(--ease-enter) both;
+    animation: motion-slide-left var(--motion-drawer) var(--ease-enter) both;
   }
 }
 [data-task-pane] > a[data-pane-close],
 [data-record-pane] > a[data-pane-close] {
-  animation: motion-fade var(--motion-base) var(--ease-standard) both;
+  animation: motion-fade var(--motion-drawer) var(--ease-linear) both;
 }
 [data-task-pane][data-closing] > [data-pane-focus],
 [data-record-pane][data-closing] > [data-pane-panel] {
@@ -1960,6 +2061,8 @@ html[data-vt="title"] main#main [data-tour="page-header"] h1 {
    filter panel and the command palette open with the menu's unfold (fade and
    a 4 px drop); BottomSheet slides away on close (data-closing). */
 .pop-in { animation: menu-in var(--motion-fast) var(--ease-enter) both; }
+/* v1.89.0 (D-420): a side panel that is not a <dialog> (Customise): in from the right like a drawer. */
+.drawer-in { animation: motion-slide-left var(--motion-drawer) var(--ease-enter) both; }
 .mob-sheet[data-closing] { animation: motion-sheet-out var(--motion-fast) var(--ease-exit) both; }
 .mob-sheet-backdrop[data-closing] { animation: motion-fade-out var(--motion-fast) var(--ease-exit) both; }
 dialog.palette-dialog[open] { animation: motion-slide-down var(--motion-fast) var(--ease-enter) both; }
@@ -1968,17 +2071,17 @@ dialog.palette-dialog[data-closing] { animation: motion-fade-out var(--motion-fa
 
 /* The bulk-selection bar rises into place; a figure that changed since the
    last refresh gets a short emphasis (only that figure). */
-.bulk-bar-in { animation: motion-slide-up var(--motion-base) var(--ease-enter) both; }
+.bulk-bar-in { animation: motion-slide-up var(--motion-standard) var(--ease-enter) both; }
 @keyframes value-changed {
   0% { opacity: 0.4; translate: 0 var(--motion-distance-2); }
   100% { opacity: 1; translate: 0 0; }
 }
-[data-value-changed] { animation: value-changed var(--motion-slow) var(--ease-standard) both; }
+[data-value-changed] { animation: value-changed var(--motion-emphasis) var(--ease-standard) both; }
 
 /* Tooltips (Hint ⓘ): shown on hover or keyboard focus as before (display),
    now fading in after a short delay; hidden at once. */
 .tip-host:is(:hover, :focus-visible)::after {
-  animation: motion-fade var(--motion-fast) var(--ease-enter) 300ms both;
+  animation: motion-fade var(--motion-fast) var(--ease-enter) var(--motion-delay-tooltip) both;
 }
 .rail-tooltip {
   pointer-events: none;
@@ -2002,10 +2105,10 @@ dialog.palette-dialog[data-closing] { animation: motion-fade-out var(--motion-fa
    the new page (SideNav, transform only); a group opens with the expand. */
 [data-testid="sidebar"][data-just-toggled] nav[aria-label] a > span,
 [data-testid="sidebar"][data-just-toggled] [data-testid^="nav-group-"] > button > span {
-  animation: motion-slide-left var(--motion-base) var(--ease-enter) both;
+  animation: motion-slide-left var(--motion-standard) var(--ease-enter) both;
 }
 [data-testid="sidebar-rail"][data-just-toggled] > * {
-  animation: motion-fade var(--motion-base) var(--ease-enter) both;
+  animation: motion-fade var(--motion-standard) var(--ease-enter) both;
 }
 .nav-indicator {
   pointer-events: none;
@@ -2015,12 +2118,12 @@ dialog.palette-dialog[data-closing] { animation: motion-fade-out var(--motion-fa
   width: 3px;
   border-radius: 0 3px 3px 0;
   background: var(--color-primary-600);
-  transition: transform var(--motion-base) var(--ease-standard), opacity var(--motion-fast) linear;
+  transition: transform var(--motion-standard) var(--ease-standard), opacity var(--motion-fast) var(--ease-linear);
 }
 .nav-indicator[data-hidden] { opacity: 0; }
 .nav-indicator[data-instant] { transition: none; }
 [data-nav-group-body][data-revealed] > li {
-  animation: motion-expand var(--motion-base) var(--ease-standard) both;
+  animation: motion-expand var(--motion-standard) var(--ease-standard) both;
 }
 
 /* v1.87.0 (D-417): reduced motion. Nothing moves; what must still be seen
@@ -2034,6 +2137,7 @@ dialog.palette-dialog[data-closing] { animation: motion-fade-out var(--motion-fa
   .motion-expand,
   .motion-stagger > *,
   .pop-in,
+  .drawer-in,
   .bulk-bar-in,
   .pane-saving,
   [data-value-changed],

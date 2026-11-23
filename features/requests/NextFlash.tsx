@@ -2,10 +2,11 @@
 
 import { useEffect, useRef } from "react";
 import { rememberQueueOpen } from "@/features/requests/next-waiting";
+import { MOTION_DELAY } from "@/features/ui/motion";
 
 // v1.80.0 (D-407, point 13): a short highlight (1.6 s) around what just
 // arrived, e.g. "Next waiting for you" after a decision. Only a colour change.
-export const FLASH_MS = 1600;
+export const FLASH_MS = MOTION_DELAY.highlight;
 
 // `continueFlow`: this request is the next in the "Next waiting for you" flow.
 export function NextFlash({ children, continueFlow }: { children: React.ReactNode; continueFlow?: number }) {

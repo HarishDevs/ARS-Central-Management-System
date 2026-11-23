@@ -117,7 +117,9 @@ test("choosing whose numbers from the dropdown keeps the dashboard", async ({ pa
   await page.getByLabel("Whose numbers").selectOption({ label: "My requests" });
   await expect(page).toHaveURL(/scope=MINE/);
   await expect(page).toHaveURL(/board=tasks/);
-  await expect(page.getByText("Delivery against due dates").first()).toBeVisible();
+  // v1.89.0 (D-420): the section is a grid, which used to stay visible on every page
+  // (it ignored `hidden`); now it is on its own page of the board, like the others.
+  await seeOnSomePage(page, "Delivery against due dates");
 });
 
 test("older approval links still open Approval analytics", async ({ page, context }) => {

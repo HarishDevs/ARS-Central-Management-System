@@ -16,6 +16,7 @@ import { CustomizeButton, type CustomizeCounts } from "@/features/work/Customize
 import type { ProjectRole } from "@/server/work/access";
 import { STATUS_KIND_LABEL, STATUS_KINDS, type ProjectStatusKind } from "@/server/work/access";
 import { COPY_BLOCKED, copyText } from "@/features/ui/clipboard";
+import { closeTopLayer } from "@/features/ui/top-layer";
 
 // D-219 (screen catalog S-06): the project header: icon, name, the actions
 // menu, star, the "Set status" pill, then member avatars, Share and Customize.
@@ -264,7 +265,7 @@ export function ProjectHeader({
             </h2>
             <p className="text-label text-ink-muted">Its sections, tasks (with their dates relative to the start), fields and settings become a template the project&apos;s people can start new projects from.</p>
             <SaveTemplateForm projectId={projectId} name={name} />
-            <button type="button" className="btn-secondary btn-compact" onClick={() => dialog.current?.close()}>
+            <button type="button" className="btn-secondary btn-compact" onClick={() => dialog.current && void closeTopLayer(dialog.current)}>
               Cancel
             </button>
           </div>

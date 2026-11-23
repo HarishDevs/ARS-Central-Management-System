@@ -8,6 +8,7 @@ import { NavIcon, SectionIcon } from "@/features/shell/nav-icons";
 import { BrandLockup } from "@/features/ui/Brand";
 import { CreateMenu } from "@/features/shell/CreateMenu";
 import { SIDEBAR_COOKIE } from "@/features/shell/sidebar-cookie";
+import { MOTION_DELAY, MOTION_DURATION } from "@/features/ui/motion";
 
 // D-229 (owner: "make the sidebar collapsible like Asana for the whole
 // Application"): ☰ at the top folds the sidebar into a narrow rail of icons
@@ -37,10 +38,15 @@ export function SidebarFrame({
   // v1.87.0 (D-417, audit gaps 3–7): right after a toggle the labels fade and
   // slide in (open) or the rail's items fade in (folded); the state is kept
   // in the cookie as before.
+  // v1.89.0 (D-420, UIQA-MOT-03): the width no longer animates (it laid the
+  // main column out again on every frame and the two moved by different
+  // amounts). The sidebar and the page take their new width in one step, and
+  // the labels or rail items fade in at the same time (standard, transform and
+  // opacity only), so the content and the sidebar move together.
   const [justToggled, setJustToggled] = useState(false);
   useEffect(() => {
     if (!justToggled) return;
-    const timer = window.setTimeout(() => setJustToggled(false), 400);
+    const timer = window.setTimeout(() => setJustToggled(false), MOTION_DURATION.standard + MOTION_DURATION.instant);
     return () => window.clearTimeout(timer);
   }, [justToggled]);
   // The folded rail's tooltips: one small label beside the item (fixed, so
@@ -54,7 +60,7 @@ export function SidebarFrame({
     tipTimer.current = window.setTimeout(() => {
       const box = item.getBoundingClientRect();
       setTip({ text: item.dataset.tip ?? "", top: box.top + box.height / 2, left: box.right + 8 });
-    }, 300);
+    }, MOTION_DELAY.tooltip);
   };
   const hideTip = () => {
     window.clearTimeout(tipTimer.current);
@@ -81,7 +87,7 @@ export function SidebarFrame({
 
   return (
     <aside
-      className={`hidden shrink-0 flex-col border-r border-line bg-surface transition-[width] duration-fast ease-standard motion-reduce:transition-none md:sticky md:top-0 md:flex md:h-dvh md:self-start ${collapsed ? "w-20" : "w-sidebar"}`}
+      className={`hidden shrink-0 flex-col border-r border-line bg-surface md:sticky md:top-0 md:flex md:h-dvh md:self-start ${collapsed ? "w-20" : "w-sidebar"}`}
       data-testid="sidebar"
       data-collapsed={collapsed ? "true" : undefined}
       data-just-toggled={justToggled ? "" : undefined}

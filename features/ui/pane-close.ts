@@ -1,4 +1,5 @@
 import { makeSureMoved } from "@/features/ui/sure-nav";
+import { MOTION_DURATION } from "@/features/ui/motion";
 
 // v1.87.0 (header and motion audit, gaps 9, 15, 17; D-417): how a pane (the
 // task pane, ?task=; the record pane, ?open=) closes.
@@ -94,7 +95,7 @@ export async function playExit(pane: HTMLElement): Promise<void> {
   await new Promise((resolve) => requestAnimationFrame(resolve));
   const animations = pane.getAnimations({ subtree: true }).filter((animation) => animation.playState === "running");
   if (!animations.length) return;
-  await Promise.race([Promise.allSettled(animations.map((animation) => animation.finished)), new Promise((resolve) => setTimeout(resolve, 300))]);
+  await Promise.race([Promise.allSettled(animations.map((animation) => animation.finished)), new Promise((resolve) => setTimeout(resolve, MOTION_DURATION.emphasis))]); // a cap: the exit is --motion-dialog-out
 }
 
 export async function closePane(router: Router, pane: HTMLElement | null, closeHref: string): Promise<void> {

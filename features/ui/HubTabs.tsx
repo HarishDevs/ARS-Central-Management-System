@@ -50,7 +50,7 @@ export function HubTabs({ label, tabs }: { label: string; tabs: { href: string; 
                 <Link
                   href={tab.href}
                   aria-current={current ? "page" : undefined}
-                  className={`-mb-px inline-flex min-h-10 items-center gap-2 border-b-2 px-3 text-label ${current ? "border-primary-600 font-semibold text-primary-700" : "border-transparent text-ink-muted hover:text-ink"}`}
+                  className={`-mb-px inline-flex min-h-10 items-center gap-2 border-b-2 px-3 text-label transition-colors duration-instant ${current ? "border-primary-600 font-semibold text-primary-700" : "border-transparent text-ink-muted hover:text-ink"}`}
                 >
                   <NavIcon href={tab.href} />
                   {tab.label}

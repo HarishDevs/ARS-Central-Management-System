@@ -86,7 +86,8 @@ export function FieldChip({ field, cell }: { field: FieldView; cell: FieldCell }
   );
 }
 
-const panelClass = "fixed z-popover w-72 rounded-lg border border-line bg-raised p-3 text-ink shadow-overlay";
+// v1.89.0 (D-420): pop-in, like every popover (dropdown = fast).
+const panelClass = "pop-in fixed z-popover w-72 rounded-lg border border-line bg-raised p-3 text-ink shadow-overlay";
 
 // The inline editor of one field on one task.
 export function FieldValueEditor({

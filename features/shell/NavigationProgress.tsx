@@ -1,10 +1,11 @@
 "use client";
 
 import { usePathname, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { navigationHeld } from "@/features/ui/UnsavedGuard";
 import { MobileSkeleton, type MobileScreen } from "@/features/mobile/MobileSkeletons";
 import { HeaderSkeleton, ProjectSettingsSkeleton, ProjectSkeleton, TableSkeleton } from "@/features/ui/Skeleton";
+import { afterMotion, MOTION_DELAY } from "@/features/ui/motion";
 
 // D-233 (UI states: loading; Doherty threshold). Every page change says it
 // heard the click: a thin bar slides along the top until the new page is
@@ -65,9 +66,17 @@ export function NavigationProgress({ mobile = false }: { mobile?: boolean }) {
   const [visible, setVisible] = useState(false);
   const routeKey = `${pathname}?${search.toString()}`;
 
+  // v1.89.0 (D-420, inventory row 2): when a skeleton was on screen, the page
+  // that replaces it fades in (fast, opacity only) instead of swapping abruptly.
+  const skeletonShown = useRef(false);
   useEffect(() => {
     setStarted(null);
     setVisible(false);
+    if (!skeletonShown.current) return;
+    skeletonShown.current = false;
+    const root = document.documentElement;
+    root.setAttribute("data-nav-reveal", "");
+    return afterMotion("menu", () => root.removeAttribute("data-nav-reveal"));
   }, [routeKey]);
 
   // Same page, new query: dim the table (only while it is loading).
@@ -80,7 +89,7 @@ export function NavigationProgress({ mobile = false }: { mobile?: boolean }) {
 
   useEffect(() => {
     if (started === null) return;
-    const show = window.setTimeout(() => setVisible(true), 150);
+    const show = window.setTimeout(() => setVisible(true), MOTION_DELAY.loader);
     // A click that didn't change the page doesn't leave the bar running.
     const giveUp = window.setTimeout(() => setStarted(null), 15_000);
     return () => {
@@ -121,6 +130,7 @@ export function NavigationProgress({ mobile = false }: { mobile?: boolean }) {
   if (!visible || started === null) return null;
   const screen = mobile && target && target !== pathname ? skeletonFor(target) : null;
   const wide = !mobile && target && target !== pathname ? desktopSkeletonFor(target) : null;
+  if (wide || screen) skeletonShown.current = true;
   return (
     <>
       {wide && <DesktopSkeleton kind={wide} />}

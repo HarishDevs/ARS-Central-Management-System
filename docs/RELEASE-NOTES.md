@@ -12,6 +12,15 @@ One release in stages (owner): navigation fixes, then the motion and transition 
 - **The browser's Back with an unsent comment** in a task or record beside a list now asks **Discard draft?** first, like ×, Esc and a click outside.
 - **← Back** on a colleague's card or the Danger zone pages never takes you out of ARS CMS.
 
+**Stage 2: motion and transition system** (D-420, from `docs/qa/GLOBAL_MOTION_AUDIT.md` and `GLOBAL_TRANSITION_INVENTORY.md`; record in `docs/qa/GLOBAL_MOTION_DESIGN_SYSTEM.md`):
+- **Pages now change smoothly:** the main area fades in with a small rise (0.2 s) when you open another page; the sidebar and top bar stay still. Back and Forward stay instant and keep your place. Pages that take longer than 0.3 s simply appear (no waiting for an animation).
+- **One set of timings everywhere** (the owner's: 100 / 150 / 200 / 250 / 300 ms): menus 0.15 s, windows and side panels 0.25 s, pages 0.2 s. Windows, side panels, toasts, the Pico Bot panel and the draft task window come in and leave smoothly; buttons respond when pressed; progress bars, the tour spotlight, the phone tab bar and the approval journey's van move without reflowing the page.
+- **The sidebar** opens and folds in one step, with its labels fading in at the same moment (the page and the sidebar no longer move by different amounts).
+- **Analytics no longer jumps or flickers** while it loads (the page bar and sections are placed before the first paint).
+- **Reduce motion** on your device: nothing moves and pages don't animate; scrolling to a field with an error jumps instead of gliding.
+- **Fixed:** with page transitions on, Safari (WebKit) could freeze for up to 4 s on a slow page and stop answering after quick clicks; a "Transition was skipped" error was reported on quick clicks.
+- **Owner steps:** nothing for most installations: page transitions are now **On by default**. If **Super Admin → Settings → Features → Page transitions** was ever saved as **Off**, that saved choice is kept: set it to **On** (or leave Off to keep them off). The switch remains the off switch.
+
 ## v1.88.0 (23 Nov 2026): simple formulas
 No migration (D-418, owner: "use all these as simple formulas in my app"):
 - **Formula fields take functions** (names in any case): ADD, SUBTRACT, MULTIPLY, DIVIDE, DATEADD, DATESUBTRACT and ROLLUP (as in Asana), plus DAYS, WORKDAYS (on the Working calendar), IF with > < >= <= = <>, ROUND, MIN, MAX, ABS and COALESCE. Open **Functions** in the formula editor for a help card with an example; **Insert** puts the function in.

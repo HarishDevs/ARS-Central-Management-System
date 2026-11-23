@@ -58,7 +58,7 @@ export function CustomizeButton({ base, counts, fieldDialog }: { base: string; c
         <Settings2 aria-hidden="true" className="h-4 w-4" /> Customize
       </button>
       {open && (
-        <aside ref={panel} role="dialog" aria-modal="false" data-own-escape aria-labelledby={titleId} className="fixed bottom-0 right-0 top-topbar z-drawer flex w-full max-w-[360px] flex-col border-l border-line bg-raised text-ink shadow-overlay" data-testid="customize-panel">
+        <aside ref={panel} role="dialog" aria-modal="false" data-own-escape aria-labelledby={titleId} className="drawer-in fixed bottom-0 right-0 top-topbar z-drawer flex w-full max-w-[360px] flex-col border-l border-line bg-raised text-ink shadow-overlay" data-testid="customize-panel">
           <header className="flex items-center gap-2 border-b border-line px-4 py-3">
             <h2 id={titleId} className="flex-1 font-semibold">
               Customize

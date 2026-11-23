@@ -180,7 +180,7 @@ export function TrackerBanner({ summary }: { summary: TrackerSummary }) {
       {summary.total > 0 && (
         <div className="mt-2 flex items-center gap-3">
           <div role="progressbar" aria-label="Steps finished" aria-valuemin={0} aria-valuemax={summary.total} aria-valuenow={summary.done} className="h-1.5 flex-1 overflow-hidden rounded-full bg-line">
-            <div className="h-full bg-primary-600 motion-safe:transition-[width]" style={{ width: `${percent}%` }} />
+            <div className="h-full w-full bg-primary-600 motion-safe:transition-transform motion-safe:duration-standard" style={{ transform: `translateX(${percent - 100}%)` }} />
           </div>
           <span className="text-caption text-ink-muted tabular-nums">
             {summary.done} of {summary.total} steps done

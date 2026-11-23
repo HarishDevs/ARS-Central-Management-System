@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext } from "react";
 import { shouldCelebrate, type Celebration } from "@/server/work/pm-rules";
+import { MOTION_DURATION, MOTION_EASE, prefersReducedMotion } from "@/features/ui/motion";
 
 // v1.62.0 (D-368, spec §14, DEC-011): finishing a task. An original check
 // animation (the circle fills, the tick draws, a small spring pop: CSS in
@@ -20,7 +21,7 @@ export function CelebrationProvider({ enabled, choice, children }: CelebrationSt
 }
 export const useCelebrationState = () => useContext(CelebrationContext);
 
-const reducedMotion = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true;
+const reducedMotion = prefersReducedMotion;
 
 // The burst: 14 pieces in the identity colours, flying out from `from`.
 export function burst(from: { x: number; y: number }) {
@@ -46,12 +47,12 @@ export function burst(from: { x: number; y: number }) {
         { transform: "translate(-50%, -50%) scale(1)", opacity: 1 },
         { transform: `translate(calc(-50% + ${Math.cos(angle) * distance}px), calc(-50% + ${Math.sin(angle) * distance}px)) rotate(${Math.round(Math.random() * 360)}deg) scale(0.6)`, opacity: 0 },
       ],
-      { duration: 520 + Math.random() * 180, easing: "cubic-bezier(.2,.7,.3,1)", fill: "forwards" },
+      { duration: MOTION_DURATION.emphasis * 2 + Math.random() * 180, easing: MOTION_EASE.enter, fill: "forwards" },
     );
     if (animation) done.push(animation.finished.catch(() => undefined));
   }
   // Always cleaned up, even if an animation never reports back.
-  void Promise.race([Promise.all(done), new Promise((resolve) => setTimeout(resolve, 1200))]).then(() => layer.remove());
+  void Promise.race([Promise.all(done), new Promise((resolve) => setTimeout(resolve, MOTION_DURATION.emphasis * 4))]).then(() => layer.remove());
 }
 
 // Called after the server confirms a completion.

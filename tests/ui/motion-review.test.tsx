@@ -43,9 +43,10 @@ describe("page transitions (point 4)", () => {
     expect(transitionKind({ href: "https://example.com/users" }, here)).toBeNull();
     expect(transitionKind({ href: "/users/queue?page=2" }, here)).toBeNull();
   });
-  it("is a Super Admin switch, off by default", () => {
+  // v1.89.0 (D-420): on by default; the switch stays as the kill switch.
+  it("is a Super Admin switch, on by default", () => {
     const definition = findSettingDefinition("features.page_transitions");
-    expect(definition?.defaultValue).toBe("OFF");
+    expect(definition?.defaultValue).toBe("ON");
     expect(definition?.group).toBe("FEATURES");
   });
 });
@@ -128,8 +129,9 @@ describe("one motion system (globals.css)", () => {
   // v1.87.0 (D-417, intended change): the v1.80 names now point at the owner's scale
   // (hover 100, menu 150, dialog in 220, out 150, page 150); see navigation-continuity.test.ts.
   it("has the motion tokens of the brief", () => {
-    for (const [name, value] of [["--motion-hover", "var(--motion-instant)"], ["--motion-menu", "var(--motion-fast)"], ["--motion-dialog-in", "var(--motion-base)"], ["--motion-dialog-out", "var(--motion-fast)"], ["--motion-page", "var(--motion-fast)"]]) expect(css).toContain(`${name}: ${value};`);
-    for (const [name, value] of [["--motion-instant", "100ms"], ["--motion-fast", "150ms"], ["--motion-base", "220ms"]]) expect(css).toContain(`${name}: ${value};`);
+    // v1.89.0 (D-420): modal 250 (smooth), page 200 (standard), dropdown 150 (fast), drawer 250.
+    for (const [name, value] of [["--motion-hover", "var(--motion-instant)"], ["--motion-menu", "var(--motion-fast)"], ["--motion-dialog-in", "var(--motion-smooth)"], ["--motion-dialog-out", "var(--motion-fast)"], ["--motion-page", "var(--motion-standard)"], ["--motion-drawer", "var(--motion-smooth)"]]) expect(css).toContain(`${name}: ${value};`);
+    for (const [name, value] of [["--motion-instant", "100ms"], ["--motion-fast", "150ms"], ["--motion-standard", "200ms"], ["--motion-smooth", "250ms"], ["--motion-emphasis", "300ms"]]) expect(css).toContain(`${name}: ${value};`);
   });
   it("animates dialogs with @starting-style, allow-discrete and overlay, and the closing step", () => {
     expect(css).toContain("transition-property: opacity, transform, display, overlay;");
@@ -140,13 +142,16 @@ describe("one motion system (globals.css)", () => {
   it("moves nothing for reduce motion (fades of 100 ms or less)", () => {
     const reduce = css.split("@media (prefers-reduced-motion: reduce)").slice(1).join("\n");
     expect(reduce).toContain("animation: none !important");
-    expect(reduce).toContain("transition-duration: 100ms !important");
-    expect(reduce).toContain("animation: fade-in-only 100ms linear !important");
+    // v1.89.0 (D-420): the 100 ms is the --motion-reduced token (= instant).
+    expect(css).toContain("--motion-reduced: var(--motion-instant);");
+    expect(reduce).toContain("transition-duration: var(--motion-reduced) !important");
+    expect(reduce).toContain("animation: fade-in-only var(--motion-reduced) var(--ease-linear) !important");
   });
   it("only animates opacity and transform in the new motion block", () => {
     const block = css.slice(css.indexOf("---- v1.80.0 (D-407)"));
     const properties = [...block.matchAll(/transition(?:-property)?:\s*([^;]+);/g)].flatMap((match) => match[1]!.split(",").map((part) => part.trim().split(/\s+/)[0]!));
-    for (const property of properties) expect(["opacity", "transform", "translate", "rotate", "display", "overlay", "background-color", "outline-color", "none", "block-size", "visibility"]).toContain(property);
+    // v1.89.0 (D-420): colour changes on hover (color, border-color) are paint only, never layout.
+    for (const property of properties) expect(["opacity", "transform", "translate", "rotate", "display", "overlay", "background-color", "color", "border-color", "outline-color", "none", "block-size", "visibility"]).toContain(property);
   });
 });
 

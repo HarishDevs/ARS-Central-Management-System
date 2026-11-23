@@ -57,7 +57,8 @@ export function useCellPanel() {
   return { spot, button, panel, open, close };
 }
 
-const panelClass = "fixed z-popover w-72 rounded-lg border border-line bg-raised p-3 text-ink shadow-overlay";
+// v1.89.0 (D-420): pop-in, like every popover (dropdown = fast).
+const panelClass = "pop-in fixed z-popover w-72 rounded-lg border border-line bg-raised p-3 text-ink shadow-overlay";
 
 export function CollaboratorsCell({ taskId, title, followers, people, canEdit }: { taskId: number; title: string; followers: { id: number; name: string }[]; people: { id: number; label: string; detail?: string }[]; canEdit: boolean }) {
   const { call, pending } = useWorkCall();

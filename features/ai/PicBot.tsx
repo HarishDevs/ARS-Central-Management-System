@@ -7,6 +7,7 @@ import { ConfirmDialog } from "@/features/ui/Dialog";
 import { Hint } from "@/features/ui/Hint";
 import { RichAnswer } from "@/features/ai/RichAnswer";
 import { COPY_BLOCKED, copyText } from "@/features/ui/clipboard";
+import { MOTION_DURATION, prefersReducedMotion } from "@/features/ui/motion";
 
 // D-172 Pic bot - ai: the floating launcher (the supplied logo) and chat
 // panel, on every page for people who have at least one chat mode. It talks
@@ -78,7 +79,7 @@ export function PicBot({ initialModes }: { initialModes: ModeOption[] }) {
   const anchor = useRef<DOMRect | null>(null);
   const [leaving, setLeaving] = useState(false);
   const leave = useCallback((then: () => void) => {
-    const still = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const still = prefersReducedMotion();
     if (still || !panel.current) {
       then();
       return;
@@ -87,7 +88,7 @@ export function PicBot({ initialModes }: { initialModes: ModeOption[] }) {
     window.setTimeout(() => {
       setLeaving(false);
       then();
-    }, 220);
+    }, MOTION_DURATION.fast); // v1.89.0 (D-420): .picbot-out (--motion-dialog-out)
   }, []);
 
   const refresh = useCallback(async () => {

@@ -45,7 +45,7 @@ export function FoldAllButtons({ onAll, testId = "fold-all" }: { onAll: (open: b
 // follows Expand all / Collapse all; the heading toggles just this group.
 // v1.80.0 (D-407, motion review point 3): `revealed` is true once the group
 // was opened by the person (not on the first draw), so its rows glide in
-// (globals.css [data-revealed]: a 190 ms fade and a 4 px drop).
+// (globals.css [data-revealed]: a fast 150 ms fade and a 4 px drop).
 // v1.87.0 (D-417, audit gap 18): each group's open state is kept per page in
 // this tab (fold-memory), so leaving and coming back finds it as left.
 function useGroupOpen(label: React.ReactNode): [boolean, () => void, boolean] {

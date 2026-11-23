@@ -3,7 +3,7 @@
 import { useLayoutEffect, useRef } from "react";
 
 // v1.87.0 (D-417, audit gap 5): a bar beside the current page in the
-// sidebar that moves to the new page (transform only, 220 ms; at once on the
+// sidebar that moves to the new page (transform only, standard 200 ms; at once on the
 // first draw and under reduced motion). The page's own highlight stays as it
 // was; this only shows where the person went. Hidden when the current page
 // is inside a closed group. Decorative (aria-hidden): aria-current says it.

@@ -44,31 +44,9 @@ export function readPlace(raw: string | null, now: number): Place | null {
   }
 }
 
-// v1.87.0 (D-417, gap 1): the owner's motion scale, the same values as the CSS
-// variables in styles/globals.css (tests/ui/motion-tokens.test.ts keeps them
-// in step). For code that has to wait for a motion or set one inline.
-export const MOTION_DURATION = { instant: 100, fast: 150, base: 220, moderate: 280, slow: 350, slower: 450 } as const;
-export const MOTION_EASE = {
-  standard: "cubic-bezier(0.22, 1, 0.36, 1)",
-  enter: "cubic-bezier(0.16, 1, 0.3, 1)",
-  exit: "cubic-bezier(0.4, 0, 1, 1)",
-  linear: "linear",
-} as const;
-export const MOTION_DISTANCE = { 1: 2, 2: 4, 3: 8, 4: 16, 5: 24, 6: 32 } as const;
-// Where each part of the app takes its timing from (the documented mapping).
-export const MOTION_ROLE = {
-  hover: "instant",
-  menu: "fast",
-  tooltip: "fast",
-  dialogIn: "base",
-  dialogOut: "fast",
-  page: "fast",
-  pane: "moderate",
-  sheet: "moderate",
-  expand: "base",
-  emphasis: "slow",
-  hero: "slower",
-} as const satisfies Record<string, keyof typeof MOTION_DURATION>;
+// v1.89.0 (D-420): the motion tokens moved to features/ui/motion.ts (the one
+// TS mirror of the CSS scale); re-exported here for the shell's code.
+export { MOTION_DURATION, MOTION_EASE, MOTION_DISTANCE, MOTION_ROLE, MOTION_DELAY } from "@/features/ui/motion";
 
 // v1.87.0 (D-417, gap 19): the list a page was opened from (its address with
 // the sort, filters and page, never an open pane), kept for that page in this

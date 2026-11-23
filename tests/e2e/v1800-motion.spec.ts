@@ -31,9 +31,14 @@ async function mark(page: Page) {
 async function stillMarked(page: Page) {
   return page.evaluate(() => (window as unknown as { __kept?: string }).__kept === "yes");
 }
-async function setSwitch(value: "ON" | "OFF") {
+// v1.89.0 (D-420): null puts the switch back to its default (ON since v1.89.0).
+async function setSwitch(value: "ON" | "OFF" | null) {
   const conn = await db();
   try {
+    if (value === null) {
+      await conn.query("DELETE FROM system_settings WHERE setting_key = 'features.page_transitions'");
+      return;
+    }
     await conn.query("INSERT INTO system_settings (setting_key, setting_group, value_type, encrypted, value) VALUES ('features.page_transitions', 'FEATURES', 'STRING', FALSE, ?) ON DUPLICATE KEY UPDATE value = VALUES(value)", [value]);
   } finally {
     await conn.end();
@@ -310,7 +315,7 @@ test("phone: a bottom sheet and a drawer close with a swipe down", async ({ page
   await expect(drawer).toBeHidden();
 });
 
-test("page transitions: off by default (nothing changes), on with the switch (main cross-fades, focus on the new heading)", async ({ page, context }) => {
+test("page transitions: off with the switch (nothing changes), on with it (main fades in, focus on the new heading); v1.89.0: on by default", async ({ page, context }) => {
   await as(context, "E2E_MGR");
   await page.setViewportSize({ width: 1440, height: 900 });
   const watch = async () =>
@@ -348,7 +353,7 @@ test("page transitions: off by default (nothing changes), on with the switch (ma
     expect(await page.evaluate(() => (window as unknown as { __vt: string[] }).__vt)).toEqual([]);
     await page.emulateMedia({ reducedMotion: "no-preference" });
   } finally {
-    await setSwitch("OFF");
+    await setSwitch(null);
   }
 });
 

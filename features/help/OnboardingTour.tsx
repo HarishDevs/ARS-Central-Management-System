@@ -5,6 +5,10 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { X } from "lucide-react";
 import { finishTourAction } from "@/app/users/help-actions";
 import type { TourStep } from "@/features/help/tour-steps";
+import { MOTION_DURATION, prefersReducedMotion, scrollBehavior } from "@/features/ui/motion";
+
+// v1.89.0 (D-420): how long a smooth scroll to the next step is given before the spotlight is measured.
+const SCROLL_SETTLE_MS = MOTION_DURATION.emphasis + 50;
 
 // v1.14.0 (D-167, owner): the onboarding tour. It opens by itself once, on
 // Overview, for anyone who hasn't finished or skipped it, and again from
@@ -138,9 +142,10 @@ export function OnboardingTour({ steps, autoStart }: { steps: TourStep[]; autoSt
       window.clearInterval(timer);
       if (!found) return;
       target.current = found;
-      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      found.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
-      window.setTimeout(() => measure(), reduce ? 0 : 350);
+      const reduce = prefersReducedMotion();
+      found.scrollIntoView({ block: "center", behavior: scrollBehavior() });
+      // The browser's smooth scroll has no end event everywhere: measure once it has settled.
+      window.setTimeout(() => measure(), reduce ? 0 : SCROLL_SETTLE_MS);
     }, 100);
     return () => window.clearInterval(timer);
   }, [step, pathname, router, measure]);
@@ -236,8 +241,9 @@ export function OnboardingTour({ steps, autoStart }: { steps: TourStep[]; autoSt
         <div
           aria-hidden="true"
           data-testid="tour-spotlight"
-          className="pointer-events-none fixed rounded-lg ring-2 ring-primary-600 transition-[top,left,width,height] duration-base ease-standard motion-reduce:transition-none"
-          style={{ top: box.top, left: box.left, width: box.width, height: box.height, boxShadow: "0 0 0 9999px var(--color-overlay)" }}
+          className="pointer-events-none fixed left-0 top-0 rounded-lg ring-2 ring-primary-600 transition-transform duration-smooth ease-standard motion-reduce:transition-none"
+          // v1.89.0 (D-420): it moves by transform; its size changes at once (no top / left / width / height animation).
+          style={{ transform: `translate(${box.left}px, ${box.top}px)`, width: box.width, height: box.height, boxShadow: "0 0 0 9999px var(--color-overlay)" }}
         />
       ) : (
         <div aria-hidden="true" className="fixed inset-0 bg-overlay" />
@@ -260,7 +266,7 @@ export function OnboardingTour({ steps, autoStart }: { steps: TourStep[]; autoSt
           </button>
         </div>
         <div className="mt-2 h-1 overflow-hidden rounded-full bg-surface-muted" aria-hidden="true">
-          <div className="h-full rounded-full bg-primary-600 transition-[width] duration-base ease-standard motion-reduce:transition-none" style={{ width: `${((index + 1) / steps.length) * 100}%` }} />
+          <div className="h-full w-full rounded-full bg-primary-600 transition-transform duration-standard ease-standard motion-reduce:transition-none" style={{ transform: `translateX(${((index + 1) / steps.length) * 100 - 100}%)` }} />
         </div>
         <h2 id="tour-title" ref={heading} tabIndex={-1} className="mt-3 text-card-title font-semibold focus:outline-none">
           {step.title}

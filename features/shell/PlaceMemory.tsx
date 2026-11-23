@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { listHref, ORIGIN_KEY, PLACE_KEY, readPlace } from "@/features/shell/motion-rules";
 import { noteLocation } from "@/features/ui/pane-close";
+import { MOTION_DELAY } from "@/features/ui/motion";
 
 // v1.80.0 (D-407, motion review point 12): keep people's place. Leaving a
 // page through one of its links remembers how far down it was and which link
@@ -70,7 +71,7 @@ export function PlaceMemory() {
         const row = link.closest<HTMLElement>("tr, li");
         if (row) {
           row.setAttribute("data-row-current", "");
-          window.setTimeout(() => row.removeAttribute("data-row-current"), 1600);
+          window.setTimeout(() => row.removeAttribute("data-row-current"), MOTION_DELAY.highlight);
         }
       };
       timer = window.setTimeout(attempt, 50);

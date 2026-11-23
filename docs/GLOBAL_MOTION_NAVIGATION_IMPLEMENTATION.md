@@ -1,5 +1,7 @@
 # Global Smooth Motion, Navigation Continuity & Interaction Experience System
 
+> **v1.89.0 (D-420): the motion values below are superseded.** The current system (tokens instant 100 / fast 150 / standard 200 / smooth 250 / emphasis 300; easings standard (0.2,0,0,1), enter (0,0,0.2,1), exit (0.4,0,1,1); page transitions **on by default**; the TS mirror `features/ui/motion.ts`; the Motion Playground) is described in [`docs/qa/GLOBAL_MOTION_DESIGN_SYSTEM.md`](qa/GLOBAL_MOTION_DESIGN_SYSTEM.md) and [`docs/qa/GLOBAL_MOTION_TOKENS.md`](qa/GLOBAL_MOTION_TOKENS.md). The navigation-continuity parts of this document (overlay stack, pane control, place and origin memory, return-to) are unchanged and still current. In §3 below, `--motion-base/-moderate/-slow/-slower` no longer exist.
+
 **Release:** v1.87.0 (D-417), after v1.86.0 (D-416). **Source:** the owner's brief, audited in `docs/qa/HEADER-AND-MOTION-AUDIT.md` (gap list 1–24). This release builds only what the audit marked missing or partly done, and keeps everything v1.80.0 (D-407) built: dialog and drawer motion, menus, folds, PendingLink, skeletons, toasts, PlaceMemory, discard draft, J/K, swipe sheets and the `page_transitions` switch (still Off by default).
 
 **Rule for this document:** "verified" means that a named test or measurement shows it. Anything else is marked *not verified*.
@@ -60,7 +62,7 @@ flowchart LR
 | Bulk-selection bar | — | `bulk-bar-in` | |
 | Overview cards | — | `LiveNumber`: only a changed figure gets a 350 ms emphasis | Nothing on the first draw. |
 
-## 3. Motion specification
+## 3. Motion specification (v1.87.0; superseded by D-420, see the note at the top)
 
 | Token | Value | Used for |
 |---|---|---|

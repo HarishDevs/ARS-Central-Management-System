@@ -166,7 +166,8 @@ export function Progress({ value, max, label }: { value: number; max: number; la
   const percent = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
   return (
     <div role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={max} aria-valuenow={value} className="h-1.5 w-full overflow-hidden rounded-full bg-line">
-      <div className="h-full rounded-full bg-primary-600 transition-[width] duration-slow ease-standard" style={{ width: `${percent}%` }} />
+      {/* v1.89.0 (D-420): moves by transform (it animated width). */}
+      <div className="h-full w-full rounded-full bg-primary-600 transition-transform duration-emphasis ease-standard" style={{ transform: `translateX(${percent - 100}%)` }} />
     </div>
   );
 }

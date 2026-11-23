@@ -35,6 +35,21 @@ export function FitPages({ children, label = "Analytics" }: { children: React.Re
     }
   };
 
+  // v1.89.0 (D-420, UIQA-PERF-01): what is shown now, so a measurement can put
+  // it back in the same task (no frame with every section shown, no flicker).
+  const shownNow = useRef<{ pages: number[][]; page: number; all: boolean }>({ pages: [], page: 0, all: false });
+  const apply = useCallback((root: HTMLElement, packed: number[][], at: number, everything: boolean) => {
+    if (packed.length <= 1) {
+      ([...root.children] as HTMLElement[]).forEach((item) => item.removeAttribute("hidden"));
+      return;
+    }
+    const shown = new Set(packed[at] ?? []);
+    ([...root.children] as HTMLElement[]).forEach((item, index) => {
+      if (everything || shown.has(index)) item.removeAttribute("hidden");
+      else item.setAttribute("hidden", "");
+    });
+  }, []);
+
   const measure = useCallback(() => {
     const root = box.current;
     if (!root) return;
@@ -69,11 +84,17 @@ export function FitPages({ children, label = "Analytics" }: { children: React.Re
       used += unit.height;
     }
     if (current.length) packed.push(current);
+    const now = shownNow.current;
+    const at = Math.min(now.page, Math.max(0, packed.length - 1));
+    // Put back what is shown before the browser can paint the unhidden sections.
+    apply(root, packed, at, now.all);
+    if (JSON.stringify(packed) === JSON.stringify(now.pages)) return; // nothing moved: no new render
+    shownNow.current = { ...now, pages: packed, page: at };
     setPages(packed);
     const nameOf = (item: HTMLElement | undefined) => item?.getAttribute("aria-label") || (item && /^H[1-6]$/.test(item.tagName) ? item.textContent?.trim() : "") || "";
     setTitles(packed.map((group) => group.map((index) => nameOf(items[index])).filter(Boolean).slice(0, 2).join(" · ") || "Page"));
-    setPage((value) => Math.min(value, Math.max(0, packed.length - 1)));
-  }, []);
+    setPage(at);
+  }, [apply]);
 
   useLayoutEffect(() => {
     measure();
@@ -99,31 +120,33 @@ export function FitPages({ children, label = "Analytics" }: { children: React.Re
 
   // Show only this page's sections (or everything, when chosen).
   useLayoutEffect(() => {
+    shownNow.current = { pages, page, all };
     const root = box.current;
     if (!root || pages.length <= 1) return;
-    const shown = new Set(pages[page] ?? []);
-    ([...root.children] as HTMLElement[]).forEach((item, index) => {
-      if (all || shown.has(index)) item.removeAttribute("hidden");
-      else item.setAttribute("hidden", "");
-    });
-  }, [pages, page, all]);
+    apply(root, pages, page, all);
+  }, [pages, page, all, apply]);
 
   const go = (next: number) => {
     setPage(next);
     box.current?.scrollIntoView({ block: "start", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   };
 
+  // v1.89.0 (D-420, UIQA-PERF-01): the page bar sits below the sections (sticky
+  // at the bottom of the window). Drawn after the first measurement, above the
+  // sections it pushed them down (CLS 0.19-0.37 measured); below them nothing
+  // that is shown moves.
   return (
     <div className="fit-pages">
+      <div ref={box}>{children}</div>
       {pages.length > 1 && all && (
-        <p className="mb-4 flex justify-end">
+        <p className="mt-4 flex justify-end">
           <button type="button" className="btn-ghost btn-compact" onClick={() => choose(false)}>
             Show in pages
           </button>
         </p>
       )}
       {pages.length > 1 && !all && (
-        <nav aria-label={`${label}: pages`} className="sticky top-16 z-[var(--z-sticky)] mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-line bg-raised/95 px-3 py-2 shadow-card backdrop-blur" data-testid="fit-pages">
+        <nav aria-label={`${label}: pages`} className="sticky bottom-2 z-[var(--z-sticky)] mt-4 flex flex-wrap items-center gap-2 rounded-lg border border-line bg-raised/95 px-3 py-2 shadow-card backdrop-blur" data-testid="fit-pages">
           <span className="text-caption text-ink-muted">
             Page {page + 1} of {pages.length}
           </span>
@@ -155,7 +178,6 @@ export function FitPages({ children, label = "Analytics" }: { children: React.Re
           </span>
         </nav>
       )}
-      <div ref={box}>{children}</div>
     </div>
   );
 }

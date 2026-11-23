@@ -155,7 +155,7 @@ export function PersonSelect({
       {open && (
         <div
           ref={panel}
-          className={`z-popover rounded-lg border border-line bg-raised shadow-overlay ${floating ? "" : `absolute w-full min-w-[16rem] ${fit.up ? "bottom-full mb-1" : "top-full mt-1"} ${fit.right ? "right-0" : "left-0"}`}`}
+          className={`pop-in z-popover rounded-lg border border-line bg-raised shadow-overlay ${floating ? "" : `absolute w-full min-w-[16rem] ${fit.up ? "bottom-full mb-1" : "top-full mt-1"} ${fit.right ? "right-0" : "left-0"}`}`}
           style={{ maxHeight: fit.maxHeight, ...place }}
           data-testid={testId ? `${testId}-panel` : undefined}
         >

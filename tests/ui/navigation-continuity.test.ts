@@ -86,9 +86,10 @@ describe("motion tokens: one scale, CSS and TS in step", () => {
   const css = fs.readFileSync(path.join(process.cwd(), "styles/globals.css"), "utf8");
   const root = css.slice(css.indexOf(":root"), css.indexOf("}", css.indexOf("--motion-instant")));
   const value = (name: string) => new RegExp(`${name}:\\s*([^;]+);`).exec(root)?.[1]?.trim();
+  // v1.89.0 (D-420): the owner's new scale supersedes the v1.87 values (220 / 280 / 350 / 450 retired).
   it("has the owner's durations", () => {
-    expect([value("--motion-instant"), value("--motion-fast"), value("--motion-base"), value("--motion-moderate"), value("--motion-slow"), value("--motion-slower")]).toEqual(["100ms", "150ms", "220ms", "280ms", "350ms", "450ms"]);
-    expect(Object.values(MOTION_DURATION)).toEqual([100, 150, 220, 280, 350, 450]);
+    expect([value("--motion-instant"), value("--motion-fast"), value("--motion-standard"), value("--motion-smooth"), value("--motion-emphasis")]).toEqual(["100ms", "150ms", "200ms", "250ms", "300ms"]);
+    expect(Object.values(MOTION_DURATION)).toEqual([100, 150, 200, 250, 300]);
   });
   it("has the owner's easings", () => {
     expect(value("--ease-standard")).toBe(MOTION_EASE.standard);

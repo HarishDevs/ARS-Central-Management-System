@@ -4,6 +4,7 @@ import Link from "next/link";
 import { AlertTriangle, CheckCircle2, Info, RotateCcw, ShieldCheck, XCircle } from "lucide-react";
 import type { Readiness, ReadinessItem } from "@/server/approvals/readiness";
 import { Hint } from "@/features/ui/Hint";
+import { scrollBehavior } from "@/features/ui/motion";
 
 // FN1 readiness summary: ready / ready with warnings / blocking problems,
 // each linked to its field. The server checks everything again on submit,
@@ -82,7 +83,7 @@ function Row({ item, label, href }: { item: ReadinessItem; label?: string; href?
                 if (target) {
                   event.preventDefault();
                   target.focus();
-                  target.scrollIntoView({ block: "center", behavior: "smooth" });
+                  target.scrollIntoView({ block: "center", behavior: scrollBehavior() }); // UIQA-A11Y-03: instant with reduced motion
                 }
               }}
             >

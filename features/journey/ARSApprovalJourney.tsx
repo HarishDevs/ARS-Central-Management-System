@@ -122,7 +122,7 @@ function HeaderRoad({ points, pos, greenTo, headline }: { points: Checkpoint[]; 
   // Positions run from 3% to 94%, leaving room for the van's nose and the flag.
   const at = (position: number) => `${3 + (position / total) * 91}%`;
   return (
-    <span className="relative block h-11 min-w-[180px] flex-1" data-testid="journey-header-track">
+    <span className="relative block h-11 min-w-[180px] flex-1 [container-type:inline-size]" data-testid="journey-header-track">
       <span className="sr-only">{headline}</span>
       <span aria-hidden="true">
         {/* the road */}
@@ -146,7 +146,8 @@ function HeaderRoad({ points, pos, greenTo, headline }: { points: Checkpoint[]; 
           <JourneyFlag />
         </span>
         {/* the van */}
-        <span className="absolute bottom-[12px] -translate-x-[70%] transition-[left] duration-700" style={{ left: at(pos) }}>
+        {/* v1.89.0 (D-420): moves by transform (cqw = the track's width), not by left. */}
+        <span className="jr-headvan absolute bottom-[12px] left-0" style={{ transform: `translateX(calc(${3 + (pos / total) * 91}cqw - 70%))` }}>
           <JourneyVan width={44} />
         </span>
       </span>
@@ -542,7 +543,7 @@ export function ARSApprovalJourney({ journey: initial, serverNow, fresh = false,
                         <ArsFactory width={92} />
                       </div>
                     )}
-                    <div className="absolute inset-y-0 left-[104px] right-[56px]">
+                    <div className="absolute inset-y-0 left-[104px] right-[56px] [container-type:inline-size]">
                       {/* finish flag */}
                       <div className="absolute bottom-[34px] z-[1] -translate-x-1/2" style={{ left: left(total) }}>
                         <JourneyFlag />
@@ -550,8 +551,8 @@ export function ARSApprovalJourney({ journey: initial, serverNow, fresh = false,
                       {/* the road: asphalt, two lane edges, moving centre dashes, the finished stretch in green */}
                       <div className="jr-road absolute inset-x-[-40px] bottom-[10px] h-[30px] overflow-hidden rounded-md" data-moving={moving ? "1" : undefined}>
                         <div
-                          className="absolute inset-y-0 left-0 bg-[#15803d]/45 motion-safe:transition-[width] motion-safe:duration-[1200ms]"
-                          style={{ width: `calc(40px + (100% - 80px) * ${greenTo / total})` }}
+                          className="jr-fill absolute inset-0 bg-[#15803d]/45"
+                          style={{ transform: `translateX(calc(-100% + 40px + (100% - 80px) * ${greenTo / total}))` }}
                         />
                         <div className="absolute inset-x-0 top-[3px] h-[2px] bg-[#e2e8f0]/70" />
                         <div className="absolute inset-x-0 bottom-[3px] h-[2px] bg-[#e2e8f0]/70" />
@@ -560,8 +561,8 @@ export function ARSApprovalJourney({ journey: initial, serverNow, fresh = false,
 
                       {/* the van, with the document and envelope it carries */}
                       <div
-                        className="jr-vanwrap absolute bottom-[22px] z-[2] -translate-x-[78%]"
-                        style={{ left: left(pos), transitionDuration: scene?.kind === "drive" ? `${SCENE_MS.drive}ms` : "0ms" }}
+                        className="jr-vanwrap absolute bottom-[22px] left-0 z-[2]"
+                        style={{ transform: `translateX(calc(${(pos / total) * 100}cqw - 78%))`, transitionDuration: scene?.kind === "drive" ? `${SCENE_MS.drive}ms` : "0ms" }}
                         data-testid="road-van"
                         data-moving={moving ? "1" : undefined}
                         data-door={scene?.kind === "unload" || scene?.kind === "reload" || scene?.kind === "seal" || (docOut && !scene) ? "open" : "closed"}

@@ -10,6 +10,7 @@ import { useToast } from "@/features/ui/Toast";
 import type { ActionResult } from "@/lib/http/action-result";
 import { COPY_BLOCKED, copyText } from "@/features/ui/clipboard";
 import { useCelebrate, useCelebrationState } from "@/features/work/celebrate";
+import { closeTopLayer } from "@/features/ui/top-layer";
 
 // D-215: small shared pieces of the Task & Project Management screens.
 
@@ -187,7 +188,8 @@ export function HolidayPrompt() {
   const answer = (choice: HolidayChoice | null) => {
     ask?.resolve(choice);
     setAsk(null);
-    dialog.current?.close();
+    // v1.89.0 (D-420): closes with its exit animation in every browser (top-layer.ts).
+    if (dialog.current) void closeTopLayer(dialog.current);
   };
   return (
     <dialog ref={dialog} aria-labelledby="holiday-title" onCancel={() => answer(null)} className="ars-dialog w-[calc(100%-2rem)] max-w-md rounded-xl border border-line bg-raised p-0 text-ink shadow-overlay" data-testid="holiday-prompt">
