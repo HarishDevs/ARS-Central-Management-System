@@ -4,7 +4,7 @@ import { EngineError } from "@/server/engine/types";
 import { compileBuilder, newStep, type BuilderSpec } from "@/server/workflows/builder";
 import { deriveDoaTable } from "@/server/workflows/doa";
 import { checkCustomSpec } from "@/server/approvals/service";
-import { checkDelegationInput } from "@/server/approvals/collab";
+import { checkDelegationInput, earliestDelegationDay } from "@/server/approvals/collab";
 import { slaActions } from "@/server/jobs/sla";
 import { approval, chain, ctx, makeDirectory, user } from "../helpers/engine-fixtures";
 
@@ -61,8 +61,17 @@ describe("delegation dates (D-062)", () => {
     expect(checkDelegationInput(base, "2026-10-01")).toBeNull();
     expect(checkDelegationInput({ ...base, delegateId: 5 }, "2026-10-01")).toMatch(/own delegate/);
     expect(checkDelegationInput({ ...base, endsOn: "2026-09-30" }, "2026-09-01")).toMatch(/before/);
-    expect(checkDelegationInput({ ...base, startsOn: "2026-09-01", endsOn: "2026-09-05" }, "2026-10-01")).toMatch(/past/);
     expect(checkDelegationInput({ ...base, endsOn: "2027-01-15" }, "2026-10-01")).toMatch(/90 days/);
+  });
+
+  // v1.85.3 (owner, 23 Nov 2026): past dates for everyone, up to 30 days back.
+  it("allows a start up to 30 days back, wholly past ranges too, and no further", () => {
+    expect(earliestDelegationDay("2026-11-23")).toBe("2026-10-24");
+    expect(earliestDelegationDay("2026-03-15")).toBe("2026-02-13");
+    expect(checkDelegationInput({ ...base, startsOn: "2026-10-24", endsOn: "2026-11-30" }, "2026-11-23")).toBeNull();
+    expect(checkDelegationInput({ ...base, startsOn: "2026-11-01", endsOn: "2026-11-05" }, "2026-11-23")).toBeNull();
+    expect(checkDelegationInput({ ...base, startsOn: "2026-10-23", endsOn: "2026-10-30" }, "2026-11-23")).toMatch(/30 days ago/);
+    expect(checkDelegationInput({ ...base, startsOn: "2026-08-31", endsOn: "2026-09-05" }, "2026-10-01")).toMatch(/30 days ago/);
   });
 });
 

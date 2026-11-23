@@ -13,6 +13,7 @@ import {
   indiaToday,
   insertComment,
   insertDelegation,
+  markDelegationLogged,
 } from "@/lib/db/repositories/collab.repository";
 import { findUserById, findUserByLoginId } from "@/lib/db/repositories/users.repository";
 import { parseMentions } from "@/server/approvals/mentions";
@@ -100,13 +101,20 @@ export async function addComment(requestId: number, body: string, actor: Actor):
 // ---- delegation (F-30, D-062) ---------------------------------------------------------
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_DAYS = 90;
+// v1.85.3 (owner, 23 Nov 2026: "allow past dates for everyone, up to 30 days back"):
+// an out-of-office may start up to 30 days before today, so leave already
+// taken can be recorded. A wholly past one is a record only (see createDelegation).
+export const BACK_DAYS = 30;
+export function earliestDelegationDay(today: string): string {
+  return new Date(Date.parse(`${today}T00:00:00Z`) - BACK_DAYS * 86_400_000).toISOString().slice(0, 10);
+}
 
 // Pure checks (unit-tested).
 export function checkDelegationInput(input: { userId: number; delegateId: number; startsOn: string; endsOn: string }, today: string): string | null {
   if (input.userId === input.delegateId) return "You can't be your own delegate.";
   if (!DATE.test(input.startsOn) || !DATE.test(input.endsOn)) return "Choose both dates.";
   if (input.endsOn < input.startsOn) return "The end date is before the start date.";
-  if (input.endsOn < today) return "The end date is in the past.";
+  if (input.startsOn < earliestDelegationDay(today)) return `The start date can be at most ${BACK_DAYS} days ago.`;
   const days = (Date.parse(`${input.endsOn}T00:00:00Z`) - Date.parse(`${input.startsOn}T00:00:00Z`)) / 86_400_000 + 1;
   if (days > MAX_DAYS) return `Keep it to ${MAX_DAYS} days or fewer.`;
   return null;
@@ -115,7 +123,7 @@ export function checkDelegationInput(input: { userId: number; delegateId: number
 export async function createDelegation(
   input: { userId: number; delegateId: number; startsOn: string; endsOn: string; reason?: string },
   actor: Actor,
-): Promise<Result<{ id: number; movedTasks: number; movedTo: string }>> {
+): Promise<Result<{ id: number; movedTasks: number; movedTo: string; past: boolean }>> {
   if (input.userId !== actor.id && !isAdmin(actor)) return { ok: false, code: "FORBIDDEN", message: "You can only set your own out-of-office." };
   const problem = checkDelegationInput(input, await indiaToday());
   if (problem) return { ok: false, code: "INVALID", message: problem };
@@ -132,14 +140,27 @@ export async function createDelegation(
     return insertDelegation({ ...input, reason: input.reason?.trim().slice(0, 200) || null, createdBy: actor.id }, db);
   });
   if (id === null) return { ok: false, code: "OVERLAP", message: "These dates overlap an existing out-of-office. End that one first." };
-  await recordAudit({ actorUserId: actor.id, action: "DELEGATION_CREATED", entityType: "USER", entityId: input.userId, metadata: { delegationId: id, delegateId: input.delegateId, startsOn: input.startsOn, endsOn: input.endsOn } });
+  const today = await indiaToday();
+  const past = input.endsOn < today;
+  await recordAudit({ actorUserId: actor.id, action: "DELEGATION_CREATED", entityType: "USER", entityId: input.userId, metadata: { delegationId: id, delegateId: input.delegateId, startsOn: input.startsOn, endsOn: input.endsOn, past } });
+  if (past) {
+    // v1.85.3: wholly in the past, a record of leave already taken. Nobody
+    // covers now, so the date job's start and end messages are marked done
+    // and the person alone is told it was recorded; no task moves.
+    await markDelegationLogged(id);
+    await tellRecorded(person.id, delegate.name, input.startsOn, input.endsOn);
+    return { ok: true, value: { id, movedTasks: 0, movedTo: "", past: true } };
+  }
   await tellBoth(person.id, person.name, delegate.id, delegate.name, `from ${input.startsOn} to ${input.endsOn}`, true);
   // v1.54.5 (owner): the person's tasks due while away move to the day after.
-  const moved = await moveTasksOutOfAway(input.userId, input.startsOn, input.endsOn, actor.id).catch((error: unknown) => {
+  // v1.85.3: only the days from today on; tasks due on days already gone
+  // (overdue) keep their dates.
+  const fromDay = input.startsOn < today ? today : input.startsOn;
+  const moved = await moveTasksOutOfAway(input.userId, fromDay, input.endsOn, actor.id).catch((error: unknown) => {
     logError("moving tasks out of the out-of-office dates failed", error);
     return { moved: 0, to: "" };
   });
-  return { ok: true, value: { id, movedTasks: moved.moved, movedTo: moved.to } };
+  return { ok: true, value: { id, movedTasks: moved.moved, movedTo: moved.to, past: false } };
 }
 
 export async function stopDelegation(id: number, actor: Actor): Promise<Result<null>> {
@@ -178,6 +199,17 @@ export async function tellBoth(userId: number, userName: string, delegateId: num
       },
       whatsappVariables: null,
     });
+  } catch (error) {
+    logError("delegation: notify failed", error);
+  }
+}
+
+// v1.85.3: a back-dated out-of-office that is already over.
+async function tellRecorded(userId: number, delegateName: string, startsOn: string, endsOn: string): Promise<void> {
+  try {
+    const title = "Out-of-office recorded";
+    const text = `Your out-of-office from ${startsOn} to ${endsOn} (cover: ${delegateName}) is recorded. Those dates are over, so nothing changes now.`;
+    await notify({ eventType: "DELEGATION_STARTED", userId, title, message: text, email: { subject: title, text }, whatsappVariables: null });
   } catch (error) {
     logError("delegation: notify failed", error);
   }

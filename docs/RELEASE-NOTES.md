@@ -1,5 +1,12 @@
 # Release notes
 
+## v1.85.3 (23 Nov 2026): Out of office can go back 30 days
+No migration (D-415, owner: "allow past dates for everyone, up to 30 days back"):
+- **Out of office** (yours, or IT setting it for someone in Admin → Users) can start up to **30 days before today**, to record leave already taken. Starting further back says so.
+- **Dates that are already over** are only recorded: nobody is asked to cover them, your delegate isn't told, nothing moves, and you get one "Out-of-office recorded" message.
+- **Dates that started earlier and run on:** your delegate covers from now, as before. Only tasks due from today on move to the day after you're back; overdue tasks keep their dates.
+- **Owner steps:** publish v1.85.3 (nothing else).
+
 ## v1.85.2 (23 Nov 2026): fix
 No migration (D-414):
 - Admin → Records → **Tickets** and **Meetings** open again. Since v1.85.0 both showed "This page couldn't be shown" whenever there were tickets or meetings to list (the server tried to run a browser-only helper to build the sort, page and row links).

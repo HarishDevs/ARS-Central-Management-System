@@ -671,6 +671,7 @@ The approver (or the Super Admin) sets a date range, a delegate and a scope (all
   - No chains: a delegate can only act for the person who named them.
   - A delegate can never approve their own request (the engine refuses the requester as actor). v1.71.2 (D-388): nor pass it on, hold it, resume it or ask a question on it.
 - **Alerts:** starting or ending a delegation alerts both people.
+- **Back-dating (v1.85.3, D-415):** the from date can be up to 30 days before today. A range already over is recorded only (no cover, no task moves, the delegate isn't told; the person gets "Out-of-office recorded"). A range that started earlier and runs on covers from now; only tasks due from today move.
 
 ## F-31 SLA, reminder, escalation
 The node starts → at the reminder time (e.g. 12 h) the approver is reminded → at the SLA (e.g. 24 h) the manager or escalation contact is notified → at the escalation time (e.g. 48 h) the request is escalated and optionally reassigned per node settings. Working days follow the holiday calendar.

@@ -130,6 +130,13 @@ export async function insertDelegation(
   return result.insertId;
 }
 
+// v1.85.3: a back-dated out-of-office that is already over: the date job's
+// start and end messages are marked done so nobody is told about cover that
+// never happens now.
+export async function markDelegationLogged(id: number, db: Queryable = getDbPool()): Promise<void> {
+  await db.query("UPDATE delegations SET activation_logged_at = COALESCE(activation_logged_at, CURRENT_TIMESTAMP), expiry_logged_at = COALESCE(expiry_logged_at, CURRENT_TIMESTAMP) WHERE id = ?", [id]);
+}
+
 export async function endDelegation(id: number, endedBy: number, db: Queryable = getDbPool()): Promise<boolean> {
   const [result] = await db.query<ResultSetHeader>("UPDATE delegations SET ended_at = CURRENT_TIMESTAMP, ended_by = ? WHERE id = ? AND ended_at IS NULL", [endedBy, id]);
   return result.affectedRows === 1;

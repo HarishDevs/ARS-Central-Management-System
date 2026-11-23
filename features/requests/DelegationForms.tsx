@@ -5,7 +5,8 @@ import { FieldError, ResultMessage, SubmitButton, useActionForm } from "@/featur
 import { PersonSelect } from "@/features/ui/PersonSelect";
 
 // Out of office (F-30, D-062). userId is set only when IT sets it for someone.
-export function DelegationForm({ people, today, userId }: { people: { id: number; label: string; detail?: string }[]; today: string; userId?: number }) {
+// v1.85.3 (owner): dates may go back up to 30 days (earliest), to record leave already taken.
+export function DelegationForm({ people, today, earliest, userId }: { people: { id: number; label: string; detail?: string }[]; today: string; earliest: string; userId?: number }) {
   const { result, pending, formRef, onSubmit } = useActionForm(createDelegationAction, { resetOnSuccess: true });
   return (
     <form ref={formRef} onSubmit={onSubmit} className="grid gap-3 px-5 py-4 sm:grid-cols-2">
@@ -21,14 +22,17 @@ export function DelegationForm({ people, today, userId }: { people: { id: number
         <label htmlFor="d-from" className="field-label">
           From
         </label>
-        <input id="d-from" name="startsOn" type="date" defaultValue={today} min={today} className="field-input" />
+        <input id="d-from" name="startsOn" type="date" defaultValue={today} min={earliest} aria-describedby="d-dates-hint" className="field-input" />
       </div>
       <div>
         <label htmlFor="d-to" className="field-label">
           To (inclusive)
         </label>
-        <input id="d-to" name="endsOn" type="date" min={today} className="field-input" />
+        <input id="d-to" name="endsOn" type="date" min={earliest} aria-describedby="d-dates-hint" className="field-input" />
       </div>
+      <p id="d-dates-hint" className="text-caption text-ink-muted sm:col-span-2">
+        You can go back up to 30 days to record leave already taken. Dates that are already over are only recorded: nobody is asked to cover them.
+      </p>
       <div className="sm:col-span-2">
         <label htmlFor="d-reason" className="field-label">
           Reason <span className="font-normal text-ink-faint">(optional)</span>

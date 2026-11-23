@@ -16,6 +16,7 @@ import { HandoverForm } from "@/features/admin/HandoverForm";
 import { TryAsButton } from "@/features/admin/TryAsButton";
 import { canTryAs } from "@/server/auth/try-as";
 import { DelegationForm } from "@/features/requests/DelegationForms";
+import { earliestDelegationDay } from "@/server/approvals/collab";
 import { DelegationList } from "@/features/requests/DelegationList";
 import { countPendingTasks } from "@/server/approvals/service";
 import { indiaToday, listDelegationsInvolving } from "@/lib/db/repositories/collab.repository";
@@ -146,7 +147,7 @@ export default async function UserDetailPage({ params, searchParams }: { params:
             <section className="card">
               <h2 className="border-b border-line px-5 py-4 font-semibold">Out of office</h2>
               <DelegationList items={delegations} personId={user.id} canEnd={false} />
-              <DelegationForm people={options.managers} today={today} userId={user.id} />
+              <DelegationForm people={options.managers} today={today} earliest={earliestDelegationDay(today)} userId={user.id} />
             </section>
           )}
         </div>

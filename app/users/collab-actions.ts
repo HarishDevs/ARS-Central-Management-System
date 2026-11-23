@@ -147,12 +147,14 @@ export async function createDelegationAction(_previous: ActionResult | null, for
     }
   }
   let moved = "";
+  let past = false;
   try {
     const result = await createDelegation(
       { userId, delegateId, startsOn: String(formData.get("startsOn") ?? ""), endsOn: String(formData.get("endsOn") ?? ""), reason: String(formData.get("reason") ?? "") },
       me,
     );
     if (!result.ok) return { ok: false, message: result.message };
+    past = result.value.past;
     moved = result.value.movedTasks ? ` ${result.value.movedTasks} task${result.value.movedTasks === 1 ? "" : "s"} due in those days moved to ${result.value.movedTo}.` : "";
   } catch (error) {
     logError("createDelegationAction failed", error);
@@ -161,7 +163,8 @@ export async function createDelegationAction(_previous: ActionResult | null, for
   revalidatePath("/users/delegation");
   revalidatePath(`/admin/users/${userId}`);
   revalidatePath("/users/work", "layout");
-  return { ok: true, message: `Saved. Both of you have been told.${moved}` };
+  // v1.85.3: a back-dated out-of-office that is already over is only recorded.
+  return { ok: true, message: past ? "Recorded. Those dates are over, so nothing changes now; you've been told." : `Saved. Both of you have been told.${moved}` };
 }
 
 export async function stopDelegationAction(_previous: ActionResult | null, formData: FormData): Promise<ActionResult> {

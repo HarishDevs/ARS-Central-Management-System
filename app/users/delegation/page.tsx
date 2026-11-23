@@ -4,6 +4,7 @@ import { ProfileTabs } from "@/features/shell/ProfileTabs";
 import { PageHeader } from "@/features/shell/PageHeader";
 import { Hint } from "@/features/ui/Hint";
 import { DelegationForm } from "@/features/requests/DelegationForms";
+import { earliestDelegationDay } from "@/server/approvals/collab";
 import { DelegationList } from "@/features/requests/DelegationList";
 import { indiaToday, listDelegationsInvolving } from "@/lib/db/repositories/collab.repository";
 import { listApproverOptions } from "@/lib/db/repositories/approvers.repository";
@@ -64,7 +65,7 @@ export default async function DelegationPage() {
       <div className="grid gap-6 xl:grid-cols-2">
         <section className="card">
           <h2 className="border-b border-line px-5 py-4 font-semibold">Set out of office</h2>
-          <DelegationForm people={options} today={today} />
+          <DelegationForm people={options} today={today} earliest={earliestDelegationDay(today)} />
         </section>
         <section className="card">
           <h2 className="border-b border-line px-5 py-4 font-semibold">Yours and the ones you cover</h2>
