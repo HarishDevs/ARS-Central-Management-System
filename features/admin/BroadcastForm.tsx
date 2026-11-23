@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Send, Users } from "lucide-react";
 import { PeoplePicker, type PersonOption } from "@/features/ui/PeoplePicker";
 import { ConfirmDialog } from "@/features/ui/Dialog";
-import { previewBroadcastAction, sendBroadcastAction } from "@/app/admin/notifications/actions";
+import { previewBroadcastAction, sendBroadcastAction } from "@/app/admin/setup/notifications/actions";
 
 // D-252: Admin → Notifications → Send. Who it reaches is counted on the
 // server before sending, and Send always asks first.

@@ -294,7 +294,7 @@ test("the request page on a phone: one column, the journey, then Request details
 
 test("Admin → Custom approval: once saved, leaving doesn't ask about unsaved changes", async ({ page, context }) => {
   await as(context, "E2E_ADMIN");
-  await page.goto("/admin/custom-approval");
+  await page.goto("/admin/setup/custom-approval");
   // A change made and undone: the form is "changed", the set-up stays as it was.
   const sla = page.getByLabel("Default: respond within hours");
   const before = await sla.inputValue();
@@ -303,7 +303,8 @@ test("Admin → Custom approval: once saved, leaving doesn't ask about unsaved c
   await page.getByRole("button", { name: "Save set-up" }).click();
   await page.getByRole("alertdialog").getByRole("button", { name: "Yes, save" }).click();
   await expect(page.getByText(/^Saved\. New custom approvals use this set-up/)).toBeVisible();
-  await page.getByRole("link", { name: "Overview" }).first().click();
+  // v1.85.0 (D-412): leave by Back to the app (the Overview group may be folded).
+  await page.getByTestId("back-to-app").first().click();
   await expect(page.getByRole("alertdialog", { name: "Leave without saving?" })).toHaveCount(0);
   await expect(page).not.toHaveURL(/custom-approval/);
 });

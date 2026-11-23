@@ -1,6 +1,6 @@
 "use client";
 
-import { saveBudgetAction } from "@/app/admin/budgets/actions";
+import { saveBudgetAction } from "@/app/admin/setup/budgets/actions";
 import { FieldError, ResultMessage, SubmitButton, useActionForm } from "@/features/ui/form";
 
 export function BudgetForm({ departmentId, departmentName, fy, amountRupees, warnPercent }: { departmentId: number; departmentName: string; fy: number; amountRupees: string; warnPercent: number }) {

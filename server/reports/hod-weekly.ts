@@ -57,7 +57,7 @@ export async function runHodWeekly(now = new Date()): Promise<Record<string, num
     }
     try {
       const stats = await departmentWeek(Number(department.id), week.from, week.to, now);
-      const text = hodReportText({ department: String(department.name), hodName: String(department.hod_name), weekLabel: week.label, stats, link: `${appBaseUrl()}/admin/analytics` });
+      const text = hodReportText({ department: String(department.name), hodName: String(department.hod_name), weekLabel: week.label, stats, link: `${appBaseUrl()}/admin/insights/analytics` });
       await sendEmail(
         await getEmailConfig(),
         { to: String(department.hod_email), subject: `ARS CMS: ${department.name} weekly report (${week.label})`, text, idempotencyKey: `ars-hod-${week.weekStart}-d${department.id}` },

@@ -6,7 +6,7 @@ import { sessionCookie } from "./db";
 test("add from the library, reorder, duplicate, remove only after asking, undo", async ({ page, context }) => {
   await context.addCookies([await sessionCookie("E2E_ADMIN")]);
   await page.setViewportSize({ width: 1600, height: 1000 });
-  await page.goto("/admin/custom-approval");
+  await page.goto("/admin/setup/custom-approval");
   const designer = page.getByTestId("form-designer");
   const names = () =>
     designer

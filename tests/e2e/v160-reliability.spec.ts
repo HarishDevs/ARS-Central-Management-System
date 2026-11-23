@@ -12,7 +12,7 @@ async function as(context: BrowserContext, loginId: string) {
 
 test("IT sees Needs attention with reasons and filters; requesters get a 404", async ({ page, context }) => {
   await as(context, "E2E_ADMIN");
-  await page.goto("/admin/attention");
+  await page.goto("/admin#attention");
   await expect(page.getByRole("heading", { name: "Needs attention" })).toBeVisible();
   const filters = page.getByRole("navigation", { name: "Filter by reason" });
   await expect(filters.getByRole("link", { name: /^All \(\d+\)$/ })).toHaveAttribute("aria-current", "page");
@@ -24,7 +24,7 @@ test("IT sees Needs attention with reasons and filters; requesters get a 404", a
   await expect(page.getByRole("table", { name: "Requests that need attention" }).or(page.getByText("Nothing needs attention"))).toBeVisible();
 
   await as(context, "E2E_REQ");
-  const response = await page.goto("/admin/attention");
+  const response = await page.goto("/admin#attention");
   expect(response?.status()).toBe(404);
 });
 

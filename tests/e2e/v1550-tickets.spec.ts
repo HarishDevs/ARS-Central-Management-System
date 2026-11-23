@@ -39,11 +39,11 @@ test.afterAll(async () => {
 
 test("IT sets up a ticket form: the shared Form Builder, its category and its coordinators", async ({ page, context }) => {
   await as(context, "E2E_SUPER");
-  await page.goto("/admin/ticket-forms");
+  await page.goto("/admin/setup/ticket-forms");
   await page.getByLabel("Name", { exact: true }).fill(formName);
   await page.getByLabel(/^Code/).fill(`E2E_LAPTOP_${stamp.toUpperCase()}`);
   await page.getByRole("button", { name: "Create type" }).click();
-  await expect(page).toHaveURL(/\/admin\/ticket-forms\/\d+/);
+  await expect(page).toHaveURL(/\/admin\/setup\/ticket-forms\/\d+/);
   // Category and coordinators (kept with the form).
   const setup = page.getByTestId("ticket-form-setup");
   await setup.getByLabel("Category").selectOption({ label: "IT Hardware" });

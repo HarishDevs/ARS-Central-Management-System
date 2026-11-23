@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { saveCustomApprovalAction } from "@/app/admin/custom-approval/actions";
+import { saveCustomApprovalAction } from "@/app/admin/setup/custom-approval/actions";
 import { FormFieldsEditor } from "@/features/admin/FormFieldsEditor";
 import { DynamicFields } from "@/features/requests/DynamicFields";
 import { ResultMessage, SubmitButton, useActionForm } from "@/features/ui/form";

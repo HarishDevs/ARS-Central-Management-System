@@ -78,7 +78,7 @@ Applies to v1.46.0 (2 Nov 2026): **21 automations** (v1.41.0 had 18; v1.42.1 add
 
 ## Stuck-request detection (FN2)
 
-`server/ops/stuck.ts`, shown on **IT → Needs attention** (`/admin/attention`). Detection is read-only. Each finding is fixed through an existing audited action, or hidden for 1–30 days with a reason (`stuck_snoozes`, audited as `STUCK_SNOOZED`).
+`server/ops/stuck.ts`, shown on **IT → Needs attention** (`/admin#attention`). Detection is read-only. Each finding is fixed through an existing audited action, or hidden for 1–30 days with a reason (`stuck_snoozes`, audited as `STUCK_SNOOZED`).
 
 | Reason | Detected when | What to do |
 |---|---|---|

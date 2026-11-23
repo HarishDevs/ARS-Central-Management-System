@@ -28,8 +28,9 @@ let taskTypeUrl = "";
 
 test("IT sets up a task type: form field, options, preview, publish", async ({ page, context }) => {
   await as(context, "E2E_ADMIN");
-  await page.goto("/admin");
-  await page.locator("aside nav").getByRole("link", { name: "Task types" }).click();
+  // v1.85.0 (D-412): Admin → Set-up → the section list.
+  await page.goto("/admin/setup");
+  await page.getByRole("navigation", { name: "Set-up sections" }).getByRole("link", { name: "Task types" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Task types" })).toBeVisible();
   await page.getByLabel("Name", { exact: true }).fill(`E2E repair ${stamp}`);
   await page.getByLabel("Code", { exact: true }).fill(`E2E_REPAIR_${stamp}`);
@@ -52,7 +53,7 @@ test("IT sets up a task type: form field, options, preview, publish", async ({ p
   await expect(page.getByText(/Draft saved\. It passes every check/)).toBeVisible();
   await page.getByRole("button", { name: "Publish version 1" }).click();
   await page.getByRole("alertdialog").getByRole("button", { name: "Publish version 1" }).click();
-  await expect(page.getByText(/Version 1 is live/)).toBeVisible();
+  await expect(page.getByText(/^Version 1 is live. New/)).toBeVisible();
   await expect(page.getByTestId("type-history")).toContainText("Published");
 });
 

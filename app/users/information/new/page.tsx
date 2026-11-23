@@ -55,7 +55,7 @@ export default async function NewInformationPage({ searchParams }: { searchParam
         <>
           <PageHeader title="New information" icon={Megaphone} description="Choose the kind of information. Each has its own form, recipients and acknowledgement rules, set by IT." />
           {allowed.length === 0 ? (
-            <EmptyState title="No information types for you yet" body="IT sets up the kinds of information in Admin → Information types. Ask them if you need one." />
+            <EmptyState title="No information types for you yet" body="IT sets up the kinds of information in Admin → Set-up → Information types. Ask them if you need one." />
           ) : (
             <ul className="grid gap-4 md:grid-cols-2 lg:grid-cols-3" data-testid="info-types">
               {allowed.map((type) => (

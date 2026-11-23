@@ -59,7 +59,7 @@ const USER_ROUTES = [
   "/users/security",
   "/users/help",
 ];
-const ADMIN_ROUTES = ["/admin", "/admin/attention", "/admin/analytics", "/admin/records/requests", "/admin/users", "/admin/organisation", "/admin/notifications", "/admin/notifications?tab=history", "/admin/notifications?tab=devices", "/admin/reminders", "/admin/budgets"];
+const ADMIN_ROUTES = ["/admin", "/admin#attention", "/admin/insights/analytics", "/admin/records/requests", "/admin/users", "/admin/organisation", "/admin/setup/notifications", "/admin/setup/notifications?tab=history", "/admin/setup/notifications?tab=devices", "/admin/setup/reminders", "/admin/setup/budgets"];
 const SUPER_ROUTES = ["/superadmin", "/superadmin/connections/email", "/superadmin/monitoring/jobs", "/superadmin/monitoring/deliveries", "/superadmin/monitoring/audit", "/superadmin/security/sign-in-history"];
 
 type Row = { role: string; route: string; width: number; overflow: number; clipped: string[]; status: number };

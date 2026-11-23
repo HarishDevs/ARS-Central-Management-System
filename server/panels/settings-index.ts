@@ -7,6 +7,7 @@ import { isHiddenHref, navAccess } from "@/server/authorization/page-access";
 import { SETTING_DEFINITIONS } from "@/server/settings/definitions";
 import { SETTING_GROUP_PAGE, SUPERADMIN_NAV, SUPERADMIN_SUBPAGES } from "@/server/panels/superadmin-nav";
 import { adminNav } from "@/server/panels/admin-nav";
+import { insightsTabs, SETUP_SECTIONS } from "@/server/panels/admin-hubs";
 import type { AuthenticatedUser } from "@/types/auth";
 
 // v1.84.0 (D-411, owner's redesign): what Search settings may find for this
@@ -46,7 +47,14 @@ export async function settingsIndexFor(user: AuthenticatedUser, admin?: { items:
   if (evaluateAreaAccess(user, "admin").allowed) {
     const items = admin?.items ?? (await adminNav(user));
     const { hidden } = await navAccess(user);
-    out.push(...adminEntries(items, hidden, admin?.extra ?? []));
+    // v1.85.0 (D-412): also each Insights tab (only those switched on) and Set-up section.
+    const extra: SettingsIndexEntry[] = [
+      { label: "Needs attention", href: "/admin/attention", place: "Admin → Overview", keywords: "stuck requests blocked inactive approver unsent" },
+      ...(await insightsTabs(user)).filter((tab) => tab.href !== "/admin/insights").map((tab) => ({ label: tab.label, href: tab.href, place: "Admin → Insights" })),
+      ...SETUP_SECTIONS.map((section) => ({ label: section.label, href: section.href, place: `Admin → Set-up → ${section.group}`, keywords: section.description })),
+      ...(admin?.extra ?? []),
+    ];
+    out.push(...adminEntries(items, hidden, extra));
   }
   return out;
 }

@@ -11,7 +11,7 @@ import { SettingsSearch, type SettingsIndexEntry } from "@/features/ui/SettingsS
 // left and the chosen section on the right; Search settings above the list.
 // Each section keeps its own form with one Save and the unsaved guard
 // (SettingsGroupForm / UnsavedGuard), so leaving a section with changes asks.
-// On a phone the list is the hub page (base) and each section opens as its
+// On a phone the hub page (base) lists the sections and each one opens as its
 // own page with a way back to the list.
 export interface SettingsSection {
   href: string;
@@ -34,7 +34,7 @@ export function SettingsLayout({ base, title, sections, index, children }: { bas
   }
   return (
     <div className="grid gap-6 lg:grid-cols-[15rem_minmax(0,1fr)]" data-testid="settings-layout">
-      <nav aria-label={`${title} sections`} className={`${atHub ? "" : "hidden"} lg:sticky lg:top-20 lg:block lg:self-start`}>
+      <nav aria-label={`${title} sections`} className="hidden lg:sticky lg:top-20 lg:block lg:self-start">
         <SettingsSearch index={index} />
         {groups.map((block) => (
           <div key={block.group} className="mb-3">

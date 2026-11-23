@@ -21,7 +21,7 @@ const REVALIDATE: Record<ImportKind, string[]> = {
   users: ["/admin/users", "/admin"],
   departments: ["/admin/organisation", "/admin"],
   designations: ["/admin/organisation"],
-  groups: ["/admin/groups", "/admin"],
+  groups: ["/admin/setup/groups", "/admin"],
   holidays: ["/admin/calendar", "/admin"],
 };
 

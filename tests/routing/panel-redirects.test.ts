@@ -32,8 +32,42 @@ export const OLD_SUPERADMIN = [
   "/superadmin/audit",
   "/superadmin/logins",
 ];
-export const OLD_ADMIN_MOVED = ["/admin/import"];
-const STAYED = ["/superadmin", "/admin", "/admin/users", "/admin/users/new", "/admin/users/7", "/admin/organisation", "/admin/calendar", "/admin/records/requests", "/admin/records/tasks", "/admin/records/information"];
+export const OLD_ADMIN_MOVED = [
+  "/admin/import",
+  // v1.85.0 (D-412)
+  "/admin/attention",
+  "/admin/analytics",
+  "/admin/analytics/list",
+  "/admin/analytics/metrics",
+  "/admin/reports",
+  "/admin/reports/pending",
+  "/admin/dashboards",
+  "/admin/dashboards/approvers",
+  "/admin/dashboards/departments",
+  "/admin/dashboards/raisers",
+  "/admin/dashboards/utilisation",
+  "/admin/workload",
+  "/admin/workload/reassign",
+  "/admin/ai-analytics",
+  "/admin/custom-approval",
+  "/admin/groups",
+  "/admin/doa",
+  "/admin/budgets",
+  "/admin/task-types",
+  "/admin/task-types/3",
+  "/admin/task-holidays",
+  "/admin/information-types",
+  "/admin/information-types/4",
+  "/admin/ticket-forms",
+  "/admin/ticket-forms/5",
+  "/admin/ticket-categories",
+  "/admin/meetings",
+  "/admin/reminders",
+  "/admin/reminders/6",
+  "/admin/notifications",
+  "/admin/ai-rules",
+];
+const STAYED = ["/superadmin", "/admin", "/admin/users", "/admin/users/new", "/admin/users/7", "/admin/organisation", "/admin/calendar", "/admin/records/requests", "/admin/records/tasks", "/admin/records/information", "/admin/records/tickets", "/admin/records/meetings", "/admin/insights", "/admin/setup"];
 
 // Does an address have a page.tsx (route groups and [dynamic] folders allowed)?
 function pageExists(address: string): boolean {
@@ -80,5 +114,8 @@ describe("panel redirect map", () => {
     expect(panelRedirectUrl("/superadmin/requests/", "")).toBe("/superadmin/data/danger-zone/requests");
     expect(panelRedirect("/api/superadmin/audit")).toBeNull();
     expect(panelRedirect("/superadmin/connections/email")).toBeNull();
+    expect(panelRedirectUrl("/admin/attention", "?reason=BLOCKED_STEP")).toBe("/admin?reason=BLOCKED_STEP#attention");
+    expect(panelRedirectUrl("/admin/reports/pending", "?x=1")).toBe("/admin/insights/reports/pending?x=1");
+    expect(panelRedirect("/api/admin/records/requests")).toBeNull();
   });
 });

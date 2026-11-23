@@ -1,5 +1,16 @@
 # Release notes
 
+## v1.85.0 (23 Nov 2026): the Admin panel, reorganised
+No migration. Admin (IT team) only (D-412, owner-approved redesign, docs/ops/ADMIN-REDESIGN-BRIEF.md):
+- **Five groups:** Overview, Records, Insights, Set-up, People & organisation (31 entries in 9 groups before).
+- **Overview:** today's figures (each opens its list), **Search records** (one search across approval requests, tasks, information, tickets and meetings; the first five of each, See all, or open one beside its list) and **Needs attention** built in (the old Needs attention address opens it there).
+- **Records:** five tabs, now with **Tickets** and **Meetings**. One table for all: filters are **chips** (field, operator, value, e.g. "Status is Approved", "Submitted on or after 1 Nov 2026"; Add filter, × to remove; kept in the address, a sheet from the bottom on a phone), click a column title to sort, Group by and saved views as before. **Click a row** and the record opens in a **pane** on the right: ⤢ for a centred dialog (remembered), **Open full page** for its own page, Escape or × to close.
+- **Insights:** one hub with tabs: Summary, Dashboards, Analytics, Reports, Workload (with reassign) and AI analytics. Each tab keeps its switch and page access.
+- **Set-up:** one page with a section list: Approvals (custom approval, approver groups, DoA, budgets), Tasks (task types, task settings and holidays), Information types, Ticketing (forms, categories), Meetings, Automation (reminders & escalations, notifications) and AI rules. **Search settings** sits above the list. On a phone the list is the first page and each section has a way back.
+- **People & organisation:** Users & roles, Departments and Working calendar (the Users screens are unchanged; their redesign comes next).
+- **Every old address still works**: it moves on to the new page by itself.
+- **Owner steps:** publish v1.85.0 (nothing else).
+
 ## v1.84.0 (23 Nov 2026): the Super Admin panel, reorganised
 No migration. Super Admin only, plus the shared panel parts for both Admin and Super Admin (D-411, owner-approved redesign, docs/ops/ADMIN-REDESIGN-BRIEF.md):
 - **Five groups in the sidebar:** Health, Connections, Security & access, Data, Monitoring. Groups fold and stay as you left them; **Search settings** at the top finds any page or setting across both panels (only what you may open); **Back to the app** at the bottom. The Admin sidebar folds its groups too.

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
-import { previewRuleAction, saveRuleAction } from "@/app/admin/reminders/actions";
+import { previewRuleAction, saveRuleAction } from "@/app/admin/setup/reminders/actions";
 import { ResultMessage, SubmitButton, useActionForm } from "@/features/ui/form";
 import { Hint } from "@/features/ui/Hint";
 import { PeoplePicker, type PersonOption } from "@/features/ui/PeoplePicker";
@@ -51,7 +51,7 @@ export function NotificationRuleEditor({
   const test = useActionForm(previewRuleAction);
   const savedId = save.result?.ok ? Number(save.result.data?.id ?? 0) : 0;
   useEffect(() => {
-    if (savedId && savedId !== id) router.replace(`/admin/reminders/${savedId}?saved=1`);
+    if (savedId && savedId !== id) router.replace(`/admin/setup/reminders/${savedId}?saved=1`);
   }, [savedId, id, router]);
 
   const set = <K extends keyof RuleInput>(key: K, value: RuleInput[K]) => setRule((current) => ({ ...current, [key]: value }));

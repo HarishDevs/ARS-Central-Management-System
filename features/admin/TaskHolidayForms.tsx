@@ -1,6 +1,6 @@
 "use client";
 
-import { departmentHolidayAction, holidayTasksAction, saveAutomationLimitsAction, saveFieldLimitsAction, savePlanningSettingsAction, savePmExtrasAction, saveTaskExtrasAction, saveTaskHolidaySettingsAction } from "@/app/admin/task-holidays/actions";
+import { departmentHolidayAction, holidayTasksAction, saveAutomationLimitsAction, saveFieldLimitsAction, savePlanningSettingsAction, savePmExtrasAction, saveTaskExtrasAction, saveTaskHolidaySettingsAction } from "@/app/admin/setup/task-settings/actions";
 import type { PlanningSettings } from "@/server/work/working-days";
 import type { FieldLimits } from "@/server/work/custom-fields";
 import type { AutomationLimits } from "@/server/work/automation-rules";

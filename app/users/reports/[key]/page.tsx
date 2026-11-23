@@ -13,5 +13,5 @@ export default async function OldReportPage({ params, searchParams }: { params: 
   const { key } = await params;
   if (!/^[a-z_]{3,60}$/.test(key)) notFound();
   const query = new URLSearchParams(Object.entries(await searchParams).filter((entry): entry is [string, string] => typeof entry[1] === "string")).toString();
-  redirect(`/admin/reports/${key}${query ? `?${query}` : ""}`);
+  redirect(`/admin/insights/reports/${key}${query ? `?${query}` : ""}`);
 }

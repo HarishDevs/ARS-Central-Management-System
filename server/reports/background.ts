@@ -89,7 +89,7 @@ async function tellExportFailed(job: { id: number; userId: number; reportKey: st
     userId: job.userId,
     title: "Your export couldn't be made",
     message: `${REPORT[job.reportKey]?.name ?? job.reportKey}: ${message.slice(0, 200)} Ask for it again from Reports.`,
-    deepLink: `${appBaseUrl()}/admin/reports#exports`,
+    deepLink: `${appBaseUrl()}/admin/insights/reports#exports`,
     email: null,
     whatsappVariables: null,
   }).catch((error) => logError("export failure notify failed", error, { exportId: job.id }));
@@ -159,7 +159,7 @@ export async function runExportJob(id: number): Promise<"DONE" | "FAILED" | "RET
       userId: job.user_id,
       title: "Your export is ready",
       message: `${ran.report.name}: ${ran.result.rows.length.toLocaleString("en-IN")} rows. Download it within ${EXPORT_KEEP_DAYS} days.`,
-      deepLink: `${base}/admin/reports#exports`,
+      deepLink: `${base}/admin/insights/reports#exports`,
       email: null,
       whatsappVariables: null,
     }).catch((error) => logError("export notify failed", error, { exportId: id }));

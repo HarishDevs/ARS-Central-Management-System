@@ -23,7 +23,7 @@ export default async function Page() {
     <>
       <PageHeader title="Ticket dashboards" icon={LayoutDashboard} description={isAdmin ? "Every category's tickets." : "The tickets of the forms you coordinate."} />
       {categories.length === 0 ? (
-        <EmptyState title="No ticket categories yet" body="IT adds them in Admin → Ticket categories." />
+        <EmptyState title="No ticket categories yet" body="IT adds them in Admin → Set-up → Ticket categories." />
       ) : (
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-testid="ticket-dashboards">
           {categories.map((category, index) => {

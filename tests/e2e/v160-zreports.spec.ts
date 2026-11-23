@@ -10,7 +10,7 @@ async function as(context: BrowserContext, loginId: string) {
 
 test("IT opens a report, downloads Excel, CSV and PDF, saves the view, schedules it and adds an alert", async ({ page, context }) => {
   await as(context, "E2E_ADMIN");
-  await page.goto("/admin/reports");
+  await page.goto("/admin/insights/reports");
   await expect(page.getByRole("heading", { name: "Reports", exact: true })).toBeVisible();
   await page.getByRole("link", { name: /Request register/ }).click();
   await expect(page.getByRole("heading", { name: "Request register" })).toBeVisible();
@@ -45,7 +45,7 @@ test("IT opens a report, downloads Excel, CSV and PDF, saves the view, schedules
   await page.getByRole("button", { name: "Schedule" }).click();
   await expect(page.getByText(/Scheduled\. It is emailed to you/)).toBeVisible();
 
-  await page.goto("/admin/reports");
+  await page.goto("/admin/insights/reports");
   await expect(page.getByText(/Every Monday at 08:00/)).toBeVisible();
   const alerts = page.getByRole("region", { name: "My alerts" });
   await alerts.getByLabel("Tell me when").selectOption("OVERDUE_TASKS");

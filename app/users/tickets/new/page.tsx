@@ -71,7 +71,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
       {!type || !settings || !may ? (
         <EmptyState title="You can't raise this kind of ticket" body="Ask IT if you think you should." />
       ) : coordinators.length === 0 ? (
-        <EmptyState title="This form has no coordinator yet" body="Nobody would receive the ticket. Ask IT to add a coordinator in Admin → Ticket forms." />
+        <EmptyState title="This form has no coordinator yet" body="Nobody would receive the ticket. Ask IT to add a coordinator in Admin → Set-up → Ticket forms." />
       ) : (
         <RaiseTicketForm
           typeId={chosen.typeId}

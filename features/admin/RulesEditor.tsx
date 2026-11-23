@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Bold, Eraser, Heading2, Heading3, Italic, Link2, List, ListOrdered, Quote, Redo2, Strikethrough, Table, Underline, Undo2 } from "lucide-react";
-import { saveAiRuleAction } from "@/app/admin/ai-rules/actions";
+import { saveAiRuleAction } from "@/app/admin/setup/ai-rules/actions";
 import { ResultMessage, SubmitButton, useActionForm } from "@/features/ui/form";
 import { parseBlocks } from "@/features/ai/RichAnswer";
 import { Hint } from "@/features/ui/Hint";

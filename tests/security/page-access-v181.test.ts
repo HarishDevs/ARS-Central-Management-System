@@ -48,7 +48,7 @@ describe("isOpenAddress (V181-A7)", () => {
   });
 
   it("no open address is also a configured page (a page rule would be silently skipped)", () => {
-    for (const sample of ["/users/security", "/users/approvals", "/users/more", "/users/people/1", "/admin/notifications"]) {
+    for (const sample of ["/users/security", "/users/approvals", "/users/more", "/users/people/1", "/admin/setup/notifications"]) {
       expect(pageForPath(sample), sample).toBeNull();
       expect(OPEN_PATHS.some((pattern) => pattern.test(sample)), sample).toBe(true);
     }

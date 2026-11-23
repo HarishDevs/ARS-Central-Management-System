@@ -353,7 +353,7 @@ Push uses standard Web Push with VAPID; the server queues one delivery per devic
 - Rate-limited (60 a minute).
 
 ### Server actions
-- `/admin/notifications`: `previewBroadcastAction` (who an audience reaches) and `sendBroadcastAction` (IT Admin and Super Admin; 5 a minute; audited `NOTIFICATION_BROADCAST`; queued through the notification outbox).
+- `/admin/setup/notifications`: `previewBroadcastAction` (who an audience reaches) and `sendBroadcastAction` (IT Admin and Super Admin; 5 a minute; audited `NOTIFICATION_BROADCAST`; queued through the notification outbox).
 - `/superadmin/connections/email`: `generatePushKeysAction` (Super Admin; keys saved through the settings store, audited).
 - `/users`:
   - `dismissInstallInviteAction` ("Maybe later" remembered on the account);

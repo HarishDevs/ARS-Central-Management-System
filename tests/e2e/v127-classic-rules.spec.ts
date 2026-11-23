@@ -131,11 +131,12 @@ test("D-212: the keyboard works for a Super Admin too (closed confirmations on t
 
 test("D-209: IT builds, tests, saves, turns off and deletes an escalation rule", async ({ page, context }) => {
   await as(context, "E2E_ADMIN");
-  await page.goto("/admin");
-  await page.locator("aside nav").getByRole("link", { name: "Reminders & escalations" }).click();
+  // v1.85.0 (D-412): Admin → Set-up → the section list.
+  await page.goto("/admin/setup");
+  await page.getByRole("navigation", { name: "Set-up sections" }).getByRole("link", { name: "Reminders & escalations" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Reminders & escalations" })).toBeVisible();
   await page.getByRole("link", { name: "New rule" }).click();
-  await expect(page).toHaveURL(/\/admin\/reminders\/new$/);
+  await expect(page).toHaveURL(/\/admin\/setup\/reminders\/new$/);
   const name = `E2E late purchases ${Date.now().toString(36)}`;
   await page.getByLabel("Name").fill(name);
   await page.getByRole("radio", { name: /Escalation/ }).check();
@@ -148,7 +149,7 @@ test("D-209: IT builds, tests, saves, turns off and deletes an escalation rule",
   await page.getByRole("button", { name: "Test (nothing is sent)" }).click();
   await expect(page.getByTestId("rule-test")).toContainText(/0 pending approval steps match the conditions now/);
   await page.getByRole("button", { name: "Save rule" }).click();
-  await expect(page).toHaveURL(/\/admin\/reminders\/\d+\?saved=1$/);
+  await expect(page).toHaveURL(/\/admin\/setup\/reminders\/\d+\?saved=1$/);
   await expect(page.getByText(/Saved\. The rule runs from the next job run/).first()).toBeVisible();
   await page.screenshot({ path: "test-results/rule-editor.png", fullPage: true });
 

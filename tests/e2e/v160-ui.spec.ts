@@ -66,7 +66,7 @@ test("RA-03 axe finds no serious problems on the main pages, light and dark", as
     for (const url of userPages) problems.push(...(await scan(page, url)));
     await as(context, "E2E_SUPER");
     await context.addCookies([{ name: "ars_theme", value: theme, domain: "localhost", path: "/" }]);
-    for (const url of ["/admin", "/admin/users", "/admin/workload", "/admin/attention", "/admin/budgets", "/users/analytics", "/users/analytics/metrics", "/admin/analytics", "/admin/reports", "/admin/reports/pending_approvals", "/superadmin", "/superadmin/monitoring/deliveries", "/superadmin/monitoring/jobs", "/superadmin/data/retention", "/admin/workflows/import", "/admin/task-types", "/admin/information-types"]) problems.push(...(await scan(page, url)));
+    for (const url of ["/admin", "/admin/users", "/admin/insights/workload", "/admin/setup/budgets", "/users/analytics", "/users/analytics/metrics", "/admin/insights/analytics", "/admin/insights/reports", "/admin/insights/reports/pending_approvals", "/superadmin", "/superadmin/monitoring/deliveries", "/superadmin/monitoring/jobs", "/superadmin/data/retention", "/admin/workflows/import", "/admin/setup/task-types", "/admin/setup/information-types"]) problems.push(...(await scan(page, url)));
   }
   expect(problems, problems.join("\n")).toEqual([]);
 });

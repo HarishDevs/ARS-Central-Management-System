@@ -11,5 +11,5 @@ export const metadata: Metadata = { title: "Reports" };
 export default async function OldReportsPage() {
   const { user } = await requireArea("users");
   if (!(await canUseReports(user))) notFound();
-  redirect("/admin/reports");
+  redirect("/admin/insights/reports");
 }

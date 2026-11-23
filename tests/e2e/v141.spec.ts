@@ -66,7 +66,7 @@ test("the daily session's end is explained", async ({ page }) => {
 
 test("Admin → Notifications: count the audience, send with a confirmation, see it in History and in the Inbox", async ({ page, context }) => {
   await as(context, "E2E_ADMIN");
-  await page.goto("/admin/notifications");
+  await page.goto("/admin/setup/notifications");
   await expect(page.getByTestId("push-overview")).toBeVisible();
   const form = page.getByTestId("broadcast-form");
   const stamp = Date.now().toString(36);
@@ -79,7 +79,7 @@ test("Admin → Notifications: count the audience, send with a confirmation, see
   await form.getByRole("button", { name: "Send" }).click();
   await page.getByRole("button", { name: "Send now" }).click();
   await expect(page.getByTestId("broadcast-result")).toContainText(/Sent to 1 person/);
-  await page.goto("/admin/notifications?tab=history");
+  await page.goto("/admin/setup/notifications?tab=history");
   await expect(page.getByTestId("broadcast-history")).toContainText(`Canteen closed ${stamp}`);
 });
 

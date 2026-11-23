@@ -8,11 +8,13 @@ test("IT sees every approval request, task and information item, filters them an
   await expect(page).toHaveURL(/\/admin\/records\/requests$/);
   await expect(page.getByRole("heading", { level: 1, name: "Approval requests" })).toBeVisible();
   await expect(page.getByTestId("records-table").getByRole("columnheader", { name: /Waiting on/ })).toBeVisible();
-  await page.getByTestId("list-toolbar").getByTestId("filter-menu").locator("summary").click();
-  await page.getByLabel("Status").selectOption("APPROVED");
-  await page.getByTestId("filter-menu").getByRole("button", { name: "Apply" }).click();
-  await expect(page.getByTestId("filter-menu").locator("summary")).toContainText("Filters: 1");
+  // v1.85.0 (D-412): filters are power-search chips (field, operator, value).
+  await page.getByTestId("power-add").click();
+  await page.getByTestId("power-panel").getByLabel("Field").selectOption("status");
+  await page.getByTestId("power-panel").getByLabel("Value").selectOption("APPROVED");
+  await page.getByTestId("power-apply").click();
   await expect(page).toHaveURL(/status=APPROVED/);
+  await expect(page.getByTestId("power-chip")).toContainText("Status is Approved");
   await page.getByRole("link", { name: /Submitted/ }).click();
   await expect(page).toHaveURL(/sort=submitted/);
   const download = await page.request.get("/api/admin/records/requests?status=APPROVED");

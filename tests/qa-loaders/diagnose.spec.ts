@@ -4,7 +4,7 @@ import { as, interceptActions, record } from "./helpers";
 // Follow-up diagnostics for two audit results (QA session 13).
 test("DIAG-040 one preset click: do the filter fields and the data follow the address?", async ({ page, context }) => {
   await as(context, "E2E_ADMIN");
-  await page.goto("/admin/dashboards/utilisation");
+  await page.goto("/admin/insights/dashboards/utilisation");
   const fromBefore = await page.getByLabel("From").inputValue();
   await page.getByRole("link", { name: "Last financial year" }).click();
   await expect(page).toHaveURL(/from=\d{4}-04-01&to=\d{4}-03-31/);
@@ -36,7 +36,7 @@ test("DIAG-074 sign-in with a malformed answer: what the page shows", async ({ p
 
 test("DIAG-040b rapid preset clicks: which period is actually on screen?", async ({ page, context }) => {
   await as(context, "E2E_ADMIN");
-  await page.goto("/admin/dashboards/utilisation");
+  await page.goto("/admin/insights/dashboards/utilisation");
   await page.route("**/*", async (route) => {
     if (route.request().headers()["rsc"] !== "1") return route.fallback();
     await new Promise((resolve) => setTimeout(resolve, 1500));
@@ -94,7 +94,7 @@ test("DIAG-011b Admin → Departments: Save held, then released", async ({ page,
 
 test("DIAG-039 period link: is the busy spinner shown while the page loads?", async ({ page, context }) => {
   await as(context, "E2E_ADMIN");
-  await page.goto("/admin/dashboards/utilisation");
+  await page.goto("/admin/insights/dashboards/utilisation");
   await page.route("**/*", async (route) => {
     if (route.request().resourceType() !== "document") return route.fallback();
     await new Promise((resolve) => setTimeout(resolve, 2000));

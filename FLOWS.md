@@ -26,6 +26,7 @@ The number of levels and how they combine is unlimited. There are no fixed "Leve
 | F-TS-R1 | Task Summary: range per tab, My sections (landing, moves, rules at midnight), CSV | Built 23 Nov 2026 (v1.76.0, behind pm_foundations) |
 | F-PM-BOARD-KEYS | Board: move a card from the keyboard (Space, arrows, Enter, Escape), announced | Built 22 Nov 2026 (v1.62.0, behind pm_foundations) |
 | F-PM-PANE | Task pane beside the view, resize kept; reactions; complete and delete with Undo; celebrations | Built 22 Nov 2026 (v1.62.0) |
+| F-ADMIN-RECORDS | Admin Records: five tabs, power-search chips, the record pane (side, dialog, full page) | Built 23 Nov 2026 (v1.85.0) |
 | F-PANELS | Admin and Super Admin navigation: five groups each, Health console, Search settings, old addresses redirect | Built 23 Nov 2026 (v1.84.0 Super Admin; v1.85.0 Admin) |
 | F-TASK-PANE-EVERYWHERE | Every task opens in the side pane on every screen; ⤢ dialog (kept per person); Open full page; full page for direct visits and phones | Built 23 Nov 2026 (v1.83.0) |
 | F-PM-SIDEBAR | Starred and department projects in the sidebar, sort and reorder | Built 22 Nov 2026 (v1.62.0) |
@@ -2618,6 +2619,25 @@ flowchart TD
   F -->|Alt + Up / Down, Alt + Shift + Up / Down| M[Moved at once, as before]
 ```
 - The server checks every move (moveInProject): only owners and editors; anyone else is refused.
+
+## F-ADMIN-RECORDS: Records with the power search and the record pane (v1.85.0, D-412)
+```mermaid
+flowchart TD
+  A[Admin → Records → a tab: requests, tasks, information, tickets, meetings] --> B[Server: requireArea admin + page key admin.records]
+  B --> C[The kind's own query and checks: listRecords / listTickets IT viewer / listMeetings scopeFor]
+  C --> T[Shared table: sort links, Group by, paging]
+  T --> F[Add filter: field, operator, value]
+  F --> Q[Query parameter in the address, e.g. status=APPROVED, from=2026-11-01]
+  Q --> C
+  T --> R[Click a row or its number]
+  R --> P[?open=id: record pane on the right]
+  P --> D{⤢}
+  D -- dialog --> PD[Centred dialog, kept in this browser]
+  PD -- back --> P
+  P --> FP[Open full page: the record's own page for actions]
+  P --> X[Escape or ×: pane closes, focus back on the row]
+  O[Admin overview: Search records] --> C
+```
 
 ## F-PANELS: Admin and Super Admin navigation (v1.84.0, D-411; v1.85.0, D-412)
 ```mermaid

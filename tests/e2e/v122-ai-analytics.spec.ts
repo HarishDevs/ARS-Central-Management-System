@@ -5,8 +5,11 @@ import { sessionCookie } from "./db";
 test("IT opens AI Analytics, sees the headline figures and changes the period", async ({ page, context }) => {
   await context.addCookies([await sessionCookie("E2E_ADMIN")]);
   await page.goto("/admin");
-  await page.getByTestId("sidebar").getByRole("link", { name: "AI Analytics" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "AI Analytics" })).toBeVisible();
+  // v1.85.0 (D-412): Admin → Insights → the AI analytics tab.
+  await page.getByTestId("sidebar").getByRole("button", { name: "Insights" }).click();
+  await page.getByTestId("sidebar").getByRole("link", { name: "Insights" }).click();
+  await page.getByTestId("hub-tabs").getByRole("link", { name: "AI analytics" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "AI analytics" })).toBeVisible();
   for (const tile of ["Questions asked", "Active users", "Answered", "Average answer time", "Tokens used", "Estimated cost"]) await expect(page.getByTestId("ai-kpis")).toContainText(tile);
   // v1.51.1: the period is in the toolbar's Filter dropdown.
   await page.getByTestId("filter-menu").locator("summary").click();
@@ -18,5 +21,5 @@ test("IT opens AI Analytics, sees the headline figures and changes the period", 
 
 test("a plain user gets a 404 for AI Analytics", async ({ page, context }) => {
   await context.addCookies([await sessionCookie("E2E_REQ")]);
-  expect((await page.goto("/admin/ai-analytics"))?.status()).toBe(404);
+  expect((await page.goto("/admin/insights/ai"))?.status()).toBe(404);
 });

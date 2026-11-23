@@ -37,7 +37,7 @@ const SCREENS: [RegExp, MobileScreen][] = [
 const TABLE_PAGES = [
   /^\/users\/(queue|queue\/sent-back|requests|approved|approved-by-me|collaborating|search|inbox|tasks|tickets|meetings|meetings\/follow-ups)$/,
   /^\/users\/work\/search$/,
-  /^\/admin\/(requests|users|attention|notifications|workload|budgets)$/,
+  /^\/admin\/(requests|users|setup\/notifications|setup\/budgets|insights\/workload)$/, // v1.85.0 (D-412): the moved Admin lists
   /^\/superadmin\/(monitoring\/(audit|deliveries|jobs)|security\/sign-in-history|data\/danger-zone\/requests)$/, // v1.84.0 (D-411): the moved Super Admin lists
 ];
 export function desktopSkeletonFor(pathname: string): "project" | "settings" | "table" | null {

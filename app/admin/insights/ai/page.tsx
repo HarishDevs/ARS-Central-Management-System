@@ -1,0 +1,329 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { PageHeader } from "@/features/shell/PageHeader";
+import { BarList, Heatmap, LineChart } from "@/features/analytics/Charts";
+import { Hint } from "@/features/ui/Hint";
+import { ListToolbar } from "@/features/ui/ListToolbar";
+import { requireArea } from "@/server/authorization/guards";
+import { getSettingValue } from "@/server/settings/values";
+import { bucketKey, bucketLabel, buckets, grainFor, indiaToday, PERIOD_LABEL, previousPeriod, resolvePeriod, type Period } from "@/server/analytics/periods";
+import { indiaDayStartUtc, nextIndiaDayStartUtc } from "@/server/records/filters";
+import { aiByDepartment, aiByMode, aiByPerson, aiByProvider, aiDaily, aiEnabledPeople, aiFailureReasons, aiLimitDays, aiTools, aiTotals, aiWeekHours, type Range } from "@/lib/db/repositories/ai-analytics.repository";
+import { change, compact, costEstimate, duration, groupFailures, MODE_NAME, percent, toolLabel, WEEKDAYS } from "@/server/ai/analytics";
+import { PROVIDER_LABEL } from "@/server/ai/providers";
+import { formatIndiaTime } from "@/server/notifications/security-messages";
+import { ListViews } from "@/features/lists/ListViews";
+import { FoldScope } from "@/features/ui/GroupFold";
+import { SortHead } from "@/features/admin/SortHead";
+import { GroupedRows } from "@/features/admin/GroupedRows";
+import { applyDefaultListView } from "@/server/lists/views";
+import { parseColumnSort, sortRows } from "@/server/lists/sorting";
+import { departmentBucket, groupRows, pickGroup } from "@/server/lists/group-rows";
+import { groupMenu, keepListState } from "@/server/admin/lists";
+
+// v1.58.0 (D-354, owner): both tables sort on every column, both ways
+// ("p_" Providers, "u_" Top users; one table at a time); Group by Department
+// (Top users) or Provider (Providers and models), folded at first; saved
+// views (list_admin_ai_analytics).
+const PATH = "/admin/insights/ai";
+const PROVIDER_COLUMNS = ["p_provider", "p_model", "p_answers", "p_failures", "p_rate", "p_time", "p_tokens", "p_cost"] as const;
+const PEOPLE_COLUMNS = ["u_name", "u_department", "u_questions", "u_conversations", "u_failures", "u_tokens", "u_last"] as const;
+const GROUPS = [
+  { key: "department", label: "Department (Top users)" },
+  { key: "provider", label: "Provider (Providers and models)" },
+] as const;
+
+export const metadata: Metadata = { title: "AI analytics" };
+export const dynamic = "force-dynamic";
+
+// D-193 (owner): how Pico Bot is used, for the IT team (Admin area):
+// adoption, questions, answers and failures, speed, tokens and estimated
+// cost, which chats, providers, departments and people, when people ask,
+// which data lookups answers used, and the daily limit. Compared with the
+// period just before. Read-only.
+const PERIODS = ["7d", "30d", "90d", "this_month", "last_month", "this_quarter", "this_fy"] as const;
+const range = (period: Period): Range => ({ from: indiaDayStartUtc(period.from), to: nextIndiaDayStartUtc(period.to) });
+
+export default async function AiAnalyticsPage({ searchParams }: { searchParams: Promise<{ period?: string; from?: string; to?: string; sortBy?: string; dir?: string; group?: string }> }) {
+  const { user } = await requireArea("admin");
+  const query = await searchParams;
+  await applyDefaultListView(user.id, "list_admin_ai_analytics", PATH, query);
+  const sort = parseColumnSort(query, [...PROVIDER_COLUMNS, ...PEOPLE_COLUMNS]);
+  const group = pickGroup(query.group, GROUPS.map((choice) => choice.key));
+  const period = resolvePeriod({ key: query.period, from: query.from, to: query.to }, indiaToday(new Date()));
+  const before = previousPeriod(period);
+  const now = range(period);
+  const [totals, previous, enabled, daily, modes, providerRows, peopleRows, departments, weekHours, tools, failures, dailyLimit, priceIn, priceOut] = await Promise.all([
+    aiTotals(now),
+    aiTotals(range(before)),
+    aiEnabledPeople(),
+    aiDaily(now),
+    aiByMode(now),
+    aiByProvider(now),
+    aiByPerson(now),
+    aiByDepartment(now),
+    aiWeekHours(now),
+    aiTools(now),
+    aiFailureReasons(now),
+    getSettingValue("ai.daily_questions_per_person").then((value) => Number(value) || 50),
+    getSettingValue("ai.price_in_per_million").then((value) => (value ? Number(value) : null)),
+    getSettingValue("ai.price_out_per_million").then((value) => (value ? Number(value) : null)),
+  ]);
+  const limitDays = await aiLimitDays(now, dailyLimit);
+  const providerName = (provider: string) => PROVIDER_LABEL[provider as keyof typeof PROVIDER_LABEL] ?? provider;
+  const providerSort = sort.sortBy?.startsWith("p_") ? sort.sortBy : null;
+  const providers = providerSort
+    ? sortRows(
+        providerRows,
+        (row) =>
+          providerSort === "p_provider" ? providerName(row.provider) : providerSort === "p_model" ? row.model : providerSort === "p_answers" ? row.answers : providerSort === "p_failures" ? row.failures : providerSort === "p_rate" ? (percent(row.failures, row.answers + row.failures) ?? 0) : providerSort === "p_time" ? row.avgLatencyMs : providerSort === "p_tokens" ? row.inputTokens + row.outputTokens : costEstimate(row.inputTokens, row.outputTokens, priceIn, priceOut),
+        sort.dir,
+      )
+    : providerRows;
+  const peopleSort = sort.sortBy?.startsWith("u_") ? sort.sortBy : null;
+  const people = peopleSort
+    ? sortRows(peopleRows, (row) => (peopleSort === "u_name" ? row.name : peopleSort === "u_department" ? row.department : peopleSort === "u_questions" ? row.questions : peopleSort === "u_conversations" ? row.conversations : peopleSort === "u_failures" ? row.failures : peopleSort === "u_tokens" ? row.tokens : row.lastAt), sort.dir)
+    : peopleRows;
+  const providerGroups = group === "provider" ? groupRows(providers, (row): [string, number] => [providerName(row.provider), 0]) : null;
+  const peopleGroups = group === "department" ? groupRows(people, (row) => departmentBucket(row.department)) : null;
+  const finished = totals.answers + totals.failures;
+  const finishedBefore = previous.answers + previous.failures;
+  const cost = costEstimate(totals.inputTokens, totals.outputTokens, priceIn, priceOut);
+  const grain = grainFor(period);
+  const keys = buckets(period, grain);
+  const byBucket = new Map<string, { questions: number; failures: number }>();
+  for (const day of daily) {
+    const key = bucketKey(day.day, grain);
+    const entry = byBucket.get(key) ?? { questions: 0, failures: 0 };
+    entry.questions += day.questions;
+    entry.failures += day.failures;
+    byBucket.set(key, entry);
+  }
+  const heat: Record<string, Record<string, number>> = {};
+  for (const cell of weekHours) (heat[WEEKDAYS[cell.weekday]!] ??= {})[String(cell.hour).padStart(2, "0")] = cell.questions;
+  const hours = Array.from({ length: 24 }, (_, hour) => String(hour).padStart(2, "0"));
+
+  return (
+    <>
+      <PageHeader
+        title="AI analytics"
+        description="How Pico Bot is used: adoption, questions, answers, speed, tokens and cost, by chat, provider, department and person. Changes compare with the period just before. Cost is an estimate from the prices entered in AI providers."
+        meta={`${period.label}: ${period.from} to ${period.to} · compared with ${before.from} to ${before.to}`}
+      />
+
+      {/* v1.51.1 (owner): toolbar filters instead of a filter form. */}
+      <ListToolbar
+        id="ai-analytics-period"
+        path="/admin/insights/ai"
+        label="Filter AI analytics period"
+        keep={keepListState(query)}
+        group={groupMenu(PATH, query, GROUPS, group)}
+        filterCount={period.key !== "30d" ? 1 : 0}
+        clearHref={period.key !== "30d" ? "/admin/insights/ai" : null}
+        filters={
+          <>
+            <div className="sm:col-span-2">
+              <label htmlFor="ai-period" className="field-label">
+                Period
+              </label>
+              <select id="ai-period" name="period" defaultValue={period.key} className="field-input field-compact">
+                {PERIODS.map((key) => (
+                  <option key={key} value={key}>
+                    {PERIOD_LABEL[key]}
+                  </option>
+                ))}
+                <option value="custom">Custom dates</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="ai-from" className="field-label">
+                From
+              </label>
+              <input id="ai-from" type="date" name="from" defaultValue={period.key === "custom" ? period.from : ""} className="field-input field-compact" />
+            </div>
+            <div>
+              <label htmlFor="ai-to" className="field-label">
+                To
+              </label>
+              <input id="ai-to" type="date" name="to" defaultValue={period.key === "custom" ? period.to : ""} className="field-input field-compact" />
+            </div>
+          </>
+        }
+      />
+
+      <ListViews userId={user.id} target="list_admin_ai_analytics" path={PATH} query={query} />
+
+      <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4" data-testid="ai-kpis">
+        <Tile label="Questions asked" value={compact(totals.questions)} delta={change(totals.questions, previous.questions)} hint="Questions people sent to Pico Bot in this period." />
+        <Tile label="Active users" value={`${totals.askers}`} sub={`of ${enabled} with AI · ${percent(totals.askers, enabled) ?? 0}% adoption`} delta={change(totals.askers, previous.askers)} hint="People who asked at least one question, out of the active people who may use AI." />
+        <Tile label="Answered" value={`${percent(totals.answers, finished) ?? 0}%`} sub={`${totals.answers} answered · ${totals.failures} failed`} delta={change(percent(totals.answers, finished), percent(previous.answers, finishedBefore))} hint="Share of questions Pico Bot answered; the rest failed (see Why answers failed)." />
+        <Tile label="Average answer time" value={duration(totals.avgLatencyMs)} sub={`90% within ${duration(totals.p90LatencyMs)}`} delta={change(totals.avgLatencyMs, previous.avgLatencyMs)} lowerIsBetter hint="Time from the question to the answer, including data lookups." />
+        <Tile label="Conversations" value={compact(totals.conversations)} sub={`${totals.askers ? (totals.questions / totals.askers).toFixed(1) : "0"} questions per active user`} delta={change(totals.conversations, previous.conversations)} hint="New chats started in this period." />
+        <Tile label="Tokens used" value={compact(totals.inputTokens + totals.outputTokens)} sub={`${compact(totals.inputTokens)} in · ${compact(totals.outputTokens)} out`} delta={change(totals.inputTokens + totals.outputTokens, previous.inputTokens + previous.outputTokens)} hint="What the AI providers count and bill." />
+        <Tile label="Estimated cost" value={cost === null ? "—" : `₹${cost.toLocaleString("en-IN")}`} sub={cost === null ? "Enter prices in AI providers" : "from the prices in AI providers"} hint="An estimate only; the provider's bill is the real figure." />
+        <Tile label="Answers using company data" value={`${percent(totals.withData, totals.answers) ?? 0}%`} sub={`${totals.calculated} with figures Pico Bot calculated`} delta={change(percent(totals.withData, totals.answers), percent(previous.withData, previous.answers))} hint="Answers that read ARS or Salesforce data, rather than general answers." />
+      </div>
+
+      <div className="mb-6">
+        <LineChart
+          title="Questions and failures over time"
+          help={`Per ${grain}, India time.`}
+          labels={keys.map((key) => bucketLabel(key, grain))}
+          series={[
+            { key: "questions", label: "Questions", colorVar: "--color-primary-600", marker: "circle" },
+            { key: "failures", label: "Failed answers", colorVar: "--color-error-600", dash: "2 4", marker: "diamond" },
+          ]}
+          values={{ questions: keys.map((key) => byBucket.get(key)?.questions ?? 0), failures: keys.map((key) => byBucket.get(key)?.failures ?? 0) }}
+          empty="No questions in this period."
+        />
+      </div>
+
+      <div className="mb-6 grid gap-6 lg:grid-cols-3">
+        <BarList title="Questions by chat" rows={modes.map((row) => ({ label: MODE_NAME[row.mode] ?? row.mode, value: row.questions, note: `${row.people} ${row.people === 1 ? "person" : "people"}` }))} empty="No questions in this period." />
+        <BarList title="Questions by department" rows={departments.map((row) => ({ label: row.department, value: row.questions, note: `${row.people} ${row.people === 1 ? "person" : "people"}` }))} empty="No questions in this period." />
+        <BarList title="Data lookups used" rows={tools.map((row) => ({ label: toolLabel(row.tool), value: row.uses }))} empty="No answers used company data." />
+      </div>
+
+      <section className="card mb-6 overflow-x-auto" aria-labelledby="ai-providers-usage">
+        <h2 id="ai-providers-usage" className="flex items-center gap-1.5 px-5 pt-4 font-semibold">
+          Providers and models
+          <Hint text="Each provider and model that answered: how many, how often it failed, how fast, and the tokens it used." align="start" />
+        </h2>
+        {providers.length === 0 ? (
+          <p className="px-5 py-4 text-label text-ink-muted">No answers in this period.</p>
+        ) : (
+          <FoldScope enabled={Boolean(providerGroups)}>
+          <table className="data-table" data-testid="ai-analytics-providers">
+            <SortHead
+              path={PATH}
+              query={query}
+              sort={sort}
+              columns={[
+                { key: "p_provider", label: "Provider" },
+                { key: "p_model", label: "Model" },
+                { key: "p_answers", label: "Answers" },
+                { key: "p_failures", label: "Failed" },
+                { key: "p_rate", label: "Failure rate" },
+                { key: "p_time", label: "Average time" },
+                { key: "p_tokens", label: "Tokens in / out" },
+                { key: "p_cost", label: "Estimated cost" },
+              ]}
+            />
+            <GroupedRows
+              rows={providers}
+              groups={providerGroups}
+              colSpan={8}
+              render={(row) => {
+                const rowCost = costEstimate(row.inputTokens, row.outputTokens, priceIn, priceOut);
+                return (
+                  <tr key={`${row.provider}:${row.model}`}>
+                    <td className="font-medium">{providerName(row.provider)}</td>
+                    <td className="text-label">{row.model}</td>
+                    <td className="tabular-nums">{row.answers}</td>
+                    <td className="tabular-nums">{row.failures}</td>
+                    <td className="tabular-nums">{percent(row.failures, row.answers + row.failures) ?? 0}%</td>
+                    <td className="tabular-nums">{duration(row.avgLatencyMs)}</td>
+                    <td className="tabular-nums text-label">
+                      {compact(row.inputTokens)} / {compact(row.outputTokens)}
+                    </td>
+                    <td className="tabular-nums">{rowCost === null ? "—" : `₹${rowCost.toLocaleString("en-IN")}`}</td>
+                  </tr>
+                );
+              }}
+            />
+          </table>
+          </FoldScope>
+        )}
+      </section>
+
+      <section className="card mb-6 overflow-x-auto" aria-labelledby="ai-people-usage">
+        <h2 id="ai-people-usage" className="flex items-center gap-1.5 px-5 pt-4 font-semibold">
+          Top users
+          <Hint text="The 25 people who asked the most in this period." align="start" />
+        </h2>
+        {people.length === 0 ? (
+          <p className="px-5 py-4 text-label text-ink-muted">No questions in this period.</p>
+        ) : (
+          <FoldScope enabled={Boolean(peopleGroups)}>
+          <table className="data-table" data-testid="ai-analytics-people">
+            <SortHead
+              path={PATH}
+              query={query}
+              sort={sort}
+              columns={[
+                { key: "u_name", label: "Person" },
+                { key: "u_department", label: "Department" },
+                { key: "u_questions", label: "Questions" },
+                { key: "u_conversations", label: "Conversations" },
+                { key: "u_failures", label: "Failed answers" },
+                { key: "u_tokens", label: "Tokens" },
+                { key: "u_last", label: "Last used" },
+              ]}
+            />
+            <GroupedRows
+              rows={people}
+              groups={peopleGroups}
+              colSpan={7}
+              render={(row) => (
+                <tr key={row.userId}>
+                  <td className="font-medium">
+                    <Link href={`/admin/users/${row.userId}`} className="link">
+                      {row.name}
+                    </Link>
+                  </td>
+                  <td className="text-label">{row.department ?? "—"}</td>
+                  <td className="tabular-nums">{row.questions}</td>
+                  <td className="tabular-nums">{row.conversations}</td>
+                  <td className="tabular-nums">{row.failures}</td>
+                  <td className="tabular-nums">{compact(row.tokens)}</td>
+                  <td className="text-label text-ink-muted">{row.lastAt ? formatIndiaTime(row.lastAt) : "—"}</td>
+                </tr>
+              )}
+            />
+          </table>
+          </FoldScope>
+        )}
+      </section>
+
+      <div className="mb-6 grid gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <Heatmap title="When people ask" help="Questions by weekday and hour, India time." rows={WEEKDAYS.filter((day) => heat[day])} columns={hours} cells={heat} empty="No questions in this period." />
+        </div>
+        <div className="space-y-6">
+          <BarList title="Why answers failed" rows={groupFailures(failures).map((row) => ({ label: row.reason, value: row.count }))} empty="No failed answers in this period." />
+          <section className="card px-4 py-3" aria-labelledby="ai-limit">
+            <h2 id="ai-limit" className="flex items-center gap-1.5 font-semibold">
+              Daily limit
+              <Hint text="Days on which someone used up their daily question limit. Raise the limit in AI providers if this is common." align="start" />
+            </h2>
+            <p className="mt-1 text-label">
+              <strong className="tabular-nums">{limitDays.people}</strong> {limitDays.people === 1 ? "person" : "people"} reached the limit of {dailyLimit} questions, on <strong className="tabular-nums">{limitDays.personDays}</strong> {limitDays.personDays === 1 ? "day" : "days"}.
+            </p>
+          </section>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function Tile({ label, value, sub, delta, hint, lowerIsBetter = false }: { label: string; value: string; sub?: string; delta?: string | null; hint: string; lowerIsBetter?: boolean }) {
+  const rising = delta?.startsWith("+");
+  const falling = delta?.startsWith("−");
+  const good = (rising && !lowerIsBetter) || (falling && lowerIsBetter);
+  const bad = (falling && !lowerIsBetter) || (rising && lowerIsBetter);
+  return (
+    <div className="card px-4 py-3">
+      <p className="flex items-center gap-1 text-label text-ink-muted">
+        {label}
+        <Hint text={hint} align="start" />
+      </p>
+      <p className="mt-1 text-[1.5rem] font-semibold leading-tight tabular-nums text-ink">{value}</p>
+      {sub && <p className="mt-0.5 text-caption text-ink-muted">{sub}</p>}
+      {delta && delta !== "same" && (
+        <p className={`mt-1 text-caption font-medium ${good ? "text-success-600" : bad ? "text-danger-600" : "text-ink-muted"}`}>
+          {rising ? "▲" : falling ? "▼" : ""} {delta} vs previous period
+        </p>
+      )}
+    </div>
+  );
+}

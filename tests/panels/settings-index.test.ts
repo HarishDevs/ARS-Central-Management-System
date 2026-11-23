@@ -24,11 +24,11 @@ describe("settings index", () => {
 
   it("leaves out Admin pages hidden for the person", () => {
     const items = [
-      { href: "/admin/doa", label: "Approval authority (DoA)", section: "Set-up" },
-      { href: "/admin/budgets", label: "Budgets", section: "Set-up" },
+      { href: "/admin/setup/doa", label: "Approval authority (DoA)", section: "Set-up" },
+      { href: "/admin/setup/budgets", label: "Budgets", section: "Set-up" },
     ];
-    const entries = adminEntries(items, new Set(["/admin/budgets"]));
-    expect(entries.map((entry) => entry.href)).toEqual(["/admin/doa"]);
+    const entries = adminEntries(items, new Set(["/admin/setup/budgets"]));
+    expect(entries.map((entry) => entry.href)).toEqual(["/admin/setup/doa"]);
   });
 
   it("search ranks name matches first and needs every word", () => {

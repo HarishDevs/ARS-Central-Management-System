@@ -47,4 +47,4 @@ Design reference (structure and behaviour only, no code, no dependency): Astryx 
 
 ## Status
 - [x] v1.84.0 shared parts + Super Admin (23 Nov 2026)
-- [ ] v1.85.0 Admin including Records
+- [x] v1.85.0 Admin including Records (23 Nov 2026). Records panes show the register row (a details list) with Open full page for every kind; each kind's own pane body and a tickets/meetings CSV are deferred (PLAN AD-9)

@@ -147,7 +147,7 @@ test("the task inbox: archive a notice; the morning summary switch", async ({ pa
 
 test("Admin → Task settings: a department holiday, the summary and repeating tasks", async ({ page, context }) => {
   await as(context, "E2E_ADMIN");
-  await page.goto("/admin/task-holidays");
+  await page.goto("/admin/setup/task-settings");
   await expect(page.getByRole("heading", { level: 1, name: "Task settings" })).toBeVisible();
   const day = new Date(Date.now() + 120 * 86_400_000).toISOString().slice(0, 10);
   const form = page.getByRole("form", { name: "Add a department holiday" });

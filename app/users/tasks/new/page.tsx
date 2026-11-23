@@ -42,7 +42,7 @@ export default async function NewTaskPage({ searchParams }: { searchParams: Prom
       <>
         <PageHeader title="New task" icon={SquarePen} description="Choose the kind of task. Each has its own form and rules, set by IT." />
         {allowed.length === 0 ? (
-          <EmptyState title="No task types for you yet" body="IT sets up the kinds of task in Admin → Task types. Ask them if you need one." />
+          <EmptyState title="No task types for you yet" body="IT sets up the kinds of task in Admin → Set-up → Task types. Ask them if you need one." />
         ) : (
           <ul className="grid gap-4 md:grid-cols-2 lg:grid-cols-3" data-testid="task-types">
             {allowed.map((type) => (

@@ -140,7 +140,7 @@ test("TC-007 Back and Forward never leave a loader behind", async ({ page, conte
 
 test("TC-008 a signed-out visit returns to the page asked for after signing in", async ({ page, context }) => {
   await context.clearCookies();
-  await page.goto("/admin/dashboards");
+  await page.goto("/admin/insights/dashboards");
   await expect(page).toHaveURL(/\/login\?next=%2Fadmin%2Fdashboards/);
   await as(context, "E2E_ADMIN");
   await page.goto("/login?next=%2Fadmin%2Fdashboards");
@@ -331,9 +331,9 @@ test("TC-022 two tabs approving the same task at once: one wins, the other is to
 // ---- C. API and data loading ------------------------------------------------------------
 test("TC-023 TC-033 data and empty periods: dashboards show data or an empty state, never a loader", async ({ page, context }) => {
   await as(context, "E2E_ADMIN");
-  await page.goto("/admin/dashboards/raisers");
+  await page.goto("/admin/insights/dashboards/raisers");
   await expect(page.getByRole("cell", { name: "Ravi Requester" })).toBeVisible();
-  await page.goto("/admin/dashboards/raisers?from=2001-01-01&to=2001-12-31");
+  await page.goto("/admin/insights/dashboards/raisers?from=2001-01-01&to=2001-12-31");
   await expect(page.getByText("No requests in this period.")).toBeVisible();
   record("TC-023/033", { dataShown: true, emptyStateShown: true });
 });
@@ -436,7 +436,7 @@ test("TC-035 TC-036 TC-024 dashboard skeleton vs final layout, and layout shift"
   await page.screenshot({ path: "test-results/loader-audit/TC-035-final.png" });
   await clearIntercepts(page);
   // Layout shift on a full load of the same page.
-  await page.goto("/admin/dashboards/utilisation");
+  await page.goto("/admin/insights/dashboards/utilisation");
   const cls = await page.evaluate(
     () =>
       new Promise<number>((resolve) => {
@@ -454,7 +454,7 @@ test("TC-035 TC-036 TC-024 dashboard skeleton vs final layout, and layout shift"
 
 test("TC-039 TC-040 dashboard filters: feedback while applying; rapid preset clicks end on the last one", async ({ page, context }) => {
   await as(context, "E2E_ADMIN");
-  await page.goto("/admin/dashboards/utilisation");
+  await page.goto("/admin/insights/dashboards/utilisation");
   await delayNavigations(page, 1500, { documents: true });
   await watchBusy(page);
   // The last click is a period different from the default, so the result is unambiguous.
@@ -565,7 +565,7 @@ test("TC-049 an upload cut off midway fails safely", async ({ page, context }) =
 
 test("TC-051 TC-052 TC-075 TC-078 CSV export and import: status, problems, all-or-nothing, the shared status bar clears", async ({ page, context }) => {
   await as(context, "E2E_SUPER");
-  await page.goto("/admin/dashboards/approvers");
+  await page.goto("/admin/insights/dashboards/approvers");
   const [csv] = await Promise.all([page.waitForEvent("download"), page.getByRole("link", { name: "Download CSV" }).click()]);
   await page.goto("/superadmin/data/import?kind=holidays");
   await page.getByLabel("Holidays CSV file").setInputFiles({ name: "h.csv", mimeType: "text/csv", buffer: Buffer.from("date,name\n2099-05-01,May Day\nnot-a-date,Bad") });

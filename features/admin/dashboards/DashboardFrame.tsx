@@ -55,7 +55,7 @@ export function DashboardFrame({
     .filter((entry): entry is [string, string] => Boolean(entry[1]))
     .map(([key, value]) => `&${key}=${encodeURIComponent(value)}`)
     .join("");
-  const path = `/admin/dashboards/${slug}`;
+  const path = `/admin/insights/dashboards/${slug}`;
   const group = groups?.find((choice) => choice.key === keep.group)?.key ?? null;
   return (
     <>
@@ -68,7 +68,7 @@ export function DashboardFrame({
         {DASHBOARDS.map((item) => (
           <Link
             key={item.slug}
-            href={`/admin/dashboards/${item.slug}?${filterText}`}
+            href={`/admin/insights/dashboards/${item.slug}?${filterText}`}
             aria-current={item.slug === slug ? "page" : undefined}
             className={`rounded-full border px-4 py-1.5 text-label font-semibold transition-colors ${
               item.slug === slug ? "border-primary-solid bg-primary-solid text-on-solid" : "border-line bg-surface text-ink hover:bg-surface-muted"
@@ -81,12 +81,12 @@ export function DashboardFrame({
       {/* v1.51.1 (owner): toolbar filters instead of a filter form. */}
       <ListToolbar
         id="dashboard-filters"
-        path={`/admin/dashboards/${slug}`}
+        path={`/admin/insights/dashboards/${slug}`}
         label="Filters"
         keep={keep}
         group={groups?.length ? groupMenu(path, query ?? {}, groups, group) : undefined}
         filterCount={filterCount}
-        clearHref={filterCount ? `/admin/dashboards/${slug}` : null}
+        clearHref={filterCount ? `/admin/insights/dashboards/${slug}` : null}
         filters={
           <>
             <div>
@@ -135,7 +135,7 @@ export function DashboardFrame({
         <span>Quick:</span>
         {/* Plain links with a pending spinner: the last click always wins (QA DEF-04). */}
         {presets(today).map((preset) => (
-          <PendingLink key={preset.label} className="link font-normal" href={`/admin/dashboards/${slug}?${filterQuery({ ...filter, from: preset.from, to: preset.to })}${listState}`}>
+          <PendingLink key={preset.label} className="link font-normal" href={`/admin/insights/dashboards/${slug}?${filterQuery({ ...filter, from: preset.from, to: preset.to })}${listState}`}>
             {preset.label}
           </PendingLink>
         ))}

@@ -274,7 +274,7 @@ async function deliverRun(row: ScheduleRow, runId: number, attempt: number, now:
       const bytes = typeof file === "string" ? Buffer.byteLength(file) : file.byteLength;
       totalBytes += bytes;
       const params = new URLSearchParams(cleanQuery(row.query) as Record<string, string>).toString();
-      const link = `${base()}/admin/reports/${row.reportKey}${params ? `?${params}` : ""}`;
+      const link = `${base()}/admin/insights/reports/${row.reportKey}${params ? `?${params}` : ""}`;
       const attach = bytes <= MAX_ATTACHMENT_BYTES;
       attachedAll &&= attach;
       const why = entry.person.id === person.id ? "You get this because you scheduled it." : `You get this because ${person.name} added you to their scheduled report. It shows what you can see.`;
@@ -283,7 +283,7 @@ async function deliverRun(row: ScheduleRow, runId: number, attempt: number, now:
         {
           to: entry.person.email,
           subject: `ARS CMS: ${entry.ran.report.name} (${describeSchedule(row).toLowerCase()})`,
-          text: `${entry.ran.report.name}\n${meta.scopeLabel}${meta.periodLabel ? ` · ${meta.periodLabel}` : ""}\n${entry.ran.result.rows.length} row${entry.ran.result.rows.length === 1 ? "" : "s"}${entry.ran.result.truncated ? " (first rows only)" : ""}.\n\n${attach ? "The report is attached." : "The report is too large to attach."} Open it in the app:\n${link}\n\n${why} Manage schedules: ${base()}/admin/reports`,
+          text: `${entry.ran.report.name}\n${meta.scopeLabel}${meta.periodLabel ? ` · ${meta.periodLabel}` : ""}\n${entry.ran.result.rows.length} row${entry.ran.result.rows.length === 1 ? "" : "s"}${entry.ran.result.truncated ? " (first rows only)" : ""}.\n\n${attach ? "The report is attached." : "The report is too large to attach."} Open it in the app:\n${link}\n\n${why} Manage schedules: ${base()}/admin/insights/reports`,
           attachments: attach ? [{ filename: fileName(row.reportKey, row.format, now), content: file }] : undefined,
           // D-243: one email per run and person, even if the send is repeated.
           idempotencyKey: `ars-report-r${runId}-u${entry.person.id}`,
@@ -467,8 +467,8 @@ export async function evaluateAlerts(limit = 200): Promise<{ alertsChecked: numb
           userId: person.id,
           title: `${level}: a number crossed your line`,
           message,
-          deepLink: `${base()}/admin/analytics?scope=${rule.scopeKind}`,
-          email: rule.channels === "INBOX" ? null : { subject: `ARS CMS ${level.toLowerCase()}: ${label}`, text: `${message}\n\nOpen Analytics: ${base()}/admin/analytics?scope=${rule.scopeKind}\n\nYou get this at most once every ${rule.cooldownHours} hours while it stays over the line. Manage your alerts: ${base()}/admin/reports#alerts` },
+          deepLink: `${base()}/admin/insights/analytics?scope=${rule.scopeKind}`,
+          email: rule.channels === "INBOX" ? null : { subject: `ARS CMS ${level.toLowerCase()}: ${label}`, text: `${message}\n\nOpen Analytics: ${base()}/admin/insights/analytics?scope=${rule.scopeKind}\n\nYou get this at most once every ${rule.cooldownHours} hours while it stays over the line. Manage your alerts: ${base()}/admin/insights/reports#alerts` },
           whatsappVariables: null,
         }).catch((error) => logError("alert notify failed", error, { ruleId: rule.id }));
         out.alertsFired += 1;

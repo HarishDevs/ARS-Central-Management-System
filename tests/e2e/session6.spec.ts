@@ -27,7 +27,7 @@ test("the Super Admin loads the demo staff and approval types", async ({ page, c
   await page.getByRole("button", { name: "Yes, load demo data" }).click();
   await expect(page.getByText("Everything was already loaded; nothing changed.")).toBeVisible();
 
-  await page.goto("/admin/doa");
+  await page.goto("/admin/setup/doa");
   await expect(page.getByText("Purchase & SCM Approval").first()).toBeVisible();
 });
 

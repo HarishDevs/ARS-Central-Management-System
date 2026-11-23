@@ -8,7 +8,7 @@ import { checkFormDefinition, type FormField } from "@/server/forms/fields";
 // v1.55.0 (D-326): ticket forms are the third kind (Ticketing System).
 export type ModuleKind = "TASK" | "INFO" | "TICKET";
 export const MODULE_LABEL: Record<ModuleKind, string> = { TASK: "Task", INFO: "Information", TICKET: "Ticket" };
-export const MODULE_ADMIN_PATH: Record<ModuleKind, string> = { TASK: "/admin/task-types", INFO: "/admin/information-types", TICKET: "/admin/ticket-forms" };
+export const MODULE_ADMIN_PATH: Record<ModuleKind, string> = { TASK: "/admin/setup/task-types", INFO: "/admin/setup/information-types", TICKET: "/admin/setup/ticket-forms" };
 
 // Who may create records of a type.
 export const accessSchema = z.object({

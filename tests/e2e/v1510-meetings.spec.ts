@@ -138,7 +138,7 @@ test("someone not on the meeting gets not found; the dashboard and phone view re
   await expect(page.getByTestId("meeting-analytics")).toContainText("Every meeting in the organisation.");
   await expect(page.getByTestId("meeting-by-type")).toContainText("IDM");
   await page.screenshot({ path: "test-results/v1520-meeting-analytics.png", fullPage: true });
-  await page.goto("/admin/meetings");
+  await page.goto("/admin/setup/meetings");
   await expect(page.getByRole("heading", { name: "Meeting settings" })).toBeVisible();
   await page.screenshot({ path: "test-results/v1510-admin.png", fullPage: true });
   await as(context, "E2E_HOD");

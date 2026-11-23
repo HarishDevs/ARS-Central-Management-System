@@ -62,8 +62,8 @@ test("the Super Admin deletes a request with a reason; it leaves the approver's 
 
 test("the four dashboards open with filters and download as CSV", async ({ page, context }) => {
   await as(context, "E2E_ADMIN");
-  await page.goto("/admin/dashboards");
-  await expect(page).toHaveURL(/\/admin\/dashboards\/utilisation/);
+  await page.goto("/admin/insights/dashboards");
+  await expect(page).toHaveURL(/\/admin\/insights\/dashboards\/utilisation/);
   await expect(page.getByRole("heading", { name: "Approval utilisation" })).toBeVisible();
   await expect(page.getByRole("cell").first()).toBeVisible(); // v1.54.0: one row per request title (custom approvals)
 

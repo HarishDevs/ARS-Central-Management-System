@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { bulkReassignAction } from "@/app/admin/workload/actions";
+import { bulkReassignAction } from "@/app/admin/insights/workload/actions";
 import { FieldError, ResultMessage, SubmitButton, useActionForm } from "@/features/ui/form";
 import { Hint } from "@/features/ui/Hint";
 import { PersonSelect } from "@/features/ui/PersonSelect";

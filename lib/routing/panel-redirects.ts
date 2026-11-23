@@ -37,6 +37,26 @@ export const PANEL_REDIRECTS: readonly PanelRedirect[] = [
   { from: "/superadmin/logins", to: "/superadmin/security/sign-in-history" },
   // Owner (23 Nov 2026): Import data is the Super Admin's alone now (one page, both kinds).
   { from: "/admin/import", to: "/superadmin/data/import" },
+  // ---- Admin (v1.85.0, D-412) ----
+  { from: "/admin/attention", to: "/admin#attention" },
+  { from: "/admin/analytics", to: "/admin/insights/analytics", prefix: true },
+  { from: "/admin/reports", to: "/admin/insights/reports", prefix: true },
+  { from: "/admin/dashboards", to: "/admin/insights/dashboards", prefix: true },
+  { from: "/admin/workload", to: "/admin/insights/workload", prefix: true },
+  { from: "/admin/ai-analytics", to: "/admin/insights/ai" },
+  { from: "/admin/custom-approval", to: "/admin/setup/custom-approval" },
+  { from: "/admin/groups", to: "/admin/setup/groups" },
+  { from: "/admin/doa", to: "/admin/setup/doa" },
+  { from: "/admin/budgets", to: "/admin/setup/budgets" },
+  { from: "/admin/task-types", to: "/admin/setup/task-types", prefix: true },
+  { from: "/admin/task-holidays", to: "/admin/setup/task-settings" },
+  { from: "/admin/information-types", to: "/admin/setup/information-types", prefix: true },
+  { from: "/admin/ticket-forms", to: "/admin/setup/ticket-forms", prefix: true },
+  { from: "/admin/ticket-categories", to: "/admin/setup/ticket-categories" },
+  { from: "/admin/meetings", to: "/admin/setup/meetings" },
+  { from: "/admin/reminders", to: "/admin/setup/reminders", prefix: true },
+  { from: "/admin/notifications", to: "/admin/setup/notifications" },
+  { from: "/admin/ai-rules", to: "/admin/setup/ai-rules" },
 ];
 
 // The new address for an old one (with whatever followed a prefix), else null.

@@ -41,7 +41,7 @@ export async function saveTicketFormSetupAction(_previous: ActionResult | null, 
     logError("saveTicketFormSetupAction failed", error);
     return { ok: false, message: "Couldn't save. Please try again." };
   }
-  revalidatePath(`/admin/ticket-forms/${typeId}`);
+  revalidatePath(`/admin/setup/ticket-forms/${typeId}`);
   return { ok: true, message: `Saved: ${category.name}, ${userIds.length} coordinator${userIds.length === 1 ? "" : "s"}.` };
 }
 
@@ -82,7 +82,7 @@ export async function saveTicketCategoryAction(_previous: ActionResult | null, f
     logError("saveTicketCategoryAction failed", error);
     return { ok: false, message: "Couldn't save. Please try again." };
   }
-  revalidatePath("/admin/ticket-categories");
+  revalidatePath("/admin/setup/ticket-categories");
   return { ok: true, message: "Saved." };
 }
 
@@ -105,6 +105,6 @@ export async function saveTicketViewersAction(_previous: ActionResult | null, fo
     logError("saveTicketViewersAction failed", error);
     return { ok: false, message: "Couldn't save. Please try again." };
   }
-  revalidatePath("/admin/ticket-categories");
+  revalidatePath("/admin/setup/ticket-categories");
   return { ok: true, message: `Saved: ${departmentIds.length} department${departmentIds.length === 1 ? "" : "s"} and ${userIds.length} ${userIds.length === 1 ? "person" : "people"} see ${categoryIds.length ? `${categoryIds.length} categor${categoryIds.length === 1 ? "y" : "ies"}` : "every category"}.` };
 }

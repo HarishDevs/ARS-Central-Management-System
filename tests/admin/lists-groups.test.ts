@@ -7,20 +7,20 @@ import { groupRows } from "@/server/lists/group-rows";
 describe("Group menu links", () => {
   it("keep the filters and the sort, drop the page, and set or clear the group", () => {
     const query = { fy: "2026", sortBy: "committed", dir: "desc", page: "3", group: "position" };
-    expect(groupHref("/admin/budgets", query, null)).toBe("/admin/budgets?fy=2026&sortBy=committed&dir=desc");
-    expect(groupHref("/admin/budgets", query, "position")).toBe("/admin/budgets?fy=2026&sortBy=committed&dir=desc&group=position");
-    expect(groupHref("/admin/workload", {}, null)).toBe("/admin/workload");
+    expect(groupHref("/admin/setup/budgets", query, null)).toBe("/admin/setup/budgets?fy=2026&sortBy=committed&dir=desc");
+    expect(groupHref("/admin/setup/budgets", query, "position")).toBe("/admin/setup/budgets?fy=2026&sortBy=committed&dir=desc&group=position");
+    expect(groupHref("/admin/insights/workload", {}, null)).toBe("/admin/insights/workload");
   });
   it("lists None first and marks the choice in use", () => {
-    const menu = groupMenu("/admin/workload", { group: "department" }, [{ key: "department", label: "Department" }, { key: "overdue", label: "Overdue" }], "department");
+    const menu = groupMenu("/admin/insights/workload", { group: "department" }, [{ key: "department", label: "Department" }, { key: "overdue", label: "Overdue" }], "department");
     expect(menu.label).toBe("Department");
     expect(menu.choices.map((choice) => [choice.label, choice.active])).toEqual([
       ["None", false],
       ["Department", true],
       ["Overdue", false],
     ]);
-    expect(menu.clearHref).toBe("/admin/workload");
-    expect(groupMenu("/admin/workload", {}, [], null).label).toBeNull();
+    expect(menu.clearHref).toBe("/admin/insights/workload");
+    expect(groupMenu("/admin/insights/workload", {}, [], null).label).toBeNull();
   });
   it("filter forms carry the sort and the group", () => {
     expect(keepListState({ sortBy: "name", dir: "desc", group: "status", q: "x" })).toEqual({ sortBy: "name", dir: "desc", group: "status" });

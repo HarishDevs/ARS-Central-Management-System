@@ -3,7 +3,7 @@ import { sessionCookie } from "./db";
 
 // D-081: the live site sits behind Cloudflare, whose "email obfuscation"
 // rewrites any address that appears as plain page text; the app then fails
-// to hydrate (React #418, seen live on /admin/import and /superadmin/monitoring/audit
+// to hydrate (React #418, seen live on /superadmin/data/import and /superadmin/monitoring/audit
 // on 9 Oct 2026). Addresses must reach the HTML split by <SafeText>/<Email>.
 // Attribute values (e.g. an input's value) are not rewritten, so they're fine.
 const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;

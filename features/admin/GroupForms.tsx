@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { groupMemberAction, saveGroupAction } from "@/app/admin/groups/actions";
+import { groupMemberAction, saveGroupAction } from "@/app/admin/setup/groups/actions";
 import { FieldError, ResultMessage, SubmitButton, useActionForm } from "@/features/ui/form";
 import type { Option } from "@/features/admin/UserForm";
 import { PersonSelect } from "@/features/ui/PersonSelect";

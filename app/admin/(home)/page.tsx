@@ -1,52 +1,93 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Search } from "lucide-react";
 import { PageHeader } from "@/features/shell/PageHeader";
 import { requireArea } from "@/server/authorization/guards";
+import { navAccess } from "@/server/authorization/page-access";
 import { adminHomeCounts as counts } from "@/lib/db/repositories/insights.repository";
 import { listModuleTypes } from "@/lib/db/repositories/module-types.repository";
+import { findStuckRequests } from "@/server/ops/stuck";
+import { getNumberSetting } from "@/server/settings/values";
+import { applyDefaultListView } from "@/server/lists/views";
+import { AttentionSection } from "@/features/admin/AttentionSection";
+import { RecordSearchResults } from "@/features/admin/RecordSearchResults";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
 export const metadata: Metadata = { title: "Admin overview" };
+export const dynamic = "force-dynamic";
 
-// Admin space overview (S9-13): every module is live, so each card links to
-// it with a live count. Equal heights; 3 columns on wide screens.
 const n = (value: unknown) => Number(value ?? 0).toLocaleString("en-IN");
-// v1.74.1 (D-397): "1 department", not "1 departments".
-const count = (value: unknown, one: string, many: string) => `${n(value)} ${Number(value ?? 0) === 1 ? one : many}`;
 
-export default async function AdminHome() {
+// v1.85.0 (D-412, owner's Admin redesign): the Admin overview. Today's
+// figures (each a link), one search across every kind of record, and Needs
+// attention built in (/admin/attention redirects to #attention). Each part
+// keeps its own page-access key: a person for whom Needs attention or Records
+// is hidden doesn't get that part.
+export default async function AdminHome({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   // Pages re-check the space themselves: a layout check alone does not stop
   // a page from rendering in the App Router.
-  await requireArea("admin");
-  const [c, taskTypes, infoTypes] = await Promise.all([counts(), listModuleTypes("TASK"), listModuleTypes("INFO")]);
+  const { user } = await requireArea("admin");
+  const query = await searchParams;
+  const { hidden } = await navAccess(user);
+  const attentionOn = !hidden.has("admin.attention");
+  const recordsOn = !hidden.has("admin.records");
+  const q = recordsOn ? (query.q ?? "").trim().slice(0, 100) : "";
+  if (attentionOn && !q) await applyDefaultListView(user.id, "list_admin_attention", "/admin", query);
+  const idleDays = (await getNumberSetting("general.stuck_idle_days").catch(() => 7)) || 7;
+  const [c, taskTypes, infoTypes, stuck] = await Promise.all([counts(), listModuleTypes("TASK"), listModuleTypes("INFO"), attentionOn ? findStuckRequests({ idleDays }).catch(() => []) : Promise.resolve([])]);
   const live = (types: { active: boolean; liveVersion: number | null }[]) => types.filter((type) => type.active && type.liveVersion !== null).length;
-  const modules = [
-    { title: "Approval authority (DoA)", href: "/admin/doa", stat: "Matrix view", extra: null, body: "Which levels each amount needs, read straight from every live approval type's DoA matrix." },
-    { title: "Task types", href: "/admin/task-types", stat: `${n(live(taskTypes))} live`, extra: null, body: "The kinds of task people can create: form, who may create and be assigned, steps, completion evidence and reminders." },
-    { title: "Information types", href: "/admin/information-types", stat: `${n(live(infoTypes))} live`, extra: null, body: "The kinds of information people can send: form, recipients, acknowledgement, expiry and reminders." },
-    { title: "Users & roles", href: "/admin/users", stat: `${n(c.users)} active`, extra: null, body: "Add or deactivate people, set how they sign in, their manager and department, and their roles." },
-    { title: "Approver groups", href: "/admin/groups", stat: count(c.groups_n, "group", "groups"), extra: null, body: "Desks such as MD office or Finance checkers, so approvers can change without editing workflows." },
-    { title: "Departments", href: "/admin/organisation", stat: count(c.departments, "department", "departments"), extra: null, body: "Departments with their HOD, and designations." },
-    { title: "Working calendar", href: "/admin/calendar", stat: count(c.holidays, "upcoming holiday", "upcoming holidays"), extra: null, body: "Working days and holidays used for response times, reminders and escalation." },
-    { title: "Insights", href: "/admin/insights", stat: count(c.open_requests, "open request", "open requests"), extra: null, body: "Where requests wait, how long each level takes, and what is overdue." },
-  ];
+  const figures = [
+    { label: "Open requests", value: n(c.open_requests), href: "/admin/records/requests?status=IN_PROGRESS", show: recordsOn },
+    { label: "Need attention", value: n(stuck.length), href: "#attention", show: attentionOn, warn: stuck.length > 0 },
+    { label: "Live approval types", value: n(c.live_types), href: "/admin/setup/doa", show: true },
+    { label: "Live task types", value: n(live(taskTypes)), href: "/admin/setup/task-types", show: true },
+    { label: "Live information types", value: n(live(infoTypes)), href: "/admin/setup/information-types", show: true },
+    { label: "Active people", value: n(c.users), href: "/admin/users", show: true },
+    { label: "Approver groups", value: n(c.groups_n), href: "/admin/setup/groups", show: true },
+    { label: "Upcoming holidays", value: n(c.holidays), href: "/admin/calendar", show: true },
+  ].filter((figure) => figure.show);
+
   return (
     <>
-      <PageHeader title="Admin" description="Where the IT team sets up the approval, task and information types, people and rules." />
-      <div className="grid auto-rows-fr gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {modules.map((module) => (
-          <Link key={module.href} href={module.href} title={module.body} className="card-link flex flex-col p-5">
-            <div className="flex items-start justify-between gap-3">
-              <h2 className="font-semibold">{module.title}</h2>
-              <span aria-hidden="true" className="text-ink-faint">→</span>
+      <PageHeader title="Admin" description="Today's figures, a search across every record, and what needs attention. Set-up, Insights and People are in the sidebar." />
+      <section aria-labelledby="figures-title" data-testid="admin-figures">
+        <h2 id="figures-title" className="sr-only">
+          Today&apos;s figures
+        </h2>
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {figures.map((figure) => (
+            <li key={figure.label}>
+              <Link href={figure.href} className="card-link flex h-full flex-col p-4">
+                <span className="text-caption text-ink-muted">{figure.label}</span>
+                <span className={`mt-1 text-title font-semibold tabular-nums ${figure.warn ? "text-warning-600" : ""}`}>{figure.value}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {recordsOn && (
+        <section aria-labelledby="record-search-title" className="mt-8" data-testid="record-search">
+          <h2 id="record-search-title" className="mb-3 text-subhead font-semibold">
+            Search records
+          </h2>
+          <form method="get" action="/admin" role="search" className="flex max-w-xl gap-2">
+            <label htmlFor="admin-record-search" className="sr-only">
+              Number, title or person, across requests, tasks, information, tickets and meetings
+            </label>
+            <div className="relative flex-1">
+              <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" />
+              <input id="admin-record-search" type="search" name="q" defaultValue={q} maxLength={100} placeholder="Number, title or person" className="field-input pl-9" />
             </div>
-            <p className="mt-4 flex flex-1 flex-wrap items-end gap-2 text-caption">
-              <span className="rounded-full bg-primary-50 px-2.5 py-0.5 font-semibold text-primary-700">{module.stat}</span>
-              {module.extra && <span className="rounded-full bg-surface-muted px-2.5 py-0.5 text-ink-muted">{module.extra}</span>}
-            </p>
-          </Link>
-        ))}
-      </div>
+            <button type="submit" className="btn-primary">
+              Search
+            </button>
+          </form>
+          {q && <RecordSearchResults user={user} q={q} />}
+        </section>
+      )}
+
+      {attentionOn && <AttentionSection userId={user.id} query={query} />}
     </>
   );
 }

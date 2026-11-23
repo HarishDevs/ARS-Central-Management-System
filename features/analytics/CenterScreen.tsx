@@ -39,7 +39,7 @@ import {
 // analytics (which keeps its own screen). Everything is aggregated on the
 // server for the viewer's scope; nothing here loads raw records into the
 // browser. Each number is defined in the metric dictionary.
-type Base = "/users/analytics" | "/admin/analytics";
+type Base = "/users/analytics" | "/admin/insights/analytics";
 type Query = Record<string, string | undefined>;
 
 export function boardHref(base: Base, query: Query, changes: Query): string {
@@ -141,7 +141,7 @@ export async function CenterScreen({ base, board, boards, soon = [], modules, qu
   const buckets = agingBuckets(await getSettingValue("analytics.aging_days").catch(() => null));
   const carry: Query = { board, scope: scope.kind, period: period.key, from: query.from, to: query.to, compare: query.compare };
   const meta = BOARDS.find((item) => item.key === board)!;
-  const exportHref = (kind: string) => `/api/analytics/export?${new URLSearchParams(Object.entries({ ...carry, kind, base: base === "/admin/analytics" ? "admin" : "users", q: query.q, sort: query.sort }).filter((entry): entry is [string, string] => Boolean(entry[1]))).toString()}`;
+  const exportHref = (kind: string) => `/api/analytics/export?${new URLSearchParams(Object.entries({ ...carry, kind, base: base === "/admin/insights/analytics" ? "admin" : "users", q: query.q, sort: query.sort }).filter((entry): entry is [string, string] => Boolean(entry[1]))).toString()}`;
 
   return (
     <>

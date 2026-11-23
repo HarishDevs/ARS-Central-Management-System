@@ -61,7 +61,7 @@ export default async function DemoPage({ searchParams }: { searchParams: Promise
             />
           </h2>
           <p className="flex items-center gap-1.5 text-label">
-            <Link href="/admin/doa" className="link">
+            <Link href="/admin/setup/doa" className="link">
               DoA example
             </Link>
             <Hint
@@ -75,7 +75,7 @@ export default async function DemoPage({ searchParams }: { searchParams: Promise
           <h2 className="flex items-center gap-1.5 font-semibold">
             2. When the real staff arrive
             <Hint
-              text="1. Add the real people in Admin → Users. 2. In Admin → Groups, swap the demo members for the real ones (MD office, ED office, Finance desks…). 3. In Admin → Organisation, set the real HOD on each department. 4. Then retire the demo staff. The approval types keep working, because they pick approvers by group and HOD, not by name."
+              text="1. Add the real people in Admin → Users. 2. In Admin → Set-up → Approver groups, swap the demo members for the real ones (MD office, ED office, Finance desks…). 3. In Admin → Organisation, set the real HOD on each department. 4. Then retire the demo staff. The approval types keep working, because they pick approvers by group and HOD, not by name."
               align="start"
             />
           </h2>

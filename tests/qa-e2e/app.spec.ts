@@ -388,7 +388,7 @@ test("QA-FILE-01 dashboard CSV matches the page; attachment downloads keep name 
   const preview = await page.request.get(previewHref!);
   expect(preview.headers()["content-disposition"]).toContain("inline");
   await as(context, "E2E_ADMIN");
-  await page.goto("/admin/dashboards/raisers");
+  await page.goto("/admin/insights/dashboards/raisers");
   const raisedOnScreen = await page.getByRole("row", { name: /Ravi Requester/ }).getByRole("cell").nth(1).innerText();
   const csvHref = await page.getByRole("link", { name: "Download CSV" }).getAttribute("href");
   const csv = await (await page.request.get(csvHref!)).text();
@@ -403,7 +403,7 @@ test("QA-FILE-01 dashboard CSV matches the page; attachment downloads keep name 
 // ---- Performance ------------------------------------------------------------------------------
 test("QA-PERF-01 key pages respond within budget (median of 5 < 1.5 s locally)", async ({ page, context }) => {
   await as(context, "E2E_ADMIN");
-  const pages = ["/users", "/users/requests", "/admin", "/admin/dashboards/utilisation", "/admin/dashboards/approvers", "/admin/users"];
+  const pages = ["/users", "/users/requests", "/admin", "/admin/insights/dashboards/utilisation", "/admin/insights/dashboards/approvers", "/admin/users"];
   const medians: Record<string, number> = {};
   for (const url of pages) {
     const times: number[] = [];
@@ -467,7 +467,7 @@ test("QA-A11Y-01 every form control has a name; one h1; page language set; image
   await page.goto("/login");
   await check("/login");
   await as(context, "E2E_ADMIN");
-  for (const url of ["/users", "/users/new", "/users/custom", "/admin/dashboards/utilisation", "/admin/organisation"]) {
+  for (const url of ["/users", "/users/new", "/users/custom", "/admin/insights/dashboards/utilisation", "/admin/organisation"]) {
     await page.goto(url);
     await check(url);
   }
@@ -504,7 +504,7 @@ test("QA-UI-01 phone width: key pages have no sideways scrolling", async ({ page
   await page.setViewportSize({ width: 375, height: 800 });
   await as(context, "E2E_ADMIN");
   const results: Record<string, boolean> = {};
-  for (const url of ["/users", "/users/new", "/users/requests", "/admin", "/admin/dashboards/utilisation"]) {
+  for (const url of ["/users", "/users/new", "/users/requests", "/admin", "/admin/insights/dashboards/utilisation"]) {
     await page.goto(url);
     results[url] = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);
   }

@@ -8,17 +8,16 @@ import { describe, expect, it } from "vitest";
 // are only on read-only pages that never call notFound(). A new
 // loading.tsx must be checked against both rules and added here.
 const ALLOWED = [
-  "app/admin/(home)/loading.tsx",
   // D-233: read-only registers and AI analytics (GET filters only, no notFound()).
-  "app/admin/ai-analytics/loading.tsx",
+  "app/admin/insights/ai/loading.tsx",
   "app/admin/records/information/loading.tsx",
   "app/admin/records/requests/loading.tsx",
   "app/admin/records/tasks/loading.tsx",
-  "app/admin/dashboards/loading.tsx",
-  "app/admin/doa/loading.tsx",
-  "app/admin/insights/loading.tsx",
+  "app/admin/insights/dashboards/loading.tsx",
+  "app/admin/setup/doa/loading.tsx",
+  "app/admin/insights/(summary)/loading.tsx" /* v1.85.0: the Summary tab only (route group), not the hub */,
   "app/admin/users/(list)/loading.tsx",
-  "app/admin/workload/loading.tsx",
+  "app/admin/insights/workload/loading.tsx",
   "app/superadmin/monitoring/audit/loading.tsx",
   "app/superadmin/data/import/loading.tsx",
   "app/superadmin/security/sign-in-history/loading.tsx",

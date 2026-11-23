@@ -15,23 +15,24 @@ const sidebar = (page: import("@playwright/test").Page) => page.locator("aside n
 
 test("Analytics from the Admin space keeps the Admin space; Reports are there too", async ({ page, context }) => {
   await as(context, "E2E_ADMIN");
-  await page.goto("/admin");
-  await sidebar(page).getByRole("link", { name: "Analytics", exact: true }).click();
-  await expect(page).toHaveURL(/\/admin\/analytics/);
+  // v1.85.0 (D-412): Analytics and Reports are tabs of the Insights hub.
+  await page.goto("/admin/insights");
+  await page.getByTestId("hub-tabs").getByRole("link", { name: "Analytics", exact: true }).click();
+  await expect(page).toHaveURL(/\/admin\/insights\/analytics/);
   await expect(page.getByRole("button", { name: /Account menu/ })).toContainText("Admin");
   await expect(page.getByLabel("Whose numbers")).toHaveValue("ORGANISATION");
   // v1.12.0: the Executive overview opens first; the drill-down lists are on Approval analytics.
   await page.getByLabel("Dashboard", { exact: true }).selectOption({ label: "Approval analytics" });
-  await expect(page).toHaveURL(/\/admin\/analytics\?.*board=approvals/);
+  await expect(page).toHaveURL(/\/admin\/insights\/analytics\?.*board=approvals/);
   await page.getByRole("link", { name: /Open requests/ }).first().click();
-  await expect(page).toHaveURL(/\/admin\/analytics\/list\?/);
+  await expect(page).toHaveURL(/\/admin\/insights\/analytics\/list\?/);
   await expect(page.getByRole("button", { name: /Account menu/ })).toContainText("Admin");
-  await sidebar(page).getByRole("link", { name: "Reports" }).click();
-  await expect(page).toHaveURL(/\/admin\/reports$/);
+  await page.getByTestId("hub-tabs").getByRole("link", { name: "Reports" }).click();
+  await expect(page).toHaveURL(/\/admin\/insights\/reports$/);
   await expect(page.getByRole("heading", { level: 1, name: "Reports" })).toBeVisible();
   // Old links still work for IT.
   await page.goto("/users/reports/request_register?period=30d");
-  await expect(page).toHaveURL(/\/admin\/reports\/request_register\?period=30d/);
+  await expect(page).toHaveURL(/\/admin\/insights\/reports\/request_register\?period=30d/);
 });
 
 test("the sidebar has Home, and no Help, Profile or Reports; the account menu has them", async ({ page, context }) => {
@@ -49,7 +50,7 @@ test("the sidebar has Home, and no Help, Profile or Reports; the account menu ha
 
 test("Reports are refused to a requester everywhere", async ({ page, context }) => {
   await as(context, "E2E_REQ");
-  for (const path of ["/users/reports", "/users/reports/request_register", "/admin/reports"]) expect((await page.request.get(path)).status(), path).toBe(404);
+  for (const path of ["/users/reports", "/users/reports/request_register", "/admin/insights/reports"]) expect((await page.request.get(path)).status(), path).toBe(404);
   expect((await page.request.get("/api/reports/request_register?format=csv")).status()).toBe(404);
   await page.goto("/users/analytics");
   await expect(page.getByRole("link", { name: "Reports and alerts" })).toHaveCount(0);

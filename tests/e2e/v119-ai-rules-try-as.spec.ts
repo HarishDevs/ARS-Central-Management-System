@@ -8,7 +8,7 @@ const tag = Date.now().toString(36).toUpperCase();
 
 test("AI Rules: a formatted rule for one chat is saved as Markdown", async ({ page, context }) => {
   await context.addCookies([await sessionCookie("E2E_SUPER")]);
-  await page.goto("/admin/ai-rules");
+  await page.goto("/admin/setup/ai-rules");
   await page.getByLabel("Rules for", { exact: true }).selectOption("COMBINED");
   const editor = page.getByRole("textbox", { name: "AI rules for Combined" });
   await editor.click();

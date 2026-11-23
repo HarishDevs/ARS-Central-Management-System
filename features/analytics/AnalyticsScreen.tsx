@@ -31,8 +31,8 @@ import { SavedViews, SaveViewForm } from "@/features/analytics/ReportForms";
 import { readFilter, SLA_FILTER_LABEL, STATUS_FILTER_LABEL, withParams } from "@/server/analytics/query";
 import { guardAnalyticsRate } from "@/server/analytics/rate";
 // v1.7.1: the same screens in My approvals (/users/analytics) and in the
-// Admin space (/admin/analytics), so opening Analytics never changes space.
-export type AnalyticsBase = "/users/analytics" | "/admin/analytics";
+// Admin space (/admin/insights/analytics), so opening Analytics never changes space.
+export type AnalyticsBase = "/users/analytics" | "/admin/insights/analytics";
 
 
 // Role analytics (Addendum A, D-122; v1.7.0 list B). The scopes offered, and
@@ -53,7 +53,7 @@ export async function AnalyticsScreen({ searchParams, base }: { searchParams: Re
   if (defaultView) redirect(`${base}?${new URLSearchParams(defaultView.query).toString()}`);
   // C04: analytics is query-heavy; a burst of reloads is slowed down.
   const limited = await guardAnalyticsRate(user.id);
-  const { scope, scopes } = await resolveScope(query.scope ?? (base === "/admin/analytics" ? "ORGANISATION" : undefined), viewer);
+  const { scope, scopes } = await resolveScope(query.scope ?? (base === "/admin/insights/analytics" ? "ORGANISATION" : undefined), viewer);
   // v1.12.0 (D-156): the Analytics Center. Dashboards are tabs of this page.
   // An older link or saved view with approval filters opens Approval analytics.
   const APPROVAL_FILTERS = ["type", "department", "status", "approver", "step", "sla", "aging"];
@@ -282,7 +282,7 @@ export async function AnalyticsScreen({ searchParams, base }: { searchParams: Re
         <SavedViews views={views.map((view) => ({ id: view.id, name: view.name, href: `${base}?${new URLSearchParams(view.query).toString()}`, mine: view.mine, shared: view.shared, isDefault: view.isDefault, ownerName: view.ownerName }))} />
         <SaveViewForm target="DASHBOARD" query={carried} />
         {isAdmin && (
-          <Link href="/admin/reports" className="link text-label">
+          <Link href="/admin/insights/reports" className="link text-label">
             Reports and alerts
           </Link>
         )}
@@ -308,7 +308,7 @@ export async function AnalyticsScreen({ searchParams, base }: { searchParams: Re
         <KpiCard metric="due_today" value={due.dueToday} href={drill("due_today")} />
         <KpiCard metric="due_week" value={due.dueWeek} href={drill("due_week")} />
         {/* D-233: a failed check shows as such, not as a missing tile. */}
-        {stuck === "failed" ? <ErrorState variant="card" title="Stuck requests" body="This number couldn't be worked out just now. Reload to try again." /> : stuck && <KpiCard metric="stuck" value={stuck.length} href="/admin/attention" />}
+        {stuck === "failed" ? <ErrorState variant="card" title="Stuck requests" body="This number couldn't be worked out just now. Reload to try again." /> : stuck && <KpiCard metric="stuck" value={stuck.length} href="/admin#attention" />}
       </div>
 
       <h2 className="mb-2 text-label font-semibold text-ink-muted">{period.label}</h2>

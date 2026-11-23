@@ -50,8 +50,9 @@ test("My approved requests and Approved by me are in the sidebar, with their fil
 
 test("IT sets up custom approvals; the custom approval page follows it", async ({ page, context }) => {
   await as(context, "E2E_ADMIN");
-  await page.goto("/admin");
-  await page.locator("aside nav").getByRole("link", { name: "Custom approval" }).click();
+  // v1.85.0 (D-412): Admin → Set-up → the section list.
+  await page.goto("/admin/setup");
+  await page.getByRole("navigation", { name: "Set-up sections" }).getByRole("link", { name: "Custom approval" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Custom approval" })).toBeVisible();
   await page.getByRole("button", { name: "Add field" }).click();
   await page.getByLabel("Field label").last().fill("Vendor name");
@@ -96,7 +97,7 @@ test("D-206/D-235: choice and skip appear on New request only when IT switches t
   await expect(page.getByText("Skip this step when…")).toHaveCount(0);
 
   await as(context, "E2E_ADMIN");
-  await page.goto("/admin/custom-approval");
+  await page.goto("/admin/setup/custom-approval");
   const options = page.getByRole("region", { name: "What people may add" });
   await expect(options.getByLabel("DoA matrix")).toHaveCount(0); // D-235: approval types only
   for (const label of ["Choice (if / otherwise)", "“Skip this step when…”"]) await options.getByLabel(label).check();

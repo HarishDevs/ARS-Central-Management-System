@@ -80,25 +80,25 @@ export const PAGES: readonly PageDef[] = [
   // are ignored.
   { key: "admin.overview", area: "admin", label: "Admin overview", what: "The Admin space's first page.", paths: [exact("/admin")], neverHidden: true },
   { key: "admin.attention", area: "admin", label: "Needs attention", what: "Stuck requests and their fixes.", paths: [under("/admin/attention")] },
-  { key: "admin.analytics", area: "admin", label: "Analytics (Admin)", what: "Organisation analytics.", paths: [under("/admin/analytics")] },
-  { key: "admin.reports", area: "admin", label: "Reports", what: "Reports, downloads, schedules, alerts and exports.", paths: [under("/admin/reports"), under("/users/reports")], apis: [/^\/api\/reports\//, /^\/api\/exports\//] },
+  { key: "admin.analytics", area: "admin", label: "Analytics (Admin)", what: "Organisation analytics.", paths: [under("/admin/insights/analytics")] },
+  { key: "admin.reports", area: "admin", label: "Reports", what: "Reports, downloads, schedules, alerts and exports.", paths: [under("/admin/insights/reports"), under("/users/reports")], apis: [/^\/api\/reports\//, /^\/api\/exports\//] },
   { key: "admin.insights", area: "admin", label: "Insights", what: "Insight tiles.", paths: [under("/admin/insights")] },
-  { key: "admin.dashboards", area: "admin", label: "Dashboards", what: "Utilisation, approvers, departments and raisers dashboards.", paths: [under("/admin/dashboards")], apis: [/^\/api\/admin\/dashboards\//] },
-  { key: "admin.workload", area: "admin", label: "Workload", what: "Who has what waiting; moving pending tasks.", paths: [under("/admin/workload")] },
-  { key: "admin.custom_approval", area: "admin", label: "Custom approval set-up", what: "The fields and step options of custom approvals.", paths: [under("/admin/custom-approval")] },
-  { key: "admin.task_types", area: "admin", label: "Task types", what: "Setting up the kinds of task (forms, assignment, completion rules).", paths: [under("/admin/task-types")] },
-  { key: "admin.task_holidays", area: "admin", label: "Task settings", what: "Task holidays (organisation and department), moving or telling about tasks due on a holiday, the morning summary, repeating tasks.", paths: [under("/admin/task-holidays")] },
-  { key: "admin.meetings", area: "admin", label: "Meeting settings", what: "Meeting types (with their default points) and the Management group (ED, MD) who see every meeting.", paths: [under("/admin/meetings")] },
-  { key: "admin.information_types", area: "admin", label: "Information types", what: "Setting up the kinds of information (forms, recipients, acknowledgement).", paths: [under("/admin/information-types")] },
-  { key: "admin.ticket_forms", area: "admin", label: "Ticket forms and categories", what: "Setting up ticket categories and the ticket forms (fields, coordinators, who may raise).", paths: [under("/admin/ticket-forms"), under("/admin/ticket-categories")] },
-  { key: "admin.groups", area: "admin", label: "Approver groups", what: "Groups of approvers.", paths: [under("/admin/groups")] },
-  { key: "admin.doa", area: "admin", label: "Approval authority (DoA)", what: "Delegation of authority matrices.", paths: [under("/admin/doa")] },
-  { key: "admin.budgets", area: "admin", label: "Budgets", what: "Department budgets.", paths: [under("/admin/budgets")] },
+  { key: "admin.dashboards", area: "admin", label: "Dashboards", what: "Utilisation, approvers, departments and raisers dashboards.", paths: [under("/admin/insights/dashboards")], apis: [/^\/api\/admin\/dashboards\//] },
+  { key: "admin.workload", area: "admin", label: "Workload", what: "Who has what waiting; moving pending tasks.", paths: [under("/admin/insights/workload")] },
+  { key: "admin.custom_approval", area: "admin", label: "Custom approval set-up", what: "The fields and step options of custom approvals.", paths: [under("/admin/setup/custom-approval")] },
+  { key: "admin.task_types", area: "admin", label: "Task types", what: "Setting up the kinds of task (forms, assignment, completion rules).", paths: [under("/admin/setup/task-types")] },
+  { key: "admin.task_holidays", area: "admin", label: "Task settings", what: "Task holidays (organisation and department), moving or telling about tasks due on a holiday, the morning summary, repeating tasks.", paths: [under("/admin/setup/task-settings")] },
+  { key: "admin.meetings", area: "admin", label: "Meeting settings", what: "Meeting types (with their default points) and the Management group (ED, MD) who see every meeting.", paths: [under("/admin/setup/meetings")] },
+  { key: "admin.information_types", area: "admin", label: "Information types", what: "Setting up the kinds of information (forms, recipients, acknowledgement).", paths: [under("/admin/setup/information-types")] },
+  { key: "admin.ticket_forms", area: "admin", label: "Ticket forms and categories", what: "Setting up ticket categories and the ticket forms (fields, coordinators, who may raise).", paths: [under("/admin/setup/ticket-forms"), under("/admin/setup/ticket-categories")] },
+  { key: "admin.groups", area: "admin", label: "Approver groups", what: "Groups of approvers.", paths: [under("/admin/setup/groups")] },
+  { key: "admin.doa", area: "admin", label: "Approval authority (DoA)", what: "Delegation of authority matrices.", paths: [under("/admin/setup/doa")] },
+  { key: "admin.budgets", area: "admin", label: "Budgets", what: "Department budgets.", paths: [under("/admin/setup/budgets")] },
   { key: "admin.calendar", area: "admin", label: "Working calendar", what: "Working days and holidays.", paths: [under("/admin/calendar")] },
-  { key: "admin.ai_analytics", area: "admin", label: "AI Analytics", what: "How Pico Bot is used: adoption, questions, speed, tokens and cost, by chat, provider, department and person.", paths: [under("/admin/ai-analytics")] },
-  { key: "admin.reminders", area: "admin", label: "Reminders & escalations", what: "Rules that remind people and escalate late approvals and tasks.", paths: [under("/admin/reminders")] },
-  { key: "admin.ai_rules", area: "admin", label: "AI Rules", what: "The rules every AI provider follows (company terms, where data is kept).", paths: [under("/admin/ai-rules")] },
-  { key: "admin.records", area: "admin", label: "Records", what: "Every approval request, task and information item, with filters and a CSV download.", paths: [under("/admin/records")], apis: [/^\/api\/admin\/records\//] },
+  { key: "admin.ai_analytics", area: "admin", label: "AI analytics", what: "How Pico Bot is used: adoption, questions, speed, tokens and cost, by chat, provider, department and person.", paths: [under("/admin/insights/ai")] },
+  { key: "admin.reminders", area: "admin", label: "Reminders & escalations", what: "Rules that remind people and escalate late approvals and tasks.", paths: [under("/admin/setup/reminders")] },
+  { key: "admin.ai_rules", area: "admin", label: "AI rules", what: "The rules every AI provider follows (company terms, where data is kept).", paths: [under("/admin/setup/ai-rules")] },
+  { key: "admin.records", area: "admin", label: "Records", what: "Every approval request, task, information item, ticket and meeting, with the power search, the record pane and (requests, tasks, information) a CSV download.", paths: [under("/admin/records")], apis: [/^\/api\/admin\/records\//] },
   { key: "admin.users", area: "admin", label: "Users & roles", what: "People, roles and hand-overs.", paths: [under("/admin/users")] },
   { key: "admin.organisation", area: "admin", label: "Departments", what: "Departments and designations.", paths: [under("/admin/organisation")] },
 ];
@@ -129,7 +129,8 @@ export const OPEN_PATHS: readonly RegExp[] = [
   exact("/users/approvals"), // phone hub of the approval lists (each list keeps its own page rule)
   exact("/users/more"), // phone "More" menu (links already filtered by page access)
   under("/users/people"), // a person's contact card
-  under("/admin/notifications"), // broadcast notifications (not yet a configurable page)
+  under("/admin/setup/notifications"), // broadcast notifications (not yet a configurable page)
+  exact("/admin/setup"), // v1.85.0 (D-412): the Set-up hub (its section list is filtered by page access)
   exact("/users/no-access"), // v1.50.3: the "you don't have access" screen itself
   exact("/users/switched-off"), // v1.72.1 (D-395): the "switched off" screen itself
   exact("/admin/no-access"),

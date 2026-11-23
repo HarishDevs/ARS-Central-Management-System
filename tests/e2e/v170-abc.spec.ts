@@ -24,7 +24,7 @@ test("A2 the needed-by calendar opens and moves between months", async ({ page, 
 
 test("A3 IT opens bulk reassignment from Workload", async ({ page, context }) => {
   await as(context, "E2E_ADMIN");
-  await page.goto("/admin/workload");
+  await page.goto("/admin/insights/workload");
   await page.getByRole("link", { name: "Move pending tasks" }).click();
   await expect(page.getByRole("heading", { name: "Move pending tasks" })).toBeVisible();
   await expect(page.getByLabel("Move them to")).toBeVisible();
@@ -61,7 +61,7 @@ test("B analytics: new KPIs, comparison, more filters, charts and drill-down", a
 
 test("B08 alerts offer severity, channels and quiet hours", async ({ page, context }) => {
   await as(context, "E2E_ADMIN");
-  await page.goto("/admin/reports");
+  await page.goto("/admin/insights/reports");
   await expect(page.getByLabel("Severity")).toBeVisible();
   await expect(page.getByLabel("Tell me by")).toBeVisible();
   await expect(page.getByLabel("Quiet from")).toBeVisible();
@@ -69,12 +69,12 @@ test("B08 alerts offer severity, channels and quiet hours", async ({ page, conte
 
 test("C02 a large export is made in the background and listed for download", async ({ page, context }) => {
   await as(context, "E2E_ADMIN");
-  await page.goto("/admin/reports/request_register?scope=ORGANISATION&period=90d");
+  await page.goto("/admin/insights/reports/request_register?scope=ORGANISATION&period=90d");
   await page.getByText("Large export in the background").click();
   await page.getByRole("button", { name: "Make the export" }).click();
   await expect(page.getByText(/Being made/)).toBeVisible();
   await expect(async () => {
-    await page.goto("/admin/reports");
+    await page.goto("/admin/insights/reports");
     await expect(page.getByTestId("exports").getByRole("link", { name: "Download" }).first()).toBeVisible({ timeout: 2000 });
   }).toPass({ timeout: 30000 });
   const download = await page.request.get((await page.getByTestId("exports").getByRole("link", { name: "Download" }).first().getAttribute("href"))!);

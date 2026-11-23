@@ -1,6 +1,6 @@
 "use client";
 
-import { saveManagementGroupAction, saveMeetingTypeAction } from "@/app/admin/meetings/actions";
+import { saveManagementGroupAction, saveMeetingTypeAction } from "@/app/admin/setup/meetings/actions";
 import { PeoplePicker, type PersonOption } from "@/features/ui/PeoplePicker";
 import { FieldError, ResultMessage, SubmitButton, useActionForm } from "@/features/ui/form";
 

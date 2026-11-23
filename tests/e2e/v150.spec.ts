@@ -155,7 +155,7 @@ test("#13 help is searchable and copies details for IT", async ({ page, context 
 
 test("#12 IT sees the workload", async ({ page, context }) => {
   await as(context, "E2E_ADMIN");
-  await page.goto("/admin/workload");
+  await page.goto("/admin/insights/workload");
   await expect(page.getByRole("heading", { name: "Workload" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Harini HOD" })).toBeVisible();
 });

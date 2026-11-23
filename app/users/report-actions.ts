@@ -78,7 +78,7 @@ export async function saveViewAction(_previous: ActionResult | null, formData: F
   if (!LIST_TARGETS.includes(target) && target !== "DASHBOARD" && !(await canUseReports(user))) return NOT_FOUND;
   if (name.length < 2) return { ok: false, message: "Give the view a name.", fieldErrors: { viewName: "Use 2 to 80 characters." } };
   if ((await saveView({ userId: user.id, target, name, query: queryFrom(formData) as Record<string, string>, shared: false })) === "TOO_MANY") return { ok: false, message: "You have 100 saved views. Delete one first." };
-  revalidatePath(target === "DASHBOARD" ? "/users/analytics" : target === "my_requests" ? "/users/requests" : target === "collaborating" ? "/users/collaborating" : target === "my_approved" ? "/users/approved" : target === "approved_by_me" ? "/users/approved-by-me" : `/admin/reports/${target}`);
+  revalidatePath(target === "DASHBOARD" ? "/users/analytics" : target === "my_requests" ? "/users/requests" : target === "collaborating" ? "/users/collaborating" : target === "my_approved" ? "/users/approved" : target === "approved_by_me" ? "/users/approved-by-me" : `/admin/insights/reports/${target}`);
   return { ok: true, message: `Saved "${name}".` };
 }
 
@@ -87,13 +87,13 @@ export async function deleteViewAction(_previous: ActionResult | null, formData:
   const viewId = id(formData.get("viewId"));
   if (!user || viewId === null || !(await deleteView(user.id, viewId))) return { ok: false, message: "Not found." };
   revalidatePath("/users/analytics");
-  revalidatePath("/admin/analytics");
+  revalidatePath("/admin/insights/analytics");
   revalidatePath("/users/requests");
   revalidatePath("/users/collaborating");
   revalidatePath("/users/queue");
   revalidatePath("/users/approved");
   revalidatePath("/users/approved-by-me");
-  revalidatePath("/admin/reports", "layout");
+  revalidatePath("/admin/insights/reports", "layout");
   revalidatePath("/", "layout"); // v1.58.0 (D-353): list views live on many pages
   return { ok: true, message: "View deleted." };
 }
@@ -117,7 +117,7 @@ export async function createScheduleAction(_previous: ActionResult | null, formD
     logError("createScheduleAction failed", error);
     return { ok: false, message: "Couldn't save. Please try again." };
   }
-  revalidatePath("/admin/reports", "layout");
+  revalidatePath("/admin/insights/reports", "layout");
   return { ok: true, message: "Scheduled. It is emailed to you (and anyone you added), each with their own permissions at the time it runs." };
 }
 
@@ -132,7 +132,7 @@ export async function updateScheduleAction(_previous: ActionResult | null, formD
   const recipients = recipientsFrom(formData, user.id);
   if (!(await updateSchedule(user.id, scheduleId, { ...when.value, recipients }))) return { ok: false, message: "Not found." };
   await recordAudit({ actorUserId: user.id, action: "REPORT_SCHEDULE_CHANGED", entityType: "REPORT", entityId: scheduleId, sessionId: user.sessionId, metadata: { ...when.value, recipients: recipients.length } });
-  revalidatePath("/admin/reports", "layout");
+  revalidatePath("/admin/insights/reports", "layout");
   return { ok: true, message: "Saved. The next run uses the new settings." };
 }
 
@@ -143,7 +143,7 @@ export async function toggleScheduleAction(_previous: ActionResult | null, formD
   if (!user || scheduleId === null || !(await setScheduleActive(user.id, scheduleId, active))) return { ok: false, message: "Not found." };
   // SEC-12 (v1.10.0, audit S-07): pausing and resuming are audited too.
   await recordAudit({ actorUserId: user.id, action: active ? "REPORT_SCHEDULE_RESUMED" : "REPORT_SCHEDULE_PAUSED", entityType: "REPORT", entityId: scheduleId, sessionId: user.sessionId });
-  revalidatePath("/admin/reports", "layout");
+  revalidatePath("/admin/insights/reports", "layout");
   return { ok: true, message: active ? "Switched on." : "Switched off." };
 }
 
@@ -171,7 +171,7 @@ export async function createAlertAction(_previous: ActionResult | null, formData
     const ruleId = await createAlertRule({ userId: user.id, metric, scopeKind, threshold, param: definition.needsDays ? days : null, cooldownHours: 24, severity, channels, quietStart, quietEnd });
     const now = await alertValue({ metric, scopeKind, param: definition.needsDays ? days : null }, user);
     await recordAudit({ actorUserId: user.id, action: "ALERT_RULE_CREATED", entityType: "ALERT", entityId: ruleId, sessionId: user.sessionId, metadata: { metric, scopeKind, threshold } });
-    revalidatePath("/admin/reports", "layout");
+    revalidatePath("/admin/insights/reports", "layout");
     return { ok: true, message: `Alert saved. Right now the value is ${now ?? "unknown"}; it is checked every few minutes.` };
   } catch (error) {
     if ((error as Error).message === "TOO_MANY") return { ok: false, message: "You have 20 active alerts. Switch one off first." };
@@ -186,7 +186,7 @@ export async function toggleAlertAction(_previous: ActionResult | null, formData
   const active = formData.get("active") === "on";
   if (!user || ruleId === null || !(await setAlertActive(user.id, ruleId, active))) return { ok: false, message: "Not found." };
   await recordAudit({ actorUserId: user.id, action: active ? "ALERT_RULE_RESUMED" : "ALERT_RULE_PAUSED", entityType: "ALERT", entityId: ruleId, sessionId: user.sessionId });
-  revalidatePath("/admin/reports", "layout");
+  revalidatePath("/admin/insights/reports", "layout");
   return { ok: true, message: active ? "Switched on." : "Switched off." };
 }
 
@@ -198,13 +198,13 @@ export async function shareViewAction(_previous: ActionResult | null, formData: 
   if (!user || viewId === null || !(await setViewShared(user.id, viewId, shared))) return { ok: false, message: "Not found." };
   await recordAudit({ actorUserId: user.id, action: shared ? "VIEW_SHARED" : "VIEW_UNSHARED", entityType: "VIEW", entityId: viewId, sessionId: user.sessionId });
   revalidatePath("/users/analytics");
-  revalidatePath("/admin/analytics");
+  revalidatePath("/admin/insights/analytics");
   revalidatePath("/users/requests");
   revalidatePath("/users/collaborating");
   revalidatePath("/users/queue");
   revalidatePath("/users/approved");
   revalidatePath("/users/approved-by-me");
-  revalidatePath("/admin/reports", "layout");
+  revalidatePath("/admin/insights/reports", "layout");
   revalidatePath("/", "layout"); // v1.58.0 (D-353): list views live on many pages
   return { ok: true, message: shared ? "Shared: everyone can open it and sees their own numbers." : "No longer shared." };
 }
@@ -215,13 +215,13 @@ export async function defaultViewAction(_previous: ActionResult | null, formData
   const isDefault = formData.get("isDefault") === "on";
   if (!user || viewId === null || !(await setDefaultView(user.id, viewId, isDefault))) return { ok: false, message: "Not found." };
   revalidatePath("/users/analytics");
-  revalidatePath("/admin/analytics");
+  revalidatePath("/admin/insights/analytics");
   revalidatePath("/users/requests");
   revalidatePath("/users/collaborating");
   revalidatePath("/users/queue");
   revalidatePath("/users/approved");
   revalidatePath("/users/approved-by-me");
-  revalidatePath("/admin/reports", "layout");
+  revalidatePath("/admin/insights/reports", "layout");
   revalidatePath("/", "layout"); // v1.58.0 (D-353): list views live on many pages
   return { ok: true, message: isDefault ? "Opens with this view from now on." : "Default cleared." };
 }
@@ -237,6 +237,6 @@ export async function requestExportAction(_previous: ActionResult | null, formDa
   const result = await requestExport(user, reportKey, queryFrom(formData), format as "csv");
   if (!result.ok) return result;
   after(() => runExportJob(result.id).then(() => undefined));
-  revalidatePath("/admin/reports", "layout");
-  return { ok: true, message: "Being made. You'll be told in the app when it's ready; it's listed under Admin → Reports → My exports." };
+  revalidatePath("/admin/insights/reports", "layout");
+  return { ok: true, message: "Being made. You'll be told in the app when it's ready; it's listed under Admin → Insights → Reports → My exports." };
 }

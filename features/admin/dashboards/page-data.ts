@@ -15,6 +15,6 @@ export async function dashboardPage(searchParams: DashboardSearch, slug?: string
   const { user } = await requireArea("admin");
   const today = await indiaToday();
   const [params, choices] = await Promise.all([searchParams, dashboardChoices()]);
-  if (slug) await applyDefaultListView(user.id, `list_admin_dash_${slug}`, `/admin/dashboards/${slug}`, params);
+  if (slug) await applyDefaultListView(user.id, `list_admin_dash_${slug}`, `/admin/insights/dashboards/${slug}`, params);
   return { today, filter: parseDashboardFilter(params, today), choices, query: params as Record<string, string | undefined>, userId: user.id };
 }
