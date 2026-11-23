@@ -21,7 +21,9 @@ export function SignInPanel({ nextPath }: { nextPath: string }) {
   function finish(redirectTo: string) {
     setEntering(true);
     const safe = safeNextPath(nextPath);
-    router.replace(safe !== "/users" ? safe : redirectTo);
+    // v1.89.0 (NAV-07, D-419): a page asked for goes through /login once more,
+    // where the server checks that this person may open its area (else home).
+    router.replace(safe !== "/users" ? `/login?next=${encodeURIComponent(safe)}` : redirectTo);
     router.refresh();
   }
 

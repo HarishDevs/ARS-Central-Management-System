@@ -5,6 +5,8 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/features/shell/PageHeader";
 import { Hint } from "@/features/ui/Hint";
 import { Badge, Breadcrumbs } from "@/features/ui/Display";
+import { returnToFor } from "@/server/authorization/return-to";
+import { ReturnToLink } from "@/features/ui/ReturnToLink";
 import { AttachFilesForm, EditTaskForm, ReassignForm, TaskActionButton } from "@/features/modules/TaskForms";
 import { ActionRemarks } from "@/features/modules/ActionRemarks";
 import { FieldValues, FileLinks, type HistoryEntry } from "@/features/modules/RecordParts";
@@ -87,7 +89,7 @@ export const TASK_EVENT_TEXT: Record<string, string> = {
 // all the actions"): the whole task, shared by its full page and the popup
 // opened from a list (?task=<id>). In the popup the breadcrumbs make way for
 // a bar with Open full page and Close.
-export async function TaskDetail({ taskId, user, query, popup }: { taskId: number; user: AuthenticatedUser; query: { created?: string; project?: string }; popup?: { closeHref: string; side?: boolean } }) {
+export async function TaskDetail({ taskId, user, query, popup }: { taskId: number; user: AuthenticatedUser; query: { created?: string; project?: string; from?: string }; popup?: { closeHref: string; side?: boolean } }) {
   const loaded = await loadTaskFor(taskId, user);
   if (!loaded) {
     if (!popup) notFound();
@@ -119,6 +121,9 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
   const view = await taskWorkView(task, user);
   const { panel, rights, chain, links, viewer, group } = view;
   const fromProject = links.find((link) => String(link.projectId) === query.project) ?? null;
+  // v1.89.0 (NAV-04, D-419): opened from Admin → Records (Open full page), the
+  // validated ?from= is the way back (first crumb and "← Back to …"); never in a pane.
+  const returnTo = popup ? null : returnToFor(user, query.from);
   const names = new Map(people.map((person) => [person.id, person.name]));
   const now = new Date();
   const late = isOverdue(task, now);
@@ -203,7 +208,7 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
       {mobile && (
         // v1.45.0 (owner's Asana task screen): back, Mark complete, copy link and … (the task's actions) stay at the top.
         <div className="sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-sticky -mx-4 -mt-4 mb-3 flex items-center gap-2 border-b border-line bg-surface px-2 py-2" data-testid="m-task-bar">
-          <Link href={fromProject ? `/users/work/projects/${fromProject.projectId}` : "/users/work/my-tasks"} aria-label="Back to tasks" className="grid h-11 w-11 place-items-center rounded-full text-ink">
+          <Link href={returnTo ? returnTo.href : fromProject ? `/users/work/projects/${fromProject.projectId}` : "/users/work/my-tasks"} aria-label={returnTo ? `Back to ${returnTo.label}` : "Back to tasks"} className="grid h-11 w-11 place-items-center rounded-full text-ink">
             <ArrowLeft aria-hidden="true" className="h-6 w-6" />
           </Link>
           <span className="flex flex-1 justify-center">{canTick && <TaskCompleteButton taskId={task.id} done={task.status === "COMPLETED"} disabled={!(actions.has("COMPLETE") || actions.has("REOPEN"))} title={task.title} />}</span>
@@ -249,7 +254,7 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
       <>
       {!popup && <Breadcrumbs
         items={[
-          fromProject ? { href: `/users/work/projects/${fromProject.projectId}`, label: fromProject.projectName } : { href: "/users/tasks", label: "Tasks" },
+          returnTo ? { href: returnTo.href, label: returnTo.label } : fromProject ? { href: `/users/work/projects/${fromProject.projectId}`, label: fromProject.projectName } : { href: "/users/tasks", label: "Tasks" },
           ...chain.map((item) => ({ href: `/users/tasks/${item.id}`, label: item.title })),
           { label: task.taskNo },
         ]}
@@ -298,6 +303,7 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
       <>
       {view.pmOn && <VisibilityBanner text={visibilityText(links)} />}
       <PageHeader title={task.title} meta={`${task.taskNo} · ${task.typeName} (version ${versionNo})`}>
+        {returnTo && <ReturnToLink to={returnTo} />}
         <TaskShareButton taskId={task.id} title={task.title} followers={panel.followers} people={panel.people} visibility={visibilityText(links)} canAdd={rights.comment} />
         {/* D-219: complete or reopen in one click, as in Asana (types that need a note or file say so). */}
         {((actions.has("COMPLETE") && settings.completion === "NONE") || actions.has("REOPEN") || task.status === "COMPLETED") && (

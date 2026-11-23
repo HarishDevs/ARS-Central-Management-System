@@ -28,3 +28,20 @@ export function paneHasUnsentDraft(pane: PaneLike | null | undefined): boolean {
 export function paneIsSaving(pane: { querySelector(selector: string): unknown } | null | undefined): boolean {
   return Boolean(pane?.querySelector('form[aria-busy="true"]'));
 }
+
+// v1.89.0 (NAV-06, D-419): does a Back/Forward from `from` to `to` close the
+// pane? A pane is the ?task= (task pane) or ?open= (record pane) of the
+// address; the move closes it when that value changes or the page changes.
+// Unknown `from`: treated as leaving (the draft is asked about, never lost).
+const PANE_PARAMS = ["task", "open"] as const;
+export function leavesPane(from: string | null, to: string): boolean {
+  if (!from) return true;
+  try {
+    const a = new URL(from, "https://same.origin.invalid");
+    const b = new URL(to, "https://same.origin.invalid");
+    if (a.pathname !== b.pathname) return true;
+    return PANE_PARAMS.some((name) => a.searchParams.get(name) !== b.searchParams.get(name));
+  } catch {
+    return true;
+  }
+}

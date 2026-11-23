@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Dialog } from "@/features/ui/Dialog";
 import { APP_UPDATED_EVENT, SESSION_ENDED_EVENT, SLOW_EVENT } from "@/features/ui/form";
 import { Spinner } from "@/features/ui/Spinner";
+import { returnAddress } from "@/lib/http/safe-next";
 
 // FB-04: when the session ends (idle limit, 12-hour limit, signed out on
 // another device), say so in a dialog instead of letting the next click
@@ -41,7 +42,10 @@ export function SessionWatch({ build }: { build: string }) {
       .then((body) => {
         if (cancelled) return;
         const reason = (body as { reason?: string | null }).reason ?? "unknown";
-        window.location.assign(`/signed-out?reason=${encodeURIComponent(reason)}&next=${encodeURIComponent(pathname)}`);
+        // v1.89.0 (NAV-02, D-419): the whole address (path and query: the task
+        // pane, view, filters, sort), checked as a safe same-site path.
+        const next = returnAddress(window.location.pathname || pathname, window.location.search);
+        window.location.assign(`/signed-out?reason=${encodeURIComponent(reason)}&next=${encodeURIComponent(next)}`);
       });
     return () => {
       cancelled = true;

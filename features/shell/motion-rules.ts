@@ -84,6 +84,54 @@ export function listHref(location: { pathname: string; search: string }): string
   return `${location.pathname}${text ? `?${text}` : ""}`;
 }
 
+// v1.89.0 (NAV-05, D-419): the users-area lists a record's page can be opened
+// from, with the name its breadcrumb then shows. When a page's parent crumb is
+// one of these lists and the page was opened from another of them in this tab
+// (Task Summary → a task, Inbox → a request), the crumb names and links that
+// list, with its query. Anything else keeps the page's own parent.
+export const CROSS_LISTS: Readonly<Record<string, string>> = {
+  "/users/work/my-tasks": "Task Summary",
+  "/users/tasks": "Tasks",
+  "/users/tasks/assigned": "Assigned by me",
+  "/users/tasks/team": "My team's tasks",
+  "/users/inbox": "Inbox",
+  "/users/search": "Search",
+  "/users/queue": "Waiting for me",
+  "/users/requests": "My pending requests",
+  "/users/approved": "My approved requests",
+  "/users/approved-by-me": "Approved by me",
+  "/users/collaborating": "Collaborating",
+  "/users/tickets": "My tickets",
+  "/users/meetings": "Meetings",
+  "/users/information": "Information",
+  "/users/information/sent": "Information",
+  "/users/calendar": "Calendar",
+};
+
+export interface OriginWay {
+  href: string;
+  /** Set only when the way back is another list than the page's own parent. */
+  label: string | null;
+}
+
+export function originWay(fallback: string, raw: string | null, now: number, crossList = false): OriginWay {
+  const same = originFor(fallback, raw, now);
+  if (same !== fallback || !crossList || !raw) return { href: same, label: null };
+  try {
+    const value = JSON.parse(raw) as { href?: unknown; at?: unknown };
+    if (typeof value.href !== "string" || typeof value.at !== "number" || now - value.at > ORIGIN_TTL_MS) return { href: fallback, label: null };
+    if (!value.href.startsWith("/") || value.href.startsWith("//") || /[\\\u0000-\u001f\u007f]/.test(value.href)) return { href: fallback, label: null };
+    const want = new URL(fallback, "https://same.origin.invalid");
+    const got = new URL(value.href, "https://same.origin.invalid");
+    if (got.origin !== want.origin || got.hash) return { href: fallback, label: null };
+    const label = CROSS_LISTS[got.pathname];
+    if (!CROSS_LISTS[want.pathname] || !label || got.pathname === want.pathname) return { href: fallback, label: null };
+    return { href: `${got.pathname}${got.search}`, label };
+  } catch {
+    return { href: fallback, label: null };
+  }
+}
+
 // The remembered list for `fallback`'s page, when it is the same page (path); else the fallback.
 export function originFor(fallback: string, raw: string | null, now: number): string {
   if (!raw) return fallback;

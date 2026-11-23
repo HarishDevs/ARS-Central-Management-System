@@ -46,6 +46,27 @@ export function sameAddress(a: string | null, b: string | null): boolean {
   return norm(a) === norm(b);
 }
 
+// v1.89.0 (NAV-08, D-419): may an in-app "← Back" link go back in the browser?
+// Where the browser has the Navigation API, it lists this tab's entries of
+// this site only: `previous` is the URL of the entry just before this one,
+// or null when there is none (the tab came from another site, an email, a
+// bookmark or a new tab). Back is used only when that is a page of this app
+// (also after a reload or a typed address). Without the API, the tab's trail
+// decides: an in-app address seen in this document's life and a forward move
+// here. Otherwise the link's own in-app address is followed.
+export function backStaysInApp(state: PaneTrail, here: string, previous?: string | null): boolean {
+  if (previous !== undefined) {
+    if (previous === null) return false;
+    try {
+      const url = new URL(previous, "https://same.origin.invalid");
+      return url.origin === "https://same.origin.invalid" && !sameAddress(`${url.pathname}${url.search}`, here);
+    } catch {
+      return false;
+    }
+  }
+  return state.prev !== null && !state.pop && sameAddress(state.curr, here) && !sameAddress(state.prev, here);
+}
+
 export function closeHow(state: PaneTrail, here: string, closeHref: string): "back" | "replace" {
   return !state.pop && sameAddress(state.curr, here) && sameAddress(state.prev, closeHref) ? "back" : "replace";
 }

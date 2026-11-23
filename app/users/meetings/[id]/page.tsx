@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { requireArea } from "@/server/authorization/guards";
 import { PageHeader } from "@/features/shell/PageHeader";
 import { Badge, Breadcrumbs } from "@/features/ui/Display";
+import { returnToFor } from "@/server/authorization/return-to";
+import { ReturnToLink } from "@/features/ui/ReturnToLink";
 import { HistoryList } from "@/features/modules/RecordParts";
 import { ActionReviewForm, CloseOpenPointForm, MeetingButton, MomEditor, PointsEditor, RespondForm } from "@/features/meetings/MeetingForms";
 import { FollowUpBadge, indiaInput, MeetingStatusBadge, PointsBadge, whenText } from "@/features/meetings/MeetingParts";
@@ -68,7 +70,7 @@ function Fact({ label, value }: { label: string; value: React.ReactNode }) {
 // v1.51.0 (D-300, D-301): one meeting. The Coordinator runs it (points,
 // attendance, MOM); the Meeting Owner approves the points and the MOM;
 // participants see everything once shared. Anyone else gets "not found".
-export default async function MeetingPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ scheduled?: string; updated?: string; sortBy?: string; dir?: string }> }) {
+export default async function MeetingPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ scheduled?: string; updated?: string; sortBy?: string; dir?: string; from?: string }> }) {
   const { user } = await requireArea("users");
   const { id } = await params;
   if (!/^\d{1,10}$/.test(id)) notFound();
@@ -88,6 +90,8 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
     listDepartments(),
   ]);
   const query = await searchParams;
+  // v1.89.0 (NAV-04, D-419): the validated way back to another area's list (?from=).
+  const returnTo = returnToFor(user, query.from);
   const coordinator = isCoordinator(meeting, user.id) || viewer.isAdmin;
   const owner = isOwner(meeting, user.id);
   const personOptions = people.map((person) => ({ id: person.id, label: personLabel(person), detail: labels.get(person.id) || undefined }));
@@ -135,8 +139,10 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
 
   return (
     <>
-      <Breadcrumbs items={[{ href: "/users/meetings", label: "Meetings" }, { label: meeting.meetingNo }]} />
+      {/* v1.89.0 (NAV-04, D-419): opened from Admin → Records, the way back is that list. */}
+      <Breadcrumbs items={[returnTo ? { href: returnTo.href, label: returnTo.label } : { href: "/users/meetings", label: "Meetings" }, { label: meeting.meetingNo }]} />
       <PageHeader title={meeting.title} meta={`${meeting.meetingNo} · ${meeting.typeName} · ${whenText(meeting.scheduledStart, meeting.scheduledEnd)}`}>
+        {returnTo && <ReturnToLink to={returnTo} />}
         <MeetingStatusBadge status={meeting.status} />
         {(meeting.status === "SCHEDULED" || meeting.status === "IN_PROGRESS") && <PointsBadge status={meeting.pointsStatus} />}
         {meeting.confidentiality === "MANAGEMENT" && <Badge tone="warning">Management only</Badge>}

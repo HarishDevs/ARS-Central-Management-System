@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { DEFAULT_MODULES } from "@/server/modules/modules";
 import { DEFAULT_CHAT_MODES } from "@/server/ai/chat-access";
-import Link from "next/link";
+import { OriginLink } from "@/features/ui/OriginLink";
 import { PageHeader } from "@/features/shell/PageHeader";
 import { UserForm } from "@/features/admin/UserForm";
 import { loadUserFormOptions } from "@/features/admin/user-options";
@@ -16,9 +16,10 @@ export default async function NewUserPage() {
   return (
     <>
       <PageHeader title="Add user" description="Password users then get a set-password link by email from their user page.">
-        <Link href="/admin/users" className="link text-label">
+        {/* v1.89.0 (NAV-03, D-419): back to the list with the search and sort it was left with. */}
+        <OriginLink href="/admin/users" className="link text-label" testId="all-link">
           ← All users
-        </Link>
+        </OriginLink>
       </PageHeader>
       <div className="max-w-3xl">
         <UserForm

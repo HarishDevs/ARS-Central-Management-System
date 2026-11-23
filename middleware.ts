@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { SESSION_COOKIE_NAME } from "@/lib/session/constants";
-import { buildCsp, createNonce } from "@/lib/security/csp";
+import { buildCsp, createNonce, keepsLocalHttp } from "@/lib/security/csp";
 import { FILE_ROUTE } from "@/lib/security/file-routes";
 import { pickRequestId, REQUEST_ID_HEADER } from "@/lib/logging/request-id";
 import { PATH_HEADER, PATH_SIGNATURE_HEADER, signPath, WRITE_HEADER, NEXT_HEADER } from "@/lib/security/path-signature";
 import { sessionCookieLooksValid } from "@/lib/security/session-cookie-edge";
 import { panelRedirectUrl } from "@/lib/routing/panel-redirects";
 import { isUnknownUsersPath, UNKNOWN_PAGE_REWRITE } from "@/lib/routing/unknown-users-path";
+import { returnAddress } from "@/lib/http/safe-next";
 
 // Layer 1 of 3 (P1-30a): only checks that a session cookie is present.
 // Roles and the session row are checked on the server in every layout,
@@ -125,7 +126,8 @@ export async function middleware(request: NextRequest) {
   }
 
   const nonce = createNonce();
-  const csp = buildCsp(nonce, CSP_OPTIONS);
+  // v1.89.0 (D-419): a loopback host (the Host the browser asked for) in a local or e2e run keeps plain http (see keepsLocalHttp).
+  const csp = buildCsp(nonce, { ...CSP_OPTIONS, localHttp: keepsLocalHttp(request.headers.get("x-forwarded-host") ?? request.headers.get("host"), { nodeEnv: process.env.NODE_ENV, e2eLocalHttp: process.env.E2E_LOCAL_HTTP }) });
 
   if (!isPublic(pathname) && !request.cookies.has(SESSION_COOKIE_NAME)) {
     if (pathname.startsWith("/api/")) {
@@ -142,7 +144,8 @@ export async function middleware(request: NextRequest) {
   if (/^\/(admin|superadmin)(\/|$)/.test(pathname) && !(await sessionCookieLooksValid(request.cookies.get(SESSION_COOKIE_NAME)?.value, process.env.SESSION_SECRET))) {
     const signedOut = new URL("/signed-out", request.url);
     signedOut.searchParams.set("reason", "unknown");
-    signedOut.searchParams.set("next", pathname);
+    // v1.89.0 (NAV-02, D-419): the query too (filters, sort, an open pane).
+    signedOut.searchParams.set("next", returnAddress(pathname, request.nextUrl.search));
     return NextResponse.redirect(signedOut);
   }
 

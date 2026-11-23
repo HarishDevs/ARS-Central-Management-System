@@ -72,6 +72,12 @@ export function Dialog({
       // showModal focuses the first control (the close button); a field
       // marked data-autofocus (e.g. the comment box) is where typing starts.
       requestAnimationFrame(() => dialog.querySelector<HTMLElement>("[data-autofocus]")?.focus());
+    } else if (open && dialog.open && dialog.hasAttribute("data-closing")) {
+      // v1.89.0 (D-419): opened again while its closing animation still plays
+      // (Firefox, Safari: e.g. Keep editing, then Back at once asks again):
+      // the close is called off (closeTopLayer sees data-closing gone), so the
+      // old close can't shut the dialog that was just asked for.
+      dialog.removeAttribute("data-closing");
     } else if (!open && dialog.open) {
       void closeTopLayer(dialog);
     }

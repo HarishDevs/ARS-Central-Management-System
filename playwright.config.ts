@@ -24,7 +24,21 @@ export const E2E_ENV = {
   UPLOAD_DIR: path.join(os.tmpdir(), "ars-approvals-e2e-uploads"),
   // D-172: Pic bot talks to a local mock provider in tests (tests/e2e/mock-provider.ts).
   AI_CLAUDE_BASE_URL: `http://127.0.0.1:${process.env.E2E_MOCK_PORT ?? 4011}`,
+  // v1.89.0 (D-419): the CSP leaves out upgrade-insecure-requests for localhost only
+  // (lib/security/csp.ts keepsLocalHttp), so WebKit loads the app's files on http.
+  E2E_LOCAL_HTTP: "1",
 };
+
+// v1.89.0 (D-419): E2E_BROWSER=firefox|webkit runs the same specs in another engine
+// (default Chromium). E2E_FIREFOX_PATH points at a Firefox build outside %LOCALAPPDATA%
+// where Windows refuses to start it (docs/qa/NAVIGATION-AUDIT.md, harness notes).
+const BROWSER = process.env.E2E_BROWSER ?? "chromium";
+export const E2E_BROWSER_USE =
+  BROWSER === "firefox"
+    ? { ...devices["Desktop Firefox"], ...(process.env.E2E_FIREFOX_PATH ? { launchOptions: { executablePath: process.env.E2E_FIREFOX_PATH } } : {}) }
+    : BROWSER === "webkit"
+      ? devices["Desktop Safari"]
+      : devices["Desktop Chrome"];
 
 export default defineConfig({
   testDir: "tests/e2e",
@@ -37,7 +51,7 @@ export default defineConfig({
   timeout: 60_000,
   expect: { timeout: 10_000 },
   reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
-  use: { baseURL: `http://localhost:${PORT}`, trace: "retain-on-failure", ...devices["Desktop Chrome"] },
+  use: { baseURL: `http://localhost:${PORT}`, trace: "retain-on-failure", ...E2E_BROWSER_USE },
   webServer: {
     command: `npm run build && npx next start -p ${PORT}`,
     url: `http://localhost:${PORT}/login`,

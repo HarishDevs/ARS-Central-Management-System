@@ -12,8 +12,7 @@ import { nextWaitingHref } from "@/features/requests/next-waiting";
 import { MessagesSquare, Paperclip, Repeat2, ShieldCheck, Copy, ListChecks, CornerDownRight } from "lucide-react";
 import { TASK_STATUS_LABEL } from "@/server/modules/task-rules";
 import { requireArea } from "@/server/authorization/guards";
-import { evaluateAreaAccess } from "@/server/authorization/policy";
-import { parseReturnTo } from "@/lib/nav/return-to";
+import { returnToFor } from "@/server/authorization/return-to";
 import { OriginLink } from "@/features/ui/OriginLink";
 import { PageHeader } from "@/features/shell/PageHeader";
 import { Hint } from "@/features/ui/Hint";
@@ -194,7 +193,7 @@ export default async function RequestPage({
   // Records' Open full page), the way back is named after it and keeps its
   // query. ?from= is validated (same site, allow-listed path, an area this
   // person may open: checked here on the server); otherwise ignored.
-  const returnTo = parseReturnTo(query.from, (area) => evaluateAreaAccess(user, area).allowed);
+  const returnTo = returnToFor(user, query.from);
   const way = returnTo ? { href: returnTo.href, label: returnTo.label } : backTo;
   return (
     <>
@@ -217,9 +216,7 @@ export default async function RequestPage({
                   ← Back to {returnTo.label}
                 </Link>
               ) : (
-                <OriginLink href={backTo.href} className="link text-label" testId="back-to-list">
-                  ← Back to {backTo.label}
-                </OriginLink>
+                <OriginLink href={backTo.href} className="link text-label" testId="back-to-list" crossList label={backTo.label} prefix="← Back to " />
               )}
             </div>
           </PageHeader>

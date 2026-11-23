@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { OriginLink } from "@/features/ui/OriginLink";
 import { Breadcrumbs } from "@/features/ui/Display";
 import { Hint } from "@/features/ui/Hint";
 import { notFound } from "next/navigation";
@@ -50,9 +50,10 @@ export default async function TemplatePage({ params, searchParams }: { params: P
     <>
       <Breadcrumbs items={[{ href: "/superadmin", label: "Super Admin" }, { href: "/superadmin/connections/whatsapp/templates", label: "WhatsApp templates" }, { label: templateLabel(entry.eventType) }]} />
       <PageHeader title={templateLabel(entry.eventType)} description={`${entry.purpose} Sent to: ${entry.sentTo}. App event ${entry.eventType}. Matching email subject: “${entry.emailSubject}”.`}>
-        <Link href="/superadmin/connections/whatsapp/templates" className="link text-label">
+        {/* v1.89.0 (NAV-03, D-419): back to the list with the search and sort it was left with. */}
+        <OriginLink href="/superadmin/connections/whatsapp/templates" className="link text-label" testId="all-link">
           ← All templates
-        </Link>
+        </OriginLink>
       </PageHeader>
 
       <div className="mb-6 grid gap-4 lg:grid-cols-3">

@@ -148,9 +148,8 @@ export function Breadcrumbs({ items }: { items: { href?: string; label: string }
             {index > 0 && <ChevronRight aria-hidden="true" className="h-3.5 w-3.5 text-ink-faint" />}
             {item.href && index < items.length - 1 ? (
               // v1.87.0 (D-417): back to the list with the sort, filters and page it was left with.
-              <OriginLink href={item.href} className="hover:text-ink hover:underline">
-                {item.label}
-              </OriginLink>
+              // v1.89.0 (NAV-05, D-419): the parent crumb may name the list the page was opened from.
+              <OriginLink href={item.href} className="hover:text-ink hover:underline" crossList={index === items.length - 2} label={item.label} testId={index === items.length - 2 ? "crumb-parent" : undefined} />
             ) : (
               <span aria-current={index === items.length - 1 ? "page" : undefined} className="max-w-[16rem] truncate text-ink">
                 {item.label}

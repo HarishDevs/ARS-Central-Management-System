@@ -9,6 +9,23 @@
 export interface CspOptions {
   dev: boolean;
   firebaseAuthDomain: string;
+  /** v1.89.0 (D-419): leave out upgrade-insecure-requests for this request (see keepsLocalHttp). */
+  localHttp?: boolean;
+}
+
+// v1.89.0 (D-419): browsers such as WebKit apply upgrade-insecure-requests to
+// http://localhost too, so a local production build (the e2e and QA runs)
+// loads no scripts or styles. The directive is left out only for a loopback
+// host (localhost, 127.0.0.1, [::1]) and only when not in production, or when
+// the server was started with the explicit test flag E2E_LOCAL_HTTP=1. Any
+// other host, and production without the flag, keeps it.
+const LOOPBACK = new Set(["localhost", "127.0.0.1", "[::1]", "::1"]);
+export function keepsLocalHttp(host: string | null | undefined, env: { nodeEnv?: string; e2eLocalHttp?: string }): boolean {
+  const raw = (host ?? "").trim().toLowerCase();
+  // A port is dropped ("localhost:3280", "[::1]:3280"); a bare IPv6 address is kept as it is.
+  const name = /^\[[^\]]*\]:\d+$/.test(raw) || /^[^:]+:\d+$/.test(raw) ? raw.slice(0, raw.lastIndexOf(":")) : raw;
+  if (!LOOPBACK.has(name)) return false;
+  return env.nodeEnv !== "production" || env.e2eLocalHttp === "1";
 }
 
 export function buildCsp(nonce: string, options: CspOptions): string {
@@ -42,7 +59,7 @@ export function buildCsp(nonce: string, options: CspOptions): string {
     "object-src": ["'none'"],
   };
   const policy = Object.entries(directives).map(([name, values]) => `${name} ${values.join(" ")}`);
-  if (!options.dev) policy.push("upgrade-insecure-requests");
+  if (!options.dev && !options.localHttp) policy.push("upgrade-insecure-requests");
   return policy.join("; ");
 }
 

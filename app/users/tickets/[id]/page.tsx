@@ -7,6 +7,8 @@ import { notFound } from "next/navigation";
 import { Ticket } from "lucide-react";
 import { PageHeader } from "@/features/shell/PageHeader";
 import { Breadcrumbs } from "@/features/ui/Display";
+import { returnToFor } from "@/server/authorization/return-to";
+import { ReturnToLink } from "@/features/ui/ReturnToLink";
 import { FieldValues, FileLinks } from "@/features/modules/RecordParts";
 import { RichText } from "@/features/work/RichText";
 import { AssignTicketForm, ConfirmTicketForms, TicketRemarkForm, TicketWorkForm } from "@/features/tickets/TicketForms";
@@ -33,7 +35,7 @@ export const dynamic = "force-dynamic";
 // the requester confirms or reopens once the work is done.
 const day = (value: string | null) => (value ? new Date(`${value}T00:00:00Z`).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }) : "—");
 
-export default async function Page({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ raised?: string }> }) {
+export default async function Page({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ raised?: string; from?: string }> }) {
   const { user } = await ticketsPage({ partyOpen: true });
   const { id } = await params;
   if (!/^\d{1,10}$/.test(id)) notFound();
@@ -50,6 +52,8 @@ export default async function Page({ params, searchParams }: { params: Promise<{
     ticket.status === "CLOSED" ? findTicketFeedback(ticket.id) : Promise.resolve(null),
   ]);
   const query = await searchParams;
+  // v1.89.0 (NAV-04, D-419): the validated way back to another area's list (?from=).
+  const returnTo = returnToFor(user, query.from);
   const names = new Map(people.map((person) => [person.id, person.name]));
   // v1.57.2 (D-339, owner: "all the comments and attachments and activities should be
   // reflected in both ticket and task"): the task's comments and activity show here too.
@@ -81,8 +85,10 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   ];
   return (
     <>
-      <Breadcrumbs items={[{ href: "/users/tickets", label: "My tickets" }, { label: ticket.ticketNo }]} />
+      {/* v1.89.0 (NAV-04, D-419): opened from Admin → Records, the way back is that list. */}
+      <Breadcrumbs items={[returnTo ? { href: returnTo.href, label: returnTo.label } : { href: "/users/tickets", label: "My tickets" }, { label: ticket.ticketNo }]} />
       <PageHeader title={ticket.title} icon={Ticket} meta={`${ticket.ticketNo} · ${ticket.categoryName}`}>
+        {returnTo && <ReturnToLink to={returnTo} />}
         <TicketPriorityBadge priority={ticket.priority} />
         <TicketStatusBadge status={ticket.status} closeKind={ticket.closeKind} />
       </PageHeader>

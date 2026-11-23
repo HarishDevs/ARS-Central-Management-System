@@ -28,6 +28,7 @@ The number of levels and how they combine is unlimited. There are no fixed "Leve
 | F-PM-PANE | Task pane beside the view, resize kept; reactions; complete and delete with Undo; celebrations | Built 22 Nov 2026 (v1.62.0) |
 | F-ADMIN-RECORDS | Admin Records: five tabs, power-search chips, the record pane (side, dialog, full page) | Built 23 Nov 2026 (v1.85.0) |
 | F-PANELS | Admin and Super Admin navigation: five groups each, Health console, Search settings, old addresses redirect | Built 23 Nov 2026 (v1.84.0 Super Admin; v1.85.0 Admin) |
+| F-NAV-RETURN | Sign-in return to the same view (path + query, area checked), the way back from Admin → Records for every record page, crumbs named after the origin list, Back with an unsent pane comment, ← Back stays in the app | Built 24 Nov 2026 (v1.89.0, in progress; D-419) |
 | F-TASK-PANE-EVERYWHERE | Every task opens in the side pane on every screen; ⤢ dialog (kept per person); Open full page; full page for direct visits and phones; unknown /users addresses a real 404 | Built 23 Nov 2026 (v1.83.0; 404 fixed v1.85.1) |
 | F-PM-SIDEBAR | Starred and department projects in the sidebar, sort and reorder | Built 22 Nov 2026 (v1.62.0) |
 | F-PM-PURGE | Deleted tasks and projects removed for good after 30 days | Built 22 Nov 2026 (v1.62.0) |
@@ -1166,7 +1167,7 @@ After 28 minutes without activity (default 30): "Still there?" → **Stay signed
 ## F-132 Signed out after inactivity (v1.12.1, D-158)
 1. No activity for the set minutes (default 30); a warning appears 2 minutes before ("Stay signed in").
 2. Time runs out → the session is ended → the page goes to **Signed out**: "Signed out after inactivity … no activity for 30 minutes".
-3. **Sign in again** → the sign-in page → back to the space they were in.
+3. **Sign in again** → the sign-in page → back to the space they were in. Since v1.89.0 (D-419, F-NAV-RETURN) the same view: the path and its query (the open task or record, view, filters, sort).
 4. The same page explains the other endings: 12-hour limit, signed out elsewhere or by IT, account switched off or locked.
 
 ## F-131 Analytics Center (v1.12.0, D-156)
@@ -2879,3 +2880,34 @@ flowchart TD
   CF --> E[Evaluate per task: empty in = empty out unless COALESCE; errors as cell text]
   E --> X[Cell: number formatted, or a date; nothing stored, no activity, no audit]
 ```
+
+## F-NAV-RETURN: Coming back to the same view, and the way back (v1.89.0, D-419)
+From the navigation audit of v1.88.0 (`docs/qa/NAVIGATION-AUDIT.md`, NAV-01..08). Every server check stays as it was; these only choose addresses and links.
+```mermaid
+flowchart TD
+  subgraph Sign-in return
+    E[Session ends on a page] -->|SessionWatch: returnAddress path + query| SO[/signed-out?next=path?query/]
+    X[Expired or invalid cookie on /admin or /superadmin] -->|middleware: returnAddress| SO
+    N[No cookie] -->|middleware: next = path + query| LG
+    SO -->|Sign in again| LG[/login?next=.../]
+    LG -->|signed in: SignInPanel goes to /login?next= once more| D{landingFor: safe same-site path? area the person may open? - server}
+    D -- yes --> SAME[The same page, pane, view, filters, sort]
+    D -- no --> HOME[/users: their Home, never a 404/]
+  end
+  subgraph Refused area
+    R[User opens /admin/... or IT Admin opens /superadmin/...] --> L[Area layout generateMetadata: areaMetadata - role + page access]
+    L -->|refused| T[title = ARS CMS: same as an unknown address]
+    R --> G[requireArea in layout and page] -->|refused| NF[404, no data]
+  end
+  subgraph Way back
+    AR[Admin → Records pane] -->|Open full page + ?from=list| RP[/users/requests, tasks, tickets, meetings, information/id/]
+    RP --> V{returnToFor: parseReturnTo + evaluateAreaAccess - server}
+    V -- yes --> WB[First crumb and ← Back to Admin → Records, with the list's query and pane]
+    V -- no --> OC{Opened from another users list in this tab? OriginLink crossList}
+    OC -- yes --> ON[Parent crumb and ← Back to … name that list: Task Summary, Inbox, Search …]
+    OC -- no --> OWN[The page's own parent, with the query it was left with]
+  end
+```
+- **Back with an unsent comment beside a list:** PaneControl listens to `popstate` on window in the capture phase (before the App Router). Leaving the pane (`leavesPane`: its `?task=`/`?open=` changes) with a draft: the move is kept from the router, the address is put back (`history.go`, steps from the Navigation API where available, else 1) and **Discard draft?** opens. Keep editing: nothing changes. Discard: the same move again, now passed to the router.
+- **← Back (BackLink):** goes back in the browser only when the entry before this one is a page of this site (Navigation API), or, without that API, the tab's trail has an in-app previous address and the last move was forwards (`backStaysInApp`); otherwise its in-app link (Home, Danger zone).
+- **← All users / pages / templates:** OriginLink, so the list's search and sort come back.

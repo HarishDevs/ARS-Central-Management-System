@@ -6,6 +6,8 @@ import { notFound } from "next/navigation";
 import { requireArea } from "@/server/authorization/guards";
 import { PageHeader } from "@/features/shell/PageHeader";
 import { Badge, Breadcrumbs } from "@/features/ui/Display";
+import { returnToFor } from "@/server/authorization/return-to";
+import { ReturnToLink } from "@/features/ui/ReturnToLink";
 import { EditPublishedForm, InfoActionButton } from "@/features/modules/InfoForms";
 import { FieldValues, FileLinks, HistoryList } from "@/features/modules/RecordParts";
 import { INFO_STATE_TONE } from "@/features/modules/InfoListScreen";
@@ -36,7 +38,7 @@ const EVENT_TEXT: Record<string, string> = { CREATED: "Draft started", DRAFT_SAV
 // v1.9.0 (D-143, D-145): one piece of information. The sender and IT see who
 // read and acknowledged it; a recipient opening it marks it read (never
 // acknowledged). Anyone else gets "not found".
-export default async function InformationPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ published?: string; saved?: string; sortBy?: string; dir?: string }> }) {
+export default async function InformationPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ published?: string; saved?: string; sortBy?: string; dir?: string; from?: string }> }) {
   const { user } = await requireArea("users");
   // v1.72.1 (D-395): a switched-off feature says so (not a 404).
   await requireFeature("information", user);
@@ -57,6 +59,8 @@ export default async function InformationPage({ params, searchParams }: { params
     owner ? listRecipients(item.id) : Promise.resolve([]),
   ]);
   const query = await searchParams;
+  // v1.89.0 (NAV-04, D-419): the validated way back to another area's list (?from=).
+  const returnTo = returnToFor(user, query.from);
   const state = infoState(item, indiaToday());
   const names = new Map(people.map((person) => [person.id, person.name]));
   const editable = form.filter((field) => field.editable && field.type !== "ATTACHMENT" && field.type !== "CALC");
@@ -76,8 +80,10 @@ export default async function InformationPage({ params, searchParams }: { params
 
   return (
     <>
-      <Breadcrumbs items={[{ href: viewer.recipient ? "/users/information" : "/users/information/sent", label: "Information" }, { label: item.infoNo }]} />
+      {/* v1.89.0 (NAV-04, D-419): opened from Admin → Records, the way back is that list. */}
+      <Breadcrumbs items={[returnTo ? { href: returnTo.href, label: returnTo.label } : { href: viewer.recipient ? "/users/information" : "/users/information/sent", label: "Information" }, { label: item.infoNo }]} />
       <PageHeader title={item.title} meta={`${item.infoNo} · ${item.typeName} (version ${versionNo}) · from ${item.createdByName}`}>
+        {returnTo && <ReturnToLink to={returnTo} />}
         <Badge tone={INFO_STATE_TONE[state]}>{INFO_STATE_LABEL[state]}</Badge>
         <TaskPriorityPill priority={item.priority} showNormal />
       </PageHeader>

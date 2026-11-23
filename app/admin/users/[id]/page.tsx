@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { OriginLink } from "@/features/ui/OriginLink";
 import { Breadcrumbs } from "@/features/ui/Display";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/features/shell/PageHeader";
@@ -46,9 +46,10 @@ export default async function UserDetailPage({ params, searchParams }: { params:
       <Breadcrumbs items={[{ href: "/admin", label: "Admin" }, { href: "/admin/users", label: "Users & roles" }, { label: user.name }]} />
       <PageHeader title={user.name} meta={`${user.loginId} · ${user.email}`}>
         {canTryAs(actor, target).ok && <TryAsButton userId={user.id} />}
-        <Link href="/admin/users" className="link text-label">
+        {/* v1.89.0 (NAV-03, D-419): back to the list with the search and sort it was left with. */}
+        <OriginLink href="/admin/users" className="link text-label" testId="all-link">
           ← All users
-        </Link>
+        </OriginLink>
       </PageHeader>
       {created && (
         <p role="status" className="mb-4 rounded-md bg-success-50 px-3 py-2 text-label text-success-600">

@@ -17,7 +17,23 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 **Multi-level approvals in any custom manner.** The engine must support any number of levels in any combination: sequential, parallel, any-one, any-N-of-M, conditional and hybrid. Approvers can come from any source, and levels can be added or skipped by rules. Build the engine for this from the first engine phase (P2). The drag-and-drop designer (P3) is only the screen for building it. Check every task against this.
 
 ## Now / Next
-- **Now (23 Nov 2026):** **v1.88.0** (D-418): simple formulas from the owner's FORMULA_FIELDS brief: functions (ADD, SUBTRACT, MULTIPLY, DIVIDE, DATEADD, DATESUBTRACT, ROLLUP, DAYS, WORKDAYS, IF, ROUND, MIN, MAX, ABS, COALESCE), task dates and Today as inputs (Today worked out on reading, never stored), number/date types, the limits (10 inputs, 2 layers, 500 characters, no loops), ready-made TAT / Delay / NFD Delay / Delay Days, Functions help cards, live check and preview in the formula editor. **Owner:** publish (no migration). **Next:** the Users screen redesign (AD-8); the pre-existing v1850 power-search test (Q-follow-up).
+- **Now (24 Nov 2026):** **v1.89.0, in progress** (one release, owner: navigation fixes → motion and transition system → UI unification → visual baselines and sign-off). **Stage 1 done on branch release-189 (D-419):** the navigation audit's NAV-01..08 fixed in shared code, plus the Firefox and WebKit harness. Not on main, not tagged, version not bumped until the last stage. **Next:** stage 2 (motion and transition system) in the same worktree.
+- [x] NAV-01 (24 Nov 2026) a refused area's 404 names no page: admin/superadmin layouts' generateMetadata → areaMetadata (role + page access), title template without %s; unit scan of all pages; e2e
+- [x] NAV-02 (24 Nov 2026) session end keeps path + query: returnAddress in SessionWatch and the middleware (safeNextPath-validated)
+- [x] NAV-03 (24 Nov 2026) ← All users / pages / templates keep the list's search and sort (OriginLink)
+- [x] NAV-04 (24 Nov 2026) validated ?from= way back on task, ticket, meeting, information (and request) full pages: returnToFor + ReturnToLink
+- [x] NAV-05 (24 Nov 2026) parent crumb / ← Back to … name the users list the page was opened from (originWay, CROSS_LISTS)
+- [x] NAV-06 (24 Nov 2026) browser Back with an unsent pane comment asks Discard draft? (capture-phase popstate guard, address restored); Dialog reopen during its closing animation fixed
+- [x] NAV-07 (24 Nov 2026) sign-in next to an area the person can't open lands on /users (landingFor on /login; SignInPanel goes through /login)
+- [x] NAV-08 (24 Nov 2026) BackLink never leaves the app (trail-based backStaysInApp)
+- [x] NAV-H1 (24 Nov 2026) Firefox launch on this machine: diagnosed (Windows 26H2 refuses the unsigned build under %LOCALAPPDATA%), copy at D:\pw-firefox-1543 + E2E_FIREFOX_PATH, E2E_BROWSER switch
+- [x] NAV-H2 (24 Nov 2026) WebKit on http://localhost: CSP leaves out upgrade-insecure-requests only for a loopback Host outside production or with E2E_LOCAL_HTTP=1; production policy unchanged (unit test)
+- [x] NAV-T (24 Nov 2026) tests/e2e/v1890-navigation.spec.ts (NAV-01..08 + S1, S2, S3, S5, S6, S7, S8, S9, S10, S11, S12) replaces zz-nav-audit; unit tests/security/v1890-navigation.test.ts; general pages (User Guide, Help, release notes in progress); living files; NAVIGATION-AUDIT.md Fix status
+- [ ] v1.89.0 stage 2: motion and transition system
+- [ ] v1.89.0 stage 3: UI unification
+- [ ] v1.89.0 stage 4: visual baselines and sign-off; then version bump, release-notes heading, merge to main and tag
+
+- **Before (23 Nov 2026):** **v1.88.0** (D-418): simple formulas from the owner's FORMULA_FIELDS brief: functions (ADD, SUBTRACT, MULTIPLY, DIVIDE, DATEADD, DATESUBTRACT, ROLLUP, DAYS, WORKDAYS, IF, ROUND, MIN, MAX, ABS, COALESCE), task dates and Today as inputs (Today worked out on reading, never stored), number/date types, the limits (10 inputs, 2 layers, 500 characters, no loops), ready-made TAT / Delay / NFD Delay / Delay Days, Functions help cards, live check and preview in the formula editor. **Owner:** publish (no migration). **Next:** the Users screen redesign (AD-8); the pre-existing v1850 power-search test (Q-follow-up).
 - [x] FX-1 (23 Nov 2026) v1.88.0 language: functions (case-insensitive), built-in dates {start} {due} {created} {completed} {today}, comparisons for IF, typed check (number/date), errors per type and argument count; v1.64 formulas unchanged
 - [x] FX-2 (23 Nov 2026) v1.88.0 limits with their own messages: 10 inputs, 2 layers (also for formulas that use the edited one), 500 characters, loops
 - [x] FX-3 (23 Nov 2026) v1.88.0 evaluation everywhere via cellsFor: task dates in India days, Today at read time (no activity/audit), ROLLUP over first-level subtasks (batched), WORKDAYS on the Working calendar, date results shown/sorted/filtered as dates, automation conditions

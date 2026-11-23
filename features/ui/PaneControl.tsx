@@ -4,8 +4,10 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { DiscardDraftDialog } from "@/features/ui/Dialog";
 import { openOverlay, refreshOverlays, type OverlayHandle } from "@/features/ui/overlay-stack";
-import { closePane, whenSaved } from "@/features/ui/pane-close";
-import { PANE_SELECTOR, paneHasUnsentDraft } from "@/features/ui/pane-draft";
+import { closePane, currentTrail, whenSaved } from "@/features/ui/pane-close";
+import { leavesPane, PANE_SELECTOR, paneHasUnsentDraft } from "@/features/ui/pane-draft";
+
+type NavigationLike = { currentEntry?: { index?: number } | null; addEventListener?: (type: string, listener: (event: Event) => void) => void; removeEventListener?: (type: string, listener: (event: Event) => void) => void };
 
 // v1.86.0 (gap 14): an unsent comment or reply is never dropped by accident.
 // v1.87.0 (D-417, gaps 9–12, 15, 17): the one place a pane (task pane, record
@@ -99,7 +101,59 @@ export function PaneControl() {
       });
     };
     window.addEventListener("click", onClick, true);
+    // v1.89.0 (NAV-06, D-419): browser Back (or Forward) away from a pane with
+    // an unsent comment asks the same "Discard draft?" first. The App Router
+    // can't cancel a Back, so this listener (window, capture: it runs before
+    // the router's own) keeps the move from the router, puts the address back
+    // where it was, then asks. Discard repeats the move; Keep leaves the pane
+    // and its draft as they were. How far the move went: the pane's history
+    // entry index against the current one (Navigation API; its index is
+    // already the new one when popstate fires in Chromium, Firefox and
+    // WebKit), else one step.
+    let restoring = false;
+    let passing = false;
+    const nav = (window as unknown as { navigation?: NavigationLike }).navigation;
+    const hereNow = () => `${window.location.pathname}${window.location.search}`;
+    const indexNow = () => {
+      const index = nav?.currentEntry?.index;
+      return typeof index === "number" && index >= 0 ? index : null;
+    };
+    // The pane's own address and entry, kept up to date while it stays open (a sort, a tab).
+    let paneHref = hereNow();
+    let paneIndex = indexNow();
+    const onEntry = () => {
+      if (restoring || passing || leavesPane(paneHref, hereNow())) return;
+      paneHref = hereNow();
+      paneIndex = indexNow() ?? paneIndex;
+    };
+    nav?.addEventListener?.("currententrychange", onEntry);
+    const onPop = (event: PopStateEvent) => {
+      if (passing) {
+        passing = false;
+        return;
+      }
+      if (restoring) {
+        restoring = false;
+        event.stopImmediatePropagation();
+        return;
+      }
+      // Without the Navigation API the trail (PlaceMemory, capture, earlier) says what was just left.
+      const left = nav ? paneHref : currentTrail().prev;
+      if (!pane.isConnected || !leavesPane(left, hereNow()) || !paneHasUnsentDraft(pane)) return;
+      event.stopImmediatePropagation();
+      const now = indexNow();
+      const steps = paneIndex !== null && now !== null && now !== paneIndex ? paneIndex - now : 1;
+      restoring = true;
+      window.history.go(steps);
+      setPending(() => () => {
+        passing = true;
+        window.history.go(-steps);
+      });
+    };
+    window.addEventListener("popstate", onPop, true);
     return () => {
+      window.removeEventListener("popstate", onPop, true);
+      nav?.removeEventListener?.("currententrychange", onEntry);
       handle?.release();
       handle = null;
       watch.disconnect();

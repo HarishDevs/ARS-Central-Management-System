@@ -1,5 +1,17 @@
 # Release notes
 
+## v1.89.0 (in progress)
+One release in stages (owner): navigation fixes, then the motion and transition system, UI unification, visual baselines and sign-off. No migration so far.
+
+**Stage 1: navigation fixes** (D-419, from the navigation audit of v1.88.0, `docs/qa/NAVIGATION-AUDIT.md`):
+- **Signing in again returns you to the same view:** the same page with the task or record you had open beside it, and the same view, filters and sort (it kept only the page before).
+- **A link to a page you can't open** (for example a shared Admin link) signs you in to your Home, not to a "page isn't available" screen. Such a page's browser tab no longer shows its name either.
+- **The way back from Admin → Records** (← Back to Admin → Records, and the first breadcrumb) now works for tasks, tickets, meetings and notices too, not only requests, back to the same filtered list.
+- **Breadcrumbs name the list you came from:** a task opened from Task Summary says Task Summary, a request opened from the Inbox says Inbox, and both return to it as you left it.
+- **← All users** (and ← All pages, ← All templates) keep the list's search and sort.
+- **The browser's Back with an unsent comment** in a task or record beside a list now asks **Discard draft?** first, like ×, Esc and a click outside.
+- **← Back** on a colleague's card or the Danger zone pages never takes you out of ARS CMS.
+
 ## v1.88.0 (23 Nov 2026): simple formulas
 No migration (D-418, owner: "use all these as simple formulas in my app"):
 - **Formula fields take functions** (names in any case): ADD, SUBTRACT, MULTIPLY, DIVIDE, DATEADD, DATESUBTRACT and ROLLUP (as in Asana), plus DAYS, WORKDAYS (on the Working calendar), IF with > < >= <= = <>, ROUND, MIN, MAX, ABS and COALESCE. Open **Functions** in the formula editor for a help card with an example; **Insert** puts the function in.

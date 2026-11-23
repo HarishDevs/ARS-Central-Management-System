@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 // v1.9.0 (D-143): one task. Only the people on it, the managers above the
 // assignee and IT can open it; anyone else gets "not found". v1.52.1: the
 // page's content is TaskDetail, shared with the popup opened from lists.
-export default async function TaskPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ created?: string; project?: string }> }) {
+export default async function TaskPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ created?: string; project?: string; from?: string }> }) {
   const { user } = await requireArea("users");
   // v1.72.1 (D-395): a switched-off feature says so (not a 404).
   await requireFeature("tasks", user);

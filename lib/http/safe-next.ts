@@ -16,3 +16,30 @@ export function safeNextPath(next: string | string[] | undefined | null, fallbac
     return fallback;
   }
 }
+
+// v1.89.0 (NAV-02, D-419): the address to come back to after a session ends:
+// the path with its query (the task pane's ?task=, the view, filters, sort),
+// so signing in again reopens the same screen. Checked like any ?next=; a
+// value that isn't safe, or is too long, falls back to the path alone (and an
+// unsafe path to the fallback).
+export function returnAddress(pathname: string, search: string, fallback = "/users"): string {
+  const query = search && search !== "?" ? (search.startsWith("?") ? search : `?${search}`) : "";
+  const full = safeNextPath(`${pathname}${query}`, "");
+  return full || safeNextPath(pathname, fallback);
+}
+
+// v1.89.0 (NAV-07, D-419): which area a same-origin path belongs to.
+export type NextArea = "users" | "admin" | "superadmin";
+export function areaOfPath(path: string): NextArea {
+  if (/^\/superadmin(?:[/?#]|$)/.test(path)) return "superadmin";
+  if (/^\/admin(?:[/?#]|$)/.test(path)) return "admin";
+  return "users";
+}
+
+// v1.89.0 (NAV-07, D-419): where to land after sign-in. A safe ?next= in an
+// area this person may open; otherwise their home page (not a 404). This only
+// chooses a link: the page opened still runs its own server checks.
+export function landingFor(next: string | string[] | undefined | null, canOpen: (area: NextArea) => boolean, home = "/users"): string {
+  const safe = safeNextPath(next, home);
+  return canOpen(areaOfPath(safe)) ? safe : home;
+}

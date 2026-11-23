@@ -80,7 +80,10 @@ test("owner's scenario (Super Admin, Admin → Records): the exact screen comes 
   await page.waitForURL(/[?&]q=Continuity/);
   await settle(page);
   const sort = page.locator("main thead a").first();
+  // v1.89.0: wait for the sorted address itself (settle alone could finish before the click's move began).
+  const sorted = await sort.getAttribute("href");
   await sort.click();
+  await page.waitForURL((url) => `${url.pathname}${url.search}` === sorted);
   await settle(page);
   const list = await here(page);
   const chips = await page.getByTestId("power-chip").allTextContents();
@@ -161,6 +164,8 @@ test("IT admin on Admin → Records: open, full page, Back, Escape closes the pa
   await page.getByTestId("record-open").first().click();
   await page.waitForURL(/[?&]open=\d+/);
   await expect(page.getByTestId("record-pane")).toBeVisible();
+  // v1.89.0: as in the rounds above, the pane has finished arriving before Escape.
+  await settle(page);
   await page.keyboard.press("Escape");
   await page.waitForURL((url) => !url.searchParams.has("open"));
   await page.goBack();
