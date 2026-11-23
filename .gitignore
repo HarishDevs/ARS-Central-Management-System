@@ -47,3 +47,6 @@ Thumbs.db
 
 # v1.86.0: the header and motion audit's local evidence (screenshots, probe output); never committed
 /audit/header/
+
+# UI/UX QA audit (phase 1): local evidence (screenshots, raw measurements); never committed
+/audit/ui-qa/
