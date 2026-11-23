@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Bell } from "lucide-react";
 import { Spinner } from "@/features/ui/Spinner";
 import { inside } from "@/features/ui/inside";
+import { openTaskHref } from "@/features/work/pane-open";
 
 // v1.9.0 (owner, D-146): the bell opens a dropdown with the latest 10
 // notifications (newest first) and filters All / Approvals / Tasks /
@@ -139,7 +140,8 @@ export function NotificationBell({ initialUnread }: { initialUnread: number }) {
       void recount();
     }
     setOpen(false);
-    router.push(item.path ?? "/users/inbox");
+    // v1.83.0 (D-410): a task opens in the side pane on the current screen.
+    router.push(item.path ? openTaskHref(item.path) : "/users/inbox");
     router.refresh();
   }
 

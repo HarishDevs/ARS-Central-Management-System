@@ -15,6 +15,7 @@ import { useProjectsOn } from "@/features/work/projects-access";
 import { mentionIds } from "@/features/work/rich-text";
 import { RECURRENCE_KINDS, type Recurrence } from "@/server/work/more-rules";
 import { clearDraft, readDraft, sessionStore, writeDraft, type TaskDraft } from "@/features/work/task-draft-store";
+import { openTaskHref } from "@/features/work/pane-open";
 
 // D-221 (owner): "Create → Task" anywhere in the app opens Asana's Draft
 // task panel (bottom right). Mounted once in the users layout; anything can
@@ -294,7 +295,8 @@ function CreateTaskDialog({
     }
     // D-246 (audit UI-D04): a task for someone else isn't in my own list, so it
     // opens on its page (still found later under Tasks assigned by me).
-    router.push(project !== "" ? `/users/work/projects/${project}?task=${id}` : assignees.includes(meId) ? `/users/work/my-tasks?task=${id}` : `/users/tasks/${id}`);
+    // v1.83.0 (D-410): otherwise the new task opens in the side pane on the current screen.
+    router.push(project !== "" ? `/users/work/projects/${project}?task=${id}` : assignees.includes(meId) ? `/users/work/my-tasks?task=${id}` : openTaskHref(`/users/tasks/${id}`));
   };
   const chip = "inline-flex items-center gap-1 rounded-full border border-line px-2 py-0.5 text-label hover:border-line-strong";
   const tool = (on = false) => `grid h-8 w-8 place-items-center rounded hover:bg-surface-muted ${on ? "bg-primary-50 text-primary-700" : "text-ink-muted hover:text-ink"}`;

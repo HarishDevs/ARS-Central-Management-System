@@ -12,7 +12,7 @@ import { StatusComposer } from "@/features/work/StatusComposer";
 import { linksFor, projectCriticalPath, projectSchedule } from "@/server/work/schedule-service";
 import { getWorkingDays } from "@/lib/db/repositories/calendar.repository";
 import { WEEKDAYS } from "@/server/workflows/calendar";
-import { paneLinks, paneTaskId, TaskPane, WithPane } from "@/features/work/TaskPane";
+import { taskHref } from "@/features/work/TaskPane";
 import { toGridTask } from "@/server/work/grid-rows";
 import { DEFAULT_GRID, parseGridConfig, type GridConfig } from "@/server/work/grid";
 import { featureOn } from "@/server/settings/features";
@@ -34,9 +34,6 @@ import { peopleOptions, workPage } from "@/server/work/page-context";
 import { calendarHolidays } from "@/server/work/holiday-store";
 import type { RowDataPacket } from "mysql2/promise";
 import { RichText } from "@/features/work/RichText";
-import { isMobileLayout } from "@/server/ui/layout-mode";
-import { getUserSetting } from "@/lib/db/repositories/user-settings.repository";
-import { clampPaneWidth, PANE_SETTING } from "@/server/work/pm-rules";
 import { cellsFor, projectFieldsFor } from "@/server/work/fields-service";
 import { FieldDialogHost } from "@/features/work/FieldDialog";
 import { Dashboard } from "@/features/work/reporting/Dashboard";
@@ -246,12 +243,10 @@ async function ProjectView({ found, user, viewer, searchParams }: { found: NonNu
   const sectionName = new Map(sections.map((section) => [section.id, section.name]));
   const base = `/users/work/projects/${project.id}`;
   const month = /^\d{4}-\d{2}$/.test(query.month ?? "") ? query.month! : todayDay.slice(0, 7);
-  // D-219: a task opens in the pane beside the view.
-  const links = paneLinks(base, { ...query, created: undefined, view });
-  const paneId = paneTaskId(query.task);
-  // v1.62.0 (D-368): with "pm_foundations" on (and not on a phone), the task opens in the right-side pane at the person's width.
-  const sideWidth = pmOn && paneId && !(await isMobileLayout()) ? clampPaneWidth(await getUserSetting(user.id, PANE_SETTING).catch(() => null)) : null;
-  const pane = paneId ? <TaskPane taskId={paneId} user={user} closeHref={links.close} side={sideWidth ? { width: sideWidth } : null} /> : null;
+  // D-219 / v1.62.0 (D-368): a task opens in the pane beside the view.
+  // v1.83.0 (D-410): the shell draws that pane (every screen, with or without
+  // "pm_foundations"); a task link is its own page.
+  const links = { open: taskHref };
 
   return (
     <>
@@ -323,7 +318,7 @@ async function ProjectView({ found, user, viewer, searchParams }: { found: NonNu
       )}
 
       {planning && fields?.customise && <FieldDialogHost projectId={project.id} projectName={project.name} fields={fields.views} customiseRole={fields.customiseRole} planning />}
-      <WithPane pane={pane} sideWidth={sideWidth}>
+      <>
         {(view === "list" || view === "board") && (
           <ProjectWorkspace
             key={activeTab?.key ?? `${view}:${currentTab?.id ?? ""}`}
@@ -447,7 +442,7 @@ async function ProjectView({ found, user, viewer, searchParams }: { found: NonNu
         {(view === "dashboard" || view === "workload") && !reporting && <p className="card px-5 py-8 text-center text-ink-muted">The {view === "dashboard" ? "Dashboard" : "Workload"} view isn&apos;t switched on yet.</p>}
         {view === "gantt" && !planning && <p className="card px-5 py-8 text-center text-ink-muted">The Gantt view isn&apos;t switched on yet.</p>}
         {(view === "files" || view === "messages" || view === "page") && !extras && <p className="card px-5 py-8 text-center text-ink-muted">This view isn&apos;t switched on yet.</p>}
-        {projectFiles?.ok && <FilesTab files={projectFiles.value} taskHref={`${links.open(0).replace(/task=0$/, "task=")}`} messagesHref={`${base}?view=messages&thread=`} />}
+        {projectFiles?.ok && <FilesTab files={projectFiles.value} taskHref={"/users/tasks/"} messagesHref={`${base}?view=messages&thread=`} />}
         {messages?.ok && (
           <MessagesTab
             key={activeTab?.key ?? "messages"}
@@ -460,7 +455,7 @@ async function ProjectView({ found, user, viewer, searchParams }: { found: NonNu
             openThread={/^\d{1,10}$/.test(query.thread ?? "") ? Number(query.thread) : null}
           />
         )}
-        {page?.ok && <PageTab key={activeTab?.key ?? "page"} projectId={project.id} page={page.value} people={mentionList} tasks={tasks.map((task) => ({ id: task.id, taskNo: task.taskNo, title: task.title }))} taskHref={`${links.open(0).replace(/task=0$/, "task=")}`} />}
+        {page?.ok && <PageTab key={activeTab?.key ?? "page"} projectId={project.id} page={page.value} people={mentionList} tasks={tasks.map((task) => ({ id: task.id, taskNo: task.taskNo, title: task.title }))} taskHref={"/users/tasks/"} />}
         {view === "timeline" && !planning && (
           <Timeline
             hrefFor={links.open}
@@ -640,7 +635,7 @@ async function ProjectView({ found, user, viewer, searchParams }: { found: NonNu
             </aside>
           </div>
         )}
-      </WithPane>
+      </>
     </>
   );
 }

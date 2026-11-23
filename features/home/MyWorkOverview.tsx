@@ -24,7 +24,7 @@ import {
   UserPlus,
   Users,
 } from "lucide-react";
-import { paneLinks, paneTaskId, TaskPane, WithPane } from "@/features/work/TaskPane";
+import { taskHref } from "@/features/work/TaskPane";
 import { CreateTaskButton, ProjectDot, TaskCheck } from "@/features/work/client";
 import { Badge, type Tone } from "@/features/ui/Display";
 import { dueLabel, indiaDayOf, TONE_TEXT } from "@/features/work/format";
@@ -183,9 +183,8 @@ export async function MyWorkOverview({
     <SortTh label={label} column={column} sortBy={columnSort.sortBy} dir={columnSort.dir} href={`/users?${new URLSearchParams({ ...keep, tab, sortBy: column, dir: nextDir(columnSort, column) })}`} className="py-2 pr-3 font-medium" />
   );
   const href = (extra: Record<string, string>) => `/users?${new URLSearchParams({ ...keep, tab, ...extra })}`;
-  const links = paneLinks("/users", { ...keep, tab, ...(page > 1 ? { tp: String(page) } : {}) });
-  const paneId = paneTaskId(query.task);
-  const pane = paneId ? <TaskPane taskId={paneId} user={user} closeHref={links.close} /> : null;
+  // v1.83.0 (D-410): a task link is its own page; the shell opens it in the side pane.
+  const links = { open: taskHref };
   const pages = Math.max(1, Math.ceil(list.total / PAGE));
   const role = [profile?.designationName, profile?.departmentName].filter(Boolean).join(" · ");
 
@@ -647,7 +646,7 @@ export async function MyWorkOverview({
 
       <SummaryCards cards={cards} testId="work-kpis" cardTestId="work-kpi" />
 
-      <WithPane pane={pane}>
+      <>
         {widgets ? (
           <div className="mt-6">
           <HomeWidgets
@@ -669,7 +668,7 @@ export async function MyWorkOverview({
             {others}
           </>
         )}
-      </WithPane>
+      </>
     </div>
   );
 }

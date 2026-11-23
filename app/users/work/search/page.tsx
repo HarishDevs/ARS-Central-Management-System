@@ -1,6 +1,5 @@
 import { hasModule } from "@/server/modules/modules";
 import type { Metadata } from "next";
-import { paneLinks, paneTaskId, TaskPane, WithPane } from "@/features/work/TaskPane";
 import { TaskGrid } from "@/features/work/TaskGrid";
 import { toGridTask } from "@/server/work/grid-rows";
 import { DEFAULT_GRID, gridFromUrl, gridUrlState } from "@/server/work/grid";
@@ -64,10 +63,6 @@ export default async function WorkSearchPage({ searchParams }: { searchParams: P
     search.team && { label: "My team", href: without({ team: false }) },
     search.kind && { label: search.kind === "periodic" ? "Periodic" : "Ad hoc", href: without({ kind: null }) },
   ].filter((chip): chip is { label: string; href: string } => Boolean(chip));
-  // D-219: a task opens in the pane beside the list.
-  const links = paneLinks("/users/work/search", raw);
-  const paneId = paneTaskId(raw.task);
-  const pane = paneId ? <TaskPane taskId={paneId} user={user} closeHref={links.close} /> : null;
   return (
     <>
       <PageHeader title="Search results" description="Tasks you can see that match your search. Search from the bar at the top (Ctrl K); Filters there narrows it.">
@@ -75,7 +70,7 @@ export default async function WorkSearchPage({ searchParams }: { searchParams: P
           Deleted tasks
         </Link>
       </PageHeader>
-      <WithPane pane={pane}>
+      <>
         {/* v1.51.1 (owner): no search form or side panels here. Searches start
             from the global search bar (Ctrl K, with its Filters and saved
             searches); this page shows what was asked as removable chips, and
@@ -134,7 +129,7 @@ export default async function WorkSearchPage({ searchParams }: { searchParams: P
             </section>
           )}
         </div>
-      </WithPane>
+      </>
     </>
   );
 }

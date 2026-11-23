@@ -49,6 +49,12 @@ export function clampPaneWidth(value: unknown): number {
   if (!Number.isFinite(width)) return PANE_DEFAULT;
   return Math.round(Math.min(PANE_MAX, Math.max(PANE_MIN, width)));
 }
+// v1.83.0 (D-410, owner): every task opens in the side pane; its ⤢ switches to
+// the centred dialog. The choice is kept for the person, like the width.
+export const PANE_MODES = ["SIDE", "DIALOG"] as const;
+export type PaneMode = (typeof PANE_MODES)[number];
+export const PANE_MODE_SETTING = "work.pane_mode";
+export const parsePaneMode = (value: unknown): PaneMode => (value === "DIALOG" ? "DIALOG" : "SIDE");
 
 // ---- celebrations (spec §14; DEC-011 original animation) -------------------------------
 export const CELEBRATIONS = ["OFF", "OCCASIONAL", "ALWAYS"] as const;

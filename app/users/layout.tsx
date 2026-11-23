@@ -3,6 +3,8 @@ import { AppShell } from "@/features/shell/AppShell";
 import { usersNav } from "@/features/shell/users-nav";
 import { HolidayPrompt } from "@/features/work/client";
 import { TaskCreator } from "@/features/work/TaskCreator";
+import { TaskPaneHost } from "@/features/work/TaskPaneHost";
+import { isMobileLayout } from "@/server/ui/layout-mode";
 import { featureOn } from "@/server/settings/features";
 import { hasModule } from "@/server/modules/modules";
 import { listVisibleProjects } from "@/lib/db/repositories/work.repository";
@@ -18,7 +20,9 @@ import { CELEBRATION_SETTING, parseCelebration, parsePmExtras, PM_EXTRAS_KEY } f
 
 export const dynamic = "force-dynamic";
 
-export default async function UsersLayout({ children }: { children: React.ReactNode }) {
+// v1.83.0 (D-410, owner): `pane` is the @pane slot: ?task=<id> on any screen
+// draws that task beside it (TaskPaneHost turns task links into ?task=).
+export default async function UsersLayout({ children, pane }: { children: React.ReactNode; pane: React.ReactNode }) {
   const { user } = await requireArea("users");
   // D-221: "Create → Task" works on every page (the Draft task panel).
   // D-307 (owner): Projects is its own module.
@@ -47,6 +51,9 @@ export default async function UsersLayout({ children }: { children: React.ReactN
       <CelebrationProvider enabled={pmOn} choice={celebration}>
       <ProjectsAccess on={projectsOn}>
         {children}
+        {pane}
+        {/* Phones (the mobile layout) keep the task's own full-screen page. */}
+        {creator && !(await isMobileLayout()) && <TaskPaneHost />}
         <HolidayPrompt />
         <PushKeeper userId={user.id} />
         {creator && <TaskCreator projects={creator.projects} people={creator.people} meId={user.id} ai={ai} />}

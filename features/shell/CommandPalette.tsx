@@ -6,6 +6,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
 import { SHORTCUTS, isTyping } from "@/features/shell/shortcuts";
 import { Hint } from "@/features/ui/Hint";
 import { Avatar } from "@/features/ui/Avatar";
+import { openTaskHref } from "@/features/work/pane-open";
 
 // WS-03 (Ctrl+K) → D-232 (owner's screenshots of Asana's search): one search
 // for the whole app at the top of every page. Type chips (Requests, Tasks,
@@ -220,7 +221,8 @@ export function CommandPalette({ pages, saved }: { pages: PaletteLink[]; saved?:
     (href: string | undefined) => {
       if (!href) return;
       setOpen(false);
-      router.push(href);
+      // v1.83.0 (D-410): a task opens in the side pane on the current screen.
+      router.push(openTaskHref(href));
     },
     [router],
   );

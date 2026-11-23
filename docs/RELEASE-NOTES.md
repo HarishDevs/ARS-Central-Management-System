@@ -1,5 +1,14 @@
 # Release notes
 
+## v1.83.0 (23 Nov 2026): every task opens in the side pane
+No migration. For everyone with Tasks (D-410, owner's request):
+- **Click a task anywhere** (My Tasks and Task Summary, project List, Board, Calendar and Timeline, the Tasks lists, Home and its widgets, Task search and the search bar, the Inbox and the bell, Calendar, meeting action items, people, requests, tickets) and it opens in the **side pane** on the right, beside the screen you are on. The screen stays where it was and keeps working. The address keeps the screen with `?task=…`, so Back and refresh keep the task open. The pane is the one from project views: resizable, at your saved width.
+- **⤢ Open in a dialog** in the pane's bar opens the task in the centred window with every action; its **Back to the side pane** button returns. Your choice is remembered for the next task.
+- **Open full page** (↗ in the pane, the button in the dialog, and ⋯ → Open full page) opens the task's own page. A middle-click or Ctrl-click on any task opens its full page in a new tab.
+- Email links, shared and copied links and opening a task's address directly still show the full page. On a phone, a task still opens on its own full-screen page; below 1024 px wide the pane is a window in the middle.
+- The side pane no longer needs a project view or the "pm_foundations" switch. Escape closes the pane on every screen, and the keyboard focus goes back to the task you opened.
+- **Owner steps:** publish v1.83.0 (nothing else).
+
 ## v1.82.0 (23 Nov 2026): Backup, restore & migrate centre (part 2): moving between servers
 Migration `202611241200_backup_transfer.sql` (runs on start; no triggers). Same switch as v1.81.0. Super Admin → Backup, restore & migrate → **Move to another server** (D-409, BK-1 part 2):
 - **Receive here / Send there:** on the new server make a **one-time pairing code** (shown once, works once, 2 hours to start); on the old server pick a package, type the new server's address and the code. The package goes across in pieces (a dropped connection carries on) and appears there as **Received**; check and restore it there with its passphrase. Works GoDaddy → VPS and VPS → GoDaddy.

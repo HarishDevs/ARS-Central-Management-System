@@ -132,9 +132,10 @@ test("D-222: an ad hoc task for two people; Project permissions", async ({ page,
   await expect(draft.getByTestId("assignee-chip")).toHaveCount(2);
   await fillDue(draft);
   await draft.getByRole("button", { name: "Create task" }).click();
-  // D-246 (audit UI-D04): a task only for others opens on its own page.
-  await expect(page).toHaveURL(/\/users\/tasks\/\d+$/);
-  await expect(page.getByTestId("assign-group")).toContainText(/Sita Staff|Manoj Manager/);
+  // D-246 (audit UI-D04): a task only for others opens by itself.
+  // v1.83.0 (D-410, owner): in the side pane on the current screen, no longer its own page.
+  await expect(page).toHaveURL(/[?&]task=\d+/);
+  await expect(page.getByTestId("task-pane").getByTestId("assign-group")).toContainText(/Sita Staff|Manoj Manager/);
 
   // Project permissions: restrict Due date to project admins.
   await page.goto(`${projectUrl}/settings#permissions`);

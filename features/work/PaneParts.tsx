@@ -1,9 +1,10 @@
 "use client";
 
-import { CopyPlus, CornerDownRight, FolderPlus, Heart, ListPlus, Maximize2, MoreHorizontal, Paperclip, Printer, Tag, Trash2, Link2, Zap } from "lucide-react";
+import { CopyPlus, CornerDownRight, FolderPlus, Heart, ListPlus, Maximize2, MoreHorizontal, PanelRight, Paperclip, Printer, Tag, Trash2, Link2, Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import { likeAction, paneWidthAction } from "@/app/users/work/actions";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { likeAction, paneModeAction, paneWidthAction } from "@/app/users/work/actions";
+import type { PaneMode } from "@/server/work/pm-rules";
 import { useToast } from "@/features/ui/Toast";
 import { COPY_BLOCKED, copyText } from "@/features/ui/clipboard";
 import { openCreateTask, useDeleteWithUndo, useWorkCall } from "@/features/work/client";
@@ -16,7 +17,42 @@ import { clampPaneWidth, PANE_DEFAULT, PANE_MAX, PANE_MIN } from "@/server/work/
 // handle; the width is kept for the person), the Like button of its action
 // bar, and the "More actions" menu.
 
-const setPaneVar = (width: number) => document.querySelector<HTMLElement>("[data-pane-side]")?.style.setProperty("--pane-w", `${width}px`);
+// v1.83.0 (D-410): the screen beside the pane makes room for it from :root.
+const setPaneVar = (width: number) => document.documentElement.style.setProperty("--pane-w", `${width}px`);
+
+// v1.83.0 (D-410, owner): ⤢ in the pane's bar opens the task in the centred
+// dialog; the dialog's own button goes back to the side pane. The choice is
+// kept for the person (like the width). Wide screens only: below 1024 px the
+// side pane already is the centred popup.
+export function PaneModeButton({ to }: { to: PaneMode }) {
+  const router = useRouter();
+  const toast = useToast();
+  const [pending, start] = useTransition();
+  const dialog = to === "DIALOG";
+  const label = dialog ? "Open in a dialog" : "Back to the side pane";
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      disabled={pending}
+      onClick={() =>
+        start(async () => {
+          const result = await paneModeAction(to).catch(() => null);
+          if (!result?.ok) {
+            toast({ tone: "error", title: result?.message || "Couldn't change that. Please try again." });
+            return;
+          }
+          router.refresh();
+        })
+      }
+      className="hidden h-8 w-8 place-items-center rounded-md text-ink-muted hover:bg-surface-muted hover:text-ink disabled:opacity-60 lg:grid"
+      data-testid={dialog ? "pane-expand" : "pane-to-side"}
+    >
+      {dialog ? <Maximize2 aria-hidden="true" className="h-4 w-4" /> : <PanelRight aria-hidden="true" className="h-4 w-4" />}
+    </button>
+  );
+}
 
 export function PaneResizer({ initial }: { initial: number }) {
   const [width, setWidth] = useState(initial);

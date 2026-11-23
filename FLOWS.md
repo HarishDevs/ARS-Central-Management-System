@@ -26,6 +26,7 @@ The number of levels and how they combine is unlimited. There are no fixed "Leve
 | F-TS-R1 | Task Summary: range per tab, My sections (landing, moves, rules at midnight), CSV | Built 23 Nov 2026 (v1.76.0, behind pm_foundations) |
 | F-PM-BOARD-KEYS | Board: move a card from the keyboard (Space, arrows, Enter, Escape), announced | Built 22 Nov 2026 (v1.62.0, behind pm_foundations) |
 | F-PM-PANE | Task pane beside the view, resize kept; reactions; complete and delete with Undo; celebrations | Built 22 Nov 2026 (v1.62.0) |
+| F-TASK-PANE-EVERYWHERE | Every task opens in the side pane on every screen; ⤢ dialog (kept per person); Open full page; full page for direct visits and phones | Built 23 Nov 2026 (v1.83.0) |
 | F-PM-SIDEBAR | Starred and department projects in the sidebar, sort and reorder | Built 22 Nov 2026 (v1.62.0) |
 | F-PM-PURGE | Deleted tasks and projects removed for good after 30 days | Built 22 Nov 2026 (v1.62.0) |
 | F-01 | Google sign-in | Built 28 Sep 2026 (live test pending Firebase Admin values) |
@@ -2616,6 +2617,25 @@ flowchart TD
   F -->|Alt + Up / Down, Alt + Shift + Up / Down| M[Moved at once, as before]
 ```
 - The server checks every move (moveInProject): only owners and editors; anyone else is refused.
+
+## F-TASK-PANE-EVERYWHERE: Every task opens in the side pane (v1.83.0, D-410)
+```mermaid
+flowchart LR
+  S[Any signed-in screen: lists, Board, calendar, Home widgets, search, Inbox, bell, palette, meetings] -->|plain click on a task link| H[TaskPaneHost: same address + ?task=id]
+  S -->|middle-click or Ctrl-click| N[New tab: /users/tasks/id full page]
+  H --> P{Person's mode work.pane_mode}
+  P -->|SIDE, 1024 px and wider| SP[Side pane beside the screen, resizable; screen stays usable]
+  P -->|DIALOG| DG[Centred dialog with every action]
+  SP -->|⤢| DG
+  DG -->|Back to the side pane| SP
+  SP -->|Open full page| F[/users/tasks/id]
+  DG -->|Open full page| F
+  SP -->|× or Escape| C[Same address without ?task; focus back on the link]
+  DG -->|× or Escape| C
+  E[Email, shared or copied link, refresh of /users/tasks/id] --> F
+  PH[Phone layout] -->|task link| F
+```
+- The @pane slot checks the session, the Tasks module and switch and the task page access; TaskDetail checks the task (else "not found"). Back and refresh keep ?task, so the pane stays open. Below 1024 px the side pane is the centred popup; at phone width, full screen.
 
 ## F-PM-PANE: The task pane, reactions, completion and Undo (v1.62.0, D-368)
 ```mermaid

@@ -1,7 +1,7 @@
 import { hasModule } from "@/server/modules/modules";
 import type { Metadata } from "next";
 import { AlarmClock, CalendarClock, CalendarRange, CheckCircle2, ListTodo } from "lucide-react";
-import { paneLinks, paneTaskId, TaskPane, WithPane } from "@/features/work/TaskPane";
+import { paneTaskId } from "@/features/work/TaskPane";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CustomiseButton, MyTasks, MyTasksGrid, MyTasksTitle, TabSettingsBar } from "@/features/work/MyTasks";
@@ -236,10 +236,6 @@ export default async function MyTasksPage({
     view === "files" && extras ? loadSummaryFiles(ownerId, viewer) : Promise.resolve(null),
     view === "notes" && pmOn ? loadSummaryNotes(viewer, ownerId) : Promise.resolve(null),
   ]);
-  // D-219: a task opens in the pane beside the list.
-  const links = paneLinks("/users/work/my-tasks", params);
-  const paneId = paneTaskId(params.task);
-  const pane = paneId ? <TaskPane taskId={paneId} user={user} closeHref={links.close} /> : null;
   // v1.70.0 (D-383, "pm_extras"): the person's My Tasks calendar feed.
   const feed = !readOnly && (await extrasOn(user)) ? await currentFeed("MY_TASKS", null, { id: user.id, name: user.name, roles: user.roles, modules: user.modules, sessionId: "", ipAddress: null }) : undefined;
   return (
@@ -293,7 +289,7 @@ export default async function MyTasksPage({
       </ul>
       {/* v1.61.0 (D-366): fresh every 15 s while visible, on focus and after changes. */}
       <LiveRefresh />
-      <WithPane pane={pane}>
+      <>
         {activeTab && <ViewTabs scope="MY_TASKS" base={base} strip={strip} activeKey={activeTab.key} canEdit={!readOnly} label={readOnly ? `${ownerName}'s Task Summary views` : "Task Summary views"} reporting={reporting} extras={extras} />}
         <div className="mb-4 flex flex-wrap items-center gap-2">
           {!activeTab && (
@@ -398,7 +394,7 @@ export default async function MyTasksPage({
             boardView={view === "board" && activeTab ? { initial: parseSummaryBoard(activeRow?.config), tabKey: activeTab.key, canSave: !readOnly, sections: settings.sections, mineOffered: pmOn } : undefined}
           />
         )}
-      </WithPane>
+      </>
       {feed !== undefined && (
         <details id="my-tasks-feed" className="card mt-6 px-5 py-3" data-testid="my-tasks-feed">
           <summary className="cursor-pointer font-semibold">Calendar feed</summary>

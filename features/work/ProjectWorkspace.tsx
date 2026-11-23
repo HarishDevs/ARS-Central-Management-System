@@ -28,6 +28,7 @@ import { UnsavedView } from "@/features/work/UnsavedView";
 import { DEFAULT_BOARD, type BoardConfig } from "@/server/work/view-tabs";
 import { FieldChip, FieldFilterRows, FieldValueEditor } from "@/features/work/FieldControls";
 import { boardMovable, fieldGroups, matchFieldFilter, viewDef, type CellMap, type FieldCell, type FieldFilter } from "@/server/work/custom-fields";
+import { openTaskHref } from "@/features/work/pane-open";
 
 // D-215: a project's List and Board. Sections hold tasks in the order the
 // team set (drag, or Alt+↑/↓ on a row); a sort other than "Manual" only
@@ -559,7 +560,7 @@ export function ProjectWorkspace({
         setLive(`Picked up ${task.title}. ${positionText(columns, start, boardCols[start.col]?.name ?? "")} Use the arrow keys to move it, Space or Enter to drop it, Escape to cancel.`);
       } else if (key === "Enter") {
         event.preventDefault();
-        router.push(paneLink(task.id), { scroll: false });
+        router.push(openTaskHref(paneLink(task.id)), { scroll: false });
       } else if (key.startsWith("Arrow") || key === "Home" || key === "End") {
         const next = focusNeighbour(columns, task.id, key);
         if (next !== null) {

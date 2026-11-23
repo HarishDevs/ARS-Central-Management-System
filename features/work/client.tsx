@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Link2, Plus } from "lucide-react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { completeAction, deleteTaskAction } from "@/app/users/work/actions";
 import { undoShiftAction } from "@/app/users/work/schedule-actions";
@@ -257,20 +257,14 @@ export function TaskCompleteButton({ taskId, done, disabled, title }: { taskId: 
   );
 }
 
-// D-219: in Task & Project Management a task opens in the pane beside the
-// list (?task=<id>, the rest of the address kept); elsewhere, its own page.
+// D-219: a task opens in the pane beside the list.
+// v1.83.0 (D-410, owner): every task link is a real link to the task's own
+// page, so a middle-click or Ctrl-click opens the full page in a new tab; a
+// plain click is turned into the side pane on the current screen by the
+// shell (TaskPaneHost). Code that opens a task (Enter on a Board card, a bar
+// in Timeline) passes the link through openTaskHref.
 export function usePaneLink() {
-  const pathname = usePathname();
-  const params = useSearchParams();
-  return useCallback(
-    (id: number) => {
-      if (!pathname.startsWith("/users/work")) return `/users/tasks/${id}`;
-      const query = new URLSearchParams(params.toString());
-      query.set("task", String(id));
-      return `${pathname}?${query}`;
-    },
-    [pathname, params],
-  );
+  return useCallback((id: number) => `/users/tasks/${id}`, []);
 }
 
 // D-219 (catalog S-17): copy a task's link.

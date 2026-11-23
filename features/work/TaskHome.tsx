@@ -1,6 +1,6 @@
 import "server-only";
 import { ApprovalBadge, approvalRowClass } from "@/features/work/ApprovalLink";
-import { paneLinks, paneTaskId, TaskPane, WithPane } from "@/features/work/TaskPane";
+import { taskHref } from "@/features/work/TaskPane";
 import Link from "next/link";
 import { getDbPool } from "@/lib/db/client";
 import type { RowDataPacket } from "mysql2/promise";
@@ -99,10 +99,8 @@ export async function TaskHome({
       {extra}
     </Link>
   );
-  // D-219: a task opens in the pane beside the list.
-  const links = paneLinks(basePath, params);
-  const paneId = paneTaskId(params.task);
-  const pane = paneId ? <TaskPane taskId={paneId} user={user} closeHref={links.close} /> : null;
+  // v1.83.0 (D-410): a task link is its own page; the shell opens it in the side pane.
+  const links = { open: taskHref };
   const givenSection = (
       <section className="card min-w-0 px-5 py-4" aria-labelledby="home-given">
         <div className="mb-2 flex items-center justify-between">
@@ -174,7 +172,7 @@ export async function TaskHome({
           </span>
         </div>
       </header>
-      <WithPane pane={pane}>
+      <>
         <div className="grid gap-6 xl:grid-cols-2">
           <section className="card px-5 py-4 xl:col-span-2" aria-labelledby="home-mine">
             <div className="mb-2 flex items-center justify-between gap-2">
@@ -270,7 +268,7 @@ export async function TaskHome({
           </>
           )}
         </div>
-      </WithPane>
+      </>
     </>
   );
 }

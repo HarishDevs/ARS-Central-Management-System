@@ -28,7 +28,7 @@ import { saveRules, startMySections } from "@/server/work/my-rules";
 import { changeShare, saveSummaryFields } from "@/server/work/summary-share";
 import { answerAccessRequest, requestSummaryAccess, saveSummaryNotes } from "@/server/work/summary-extras";
 import { setUserSetting } from "@/lib/db/repositories/user-settings.repository";
-import { CELEBRATION_LABEL, CELEBRATION_SETTING, clampPaneWidth, PANE_SETTING, parseCelebration, SIDEBAR_LISTS, SIDEBAR_SORT_LABEL, SIDEBAR_SORTS, type SidebarList, type SidebarSort } from "@/server/work/pm-rules";
+import { CELEBRATION_LABEL, CELEBRATION_SETTING, clampPaneWidth, PANE_MODE_SETTING, PANE_MODES, PANE_SETTING, parseCelebration, SIDEBAR_LISTS, SIDEBAR_SORT_LABEL, SIDEBAR_SORTS, type SidebarList, type SidebarSort } from "@/server/work/pm-rules";
 import { moveSidebarProject, setSidebarSort } from "@/server/work/sidebar";
 
 // D-215: Task & Project Management actions. Each checks the session and the
@@ -896,15 +896,30 @@ export async function reactionAction(commentId: number, reaction: string): Promi
   return run("reaction", me, (who) => work.reactToComment(comment, reaction, who));
 }
 
+// v1.83.0 (D-410): the side pane is on every screen for everyone with Tasks
+// (no longer only with "pm_foundations"), so its width and mode need only Tasks.
 export async function paneWidthAction(width: number): Promise<ActionResult> {
-  const me = await actorForPm();
-  if (me === "OFF") return PM_OFF;
+  const me = await actor();
   if (!me) return NOT_FOUND;
   try {
     await setUserSetting(me.id, PANE_SETTING, String(clampPaneWidth(width)));
     return { ok: true, message: "Saved." };
   } catch (error) {
     logError("paneWidthAction failed", error);
+    return { ok: false, message: "Couldn't save. Please try again." };
+  }
+}
+
+// v1.83.0 (D-410, owner): side pane or centred dialog, kept for the person.
+export async function paneModeAction(mode: string): Promise<ActionResult> {
+  if (!(PANE_MODES as readonly string[]).includes(mode)) return { ok: false, message: "Choose the side pane or the dialog." };
+  const me = await actor();
+  if (!me) return NOT_FOUND;
+  try {
+    await setUserSetting(me.id, PANE_MODE_SETTING, mode);
+    return { ok: true, message: "Saved." };
+  } catch (error) {
+    logError("paneModeAction failed", error);
     return { ok: false, message: "Couldn't save. Please try again." };
   }
 }

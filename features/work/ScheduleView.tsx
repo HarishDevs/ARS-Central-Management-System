@@ -15,6 +15,7 @@ import { connectorPath, headerBands, isZoom, PX_PER_DAY, scaleRange, shortDay, S
 import { addDays, DEP_TYPE_HELP, DEP_TYPE_LABEL, DEP_TYPES, dayDiff, linkBlocks, linkConflict, weekdayOf, type DepType, type TaskDates } from "@/server/work/schedule";
 import { criticalPath, criticalSummary, slackText, type CpmResult, type CpmTaskResult } from "@/server/work/critical-path";
 import { dayText } from "@/server/work/working-days";
+import { openTaskHref } from "@/features/work/pane-open";
 
 // v1.74.0 (D-398, "pm_planning"): the project's From/To bar on top, and on the
 // Gantt the critical path (Options › Show critical path / Show slack). The
@@ -295,7 +296,7 @@ export function ScheduleView({
     if (!was) return;
     if (!was.moved) {
       setPreview(null);
-      if (was.kind === "move") router.push(paneLink(task.id), { scroll: false });
+      if (was.kind === "move") router.push(openTaskHref(paneLink(task.id)), { scroll: false });
       return;
     }
     if (preview?.id === task.id) void save(task, preview.dates);
@@ -363,7 +364,7 @@ export function ScheduleView({
     if (event.key === "Enter") {
       event.preventDefault();
       if (preview?.id === task.id) void save(task, preview.dates);
-      else router.push(paneLink(task.id), { scroll: false });
+      else router.push(openTaskHref(paneLink(task.id)), { scroll: false });
       return;
     }
     if ((event.key === "l" || event.key === "L") && canEdit) {

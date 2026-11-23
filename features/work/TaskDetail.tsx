@@ -24,10 +24,10 @@ import { taskWorkView } from "@/server/work/task-view";
 import { TaskCompleteButton } from "@/features/work/client";
 import { TaskShareButton } from "@/features/work/ShareDialogs";
 import { visibilityText } from "@/features/work/visibility";
-import { ArrowLeft, ArrowRightToLine, CalendarDays, Eye, Maximize2, MoreHorizontal } from "lucide-react";
+import { ArrowLeft, ArrowRightToLine, CalendarDays, ExternalLink, Eye, MoreHorizontal } from "lucide-react";
 import { PaneTitle, PaneVisibilityBanner, TaskFieldRows } from "@/features/work/PaneLayout";
 import { PaneComposer } from "@/features/work/CommentThread";
-import { PaneMoreMenu, TaskLikeButton } from "@/features/work/PaneParts";
+import { PaneModeButton, PaneMoreMenu, TaskLikeButton } from "@/features/work/PaneParts";
 import { isMobileLayout } from "@/server/ui/layout-mode";
 import { SheetButton } from "@/features/mobile/BottomSheet";
 import { CopyLinkButton } from "@/features/work/client";
@@ -269,8 +269,10 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
             <span aria-hidden="true" className="mx-1 h-5 w-px bg-line" />
             <TaskLikeButton taskId={task.id} liked={panel.likes.some((person) => person.id === user.id)} count={panel.likes.length} names={panel.likes.map((person) => person.name)} />
             <CopyLinkButton path={`/users/tasks/${task.id}`} />
-            <Link href={`/users/tasks/${task.id}`} aria-label="Open full page" title="Full screen (the task's own page)" className="grid h-8 w-8 place-items-center rounded-md text-ink-muted hover:bg-surface-muted hover:text-ink" data-testid="pane-full">
-              <Maximize2 aria-hidden="true" className="h-4 w-4" />
+            {/* v1.83.0 (D-410, owner): ⤢ opens the task in the centred dialog; the full page has its own button. */}
+            <PaneModeButton to="DIALOG" />
+            <Link href={`/users/tasks/${task.id}`} data-full-page aria-label="Open full page" title="Open full page (the task's own page)" className="grid h-8 w-8 place-items-center rounded-md text-ink-muted hover:bg-surface-muted hover:text-ink" data-testid="pane-full">
+              <ExternalLink aria-hidden="true" className="h-4 w-4" />
             </Link>
             <PaneMoreMenu taskId={task.id} title={task.title} canDelete={rights.edit && !task.deletedAt} closeHref={popup.closeHref} automations={manualRules} copy={{ projectId: (fromProject ?? links[0])?.projectId ?? null, description: task.description ?? "", priority: task.priority }} />
             <Link href={popup.closeHref} scroll={false} aria-label="Close task" aria-keyshortcuts="Escape" title="Close" className="grid h-8 w-8 place-items-center rounded-md text-ink-muted hover:bg-surface-muted hover:text-ink" data-testid="close-pane">

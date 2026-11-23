@@ -1597,8 +1597,10 @@ body:has([data-testid="m-comment-dock"][data-open="1"]) .picbot-launcher {
 
 /* v1.62.0 (D-368, spec CMP-27): the task pane beside a project view on wide
    screens (its width is --pane-w, set per person); a centred popup below that. */
+/* v1.83.0 (D-410): the pane is drawn by the shell on every screen; while it
+   is open on the side, the screen (#main) makes room for it. */
 @media (min-width: 1024px) {
-  [data-pane-side] .pm-with-pane {
+  html:has([data-pane-mode="side"]) #main {
     padding-right: calc(var(--pane-w) + 0.75rem);
   }
 }
