@@ -39,16 +39,8 @@ export function powerChips(fields: readonly PowerField[], params: Record<string,
   return out;
 }
 
-// The address with one parameter set (or removed), the page reset.
-export function powerHref(base: string, params: Record<string, string | undefined>, change: Record<string, string | null>): string {
-  const query = new URLSearchParams();
-  for (const [key, value] of Object.entries({ ...params, ...change })) {
-    if (key === "page" || key === "open" || value === null || value === undefined || value === "") continue;
-    query.set(key, value);
-  }
-  const text = query.toString();
-  return `${base}${text ? `?${text}` : ""}`;
-}
+export { powerHref } from "@/features/ui/power-href";
+import { powerHref } from "@/features/ui/power-href";
 
 export function PowerSearch({ base, fields, params, label = "Filters" }: { base: string; fields: PowerField[]; params: Record<string, string | undefined>; label?: string }) {
   const router = useRouter();

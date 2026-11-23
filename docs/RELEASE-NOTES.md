@@ -1,5 +1,11 @@
 # Release notes
 
+## v1.85.2 (23 Nov 2026): fix
+No migration (D-414):
+- Admin → Records → **Tickets** and **Meetings** open again. Since v1.85.0 both showed "This page couldn't be shown" whenever there were tickets or meetings to list (the server tried to run a browser-only helper to build the sort, page and row links).
+- A new check fails the build's tests if any server page uses a browser-only helper again. Every Admin and Super Admin page was opened against a copy of the live data before release.
+- **Owner steps:** publish v1.85.2 (nothing else).
+
 ## v1.85.1 (23 Nov 2026): fixes
 No migration (D-413):
 - A mistyped or old address under /users shows "This page isn't available" again for everyone (with a real 404), instead of "You don't have access" for some people. Tasks still open beside every screen.
