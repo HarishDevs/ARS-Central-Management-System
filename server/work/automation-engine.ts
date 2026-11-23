@@ -85,10 +85,12 @@ export async function factsFor(task: TaskRecord, projectId: number, ownerId: num
     const owner = await findUserById(ownerId);
     if (owner) {
       const viewer = await workViewer({ id: owner.id, roles: owner.roles, modules: owner.modules });
+      // v1.88.0 (D-418): cellsFor brings what the formulas read; a formula
+      // that gives a date is compared as a date.
       const cells = (await cellsFor([task.id], formulas, { ...viewer, id: owner.id }))[task.id] ?? {};
       for (const def of formulas) {
         const sort = cells[def.id]?.sort;
-        fields.set(def.id, { type: "FORMULA", text: null, number: typeof sort === "number" ? sort : null, date: null, optionId: null, ids: null });
+        fields.set(def.id, { type: "FORMULA", text: null, number: typeof sort === "number" ? sort : null, date: typeof sort === "string" ? sort : null, optionId: null, ids: null });
       }
     }
   }

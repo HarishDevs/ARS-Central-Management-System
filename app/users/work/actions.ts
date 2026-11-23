@@ -507,6 +507,22 @@ export async function fieldDefAction(projectId: number, change: unknown): Promis
     }
   });
 }
+// v1.88.0 (D-418): the formula editor's live preview on a task of the
+// project. Reads only: no refresh, nothing written.
+export async function formulaPreviewAction(projectId: number, formula: string, fieldId: number | null): Promise<ActionResult & { value?: { taskNo: string; title: string; text: string; error: boolean } | null }> {
+  const project = id(projectId);
+  if (!project || typeof formula !== "string") return NOT_FOUND;
+  const me = await actorForProjects();
+  if (me === "OFF") return PROJECTS_OFF;
+  if (!me) return NOT_FOUND;
+  try {
+    const result = await fieldsService.previewFormula(project, formula, fieldId === null ? null : id(fieldId), me);
+    return result.ok ? { ok: true, message: "", value: result.value } : { ok: false, message: result.message };
+  } catch (error) {
+    logError("formulaPreviewAction failed", error);
+    return { ok: false, message: "Couldn't work out the preview." };
+  }
+}
 // The organisation's field library (the Add field dialog's second tab).
 export async function fieldLibraryAction(query: string): Promise<ActionResult & { value?: { id: number; name: string; kind: string; description: string | null; options: string[]; usage: number; createdBy: string }[] }> {
   const me = await actorForProjects();

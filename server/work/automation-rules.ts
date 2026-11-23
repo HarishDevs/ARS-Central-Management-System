@@ -303,7 +303,8 @@ function checkCondition(condition: Condition, ctx: CheckContext): string | null 
       if (field!.type === "SELECT" || field!.type === "MULTI_SELECT") return field!.options.some((option) => option.id === Number(value)) ? null : "Choose one of the field's options.";
       if (field!.type === "PEOPLE") return ctx.activePeople.has(Number(value)) ? null : "Choose an active person.";
       if (field!.type === "DATE") return /^\d{4}-\d{2}-\d{2}$/.test(String(value)) ? null : "Choose a date.";
-      if (["NUMBER", "FORMULA", "TIMER"].includes(field!.type)) return Number.isFinite(Number(value)) ? null : "Enter a number.";
+      if (field!.type === "FORMULA") return Number.isFinite(Number(value)) || /^\d{4}-\d{2}-\d{2}$/.test(String(value)) ? null : "Enter a number (or a date for a formula that gives a date)."; // v1.88.0 (D-418)
+      if (["NUMBER", "TIMER"].includes(field!.type)) return Number.isFinite(Number(value)) ? null : "Enter a number.";
       return null;
     default:
       return null;
@@ -488,6 +489,11 @@ function compareField(fact: FieldFact | undefined, op: Op, value: unknown): bool
     case "NUMBER":
     case "FORMULA":
     case "TIMER": {
+      // v1.88.0 (D-418): a formula that gives a date compares as a date.
+      if (fact.type === "FORMULA" && fact.date) {
+        const day = String(value);
+        return op === "IS" ? fact.date === day : op === "GT" ? fact.date > day : op === "LT" ? fact.date < day : false;
+      }
       if (fact.number === null) return false;
       const n = Number(value);
       return op === "IS" ? fact.number === n : op === "GT" ? fact.number > n : op === "LT" ? fact.number < n : false;

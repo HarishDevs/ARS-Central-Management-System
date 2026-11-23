@@ -240,7 +240,7 @@ export async function libraryNameTaken(name: string, exceptId: number | null, db
 }
 
 // ---- values ------------------------------------------------------------------------------
-interface ValueRow {
+export interface ValueRow {
   typed: boolean;
   legacy: string;
   stored: StoredValue;

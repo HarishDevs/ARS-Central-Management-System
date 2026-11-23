@@ -2854,3 +2854,28 @@ flowchart TD
 ```
 - v1.86.0 (D-416): all three overviews draw the one quick-action row; its widget slot registers itself (callback ref), so + Add widgets and Customise follow every overview switch; each board is keyed by its overview, so Customise ends on a switch; the period picker reads the address.
 - Standard widgets on every overview: Private notepad (one note shared by the three), day-by-day chart, Needs attention, Quick insights. Meeting figures (Quick insights, How meetings are running, Register) only with the *Meetings: dashboard figures* page access.
+
+## F-FORMULA: Formula fields: write, check, work out (v1.88.0, D-418)
+```mermaid
+flowchart TD
+  A[Project settings or + column: Add field, type Formula] --> P{Ready-made formula?}
+  P -- TAT or Delay Days --> T[Text filled: DAYS of task dates]
+  P -- Delay or NFD Delay --> N{Project has a date field Revised Target / NFD?}
+  N -- yes --> T
+  N -- no --> C[Choose a date field] --> T
+  P -- no --> S[Select field: project number, date, timer, formula fields + Start date, Due date, Created on, Completed on, Today]
+  S --> O{Input is a date?}
+  O -- yes --> OM[Only minus enabled; DATEADD / DATESUBTRACT to move a date]
+  O -- no --> OA[+ − × ÷ enabled]
+  OM --> F[Functions list: help card, Insert at cursor]
+  OA --> F
+  T --> L
+  F --> L[Live check in the browser: brackets to tokens, parse, types, 10 inputs, 2 layers, 500 characters, loops]
+  L -- problem --> M[Specific message; Save and Formatting disabled]
+  L -- ok --> V[Number or date result; Formatting only for a number; Preview: server works it out on a task of the project]
+  V --> SV[Save: server checks again, also formulas that use this one] --> DB[(project_fields.config_json.formula: {f12} {due} {today} ...)]
+  DB --> R[Any read: List, Board, pane, My Tasks, export, Dashboard, automation conditions]
+  R --> CF[cellsFor: load referenced fields, task dates as India days, first-level subtasks and their values, Working calendar; Today = the India day now]
+  CF --> E[Evaluate per task: empty in = empty out unless COALESCE; errors as cell text]
+  E --> X[Cell: number formatted, or a date; nothing stored, no activity, no audit]
+```

@@ -23,7 +23,8 @@ import {
   type FieldType,
   type FieldView,
 } from "@/server/work/custom-fields";
-import { formulaText, parseFormula } from "@/server/work/formula";
+import { formulaText } from "@/server/work/formula";
+import { checkFormulaText, FormulaEditor } from "@/features/work/FormulaEditor";
 
 // v1.64.0 (D-371, spec PC §8.3–8.8): the Add field dialog (Create new /
 // Choose from library) and the same dialog to edit a field. One instance per
@@ -41,7 +42,6 @@ type LibraryItem = { id: number; name: string; kind: string; description: string
 
 let rowKey = 0;
 const newRow = (color: number): OptionRow => ({ key: `n${(rowKey += 1)}`, id: null, name: "", color, archived: false });
-const FORMULA_SOURCES: readonly FieldType[] = ["NUMBER", "DATE", "FORMULA", "TIMER"];
 
 export function FieldDialogHost({ projectId, projectName, fields, customiseRole, planning }: { projectId: number; projectName: string; fields: FieldView[]; customiseRole: "EDITOR" | "OWNER"; planning: boolean }) {
   const [open, setOpen] = useState<{ fieldId: number | null } | null>(null);
@@ -70,7 +70,6 @@ function FieldDialog({ projectId, projectName, fields, editing, customiseRole, p
   const names = useMemo(() => new Map(fields.map((field) => [field.id, field.name])), [fields]);
   const [formula, setFormula] = useState(() => (editing?.config?.formula ? formulaText(editing.config.formula, names) : ""));
   const [formulaTab, setFormulaTab] = useState<"formula" | "format">("formula");
-  const [pickField, setPickField] = useState<number | "">("");
   const [idPrefix, setIdPrefix] = useState(editing?.idPrefix ?? "");
   const [library, setLibrary] = useState(editing?.library ?? false);
   const [notify, setNotify] = useState(editing?.notify ?? false);
@@ -79,30 +78,21 @@ function FieldDialog({ projectId, projectName, fields, editing, customiseRole, p
   const types = planning ? FIELD_TYPES : LEGACY_TYPES;
   const references = fields.filter((field) => field.kind === "REFERENCE" && field.id !== editing?.id);
   const targets = fields.filter((field) => !["FORMULA", "LOOKUP", "REFERENCE"].includes(field.kind) && field.id !== editing?.id);
-  const formulaSources = fields.filter((field) => FORMULA_SOURCES.includes(field.kind) && field.id !== editing?.id);
   const set = (change: Partial<FieldConfig>) => setConfig((value) => ({ ...value, ...change }));
 
-  // The formula as typed ([Field name] + 2) becomes {f12} + 2 for the server.
-  const formulaExpr = (): { ok: true; expr: string } | { ok: false; message: string } => {
-    let missing = "";
-    const expr = formula.replace(/\[([^\]]+)\]/g, (_, label: string) => {
-      const field = formulaSources.find((item) => item.name.toLowerCase() === label.trim().toLowerCase());
-      if (!field) missing ||= label;
-      return field ? `{f${field.id}}` : "{f0}";
-    });
-    if (missing) return { ok: false, message: `No number or date field called “${missing}” here.` };
-    const parsed = parseFormula(expr);
-    return parsed.ok ? { ok: true, expr } : { ok: false, message: parsed.message };
-  };
-  const formulaCheck = type === "FORMULA" && formula.trim() ? formulaExpr() : null;
+  // The formula as typed ([Field name] + 2) becomes {f12} + 2 for the server;
+  // v1.88.0 (D-418): checked live with the server's rules (types, limits).
+  const formulaCheck = type === "FORMULA" ? checkFormulaText(formula, fields, editing?.id ?? null) : null;
+  // Formatting is for a formula that reads right and gives a number.
+  const formatOk = formulaCheck?.ok === true && formulaCheck.type === "number";
 
   const submit = async () => {
     setError("");
     let formulaValue = config.formula;
     if (type === "FORMULA") {
-      const checked = formulaExpr();
-      if (!checked.ok) return setError(`Formula: ${checked.message}`);
-      formulaValue = checked.expr;
+      if (!formulaCheck) return setError("Formula: Write a formula.");
+      if (!formulaCheck.ok) return setError(`Formula: ${formulaCheck.message}`);
+      formulaValue = formulaCheck.expr;
     }
     if (type === "ID" && !editing && !cleanIdPrefix(idPrefix)) return setError("Give a prefix: capital letters or digits, starting with a letter (for example PO).");
     const input = {
@@ -286,7 +276,7 @@ function FieldDialog({ projectId, projectName, fields, editing, customiseRole, p
               </fieldset>
             )}
 
-            {(type === "NUMBER" || (type === "FORMULA" && formulaTab === "format")) && <NumberFormat config={config} set={set} />}
+            {(type === "NUMBER" || (type === "FORMULA" && formulaTab === "format" && formatOk)) && <NumberFormat config={config} set={set} />}
 
             {type === "DATE" && (
               <label className="flex items-center gap-2 text-label">
@@ -297,48 +287,31 @@ function FieldDialog({ projectId, projectName, fields, editing, customiseRole, p
             {type === "FORMULA" && (
               <div className="space-y-2">
                 <div role="tablist" aria-label="Formula and formatting" className="flex gap-1">
-                  {(["formula", "format"] as const).map((key) => (
-                    <button key={key} type="button" role="tab" aria-selected={formulaTab === key} onClick={() => setFormulaTab(key)} className={`rounded-md px-3 py-1 text-label ${formulaTab === key ? "bg-primary-50 font-semibold text-primary-700" : "text-ink-muted hover:bg-surface-muted"}`}>
-                      {key === "formula" ? "Formula" : "Formatting"}
-                    </button>
-                  ))}
-                </div>
-                {formulaTab === "formula" && (
-                  <div className="space-y-2" data-testid="formula-builder">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <select aria-label="Field to insert" value={pickField} onChange={(event) => setPickField(event.target.value ? Number(event.target.value) : "")} className="field-input h-9 w-48">
-                        <option value="">Select field</option>
-                        {formulaSources.map((field) => (
-                          <option key={field.id} value={field.id}>
-                            {field.name} ({FIELD_TYPE_LABEL[field.kind]})
-                          </option>
-                        ))}
-                      </select>
-                      <button type="button" className="btn-secondary btn-compact" disabled={pickField === ""} onClick={() => setFormula((text) => `${text}${text && !/[\s(]$/.test(text) ? " " : ""}[${names.get(Number(pickField))}]`)}>
-                        Insert field
+                  {(["formula", "format"] as const).map((key) => {
+                    const locked = key === "format" && !formatOk;
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        role="tab"
+                        aria-selected={formulaTab === key}
+                        aria-disabled={locked || undefined}
+                        disabled={locked}
+                        title={locked ? (formulaCheck?.ok ? "This formula gives a date; formatting is for numbers." : "Check the formula is written correctly to use the formatting options.") : undefined}
+                        onClick={() => setFormulaTab(key)}
+                        className={`rounded-md px-3 py-1 text-label disabled:cursor-not-allowed disabled:opacity-50 ${formulaTab === key ? "bg-primary-50 font-semibold text-primary-700" : "text-ink-muted hover:bg-surface-muted"}`}
+                      >
+                        {key === "formula" ? "Formula" : "Formatting"}
                       </button>
-                      {[
-                        ["+", "plus"],
-                        ["−", "minus"],
-                        ["×", "times"],
-                        ["÷", "divided by"],
-                        ["(", "open bracket"],
-                        [")", "close bracket"],
-                      ].map(([sign, label]) => (
-                        <button key={sign} type="button" aria-label={`Insert ${label}`} onClick={() => setFormula((text) => `${text} ${sign} `.replace(/\s+/g, " "))} className="h-9 w-9 rounded-md border border-line font-mono hover:bg-surface-muted">
-                          {sign}
-                        </button>
-                      ))}
-                    </div>
-                    <label htmlFor="field-formula" className="field-label">
-                      Formula
-                    </label>
-                    <textarea id="field-formula" rows={2} value={formula} onChange={(event) => setFormula(event.target.value)} placeholder="[Budget] − [Spent]" className="field-input h-auto py-2 font-mono" aria-describedby="formula-help" aria-invalid={formulaCheck !== null && !formulaCheck.ok} />
-                    <p id="formula-help" className={`text-caption ${formulaCheck && !formulaCheck.ok ? "text-danger-600" : "text-ink-muted"}`} role={formulaCheck && !formulaCheck.ok ? "alert" : undefined}>
-                      {formulaCheck && !formulaCheck.ok ? formulaCheck.message : "Use number, date and timer fields of this project in [brackets], numbers, + − × ÷ and ( ). A date minus a date gives days. An empty field leaves the result empty."}
-                    </p>
-                  </div>
+                    );
+                  })}
+                </div>
+                {formulaTab === "format" && !formatOk && (
+                  <p className="text-caption text-ink-muted" data-testid="format-locked">
+                    {formulaCheck?.ok ? "This formula gives a date, shown as a date; formatting is for numbers." : "Check the formula is written correctly to use the formatting options."}
+                  </p>
                 )}
+                {formulaTab === "formula" && <FormulaEditor projectId={projectId} fields={fields} editingId={editing?.id ?? null} formula={formula} setFormula={setFormula} check={formulaCheck} name={name} setName={setName} />}
               </div>
             )}
 

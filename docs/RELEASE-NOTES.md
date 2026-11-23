@@ -1,5 +1,15 @@
 # Release notes
 
+## v1.88.0 (23 Nov 2026): simple formulas
+No migration (D-418, owner: "use all these as simple formulas in my app"):
+- **Formula fields take functions** (names in any case): ADD, SUBTRACT, MULTIPLY, DIVIDE, DATEADD, DATESUBTRACT and ROLLUP (as in Asana), plus DAYS, WORKDAYS (on the Working calendar), IF with > < >= <= = <>, ROUND, MIN, MAX, ABS and COALESCE. Open **Functions** in the formula editor for a help card with an example; **Insert** puts the function in.
+- **The task's own dates are inputs:** Start date, Due date, Created on, Completed on and **Today** (worked out whenever you look; never stored; nothing in the activity).
+- **Ready-made formulas:** TAT, Delay, NFD Delay and Delay Days, the same as your Asana fields, in days. Delay and NFD Delay use the project's "Revised Target" / "NFD" date field, or ask you to pick one.
+- **A formula can give a date** (DATEADD, DATESUBTRACT, MIN/MAX of dates, IF): it shows as a date. **Formatting** opens only for a correct formula that gives a number.
+- **Checked as you type** with a **Preview** on a task of the project; clear messages for wrong types, wrong numbers of values, and the limits (10 inputs, 2 layers of formulas, 500 characters, no loops).
+- Formulas work the same in the List, Board, task pane, sorting, filters, exports, Dashboard charts and automation conditions (a date result compares as a date). Formulas saved before keep working unchanged.
+- **Owner steps:** publish v1.88.0 (nothing else).
+
 ## v1.87.0 (23 Nov 2026): smoother screens that keep your place
 No migration (D-417, the owner's "Global Smooth Motion, Navigation Continuity & Interaction Experience System", built from the header and motion audit; details in `docs/GLOBAL_MOTION_NAVIGATION_IMPLEMENTATION.md`):
 - **Closing a task or record beside a list** (×, Esc, a click outside) leaves the list exactly as it was (height, filters, sort) and adds no step to Back: Back no longer reopens what you closed.

@@ -25,8 +25,9 @@ import {
   FIELD_LIMITS_KEY,
   FIELD_TYPE_LABEL,
   fieldConfigSchema,
+  formulaAnalysis,
   formulaCell,
-  formulaRefs,
+  fxFields,
   isFieldType,
   LEGACY_TYPES,
   legacyText,
@@ -45,9 +46,13 @@ import {
   type FieldLimits,
   type FieldType,
   type FieldView,
+  type FormulaTask,
   type StoredValue,
+  type TaskDates,
 } from "@/server/work/custom-fields";
-import { formulaLoop, parseFormula } from "@/server/work/formula";
+import { analyseFormula, formulaFields, formulaFromText, parseFormula } from "@/server/work/formula";
+import { planningBasis } from "@/server/work/durations";
+import { indiaDay } from "@/server/work/rules";
 import { loadSetting } from "@/server/work/holiday-store";
 import { rightsOn, workViewer } from "@/server/work/task-access";
 import { fieldBlockedBy, withProjects } from "@/server/work/service";
@@ -107,6 +112,29 @@ interface Checked {
   options: { id?: number | null; name: string; color: number; archived?: boolean }[];
   idPrefix: string | null;
 }
+// What's wrong with a formula for this project (null: nothing). A change to
+// an existing formula field must also leave every formula that uses it
+// within the limits (2 layers) and its types.
+function formulaProblem(expr: string, projectFields: readonly FieldRecord[], existing: FieldRecord | null): string | null {
+  const map = fxFields(projectFields);
+  const analysis = analyseFormula(expr, map, existing?.id ?? null);
+  if (!analysis.ok) {
+    // A field of another project or another type reads as "isn't in this project".
+    return analysis.code === "MISSING" ? "Use number, date, timer and formula fields of this project." : analysis.message;
+  }
+  if (!existing) return null;
+  const before = fxFields(projectFields);
+  const after = new Map(map);
+  after.set(existing.id, { id: existing.id, name: existing.name, kind: "FORMULA", formula: expr });
+  for (const other of projectFields) {
+    if (other.type !== "FORMULA" || other.id === existing.id) continue;
+    if (!analyseFormula(other.config.formula, before, other.id).ok) continue; // already broken: not this change's doing
+    const checked = analyseFormula(other.config.formula, after, other.id);
+    if (!checked.ok) return `“${other.name}” uses this field and then: ${checked.message.charAt(0).toLowerCase()}${checked.message.slice(1)}`;
+  }
+  return null;
+}
+
 // Check a field's settings against the project's other fields.
 async function checkInput(raw: unknown, projectFields: readonly FieldRecord[], limits: FieldLimits, existing: FieldRecord | null): Promise<{ ok: true; value: Checked } | { ok: false; message: string; fieldErrors?: Record<string, string> }> {
   const parsed = fieldInputSchema.safeParse(raw);
@@ -133,13 +161,10 @@ async function checkInput(raw: unknown, projectFields: readonly FieldRecord[], l
     if (!idPrefix) return fail("Give a prefix: 1 to 10 capital letters or digits, starting with a letter (for example PO).", { idPrefix: "For example PO." });
   }
   if (type === "FORMULA") {
-    const formula = parseFormula(config.formula);
-    if (!formula.ok) return fail(`Formula: ${formula.message}`, { formula: formula.message });
-    const refs = formulaRefs({ config });
-    const usable = new Map(projectFields.filter((field) => ["NUMBER", "DATE", "FORMULA", "TIMER"].includes(field.type)).map((field) => [field.id, field]));
-    if (refs.some((id) => !usable.has(id))) return fail("A formula can use only number, date, timer and formula fields of this project.", { formula: "Choose fields of this project." });
-    const others = new Map(projectFields.filter((field) => field.type === "FORMULA" && field.id !== existing?.id).map((field) => [field.id, formulaRefs(field)]));
-    if (existing && formulaLoop(existing.id, refs, others)) return fail("The formula would refer to itself through another formula.", { formula: "It refers to itself." });
+    // v1.88.0 (D-418): functions, the task's dates, types and the limits
+    // (10 inputs, 2 layers, 500 characters, no loops), each with its own message.
+    const problem = formulaProblem(config.formula, projectFields, existing);
+    if (problem) return fail(`Formula: ${problem}`, { formula: problem });
   }
   if (type === "LOOKUP") {
     const reference = projectFields.find((field) => field.id === config.referenceFieldId && field.type === "REFERENCE");
@@ -443,6 +468,13 @@ export async function cellsFor(taskIds: readonly number[], defs: readonly FieldR
   // Lookups read fields that may not be in this project.
   const lookupTargets = defs.filter((field) => field.type === "LOOKUP").map((field) => field.config.targetFieldId).filter((id): id is number => id !== null && !byId.has(id));
   for (const target of await fields.fieldsByIds([...new Set(lookupTargets)])) byId.set(target.id, target);
+  // v1.88.0 (D-418): what the formulas read comes too: fields not asked for
+  // (automations and reports ask for formulas only), the tasks' own dates,
+  // first-level subtasks for ROLLUP (one query each, never per row) and the
+  // Working calendar for WORKDAYS. Nothing is written: Today is worked out
+  // here, on reading, and leaves no history or audit entry.
+  const formulas = await formulaNeeds(defs, byId);
+  const task = formulas.any ? await formulaTasks(taskIds, formulas, viewer, now) : null;
   const storedFor = (taskId: number) => new Map([...byId.values()].map((field) => [field.id, fields.storedOf(field, rows.get(taskId)?.get(field.id))]));
   // People and linked tasks named in the values.
   const peopleIds = new Set<number>();
@@ -470,7 +502,7 @@ export async function cellsFor(taskIds: readonly number[], defs: readonly FieldR
     const own: Record<number, FieldCell> = {};
     for (const field of defs) {
       let cell: FieldCell;
-      if (field.type === "FORMULA") cell = formulaCell(field, byId, stored);
+      if (field.type === "FORMULA") cell = formulaCell(field, byId, stored, task?.get(taskId));
       else if (field.type === "LOOKUP") {
         const reference = field.config.referenceFieldId ? byId.get(field.config.referenceFieldId) : undefined;
         const target = field.config.targetFieldId ? byId.get(field.config.targetFieldId) : undefined;
@@ -489,6 +521,117 @@ export async function cellsFor(taskIds: readonly number[], defs: readonly FieldR
     out[taskId] = own;
   }
   return out;
+}
+
+// Which formula inputs a list needs; adds the fields the formulas read (and
+// the fields those read) to `byId`.
+interface FormulaNeeds {
+  any: boolean;
+  dates: boolean;
+  rollup: boolean;
+  workdays: boolean;
+}
+async function formulaNeeds(defs: readonly FieldDef[], byId: Map<number, FieldDef>): Promise<FormulaNeeds> {
+  const needs: FormulaNeeds = { any: false, dates: false, rollup: false, workdays: false };
+  let pending = defs.filter((field) => field.type === "FORMULA");
+  const seen = new Set<number>();
+  for (let round = 0; pending.length && round < 5; round += 1) {
+    const missing = new Set<number>();
+    for (const field of pending) {
+      if (seen.has(field.id)) continue;
+      seen.add(field.id);
+      const parsed = parseFormula(field.config.formula);
+      if (parsed.ok) for (const id of formulaFields(parsed.node)) if (!byId.has(id)) missing.add(id);
+    }
+    const loaded = missing.size ? await fields.fieldsByIds([...missing]) : [];
+    for (const field of loaded) byId.set(field.id, field);
+    pending = loaded.filter((field) => field.type === "FORMULA");
+  }
+  for (const field of byId.values()) {
+    if (field.type !== "FORMULA") continue;
+    const analysis = formulaAnalysis(field, byId);
+    if (!analysis.ok) continue;
+    needs.any = true;
+    // A rolled-up formula reads the subtasks' dates.
+    needs.dates ||= analysis.builtins.length > 0 || analysis.rollup;
+    needs.rollup ||= analysis.rollup;
+    needs.workdays ||= analysis.workdays;
+  }
+  return needs;
+}
+// The tasks' own dates as India days (due, created and completed are stored in UTC).
+type DatedTask = { parent: number | null; dates: TaskDates };
+async function taskDates(taskIds: readonly number[]): Promise<Map<number, DatedTask>> {
+  const out = new Map<number, DatedTask>();
+  if (!taskIds.length) return out;
+  const day = (column: string) => `DATE_FORMAT(DATE_ADD(t.${column}, INTERVAL 330 MINUTE), '%Y-%m-%d')`;
+  const [rows] = await db().query<RowDataPacket[]>(
+    `SELECT t.id, t.parent_task_id, DATE_FORMAT(t.starts_on, '%Y-%m-%d') AS start_day, ${day("due_at")} AS due_day, ${day("created_at")} AS created_day, ${day("completed_at")} AS completed_day FROM tasks t WHERE t.id IN (?)`,
+    [[...taskIds]],
+  );
+  const text = (value: unknown) => (value === null || value === undefined ? null : String(value));
+  for (const row of rows) out.set(Number(row.id), { parent: row.parent_task_id === null ? null : Number(row.parent_task_id), dates: { start: text(row.start_day), due: text(row.due_day), created: text(row.created_day), completed: text(row.completed_day) } });
+  return out;
+}
+async function formulaTasks(taskIds: readonly number[], needs: FormulaNeeds, viewer: WorkViewer, now: Date): Promise<Map<number, FormulaTask>> {
+  const out = new Map<number, FormulaTask>();
+  const today = indiaDay(now);
+  const own = needs.dates ? await taskDates(taskIds) : new Map<number, DatedTask>();
+  const calendar = needs.workdays ? (await planningBasis()).calendar : undefined;
+  // ROLLUP: the first-level subtasks the viewer can see, with their values and dates.
+  const subtasksOf = new Map<number, number[]>();
+  let subDates = new Map<number, DatedTask>();
+  let subRows = new Map<number, Map<number, fields.ValueRow>>();
+  if (needs.rollup) {
+    const visible = repo.visibleTaskClause(viewer);
+    const [rows] = await db().query<RowDataPacket[]>(`SELECT t.id, t.parent_task_id FROM tasks t JOIN users a ON a.id = t.assignee_id WHERE t.parent_task_id IN (?) AND t.deleted_at IS NULL AND ${visible.sql}`, [[...taskIds], ...visible.params]);
+    for (const row of rows) subtasksOf.set(Number(row.parent_task_id), [...(subtasksOf.get(Number(row.parent_task_id)) ?? []), Number(row.id)]);
+    const ids = rows.map((row) => Number(row.id));
+    [subDates, subRows] = await Promise.all([taskDates(ids), fields.valueRows(ids)]);
+  }
+  for (const taskId of taskIds) {
+    const task: FormulaTask = { dates: { ...(own.get(taskId)?.dates ?? {}), today }, calendar };
+    if (needs.rollup) task.subtasks = (subtasksOf.get(taskId) ?? []).map((id) => ({ stored: subStored(id, subRows), dates: subDates.get(id)?.dates }));
+    out.set(taskId, task);
+  }
+  return out;
+}
+// A subtask's typed values by field id.
+function subStored(id: number, rows: Map<number, Map<number, fields.ValueRow>>): ReadonlyMap<number, StoredValue | null> {
+  const out = new Map<number, StoredValue | null>();
+  for (const [fieldId, row] of rows.get(id) ?? []) out.set(fieldId, row.typed ? row.stored : null);
+  return out;
+}
+
+// v1.88.0 (D-418): the Add field dialog's live preview: the formula worked
+// out on a task of the project (the first of 25 that gives a value), as the
+// person sees it. Checked like a save; writes nothing.
+export async function previewFormula(projectId: number, text: string, fieldId: number | null, actor: TaskActor): Promise<Result<{ taskNo: string; title: string; text: string; error: boolean } | null>> {
+  const access = await projectAccess(projectId, actor);
+  if (!access) return fail(NOT_FOUND);
+  const defs = await fields.listFieldDefs(projectId);
+  const existing = fieldId ? (defs.find((field) => field.id === fieldId) ?? null) : null;
+  const sources = defs.filter((field) => ["NUMBER", "DATE", "TIMER", "FORMULA"].includes(field.type) && field.id !== existing?.id);
+  const typed = formulaFromText(String(text ?? "").slice(0, 2000), sources);
+  if (!typed.ok) return fail(typed.message);
+  const problem = formulaProblem(typed.expr, defs, existing);
+  if (problem) return fail(problem);
+  const order = (await fields.projectTaskOrder(projectId, db())).slice(0, 25);
+  if (!order.length) return { ok: true, value: null };
+  const draft: FieldRecord = {
+    ...(existing ?? { description: null, library: false, notify: false, homeProjectId: projectId, createdBy: actor.id, createdByName: actor.name, createdAt: new Date(), deletedAt: null, deletedBy: null, idPrefix: null }),
+    id: existing?.id ?? -1,
+    name: existing?.name ?? "Preview",
+    type: "FORMULA",
+    config: { ...DEFAULT_CONFIG, ...(existing?.config ?? {}), formula: typed.expr },
+    options: [],
+  };
+  const list = [...defs.filter((field) => field.id !== draft.id), draft];
+  const cells = await cellsFor(order, list, { ...access.viewer, id: actor.id });
+  const pick = order.find((id) => cells[id]?.[draft.id]?.text) ?? order[0]!;
+  const [rows] = await db().query<RowDataPacket[]>("SELECT task_no, title FROM tasks WHERE id = ?", [pick]);
+  const cell = cells[pick]?.[draft.id];
+  return { ok: true, value: { taskNo: String(rows[0]?.task_no ?? ""), title: String(rows[0]?.title ?? ""), text: cell?.text ?? "", error: Boolean(cell?.error) } };
 }
 
 // ---- what the browser gets ------------------------------------------------------------------

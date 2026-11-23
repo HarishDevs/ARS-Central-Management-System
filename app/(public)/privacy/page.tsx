@@ -22,6 +22,7 @@ export const metadata: Metadata = {
 // phone and desktop notifications (push) and the daily session. v1.43.0: the
 // v1.72.1 (D-395): the tab.s session storage of the last page (Back links).
 // v1.80.0 (D-407): the same storage keeps a list's place (30 minutes) and the "Next waiting" flow.
+// v1.88.0 (D-418): formulas are worked out from data already held (task dates, field values); Today is never stored; no new data, no page text changed.
 // v1.87.0 (D-417): and, in the same tab only, the list a page was opened from (60 minutes) and folded groups (2 hours): page addresses and open/closed flags, never sent anywhere; no page text changed.
 // layout cookie of the phone layout (v1.45.0: and the Compact mode cookie). v1.44.0 (D-273): people given a task by a
 // request's background work step may read that request.

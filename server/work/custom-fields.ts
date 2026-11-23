@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { compareValues } from "@/server/lists/sorting";
-import { evaluateFormula, FORMULA_ERROR_TEXT, formulaFields, parseFormula, type FormulaResult } from "@/server/work/formula";
+import { analyseFormula, dayNumber, dayOf, evaluateFormula, FORMULA_ERROR_TEXT, formulaFields, parseFormula, type Builtin, type FormulaAnalysis, type FormulaResult, type FxField } from "@/server/work/formula";
+import type { WorkCalendar } from "@/server/work/schedule";
 
 // v1.64.0 (D-371, PM phase B part 1, spec PROJECTS_CUSTOMIZATION §8): custom
 // fields with eleven types. Pure and unit-tested: types and labels, per-type
@@ -64,7 +65,7 @@ export const fieldConfigSchema = z.object({
   unit: z.string().trim().max(12).default(""), // custom unit
   unitBefore: z.boolean().default(false),
   withTime: z.boolean().default(false), // date
-  formula: z.string().max(500).default(""), // {f12} + {f15}
+  formula: z.string().max(1000).default(""), // {f12} + {f15}; v1.88: + functions and {due} etc. (500 as people read it, D-418)
   referenceFieldId: z.number().int().positive().nullable().default(null), // lookup
   targetFieldId: z.number().int().positive().nullable().default(null), // lookup
 });
@@ -115,7 +116,7 @@ export function dateText(day: string, time: string | null): string {
   return time ? `${text}, ${time.slice(0, 5)}` : text;
 }
 // Days since 1 Jan 1970 (dates in formulas).
-export const dayNumber = (day: string) => Math.round(new Date(`${day}T00:00:00Z`).getTime() / 86_400_000);
+export { dayNumber };
 
 // ---- names and options ------------------------------------------------------------------
 export const cleanName = (raw: unknown, max = FIELD_NAME_MAX) => (typeof raw === "string" ? raw.replace(/[\u0000-\u001f\u007f]/g, "").replace(/\s+/g, " ").trim().slice(0, max) : "");
@@ -385,33 +386,82 @@ export function storedCell(field: FieldDef, stored: StoredValue | null, context:
   }
 }
 
-// Formula cells for one task: other cells already built (`cells`), the
-// task's number/date stored values give the operands.
-export function formulaCell(field: FieldDef, fields: ReadonlyMap<number, FieldDef>, stored: ReadonlyMap<number, StoredValue | null>): FieldCell {
+// Formula cells for one task: the task's number/date stored values give the
+// operands. v1.88.0 (D-418): `task` adds the task's own dates (and Today),
+// its first-level subtasks for ROLLUP and the Working calendar for WORKDAYS;
+// a formula that gives a date shows as a date (Formatting is for numbers).
+export type TaskDates = Partial<Record<Builtin, string | null>>; // YYYY-MM-DD (India days)
+export interface FormulaTask {
+  dates?: TaskDates;
+  subtasks?: readonly { stored: ReadonlyMap<number, StoredValue | null>; dates?: TaskDates }[];
+  calendar?: WorkCalendar;
+}
+// The checks a list needs once, not once per row: kept per field map.
+const analysisCache = new WeakMap<ReadonlyMap<number, FieldDef>, Map<number, FormulaAnalysis>>();
+export const fxFields = (fields: ReadonlyMap<number, FieldDef> | readonly FieldDef[]): Map<number, FxField> => new Map([...fields.values()].map((field) => [field.id, { id: field.id, name: field.name, kind: field.type, formula: field.config.formula }]));
+export function formulaAnalysis(field: FieldDef, fields: ReadonlyMap<number, FieldDef>): FormulaAnalysis {
+  let cache = analysisCache.get(fields);
+  if (!cache) analysisCache.set(fields, (cache = new Map()));
+  const known = cache.get(field.id);
+  if (known) return known;
+  const map = fxFields(fields);
+  if (!map.has(field.id)) map.set(field.id, { id: field.id, name: field.name, kind: field.type, formula: field.config.formula });
+  // Saved formulas are worked out without the save-time limits (v1.64 ones had none).
+  const result = analyseFormula(field.config.formula, map, null, false);
+  cache.set(field.id, result);
+  return result;
+}
+function fieldValueOn(fieldId: number, fields: ReadonlyMap<number, FieldDef>, stored: ReadonlyMap<number, StoredValue | null>, task: FormulaTask, nested: boolean): FormulaResult {
   const memo = new Map<number, FormulaResult>();
   const visiting = new Set<number>();
   const valueOf = (id: number): FormulaResult => {
     const def = fields.get(id);
     if (!def) return { ok: false, error: "MISSING" };
-    if (def.type === "NUMBER") return { ok: true, value: stored.get(id)?.number ?? null };
+    if (def.type === "NUMBER" || def.type === "TIMER") return { ok: true, value: stored.get(id)?.number ?? null };
     if (def.type === "DATE") {
       const day = stored.get(id)?.date;
       return { ok: true, value: day ? dayNumber(day) : null };
     }
-    if (def.type === "TIMER") return { ok: true, value: stored.get(id)?.number ?? null };
     if (def.type !== "FORMULA") return { ok: false, error: "MISSING" };
     if (memo.has(id)) return memo.get(id)!;
     if (visiting.has(id)) return { ok: false, error: "LOOP" };
     visiting.add(id);
-    const parsed = parseFormula(def.config.formula);
-    const result = parsed.ok ? evaluateFormula(parsed.node, valueOf) : ({ ok: false, error: "MISSING" } as const);
+    const analysis = formulaAnalysis(def, fields);
+    const result: FormulaResult = analysis.ok
+      ? evaluateFormula(analysis.node, {
+          field: valueOf,
+          builtin: (name) => {
+            const day = task.dates?.[name];
+            return day ? dayNumber(day) : null;
+          },
+          rollup: (target) => {
+            if (nested) return { ok: false, error: "INVALID" };
+            let sum: number | null = null;
+            for (const sub of task.subtasks ?? []) {
+              const one = fieldValueOn(target, fields, sub.stored, { dates: { ...sub.dates, today: task.dates?.today ?? null }, calendar: task.calendar }, true);
+              if (!one.ok) return one;
+              if (one.value !== null) sum = (sum ?? 0) + one.value;
+            }
+            return { ok: true, value: sum };
+          },
+          calendar: task.calendar,
+        })
+      : { ok: false, error: analysis.code };
     visiting.delete(id);
     memo.set(id, result);
     return result;
   };
-  const result = valueOf(field.id);
+  return valueOf(fieldId);
+}
+export function formulaCell(field: FieldDef, fields: ReadonlyMap<number, FieldDef>, stored: ReadonlyMap<number, StoredValue | null>, task: FormulaTask = {}): FieldCell {
+  const result = fieldValueOn(field.id, fields, stored, task, false);
   if (!result.ok) return { text: FORMULA_ERROR_TEXT[result.error], sort: null, edit: "", error: result.error };
   if (result.value === null) return EMPTY_CELL;
+  const analysis = formulaAnalysis(field, fields);
+  if (analysis.ok && analysis.type === "date") {
+    const day = dayOf(result.value);
+    return day ? { text: dateText(day, null), sort: day, edit: "" } : { text: FORMULA_ERROR_TEXT.INVALID, sort: null, edit: "", error: "INVALID" };
+  }
   return { text: formatNumber(result.value, field.config), sort: result.value, edit: "" };
 }
 export function formulaRefs(field: Pick<FieldDef, "config">): number[] {
@@ -455,9 +505,11 @@ export function matchFieldFilter(type: FieldType, cell: FieldCell | undefined, f
   }
   if (type === "NUMBER" || type === "FORMULA" || type === "TIMER" || type === "DATE") {
     if (empty || cell!.sort === null) return false;
-    const left = type === "DATE" ? String(cell!.sort).slice(0, 10) : Number(cell!.sort);
-    const right = type === "DATE" ? filter.value.slice(0, 10) : Number(type === "TIMER" ? Number(filter.value) * 60 : filter.value.replace(/[,\s₹%]/g, ""));
-    if (type !== "DATE" && !Number.isFinite(right as number)) return true;
+    // v1.88.0 (D-418): a formula that gives a date compares as a date.
+    const asDate = type === "DATE" || (type === "FORMULA" && typeof cell!.sort === "string");
+    const left = asDate ? String(cell!.sort).slice(0, 10) : Number(cell!.sort);
+    const right = asDate ? filter.value.slice(0, 10) : Number(type === "TIMER" ? Number(filter.value) * 60 : filter.value.replace(/[,\s₹%]/g, ""));
+    if (!asDate && !Number.isFinite(right as number)) return true;
     if (filter.op === "gt") return left > right;
     if (filter.op === "lt") return left < right;
     return left === right;
