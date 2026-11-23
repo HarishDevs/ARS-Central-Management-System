@@ -1828,3 +1828,20 @@ html[data-vt="title"] main#main [data-tour="page-header"] h1 {
     transition-duration: 100ms !important;
   }
 }
+
+/* v1.86.0 (H-04, header audit): a fade at a clipped edge of a hub's tab row
+   (phone width only; the tabs wrap from tablet width up). Decorative only. */
+.hub-tabs-cue {
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  bottom: 1px;
+  width: 2rem;
+  --tw-gradient-from: var(--color-surface-page);
+  --tw-gradient-to: transparent;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  transition: opacity var(--motion-fast) linear;
+}
+@media (min-width: 768px) {
+  .hub-tabs-cue { display: none; }
+}

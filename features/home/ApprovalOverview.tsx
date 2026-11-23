@@ -295,7 +295,7 @@ export async function ApprovalOverview({
       {checklist}
       <SummaryCards cards={cards} testId="approval-cards" cardTestId="approval-card" tour />
       <div className="mt-6">
-        <HomeWidgets scope="approvals" fixed={!widgets.editable} version={widgets.version} addable={widgets.addable} widgets={widgets.layout.map((item) => ({ kind: item.kind, size: item.size, node: nodeFor(item.kind) }))} />
+        <HomeWidgets key="approvals" scope="approvals" fixed={!widgets.editable} version={widgets.version} addable={widgets.addable} widgets={widgets.layout.map((item) => ({ kind: item.kind, size: item.size, node: nodeFor(item.kind) }))} />
       </div>
     </div>
   );

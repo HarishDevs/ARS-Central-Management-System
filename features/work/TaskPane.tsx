@@ -5,6 +5,7 @@ import { TaskDetail } from "@/features/work/TaskDetail";
 import { LiveRefresh } from "@/features/work/useLiveRefresh";
 import { PaneModeButton, PaneResizer } from "@/features/work/PaneParts";
 import { PaneFocus } from "@/features/work/TaskPaneHost";
+import { PaneDraftGuard } from "@/features/ui/PaneDraftGuard";
 import type { PaneMode } from "@/server/work/pm-rules";
 import type { AuthenticatedUser } from "@/types/auth";
 export { visibilityText } from "@/features/work/visibility";
@@ -29,6 +30,7 @@ export async function TaskPane({ taskId, user, closeHref, mode, width }: { taskI
         <style>{`:root{--pane-w:${width}px}`}</style>
         <LiveRefresh />
         <PaneFocus key={taskId} taskId={taskId} />
+        <PaneDraftGuard />
         <Link href={closeHref} scroll={false} aria-label="Close task" tabIndex={-1} className="fixed inset-0 cursor-default bg-overlay lg:hidden" />
         <div tabIndex={-1} data-pane-focus className="relative h-full w-full max-w-6xl overflow-y-auto overscroll-contain bg-page shadow-2xl focus:outline-none sm:h-auto sm:max-h-full sm:rounded-xl lg:h-full lg:max-h-none lg:max-w-none lg:rounded-none lg:border-l lg:border-line lg:shadow-overlay" data-testid="task-pane-body">
           <PaneResizer initial={width} />
@@ -43,6 +45,7 @@ export async function TaskPane({ taskId, user, closeHref, mode, width }: { taskI
       {/* v1.61.0 (D-366): the open task stays fresh (15 s, focus, after changes). */}
       <LiveRefresh />
       <PaneFocus key={taskId} taskId={taskId} />
+        <PaneDraftGuard />
       {/* The dimmed page behind: a click on it closes the popup. */}
       <Link href={closeHref} scroll={false} aria-label="Close task" tabIndex={-1} className="fixed inset-0 cursor-default bg-overlay" />
       <div tabIndex={-1} data-pane-focus className="relative h-full w-full max-w-6xl overflow-y-auto overscroll-contain rounded-none bg-page shadow-2xl focus:outline-none sm:h-auto sm:max-h-full sm:rounded-xl">

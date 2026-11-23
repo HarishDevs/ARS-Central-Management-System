@@ -38,7 +38,7 @@ import type { WorkViewer } from "@/server/work/access";
 import type { workPage } from "@/server/work/page-context";
 import { CreateTaskQuick, QuietRefresh, WorkloadChart } from "@/features/home/HomeClient";
 import { AttentionWidget, InsightFigures, OverviewHeader, periodKeep, SummaryCards, type AttentionItem, type SummaryCard } from "@/features/home/OverviewParts";
-import { WIDGETS_TOOLBAR_SLOT } from "@/features/home/QuickActions";
+import { QuickActions } from "@/features/home/QuickActions";
 import { hasModule } from "@/server/modules/modules";
 import { ComingSoonCard, ComingSoonChip, LockedProjectName } from "@/features/ui/ComingSoon";
 import { SortTh } from "@/features/ui/SortTh";
@@ -634,15 +634,20 @@ export async function MyWorkOverview({
         periodBase={{ home: "tasks", tab }}
       />
 
-      <nav aria-label="Quick actions" className="mb-5 flex flex-wrap gap-2" data-testid="work-quick-actions">
-        <CreateTaskQuick />
-        <QuickLink href="/users/work/my-tasks" icon={<ListChecks className="h-4 w-4" />} label="View all tasks" />
-        {projectsOn ? <QuickLink href="/users/work/projects" icon={<FolderKanban className="h-4 w-4" />} label="Projects" /> : <ComingSoonChip label="Projects" className="rounded-lg border border-line" />}
-        <QuickLink href="/users/work/search" icon={<Search className="h-4 w-4" />} label="Search tasks" />
-        <QuickLink href="/users/calendar" icon={<CalendarDays className="h-4 w-4" />} label="Calendar" />
-        {/* v1.77.1 (owner, 22 Nov 2026): Add widgets and Customise sit at the right end of this row (HomeWidgets renders them here through a portal). */}
-        {widgets && <div id={WIDGETS_TOOLBAR_SLOT} className="ml-auto flex flex-wrap items-center gap-2" />}
-      </nav>
+      {/* v1.86.0 (H-01): the shared quick-action row (one implementation on every overview); Add widgets and Customise sit at its right end. */}
+      <QuickActions
+        testId="work-quick-actions"
+        widgets={Boolean(widgets)}
+        items={[
+          { href: "#create-task", label: "Create task", node: <CreateTaskQuick /> },
+          { href: "/users/work/my-tasks", icon: <ListChecks className="h-4 w-4" />, label: "View all tasks" },
+          projectsOn
+            ? { href: "/users/work/projects", icon: <FolderKanban className="h-4 w-4" />, label: "Projects" }
+            : { href: "#projects-soon", label: "Projects", node: <ComingSoonChip label="Projects" className="rounded-lg border border-line" /> },
+          { href: "/users/work/search", icon: <Search className="h-4 w-4" />, label: "Search tasks" },
+          { href: "/users/calendar", icon: <CalendarDays className="h-4 w-4" />, label: "Calendar" },
+        ]}
+      />
 
       <SummaryCards cards={cards} testId="work-kpis" cardTestId="work-kpi" />
 
@@ -670,15 +675,6 @@ export async function MyWorkOverview({
         )}
       </>
     </div>
-  );
-}
-
-function QuickLink({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) {
-  return (
-    <Link href={href} className="btn-secondary btn-compact inline-flex items-center gap-1.5">
-      <span aria-hidden="true">{icon}</span>
-      {label}
-    </Link>
   );
 }
 

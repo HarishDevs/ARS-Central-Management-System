@@ -400,7 +400,7 @@ export async function MeetingHome({
       <QuickActions items={quick} testId="meeting-quick-actions" widgets={widgets.editable} />
       <SummaryCards cards={cards} testId="meeting-tiles" cardTestId="meeting-card" />
       <div className="mt-6">
-        <HomeWidgets scope="meetings" fixed={!widgets.editable} version={widgets.version} addable={widgets.addable} widgets={layout.map((item) => ({ kind: item.kind, size: item.size, node: nodeFor(item.kind) }))} />
+        <HomeWidgets key="meetings" scope="meetings" fixed={!widgets.editable} version={widgets.version} addable={widgets.addable} widgets={layout.map((item) => ({ kind: item.kind, size: item.size, node: nodeFor(item.kind) }))} />
       </div>
     </div>
   );

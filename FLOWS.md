@@ -2679,6 +2679,7 @@ flowchart LR
   PH[Phone layout] -->|task link| F
   U[An address under /users that no page has] -->|middleware, build-time route list, v1.85.1| NF[Root 404 page, status 404; no layout runs]
 ```
+- v1.86.0 (D-416): × / Escape / the dimmed page / a link away with an unsent comment or reply in the pane → **Discard draft?** (Keep editing stays; Discard closes or follows the link). The record pane (Admin → Records) does the same.
 - The @pane slot checks the session, the Tasks module and switch and the task page access; TaskDetail checks the task (else "not found"). Back and refresh keep ?task, so the pane stays open. Below 1024 px the side pane is the centred popup; at phone width, full screen.
 
 ## F-PM-PANE: The task pane, reactions, completion and Undo (v1.62.0, D-368)
@@ -2816,4 +2817,5 @@ flowchart TD
   V -- no --> N[Refused or conflict: reload]
   V -- yes --> O[Saved for that overview only; announced]
 ```
+- v1.86.0 (D-416): all three overviews draw the one quick-action row; its widget slot registers itself (callback ref), so + Add widgets and Customise follow every overview switch; each board is keyed by its overview, so Customise ends on a switch; the period picker reads the address.
 - Standard widgets on every overview: Private notepad (one note shared by the three), day-by-day chart, Needs attention, Quick insights. Meeting figures (Quick insights, How meetings are running, Register) only with the *Meetings: dashboard figures* page access.

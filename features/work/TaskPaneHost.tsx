@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { isTyping } from "@/features/shell/shortcuts";
+import { requestPaneClose } from "@/features/ui/pane-draft";
 import { paneHref, PANE_HOST_ATTR, rememberOpener, takeOpener, taskIdFromHref } from "@/features/work/pane-open";
 
 // v1.83.0 (D-410, owner): every task opens in the side pane beside the
@@ -48,7 +49,8 @@ export function TaskPaneHost() {
       const pane = document.querySelector<HTMLElement>("[data-task-pane]");
       if (!pane?.dataset.closeHref) return;
       event.preventDefault();
-      routerRef.current.push(pane.dataset.closeHref, { scroll: false });
+      const to = pane.dataset.closeHref;
+      requestPaneClose(pane, () => routerRef.current.push(to, { scroll: false }));
     };
     document.addEventListener("click", onClick, true);
     document.addEventListener("keydown", onKey);

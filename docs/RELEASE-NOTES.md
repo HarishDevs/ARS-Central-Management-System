@@ -1,5 +1,14 @@
 # Release notes
 
+## v1.86.0 (23 Nov 2026): Home's header buttons stay put; unsent comments are safe
+No migration (D-416, from the header and motion audit, `docs/qa/HEADER-AND-MOTION-AUDIT.md`):
+- **+ Add widgets** and **Customise** no longer disappear when you move between the Task Management and Meetings overviews (they came back only after a refresh).
+- **Customise** ends when you move to another overview: you are never left moving widgets with no **Done** button.
+- The **period** picker shows the period of the overview you are on: a Custom period chosen on one overview no longer follows you to the next.
+- **Admin → Insights:** on a tablet every tab shows (they wrap onto a second row); on a phone they still scroll sideways, with a fade at the edge where more tabs are.
+- **Task pane and record pane:** a comment or reply you typed but haven't sent is never lost by accident: Esc, ×, a click outside or a link away first asks **Discard draft?**
+- **Owner steps:** publish v1.86.0 (nothing else).
+
 ## v1.85.3 (23 Nov 2026): Out of office can go back 30 days
 No migration (D-415, owner: "allow past dates for everyone, up to 30 days back"):
 - **Out of office** (yours, or IT setting it for someone in Admin → Users) can start up to **30 days before today**, to record leave already taken. Starting further back says so.

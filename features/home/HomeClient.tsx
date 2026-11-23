@@ -37,7 +37,14 @@ export function PeriodPicker({
   path?: string; // v1.51.1: the page the period belongs to (Home by default)
 }) {
   const router = useRouter();
-  const [custom, setCustom] = useState(value === "custom");
+  // v1.86.0 (H-03, header audit): the picker reads the address. "Custom period"
+  // shows when the address says so, or when the person just chose it here for
+  // this same address; after a move (another overview, another period) the
+  // choice no longer matches and the picker shows the address's period again.
+  const here = `${path}?${new URLSearchParams(base)}|${value}`;
+  const [customFor, setCustomFor] = useState<string | null>(null);
+  const custom = value === "custom" || customFor === here;
+  const setCustom = (on: boolean) => setCustomFor(on ? here : null);
   const go = (query: Record<string, string>) => router.push(`${path}?${new URLSearchParams({ ...base, ...query })}`, { scroll: false });
   return (
     <div className="flex flex-wrap items-center gap-2" data-testid="period-picker">

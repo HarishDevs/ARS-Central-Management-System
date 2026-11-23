@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { isTyping } from "@/features/shell/shortcuts";
+import { requestPaneClose } from "@/features/ui/pane-draft";
 import { CREATE_TASK_EVENT } from "@/features/work/client";
 import { useProjectsOn } from "@/features/work/projects-access";
 
@@ -47,7 +48,8 @@ export function WorkKeys() {
         const pane = document.querySelector<HTMLElement>("[data-task-pane]");
         if (pane?.dataset.closeHref) {
           take();
-          router.push(pane.dataset.closeHref, { scroll: false });
+          const to = pane.dataset.closeHref;
+          requestPaneClose(pane, () => router.push(to, { scroll: false }));
         }
         return;
       }

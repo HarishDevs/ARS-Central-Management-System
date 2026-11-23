@@ -183,6 +183,8 @@ export function useActionForm(action: Action, options: ConfirmOptions = {}) {
   function dispatch(formData: FormData) {
     if (busy.current) return;
     busy.current = true;
+    // v1.86.0: the form says it is saving (a pane asks before closing over it).
+    formRef.current?.setAttribute("aria-busy", "true");
     setPending(true);
     void guarded(latest.current, formData)
       .then((next) => {
@@ -210,6 +212,7 @@ export function useActionForm(action: Action, options: ConfirmOptions = {}) {
       })
       .finally(() => {
         busy.current = false;
+        formRef.current?.removeAttribute("aria-busy");
         setPending(false);
       });
   }

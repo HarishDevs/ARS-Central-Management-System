@@ -4,6 +4,7 @@ import { ArrowDown, ArrowUp, Check, GripVertical, LayoutGrid, MoreHorizontal, Pl
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
+import { useWidgetsSlot } from "@/features/home/WidgetsSlot";
 import { homeLayoutAction } from "@/app/users/home-actions";
 import { Menu, type MenuItem } from "@/features/ui/Menu";
 import { useToast } from "@/features/ui/Toast";
@@ -55,8 +56,18 @@ export function HomeWidgets({
   }, [serverKey]); // eslint-disable-line react-hooks/exhaustive-deps
   // v1.77.1 (owner, 22 Nov 2026): the toolbar is drawn in the quick-action row
   // (#home-widgets-toolbar-slot) when the page provides it; otherwise here.
-  const [slot, setSlot] = useState<HTMLElement | null>(null);
-  useEffect(() => setSlot(document.getElementById("home-widgets-toolbar-slot")), []);
+  // v1.86.0 (H-01): the slot comes from a small store its callback ref fills, so
+  // the toolbar follows the slot that is on screen now (not one looked up once).
+  const slot = useWidgetsSlot();
+  // v1.86.0 (H-02): each overview owns its Customise state (the boards are also keyed by scope).
+  const [editingScope, setEditingScope] = useState(scope);
+  if (editingScope !== scope) {
+    setEditingScope(scope);
+    setEditing(false);
+    setLifted(null);
+    setDragging(null);
+    setLive("");
+  }
   const nodes = new Map(widgets.map((item) => [item.kind, item.node]));
   const title = (kind: WidgetKind) => widgetEntry(kind).title;
   const focusHandle = (kind: WidgetKind) => requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-widget-handle="${kind}"]`)?.focus());

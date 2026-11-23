@@ -4,6 +4,8 @@ import Link from "next/link";
 import { ExternalLink, Maximize2, PanelRight, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { requestPaneClose } from "@/features/ui/pane-draft";
+import { PaneDraftGuard } from "@/features/ui/PaneDraftGuard";
 
 // v1.85.0 (D-412, owner's Admin redesign): the record pane, generalised from
 // the v1.83.0 task pane (D-410): a row opens the record beside the table
@@ -34,7 +36,9 @@ export function RecordPane({ title, closeHref, fullHref, children, testId = "rec
       if (event.key !== "Escape" || event.defaultPrevented) return;
       if (document.querySelector("dialog[open], [data-testid=power-panel]")) return;
       event.preventDefault();
-      router.push(closeHref, { scroll: false });
+      const pane = document.querySelector<HTMLElement>("[data-record-pane]");
+      if (pane) requestPaneClose(pane, () => router.push(closeHref, { scroll: false }));
+      else router.push(closeHref, { scroll: false });
     };
     document.addEventListener("keydown", onKey);
     return () => {
@@ -65,6 +69,7 @@ export function RecordPane({ title, closeHref, fullHref, children, testId = "rec
       data-testid={testId}
       className={side ? "fixed inset-0 z-drawer flex items-center justify-center p-0 sm:p-6 lg:inset-auto lg:bottom-0 lg:right-0 lg:top-topbar lg:z-sticky lg:block lg:w-pane lg:p-0" : "fixed inset-0 z-drawer flex items-center justify-center p-0 sm:p-6"}
     >
+      <PaneDraftGuard />
       <Link href={closeHref} scroll={false} aria-label="Close" tabIndex={-1} className={`fixed inset-0 cursor-default bg-overlay ${side ? "lg:hidden" : ""}`} />
       <div
         ref={body}

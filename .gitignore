@@ -44,3 +44,6 @@ Thumbs.db
 
 # Agent worktrees (temporary copies of the repo)
 .claude/worktrees/
+
+# v1.86.0: the header and motion audit's local evidence (screenshots, probe output); never committed
+/audit/
