@@ -29,6 +29,9 @@ const PUBLIC: Record<string, string> = {
   "app/api/webhooks/google-calendar/route.ts": "Google push notifications: channel id, resource id and hashed token must match, rate-limited",
   "app/api/webhooks/ceoitbox/route.ts": "provider receipts: shared secret compared in constant time, rate-limited",
   "app/api/calendar/[token]/route.ts": "calendar feed (D-383): 256-bit secret address (only its SHA-256 hash stored; rotate and stop by its owner), read-only, 30 a minute per address, contents decided at request time by the person's current rights; off with the switch",
+  "app/api/backup-transfer/receive/route.ts": "another ARS-CMS sends a backup package (D-409): one-time pairing code (sha256 stored, 2 h to start, single use), 20 wrong codes per address per 15 min, only while the centre's switch is on",
+  "app/api/backup-transfer/receive/[id]/route.ts": "a piece of that package: the same pairing code, bound to its upload, pieces only at the received offset, at most 8 MiB",
+  "app/api/backup-transfer/offer/route.ts": "another ARS-CMS pulls the one package offered with a one-time pairing code (same limits); read-only",
   "app/api/webhooks/automations/[token]/route.ts": "project automation webhook (D-380): 128-bit address token plus the rule's secret (HMAC-SHA256 signature or bearer, constant time), 60 a minute per rule, every call logged; off with the switch",
 };
 

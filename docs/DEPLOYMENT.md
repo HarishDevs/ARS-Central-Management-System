@@ -211,6 +211,13 @@ Stops anyone reaching the GoDaddy server directly, around Cloudflare (and faking
 1. https://approval.arssteels.net → **Continue with Google** → **itsupport@arsenergy.co.in** (D-082). The seed created this Super Admin, User ID `itadmin`. `itadmin@arssteels.co.in` can't be used: it's only an alias, and Google reports the main address.
 2. You land on **My approvals**. Your name at the top right opens a menu whose **Switch space** section shows Admin and Super Admin.
 
+### G0za. Moving between servers (v1.82.0)
+1. Publish v1.82.0. The migration `202611241200_backup_transfer.sql` runs on start (no triggers, nothing optional): it adds `backup_pairings`.
+2. Nothing to switch on beyond the centre (G0z). No new secret or cron entry. The machine routes `/api/backup-transfer/*` answer only with a valid one-time pairing code and only while the centre is on; with Cloudflare in front (ORIGIN_SECRET), send to the public address so the request passes Cloudflare.
+3. **GoDaddy → VPS:** on the VPS install v1.82.0 (`npm ci`, `npm run build`, an `.env` with at least `DB_*`, `SESSION_SECRET`, its own `ENCRYPTION_KEY`, `APP_BASE_URL`; `npm start`), sign in as the Super Admin, switch the centre on, **Receive here → Make a pairing code**. On GoDaddy: **Make a backup → Everything**, then **Move to another server → Send there** with the VPS address and the code. On the VPS: Packages → the Received package → **Restore… → Check package → Everything** → **Show the server secrets → Download .env for a VPS** → replace the VPS `.env`, restart → **Check the system now**.
+4. **VPS → GoDaddy:** the same the other way; on GoDaddy set the secrets marked Different or Not set in the app → Secrets → Publish.
+5. **Database to database** (optional): the target MySQL must allow this server's address (cPanel → Remote MySQL for GoDaddy). Restart/publish the target app afterwards so its migrations run, send the attachments with a package (Attachments only), and set its `ENCRYPTION_KEY` to this server's unless you typed its key to re-key.
+
 ### G0z. Backup, restore & migrate centre (v1.81.0)
 1. Publish v1.81.0. The migration `202611241100_backup_centre.sql` runs on start (no triggers, nothing optional): it adds `backup_runs` and `backup_uploads`.
 2. Super Admin → Providers & security → Feature switches → **Backup, restore & migrate centre** → **On** (only the Super Admin sees it in any case).
@@ -676,6 +683,7 @@ The preferred way from v1.81.0: Super Admin → **Backup, restore & migrate**.
 - **Restore on the same server:** Restore… → Check package → choose what → type the database's name → Restore now. A safety snapshot comes first; a failure undoes itself.
 - **Move to a VPS (or back to GoDaddy):** on the new server install the same version, `npm ci && npm run build && npm start` with an `.env` holding at least `DB_*`, `SESSION_SECRET`, `ENCRYPTION_KEY` (its own) and `APP_BASE_URL`; sign in as the Super Admin (the seed makes `itadmin`), switch the centre on, **Upload a package** → Restore… → Everything. Then **Show the server secrets** and copy the ones marked Different or Not set (**Copy as .env**), keep that server's own `DB_*` and `ENCRYPTION_KEY`, and restart. On GoDaddy: the same, with Secrets → Publish.
 - **Without the app (command line or start-up):** `node scripts/database/restore.js <package.arsbak> --confirm-database=<DB_NAME> [--mode=full|database|files]` asks for the passphrase (or reads `RESTORE_PASSPHRASE`). On GoDaddy at start-up: put the package in the app folder and set the secrets `RESTORE_CONFIRM` = the database name, `RESTORE_FILE` = its path, `RESTORE_PASSPHRASE` (or `RESTORE_BACKUP_KEY` for a scheduled package / safety snapshot), optional `RESTORE_MODE`; remove them after the log says `[restore-on-start] restored`.
+- **v1.82.0, app to app:** Move to another server → Receive here (code) on the new server, Send there on the old one; or Offer + Pull from there; also From a link, To/From S3, Database to database (G0za).
 - **Never** Database Manager → Import (it drops every table first).
 
 ---

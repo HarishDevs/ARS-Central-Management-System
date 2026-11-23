@@ -6,6 +6,7 @@ import { Button, buttonClass } from "@/features/ui/Button";
 import { Checkbox, Field, RadioGroup } from "@/features/ui/Field";
 import { Badge, Progress } from "@/features/ui/Display";
 import { ConfirmButton } from "@/features/ui/ConfirmButton";
+import { LiveCheckResult, MoveCentre } from "@/features/superadmin/backup/MoveCentre";
 import { formatBytes, KIND_LABEL, PACKAGE_KIND_LABEL, passphraseHint, STATUS_LABEL, type PackageRow, type RunView } from "@/features/superadmin/backup/types";
 
 // D-408 (v1.81.0, BK-1): Super Admin → Backup, restore & migrate. The page
@@ -55,16 +56,21 @@ interface Props {
   driveReady: boolean;
   serverKeySet: boolean;
   schedule: string;
+  s3Ready?: boolean;
 }
+
+// v1.82.0 (D-409): what the page keeps in memory besides the passphrase.
+const SECRET_LABEL: Partial<Record<RunView["kind"], string>> = { SEND: "Type the pairing code again to carry on", PULL: "Type the pairing code again to carry on", DB_COPY: "Type the target database's password again to carry on" };
 
 interface Active {
   run: RunView;
   token: string | null;
   passphrase: string;
+  secret?: string;
   downloadWhenDone?: boolean;
 }
 
-export function BackupCentre({ initial, databaseName, driveReady, serverKeySet, schedule }: Props) {
+export function BackupCentre({ initial, databaseName, driveReady, serverKeySet, schedule, s3Ready = false }: Props) {
   const [data, setData] = useState(initial);
   const [active, setActive] = useState<Active | null>(null);
   const [needPassphrase, setNeedPassphrase] = useState(false);
@@ -74,6 +80,7 @@ export function BackupCentre({ initial, databaseName, driveReady, serverKeySet, 
   const [restorePackage, setRestorePackage] = useState<string | null>(null);
   const [finishedRestore, setFinishedRestore] = useState<RunView | null>(null);
   const [secretsFor, setSecretsFor] = useState<string | null>(null);
+  const [liveCheck, setLiveCheck] = useState<RunView | null>(null);
   const driving = useRef(false);
 
   const refresh = useCallback(async () => {
@@ -92,6 +99,7 @@ export function BackupCentre({ initial, databaseName, driveReady, serverKeySet, 
       const run = current.run;
       if (run.kind === "VERIFY" && run.status === "DONE") setVerified(run);
       if (run.kind === "RESTORE") setFinishedRestore(run);
+      if (run.kind === "LIVE_CHECK" && run.status === "DONE") setLiveCheck(run);
       if (run.kind === "BACKUP" && run.status === "DONE" && current.downloadWhenDone && run.packageName) window.location.assign(`${BASE}/packages/${encodeURIComponent(run.packageName)}`);
       setNotice(run.status === "DONE" ? run.message : null);
       setError(run.status === "DONE" ? null : [run.message, run.error].filter(Boolean).join(" "));
@@ -109,7 +117,7 @@ export function BackupCentre({ initial, databaseName, driveReady, serverKeySet, 
       let current = active;
       try {
         while (!cancelled && current.run.status === "RUNNING") {
-          const { run } = await call<{ run: RunView }>(`${BASE}/runs/${current.run.id}`, { method: "POST", body: JSON.stringify(current.passphrase ? { passphrase: current.passphrase } : {}), token: current.token });
+          const { run } = await call<{ run: RunView }>(`${BASE}/runs/${current.run.id}`, { method: "POST", body: JSON.stringify({ ...(current.passphrase ? { passphrase: current.passphrase } : {}), ...(current.secret ? { secret: current.secret } : {}) }), token: current.token });
           current = { ...current, run };
           if (!cancelled) setActive(current);
           if (run.status === "RUNNING" && run.phase === current.run.phase && run.progress.done === current.run.progress.done) await new Promise((resolve) => setTimeout(resolve, 800));
@@ -117,7 +125,7 @@ export function BackupCentre({ initial, databaseName, driveReady, serverKeySet, 
         if (!cancelled) await finish(current);
       } catch (caught) {
         const code = (caught as { code?: string }).code;
-        if (code === "PASSPHRASE_NEEDED" || code === "WRONG_PASSPHRASE") setNeedPassphrase(true);
+        if (code === "PASSPHRASE_NEEDED" || code === "WRONG_PASSPHRASE" || code === "SECRET_NEEDED") setNeedPassphrase(true);
         setError((caught as Error).message);
       } finally {
         driving.current = false;
@@ -168,14 +176,15 @@ export function BackupCentre({ initial, databaseName, driveReady, serverKeySet, 
             </p>
             {needPassphrase && (
               <PassphrasePrompt
-                onSubmit={(passphrase) => {
-                  setActive({ ...active, passphrase });
+                label={SECRET_LABEL[active.run.kind]}
+                onSubmit={(value) => {
+                  setActive(SECRET_LABEL[active.run.kind] ? { ...active, secret: value } : { ...active, passphrase: value });
                   setNeedPassphrase(false);
                   setError(null);
                 }}
               />
             )}
-            {busy && (active.run.kind !== "RESTORE" || ["snapshot", "load"].includes(active.run.phase)) && (
+            {busy && (!["RESTORE", "DB_COPY"].includes(active.run.kind) || ["build", "snapshot", "load"].includes(active.run.phase)) && (
               <Button variant="secondary" size="sm" onClick={stop}>
                 Stop
               </Button>
@@ -203,19 +212,20 @@ export function BackupCentre({ initial, databaseName, driveReady, serverKeySet, 
           </h2>
           <p className="mt-1 text-label text-ink-muted">{waiting.message}</p>
           <PassphrasePrompt
-            label="Type its passphrase to carry on"
-            optional={waiting.keyKind === "SERVER_KEY"}
-            onSubmit={(passphrase) => {
+            label={SECRET_LABEL[waiting.kind] ?? "Type its passphrase to carry on"}
+            optional={waiting.keyKind === "SERVER_KEY" || ["DRIVE_COPY", "DRIVE_FETCH", "S3_COPY", "S3_FETCH", "LIVE_CHECK", "URL_FETCH"].includes(waiting.kind)}
+            onSubmit={(value) => {
               setNeedPassphrase(false);
-              setActive({ run: waiting, token: readToken(waiting.id), passphrase });
+              setActive(SECRET_LABEL[waiting.kind] ? { run: waiting, token: readToken(waiting.id), passphrase: "", secret: value } : { run: waiting, token: readToken(waiting.id), passphrase: value });
             }}
           />
         </section>
       )}
 
       {finishedRestore && finishedRestore.status === "DONE" && finishedRestore.packageName && (
-        <AfterRestore run={finishedRestore} onClose={() => setFinishedRestore(null)} />
+        <AfterRestore run={finishedRestore} onClose={() => setFinishedRestore(null)} onCheck={() => start({ action: "live-check", restoreRunId: finishedRestore.id }, "").then(() => undefined).catch((caught: Error) => setError(caught.message))} busy={busy} />
       )}
+      {liveCheck && <LiveCheckResult run={liveCheck} />}
       {secretsFor && !(finishedRestore && finishedRestore.packageName === secretsFor) && (
         <section aria-labelledby="bk-secrets" className="card px-5 py-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -254,6 +264,9 @@ export function BackupCentre({ initial, databaseName, driveReady, serverKeySet, 
           setRestorePackage(name);
         }}
         onFetchFromDrive={(file) => start({ action: "drive-fetch", fileId: file.id, name: file.name, size: file.size }, "").then(() => undefined).catch((caught: Error) => setError(caught.message))}
+        s3Ready={s3Ready}
+        onCopyToS3={(name) => start({ action: "s3-copy", name }, "").then(() => undefined).catch((caught: Error) => setError(caught.message))}
+        onFetchFromS3={(file) => start({ action: "s3-fetch", key: file.key, size: file.size }, "").then(() => undefined).catch((caught: Error) => setError(caught.message))}
       />
 
       {restorePackage && (
@@ -271,7 +284,7 @@ export function BackupCentre({ initial, databaseName, driveReady, serverKeySet, 
         />
       )}
 
-      <MoveGuide />
+      <MoveCentre packages={data.packages} busy={busy} onError={setError} onStart={(body, secret) => start(body, "", { secret }).then(() => undefined)} />
 
       <section aria-labelledby="bk-schedule" className="card px-5 py-4">
         <h2 id="bk-schedule" className="font-semibold">
@@ -434,8 +447,14 @@ function Packages({
   onUploaded,
   onFetchFromDrive,
   onSecrets,
+  s3Ready,
+  onCopyToS3,
+  onFetchFromS3,
 }: {
   onSecrets: (name: string) => void;
+  s3Ready: boolean;
+  onCopyToS3: (name: string) => void;
+  onFetchFromS3: (file: { key: string; size: number }) => void;
   packages: PackageRow[];
   busy: boolean;
   driveReady: boolean;
@@ -449,6 +468,8 @@ function Packages({
   const [upload, setUpload] = useState<{ name: string; sent: number; size: number } | null>(null);
   const [driveFiles, setDriveFiles] = useState<{ id: string; name: string; size: number; createdTime: string }[] | null>(null);
   const [driveLoading, setDriveLoading] = useState(false);
+  const [s3Files, setS3Files] = useState<{ key: string; size: number; modified: string }[] | null>(null);
+  const [s3Loading, setS3Loading] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
   async function send(file: File) {
@@ -526,7 +547,50 @@ function Packages({
             From Google Drive
           </Button>
         )}
+        {s3Ready && (
+          <Button
+            variant="secondary"
+            size="sm"
+            loading={s3Loading}
+            loadingLabel="Reading the bucket…"
+            disabled={busy}
+            icon={<CloudDownload aria-hidden="true" className="h-4 w-4" />}
+            onClick={async () => {
+              setS3Loading(true);
+              try {
+                setS3Files((await call<{ files: { key: string; size: number; modified: string }[] }>(`${BASE}/s3`)).files);
+              } catch (caught) {
+                onError((caught as Error).message);
+              } finally {
+                setS3Loading(false);
+              }
+            }}
+          >
+            From S3 storage
+          </Button>
+        )}
       </div>
+      {s3Files && (
+        <div className="mt-3 rounded-md border border-line px-3 py-2">
+          <h3 className="text-label font-semibold">Packages in the S3 bucket</h3>
+          {s3Files.length === 0 ? (
+            <p className="text-caption text-ink-muted">None yet.</p>
+          ) : (
+            <ul className="mt-1 divide-y divide-line">
+              {s3Files.map((file) => (
+                <li key={file.key} className="flex flex-wrap items-center justify-between gap-2 py-1.5 text-label">
+                  <span className="break-all">
+                    {file.key} <span className="text-ink-muted">({formatBytes(file.size)})</span>
+                  </span>
+                  <Button variant="secondary" size="sm" disabled={busy} onClick={() => onFetchFromS3(file)}>
+                    Copy here
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
       {upload && (
         <div className="mt-3 space-y-1">
           <Progress value={upload.sent} max={upload.size} label={`Uploading ${upload.name}`} />
@@ -603,6 +667,11 @@ function Packages({
                       {["full", "scheduled", "safety", "upload", "drive", "received"].includes(item.kind) && (
                         <Button variant="ghost" size="sm" onClick={() => onSecrets(item.name)} aria-label={`Server secrets in ${item.name}`} icon={<KeyRound aria-hidden="true" className="h-4 w-4" />}>
                           Secrets
+                        </Button>
+                      )}
+                      {s3Ready && (
+                        <Button variant="ghost" size="sm" disabled={busy} onClick={() => onCopyToS3(item.name)} aria-label={`Copy ${item.name} to S3 storage`} icon={<CloudUpload aria-hidden="true" className="h-4 w-4" />}>
+                          To S3
                         </Button>
                       )}
                       {driveReady && (
@@ -814,7 +883,7 @@ function Restore({
   );
 }
 
-function AfterRestore({ run, onClose }: { run: RunView; onClose: () => void }) {
+function AfterRestore({ run, onClose, onCheck, busy }: { run: RunView; onClose: () => void; onCheck: () => void; busy: boolean }) {
   const hasSecrets = Boolean((run.summary as { hasSecrets?: boolean } | null)?.hasSecrets) && run.mode === "full";
   return (
     <section aria-labelledby="bk-after" className="card px-5 py-4">
@@ -831,6 +900,12 @@ function AfterRestore({ run, onClose }: { run: RunView; onClose: () => void }) {
         <li>Encrypted settings were re-keyed to this server&apos;s ENCRYPTION_KEY, so keep this server&apos;s ENCRYPTION_KEY.</li>
         {hasSecrets && <li>If this server is a new home for the system (a move), set the other secrets from the package below, then publish (GoDaddy) or restart (VPS).</li>}
       </ul>
+      <div className="mt-3">
+        <Button variant="secondary" size="sm" disabled={busy} onClick={onCheck}>
+          Check the system now
+        </Button>
+        <span className="ml-2 text-caption text-ink-muted">Row counts against the package, every attachment&apos;s checksum, and whether sign-in will work.</span>
+      </div>
       {hasSecrets && run.packageName && <SecretsPanel name={run.packageName} />}
     </section>
   );
@@ -838,7 +913,7 @@ function AfterRestore({ run, onClose }: { run: RunView; onClose: () => void }) {
 
 function SecretsPanel({ name }: { name: string }) {
   const [passphrase, setPassphrase] = useState("");
-  const [secrets, setSecrets] = useState<{ env: Record<string, string>; here: Record<string, string> } | null>(null);
+  const [secrets, setSecrets] = useState<{ env: Record<string, string>; here: Record<string, string>; envFile?: string } | null>(null);
   const [shown, setShown] = useState(false);
   const [copied, setCopied] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
@@ -889,6 +964,22 @@ function SecretsPanel({ name }: { name: string }) {
         >
           {copied ? "Copied" : "Copy as .env"}
         </Button>
+        {secrets.envFile && (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              // A ready .env for a VPS: this server's database, keys and folders, the package's other values. Made in the browser; never stored on the server.
+              const link = document.createElement("a");
+              link.href = URL.createObjectURL(new Blob([secrets.envFile!], { type: "text/plain" }));
+              link.download = ".env";
+              link.click();
+              setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+            }}
+          >
+            Download .env for a VPS
+          </Button>
+        )}
       </div>
       <div className="overflow-x-auto" tabIndex={0} role="group" aria-label="Server secrets table">
         <table className="data-table">
@@ -917,21 +1008,5 @@ function SecretsPanel({ name }: { name: string }) {
         GoDaddy: the app → Secrets, add or change each, then Publish. VPS: put them in the app&apos;s .env file (Copy as .env) and restart. Keep this server&apos;s ENCRYPTION_KEY and DB_* values: the data was re-keyed for this server and the database settings are this server&apos;s own.
       </p>
     </div>
-  );
-}
-
-function MoveGuide() {
-  return (
-    <section aria-labelledby="bk-move" className="card px-5 py-4">
-      <h2 id="bk-move" className="font-semibold">
-        Move the system to another server (GoDaddy ↔ VPS)
-      </h2>
-      <ol className="mt-2 list-decimal space-y-1 pl-5 text-label text-ink-muted">
-        <li>Here: Make a backup → Everything, with a passphrase; download it.</li>
-        <li>On the other server: install this same version of ARS CMS (or newer), sign in as the Super Admin, switch this centre on, Upload a package, then Restore… → Check package → Everything.</li>
-        <li>After the restore: Show the server secrets and set the ones marked Different or Not set (keep that server&apos;s own DB_* and ENCRYPTION_KEY), then publish or restart.</li>
-        <li>Never use GoDaddy&apos;s Database Manager → Import to move data: it deletes every table first.</li>
-      </ol>
-    </section>
   );
 }

@@ -8,6 +8,7 @@ import { getSettingValue } from "@/server/settings/values";
 import { backupEncryptionKey } from "@/server/ops/backup";
 import { loadDriveSettings } from "@/server/ops/gdrive-backup";
 import { centreSnapshot } from "@/server/ops/backup-centre/service";
+import { s3Config } from "@/server/ops/backup-centre/moves";
 import { BackupCentre } from "@/features/superadmin/backup/BackupCentre";
 import { ImportTrapNotice } from "@/features/superadmin/backup/ImportTrapNotice";
 
@@ -42,11 +43,16 @@ export default async function BackupCentrePage() {
       </>
     );
   }
-  const [initial, schedule, driveReady] = await Promise.all([
+  const [initial, schedule, driveReady, s3Ready] = await Promise.all([
     centreSnapshot(),
     getSettingValue("backup.package_schedule").catch(() => "OFF"),
     loadDriveSettings().then(
       () => true,
+      () => false,
+    ),
+    // v1.82.0 (D-409): S3-compatible storage from Providers & security → Off-site backup.
+    s3Config().then(
+      (config) => Boolean(config),
       () => false,
     ),
   ]);
@@ -61,7 +67,7 @@ export default async function BackupCentrePage() {
       {header}
       <ImportTrapNotice />
       <div className="mt-6">
-        <BackupCentre initial={initial} databaseName={getEnv().DB_NAME} driveReady={driveReady} serverKeySet={serverKeySet} schedule={schedule ?? "OFF"} />
+        <BackupCentre initial={initial} databaseName={getEnv().DB_NAME} driveReady={driveReady} serverKeySet={serverKeySet} schedule={schedule ?? "OFF"} s3Ready={s3Ready} />
       </div>
     </>
   );

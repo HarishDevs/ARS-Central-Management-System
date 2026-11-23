@@ -43,7 +43,8 @@ export default function TermsPage() {
             Backups and moving the system (the Super Admin only): a full backup holds every record, file and server key, so treat the file and its passphrase like the keys to the whole system.
             Choose a strong passphrase, keep it apart from the file (ARS can&apos;t recover a lost one), keep downloaded copies only on ARS-controlled storage, and delete copies you no longer need.
             Restore only after checking the package, and only when the restore is genuinely needed: it puts back the records as they were at the backup&apos;s time for everyone and signs everyone
-            out. Never load data with the hosting provider&apos;s database import tool, which deletes every table first.
+            out. Move the system only to servers ARS controls: give a pairing code only to the person setting up the other ARS server, withdraw codes you no longer need, and copy a database
+            into another only after checking its name, because everything in it is replaced. Never load data with the hosting provider&apos;s database import tool, which deletes every table first.
           </li>
           <li>Tasks, projects, comments, mentions and notices are work records: keep them to work, and mention or add people only where they need to know.</li>
           <li>Deleting a task or project is undone with Undo or restored from Deleted within 30 days. After 30 days it is removed for good and can&apos;t be brought back, so restore anything you still need in time.</li>

@@ -1,5 +1,16 @@
 # Release notes
 
+## v1.82.0 (23 Nov 2026): Backup, restore & migrate centre (part 2): moving between servers
+Migration `202611241200_backup_transfer.sql` (runs on start; no triggers). Same switch as v1.81.0. Super Admin → Backup, restore & migrate → **Move to another server** (D-409, BK-1 part 2):
+- **Receive here / Send there:** on the new server make a **one-time pairing code** (shown once, works once, 2 hours to start); on the old server pick a package, type the new server's address and the code. The package goes across in pieces (a dropped connection carries on) and appears there as **Received**; check and restore it there with its passphrase. Works GoDaddy → VPS and VPS → GoDaddy.
+- **Pull from there:** the other way round: offer a package with a code on one server, pull it from the other.
+- **From a link:** copy a package from an https address (e.g. a shared or pre-signed storage link) in pieces.
+- **S3-compatible storage:** **To S3** on any package (multipart, in pieces) and **From S3 storage** to bring one back, with the keys in Providers & security → Off-site backup (the key must be allowed to read for restores).
+- **Database to database:** copy this database straight into another MySQL (host, port, user, password, database typed; the password is never stored; the target's name typed to confirm). A safety snapshot of the target comes first (kept here); it is loaded beside the target's live tables and switched in at once, with the same undo as a restore. Attachments go with a package.
+- **After a move:** **Check the system now** compares row counts with the package, checks every attachment's checksum and whether sign-in will work (an active Super Admin, SESSION_SECRET, stored keys readable with this ENCRYPTION_KEY, Google sign-in, APP_BASE_URL). The server secrets screen now also gives a ready **.env for a VPS** (this server's database, keys and folders; the package's other values).
+- Wrong pairing codes are refused and, after 20 tries from one address in 15 minutes, every try is. Every send, pull, receive and database copy is audited and told to every Super Admin by email and WhatsApp.
+- **Owner steps:** publish v1.82.0 (the migration runs by itself). To move GoDaddy → VPS: install v1.82.0 on the VPS, switch the centre on there, Receive here → code; on GoDaddy Make a backup → Everything, then Send there; on the VPS Restore… → Everything → Show the server secrets → Download .env → restart → Check the system now.
+
 ## v1.81.0 (23 Nov 2026): Backup, restore & migrate centre (part 1)
 Migration `202611241100_backup_centre.sql` (runs on start; no triggers). A new Super Admin switch, **Backup, restore & migrate centre** (`features.backup_centre`, default **Off**); only the Super Admin can use it whatever the switch says (D-408, BK-1, owner brief `docs/ops/BACKUP-CENTRE-BRIEF.md`):
 - **One encrypted file for the whole system (.arsbak):** every table and row, every attachment and the server secrets (ENCRYPTION_KEY, SESSION_SECRET, database, Firebase and other keys), with a summary and a checksum for every part. Encrypted end to end with AES-256-GCM using a key made from a **passphrase you type** (at least 12 characters; never stored, never sent anywhere but this server). Made in steps of about 20 seconds, so a big system never hits a time limit.

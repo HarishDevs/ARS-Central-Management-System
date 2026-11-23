@@ -450,3 +450,12 @@ Super Admin only (a plain `404` for anyone else, and while `features.backup_cent
 - `POST /api/superadmin/backup-centre/packages/{name}/secrets` `{passphrase}`: `{env, here}` (audited and alerted).
 - `POST /api/superadmin/backup-centre/uploads` `{fileName, size}` → `{id, pieceSize}`; `PUT /api/superadmin/backup-centre/uploads/{id}?offset=N` with a piece (at most 8 MiB) → `{received, size, packageName}` (a piece that doesn't start at `received` isn't written: carry on from there); `DELETE` cancels.
 - `GET /api/superadmin/backup-centre/drive`: the packages in the Google Drive backup folder.
+
+### Moving between servers (v1.82.0, D-409)
+- `GET|POST /api/superadmin/backup-centre/pairings`: list open codes; `{action: "create", purpose: "RECEIVE"|"OFFER", name?}` → `{code, expiresAt}` (shown once); `{action: "revoke", id}`.
+- `GET /api/superadmin/backup-centre/s3`: packages in the bucket.
+- `POST /api/superadmin/backup-centre/runs` also takes `{action: "send", name, url, code}`, `{action: "pull", url, code}`, `{action: "url-fetch", url}`, `{action: "s3-copy", name}`, `{action: "s3-fetch", key, size}`, `{action: "db-copy", host, port, user, database, password, confirm, targetKey?}`, `{action: "live-check", restoreRunId}`; steps take `{secret}` (the code or the target password) like the passphrase; `SECRET_NEEDED` (400) asks for it again.
+- **Machine routes** (another ARS-CMS; no session; header `x-pairing-code`; 404 while the switch is off; `403 PAIRING_REFUSED`, `429 RATE_LIMITED` after 20 wrong codes per address in 15 minutes):
+  - `POST /api/backup-transfer/receive` `{fileName, size}` → `{id, received}` (a RECEIVE code; again with the same code resumes).
+  - `PUT /api/backup-transfer/receive/{id}?offset=N` with ≤8 MiB → `{received, size, packageName}`.
+  - `GET /api/backup-transfer/offer` → `{name, size, sha256}`; `GET /api/backup-transfer/offer?offset=N&length=L` → the bytes (≤16 MiB; an OFFER code).

@@ -100,6 +100,11 @@ test("make, check, restore a chosen table and download", async ({ page, context 
   await expect(keyRow).toContainText("Same");
   await expect(keyRow).toContainText("••••••••");
   expect(await axe(page)).toEqual([]);
+  // v1.82.0 (D-409): the check after a restore.
+  await page.getByRole("button", { name: "Check the system now" }).click();
+  const live = page.getByRole("region", { name: "Check after the move", exact: true });
+  await expect(live).toContainText("An active Super Admin", { timeout: 60_000 });
+  await expect(live).toContainText("Rows:");
   const recent = page.getByRole("region", { name: "Recent activity" });
   await expect(recent.getByRole("row").filter({ hasText: "Restore" }).first()).toContainText("Done");
   // Audited, and the maintenance notice is gone again.
@@ -112,6 +117,42 @@ test("make, check, restore a chosen table and download", async ({ page, context 
   } finally {
     await conn.end();
   }
+});
+
+test("moving: a one-time pairing code, shown once, refused when wrong, withdrawn (D-409)", async ({ page, context }) => {
+  await as(context, "E2E_SUPER");
+  await page.goto("/superadmin/backup");
+  const move = page.getByRole("region", { name: /Move to another server/ });
+  await expect(move.getByRole("tab", { name: "Receive here" })).toHaveAttribute("aria-selected", "true");
+  await move.getByRole("button", { name: "Make a pairing code" }).click();
+  const shown = move.getByRole("status").filter({ hasText: "Pairing code (shown once)" });
+  await expect(shown).toBeVisible();
+  const code = (await shown.locator("strong").innerText()).trim();
+  expect(code).toMatch(/^[0-9a-f]{4}(-[0-9a-f]{4}){4}$/);
+  expect(await axe(page)).toEqual([]);
+  // Another server with a wrong code is refused; no session needed for the machine route.
+  await context.clearCookies();
+  const wrong = await page.request.post("/api/backup-transfer/receive", { data: { fileName: "x.arsbak", size: 1000 }, headers: { "x-pairing-code": "0000-0000-0000-0000-0000" } });
+  expect(wrong.status()).toBe(403);
+  const right = await page.request.post("/api/backup-transfer/receive", { data: { fileName: "x.arsbak", size: 1000 }, headers: { "x-pairing-code": code } });
+  expect(right.status()).toBe(200);
+  const bad = await page.request.put(`/api/backup-transfer/receive/${(await right.json()).data.id}?offset=0`, { data: Buffer.from("not a package at all"), headers: { "x-pairing-code": code, "content-type": "application/octet-stream" } });
+  expect(bad.status()).toBe(400);
+  // Keyboard between the ways to move; the database form needs the name typed.
+  await as(context, "E2E_SUPER");
+  await page.reload();
+  await move.getByRole("tab", { name: "Receive here" }).focus();
+  await page.keyboard.press("ArrowLeft");
+  await expect(move.getByRole("tab", { name: "Database to database" })).toHaveAttribute("aria-selected", "true");
+  await move.getByLabel("Host", { exact: true }).fill("db.example.test");
+  await move.getByLabel("User", { exact: true }).fill("someone");
+  await move.getByRole("textbox", { name: "Database", exact: true }).fill("target_db");
+  await expect(move.getByRole("button", { name: "Copy the database there" })).toBeDisabled();
+  await move.getByLabel(/Type the target database's name/).fill("target_db");
+  await expect(move.getByRole("button", { name: "Copy the database there" })).toBeEnabled();
+  expect(await axe(page)).toEqual([]);
+  await move.getByRole("tab", { name: "Receive here" }).click();
+  await move.getByRole("button", { name: "Withdraw" }).first().click();
 });
 
 test("the centre in dark mode and at phone width passes axe", async ({ page, context }) => {

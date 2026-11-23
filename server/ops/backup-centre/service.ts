@@ -54,9 +54,9 @@ function dbConfig() {
   const env = getEnv();
   return { host: env.DB_HOST, port: env.DB_PORT, user: env.DB_USER, password: env.DB_PASSWORD, database: env.DB_NAME };
 }
-const connect = () => arsdb.openConnection(dbConfig());
+export const connect = () => arsdb.openConnection(dbConfig());
 
-function serverKey(): Buffer | null {
+export function serverKey(): Buffer | null {
   try {
     return backupEncryptionKey();
   } catch {
@@ -64,12 +64,12 @@ function serverKey(): Buffer | null {
   }
 }
 
-function targetEncryptionKey(): Buffer | null {
+export function targetEncryptionKey(): Buffer | null {
   const key = Buffer.from(process.env.ENCRYPTION_KEY ?? "", "base64");
   return key.length === 32 ? key : null;
 }
 
-const partialPath = (name: string) => path.join(packagesDir(), `.${name}.part`);
+export const partialPath = (name: string) => path.join(packagesDir(), `.${name}.part`);
 
 // A plain message for a failure, never a stack or a secret.
 export function explain(error: unknown): string {
@@ -105,7 +105,7 @@ export function toView(item: runs.BackupRun): RunView {
 
 // ---------- starting runs ----------
 
-async function audit(actor: Actor | null, action: string, entityId: string | null, metadata: Record<string, unknown>) {
+export async function audit(actor: Actor | null, action: string, entityId: string | null, metadata: Record<string, unknown>) {
   // After a restore the actor's user id may belong to someone else in the
   // restored data, so later entries carry the name only.
   await recordAudit({ actorUserId: actor && !metadata.afterRestore ? actor.id : null, action, entityType: "BACKUP", entityId: entityId ? entityId.slice(0, 64) : null, sessionId: actor && !metadata.afterRestore ? (actor.sessionId ?? undefined) : undefined, metadata: { ...metadata, by: actor?.name ?? "system" } }).catch((error) => logError("backup audit failed", error));
@@ -229,6 +229,8 @@ const driveDeps = (): DriveDeps => ({ fetch });
 
 export interface StepInput {
   passphrase?: string | null;
+  // v1.82.0 (D-409): a pairing code or a target database password, kept by the page like the passphrase.
+  secret?: string | null;
 }
 
 // One step of a run. Returns the run as it is after the step. Safe to call
@@ -255,9 +257,14 @@ export async function stepRun(id: number, input: StepInput, actor: Actor | null,
       case "DRIVE_FETCH":
         await driveFetchStep(before, actor, budgetMs);
         break;
+      default: {
+        // v1.82.0 (D-409): moves between servers, S3, links, the database copy, the check after a move.
+        const moves = await import("@/server/ops/backup-centre/moves");
+        await moves.moveStep(before, input, actor, budgetMs);
+      }
     }
   } catch (error) {
-    if (error instanceof CentreError && error.code === "PASSPHRASE_NEEDED") {
+    if (error instanceof CentreError && (error.code === "PASSPHRASE_NEEDED" || error.code === "SECRET_NEEDED")) {
       await runs.releaseLease(id);
       throw error;
     }
@@ -540,7 +547,13 @@ async function failRun(item: runs.BackupRun, error: unknown, actor: Actor | null
     await runs.finishRun(fresh.id, "FAILED", { error: message, message: "The backup stopped. Nothing was changed; the half-made package was removed." });
     return;
   }
+  if (fresh.kind === "DB_COPY") {
+    const moves = await import("@/server/ops/backup-centre/moves");
+    await moves.failDbCopy(fresh, error, actor);
+    return;
+  }
   if (fresh.kind !== "RESTORE") {
+    if (["SEND", "PULL", "URL_FETCH", "S3_FETCH"].includes(fresh.kind)) await fsp.rm(partialPath(fresh.packageName ?? "x"), { force: true });
     forgetKeys(fresh.id);
     await runs.finishRun(fresh.id, "FAILED", { error: message });
     return;
@@ -585,7 +598,7 @@ export async function cancelRun(id: number, actor: Actor): Promise<RunView> {
   const item = await runs.getRun(id);
   if (!item) throw new CentreError("Not found.", 404, "NOT_FOUND");
   if (item.status !== "RUNNING") return toView(item);
-  if (item.kind === "RESTORE" && !["snapshot", "load"].includes(item.phase)) throw new CentreError("The restore is switching data now and can't be stopped. It finishes or undoes itself in a moment.", 409, "BUSY");
+  if ((item.kind === "RESTORE" && !["snapshot", "load"].includes(item.phase)) || (item.kind === "DB_COPY" && !["build", "snapshot", "load"].includes(item.phase))) throw new CentreError("The data is being switched now and can't be stopped. It finishes or undoes itself in a moment.", 409, "BUSY");
   if (!(await runs.claimStep(id, 60))) throw new CentreError("A step is running. Try again in a few seconds.", 409, "BUSY");
   await abandon(item);
   await runs.finishRun(id, "CANCELLED", { message: `Stopped by ${actor.name}. Nothing was changed.` });
@@ -603,6 +616,10 @@ async function abandon(item: runs.BackupRun): Promise<void> {
     await clearMaintenanceNotice(state?.previousNotice ?? "");
   }
   if (item.kind === "DRIVE_FETCH") await fsp.rm(path.join(packagesDir(), `.${item.packageName}.part`), { force: true });
+  if (["SEND", "PULL", "URL_FETCH", "S3_COPY", "S3_FETCH", "DB_COPY", "LIVE_CHECK"].includes(item.kind)) {
+    const moves = await import("@/server/ops/backup-centre/moves");
+    await moves.abandonMove(item);
+  }
   forgetKeys(item.id);
 }
 
@@ -694,7 +711,7 @@ export async function startUpload(input: { fileName: string; size: number }, act
   return runs.createUpload({ fileName: input.fileName.slice(0, 200), storedName: stored, size: input.size, createdBy: actor.id });
 }
 
-export async function receivePiece(id: number, offset: number, piece: Buffer, actor: Actor): Promise<{ received: number; size: number; packageName: string | null }> {
+export async function receivePiece(id: number, offset: number, piece: Buffer, actor: Actor, arrival: { kind: PackageKind; source?: string } = { kind: "upload" }): Promise<{ received: number; size: number; packageName: string | null }> {
   const upload = await runs.getUpload(id);
   if (!upload || upload.status !== "RECEIVING") throw new CentreError("That upload isn't open any more. Start it again.", 404, "NOT_FOUND");
   if (offset !== upload.sizeReceived) return { received: upload.sizeReceived, size: upload.sizeExpected, packageName: null }; // the page carries on from here
@@ -712,12 +729,17 @@ export async function receivePiece(id: number, offset: number, piece: Buffer, ac
   const received = offset + piece.length;
   if (received < upload.sizeExpected) return { received, size: upload.sizeExpected, packageName: null };
   const { header } = await PackageReader.readHeader(partial);
-  const name = newPackageName("upload", String(id));
+  const name = newPackageName(arrival.kind, String(id));
   const sha = await import("@/scripts/database/arsbak").then((mod) => mod.fileSha256(partial));
-  await finishPackageFiles(partial, name, sha, { kind: "upload", keyKind: header.kdf.alg === "server-key" ? "SERVER_KEY" : "PASSPHRASE", source: upload.fileName, createdByName: actor.name });
+  await finishPackageFiles(partial, name, sha, { kind: arrival.kind, keyKind: header.kdf.alg === "server-key" ? "SERVER_KEY" : "PASSPHRASE", source: arrival.source ?? upload.fileName, createdByName: actor.name });
   await runs.finishUpload(id, "DONE", name);
-  await audit(actor, "BACKUP_PACKAGE_UPLOADED", name, { fileName: upload.fileName, bytes: upload.sizeExpected });
-  await alertBackupEvent("UPLOADED", `${upload.fileName} was uploaded as ${name}.`, actor.name);
+  if (arrival.kind === "received") {
+    await audit(actor.id ? actor : null, "BACKUP_MIGRATION_RECEIVED", name, { fileName: upload.fileName, bytes: upload.sizeExpected, from: arrival.source ?? null });
+    await alertBackupEvent("MIGRATION_RECEIVED", `${upload.fileName} arrived from ${arrival.source ?? "another server"} as ${name}. Check it, then restore it here.`, null);
+  } else {
+    await audit(actor, "BACKUP_PACKAGE_UPLOADED", name, { fileName: upload.fileName, bytes: upload.sizeExpected });
+    await alertBackupEvent("UPLOADED", `${upload.fileName} was uploaded as ${name}.`, actor.name);
+  }
   return { received, size: upload.sizeExpected, packageName: name };
 }
 
@@ -751,7 +773,7 @@ export async function removePackage(name: string, actor: Actor): Promise<boolean
 // The server secrets inside a package: shown to the Super Admin after a
 // restore or migration (D-408, owner: "show which env secrets to set").
 // Needs the passphrase again; audited and alerted every time.
-export async function revealSecrets(name: string, passphrase: string, actor: Actor): Promise<{ env: Record<string, string>; here: Record<string, "same" | "different" | "missing"> }> {
+export async function revealSecrets(name: string, passphrase: string, actor: Actor): Promise<{ env: Record<string, string>; here: Record<string, "same" | "different" | "missing">; envFile: string }> {
   const file = packagePath(name);
   if (!file || !fs.existsSync(file)) throw new CentreError("That package isn't on the server any more.", 404, "NOT_FOUND");
   const { header } = await PackageReader.readHeader(file);
@@ -765,7 +787,9 @@ export async function revealSecrets(name: string, passphrase: string, actor: Act
   for (const [envName, value] of Object.entries(secrets.env)) here[envName] = process.env[envName] === undefined || process.env[envName] === "" ? "missing" : process.env[envName] === value ? "same" : "different";
   await audit(actor, "BACKUP_SECRETS_VIEWED", name, { names: Object.keys(secrets.env).length });
   await alertBackupEvent("SECRETS_VIEWED", `The server secrets inside ${name} were shown on screen.`, actor.name);
-  return { env: secrets.env, here };
+  // v1.82.0 (D-409): a ready .env for a VPS (this server's database, keys and folders; the package's other values).
+  const { envFileFor } = await import("@/server/ops/backup-centre/moves");
+  return { env: secrets.env, here, envFile: envFileFor(secrets.env, process.env) };
 }
 
 // ---------- what the page shows ----------
@@ -803,7 +827,7 @@ export async function runBackupCentreJob(budgetMs = 90_000): Promise<Record<stri
   // Runs a person started and left (no step for 30 minutes) stop safely;
   // a restore past its switch, scheduled work and Drive copies carry on.
   for (const item of await runs.idleRuns(30)) {
-    const continuable = item.trigger !== "MANUAL" || item.kind === "DRIVE_COPY" || item.kind === "DRIVE_FETCH" || (item.kind === "RESTORE" && ["finalize", "migrate", "rollback", "verify"].includes(item.phase)) || (item.kind === "BACKUP" && item.phase === "drive");
+    const continuable = item.trigger !== "MANUAL" || item.kind === "DRIVE_COPY" || item.kind === "DRIVE_FETCH" || item.kind === "S3_COPY" || item.kind === "S3_FETCH" || item.kind === "LIVE_CHECK" || (item.kind === "RESTORE" && ["finalize", "migrate", "rollback", "verify"].includes(item.phase)) || (item.kind === "BACKUP" && item.phase === "drive") || (item.kind === "DB_COPY" && !["build", "snapshot", "load"].includes(item.phase));
     if (continuable) continue;
     if (!(await runs.claimStep(item.id, 60))) continue;
     await abandon(item).catch((error) => logError("abandon backup run failed", error, { runId: item.id }));
@@ -831,7 +855,7 @@ export async function runBackupCentreJob(budgetMs = 90_000): Promise<Record<stri
   // Carry on runs that need no person.
   for (const item of await runs.runningRuns()) {
     if (Date.now() - started > budgetMs) break;
-    const unattended = item.trigger !== "MANUAL" || item.kind === "DRIVE_COPY" || item.kind === "DRIVE_FETCH" || (item.kind === "RESTORE" && ["finalize", "migrate", "rollback"].includes(item.phase)) || (item.kind === "BACKUP" && item.phase === "drive");
+    const unattended = item.trigger !== "MANUAL" || item.kind === "DRIVE_COPY" || item.kind === "DRIVE_FETCH" || item.kind === "S3_COPY" || item.kind === "S3_FETCH" || item.kind === "LIVE_CHECK" || (item.kind === "RESTORE" && ["finalize", "migrate", "rollback"].includes(item.phase)) || (item.kind === "BACKUP" && item.phase === "drive");
     if (!unattended) continue;
     // A person's run is only taken over when nobody stepped it for 2 minutes.
     if (item.trigger === "MANUAL" && Date.now() - item.updatedAt.getTime() < 120_000) continue;

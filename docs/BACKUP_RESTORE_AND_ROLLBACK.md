@@ -128,3 +128,6 @@ One migration, `202611021000_unify_condition_rules.sql`, applied on start. Unlik
 | Safety snapshot | Before every restore, automatically | Same list (`ars-safety-…`) |
 
 Restore: Check package (dry run) → mode → typed database name → snapshot → load beside the live tables (`_rs_*`) → one atomic RENAME (live tables kept as `_old_*`) → row counts checked → encrypted settings re-keyed → old tables dropped, links, checks and triggers added back → migrations. A failure before the old tables are dropped renames back; after, the safety snapshot is restored. Every session ends. Rolling back v1.81.0: the code to v1.80.x, then the two `DROP TABLE` lines in the migration's header; packages stay readable by v1.81.0 or later. **Never** use GoDaddy Database Manager → Import for any of this.
+
+### 7.1 Moving between servers (v1.82.0, D-409)
+App to app with one-time pairing codes (push with a RECEIVE code, pull with an OFFER code; 8 MiB pieces in, 16 MiB out, resumable), from an https link, to and from S3-compatible storage (multipart / ranged reads), and database to database (a safety snapshot of the target first; the same staged switch and undo, run against the target's MySQL). The check after a move compares row counts with the package, every file's sha256 and the sign-in prerequisites. Rolling back v1.82.0: the code to v1.81.x, then `DROP TABLE backup_pairings`.

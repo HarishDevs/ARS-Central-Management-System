@@ -9,7 +9,7 @@ import { getRun } from "@/server/ops/backup-centre/runs";
 // D-408: one run. GET = where it is; POST = one more step (about 20 s of
 // work), with the passphrase when the server no longer holds the key;
 // DELETE = stop it (only before anything was changed).
-const STEP = z.object({ passphrase: z.string().max(1024).optional() });
+const STEP = z.object({ passphrase: z.string().max(1024).optional(), secret: z.string().max(500).optional() });
 const runId = (value: string) => (/^\d{1,12}$/.test(value) ? Number(value) : null);
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const parsed = STEP.safeParse(await request.json().catch(() => ({})));
   if (!parsed.success) return apiError("VALIDATION_FAILED", "Check the passphrase and try again.", 400);
   try {
-    const run = await stepRun(id, { passphrase: parsed.data.passphrase ?? null }, "tokenOnly" in who ? null : who);
+    const run = await stepRun(id, { passphrase: parsed.data.passphrase ?? null, secret: parsed.data.secret ?? null }, "tokenOnly" in who ? null : who);
     return apiSuccess({ run }, { headers: NO_STORE });
   } catch (error) {
     return failure(error, "backup centre step failed");

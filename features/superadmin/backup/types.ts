@@ -2,7 +2,7 @@
 // centre's server code and its page. No secrets ever travel in these.
 export interface RunView {
   id: number;
-  kind: "BACKUP" | "VERIFY" | "RESTORE" | "DRIVE_COPY" | "DRIVE_FETCH";
+  kind: "BACKUP" | "VERIFY" | "RESTORE" | "DRIVE_COPY" | "DRIVE_FETCH" | "SEND" | "PULL" | "URL_FETCH" | "S3_COPY" | "S3_FETCH" | "DB_COPY" | "LIVE_CHECK";
   trigger: "MANUAL" | "SCHEDULED" | "SAFETY";
   status: "RUNNING" | "DONE" | "FAILED" | "CANCELLED" | "ROLLED_BACK";
   phase: string;
@@ -40,6 +40,13 @@ export const KIND_LABEL: Record<RunView["kind"], string> = {
   RESTORE: "Restore",
   DRIVE_COPY: "Copy to Google Drive",
   DRIVE_FETCH: "Copy from Google Drive",
+  SEND: "Send to another server",
+  PULL: "Pull from another server",
+  URL_FETCH: "Copy from a link",
+  S3_COPY: "Copy to S3 storage",
+  S3_FETCH: "Copy from S3 storage",
+  DB_COPY: "Database to database",
+  LIVE_CHECK: "Check after the move",
 };
 
 export const STATUS_LABEL: Record<RunView["status"], string> = {

@@ -17,6 +17,14 @@ const START = z.discriminatedUnion("action", [
   z.object({ action: z.literal("restore"), verifyRunId: z.number().int().positive(), mode: z.enum(["full", "database", "files", "tables"]), tables: z.array(z.string().max(64)).max(500).default([]), confirm: z.string().max(100), acceptWarnings: z.boolean().default(false), passphrase: PASSPHRASE.optional() }),
   z.object({ action: z.literal("drive-copy"), name: PACKAGE }),
   z.object({ action: z.literal("drive-fetch"), fileId: z.string().max(200), name: z.string().max(300), size: z.number().int().positive() }),
+  // v1.82.0 (D-409): moves between servers.
+  z.object({ action: z.literal("send"), name: PACKAGE, url: z.string().max(500), code: z.string().max(100) }),
+  z.object({ action: z.literal("pull"), url: z.string().max(500), code: z.string().max(100) }),
+  z.object({ action: z.literal("url-fetch"), url: z.string().max(4000) }),
+  z.object({ action: z.literal("s3-copy"), name: PACKAGE }),
+  z.object({ action: z.literal("s3-fetch"), key: z.string().max(300), size: z.number().int().positive() }),
+  z.object({ action: z.literal("db-copy"), host: z.string().max(255), port: z.number().int(), user: z.string().max(100), database: z.string().max(64), password: z.string().max(500), confirm: z.string().max(64), targetKey: z.string().max(100).optional() }),
+  z.object({ action: z.literal("live-check"), restoreRunId: z.number().int().positive() }),
 ]);
 
 export async function GET() {
@@ -38,6 +46,8 @@ export async function POST(request: NextRequest) {
   try {
     let started: { id: number; token: string | null };
     let passphrase: string | null = null;
+    let secret: string | null = null;
+    const moves = await import("@/server/ops/backup-centre/moves");
     if (body.action === "backup") {
       started = await startBackup(body, actor);
       passphrase = body.passphrase;
@@ -49,11 +59,28 @@ export async function POST(request: NextRequest) {
       passphrase = body.passphrase ?? null;
     } else if (body.action === "drive-copy") {
       started = await startDriveCopy(body.name, actor);
-    } else {
+    } else if (body.action === "drive-fetch") {
       started = await startDriveFetch(body, actor);
+    } else if (body.action === "send") {
+      started = await moves.startSend(body, actor);
+      secret = body.code;
+    } else if (body.action === "pull") {
+      started = await moves.startPull(body, actor);
+      secret = body.code;
+    } else if (body.action === "url-fetch") {
+      started = await moves.startUrlFetch(body, actor);
+    } else if (body.action === "s3-copy") {
+      started = await moves.startS3Copy(body.name, actor);
+    } else if (body.action === "s3-fetch") {
+      started = await moves.startS3Fetch(body, actor);
+    } else if (body.action === "db-copy") {
+      started = await moves.startDbCopy({ ...body, targetKey: body.targetKey || null }, actor);
+      secret = body.password;
+    } else {
+      started = await moves.startLiveCheck(body.restoreRunId, actor);
     }
     // The first step runs straight away, so a wrong passphrase shows at once.
-    const run = await stepRun(started.id, { passphrase }, actor);
+    const run = await stepRun(started.id, { passphrase, secret }, actor);
     return apiSuccess({ run, token: started.token }, { headers: NO_STORE });
   } catch (error) {
     return failure(error, "backup centre start failed");

@@ -2682,6 +2682,26 @@ flowchart TD
   M --> S[seed.js] --> N[next start]
 ```
 
+## F-OPS-MOVE: Moving the system between servers (v1.82.0, D-409)
+```mermaid
+flowchart TD
+  subgraph New server
+    R1[Receive here → Make a pairing code: shown once, sha256 stored, 2 h] --> R2[POST /api/backup-transfer/receive with x-pairing-code]
+    R2 -- wrong/used/expired --> RX[403; 20 per address per 15 min → 429]
+    R2 --> R3[PUT pieces at the received offset → package ars-received-…; code USED]
+    R3 --> R4[Restore… → Check → Everything] --> R5[Show secrets → Download .env → restart] --> R6[Check the system now: rows, file sha256, sign-in]
+  end
+  subgraph Old server
+    S1[Make a backup → Everything] --> S2[Send there: package + address + code; SEND run, 8 MiB pieces, resumable]
+    S2 --> R2
+    O1[Offer a package → code] -.-> P1[Pull from there on the new server: GET /offer, 16 MiB reads]
+  end
+  L[From a link: https, ranges or one stream] --> R4
+  S3[To S3 multipart / From S3 ranged] --> R4
+  D1[Database to database: target details + typed name] --> D2[temp DB package here] --> D3[safety snapshot of the target] --> D4[load _rs_ on the target → RENAME → constraints, triggers]
+  D4 -- error --> D5[switch back, or restore the target's snapshot]
+```
+
 ## F-OPS-BACKUP-CENTRE: Backup, restore & migrate (v1.81.0, D-408)
 ```mermaid
 flowchart TD

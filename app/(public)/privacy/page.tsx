@@ -27,6 +27,7 @@ export const metadata: Metadata = {
 // v1.46.0 (D-277, D-278): the encrypted backup copy may go to an ARS Google
 // Drive folder; security records are deleted after 90 days.
 // v1.81.0 (D-408): full encrypted backups with every file and the server keys, restore and moves (Super Admin).
+// v1.82.0 (D-409): moves app to app with pairing codes, S3, links and database to database.
 const PRIVACY_EFFECTIVE = "23 November 2026";
 
 export default function PrivacyPage() {
@@ -173,6 +174,12 @@ export default function PrivacyPage() {
           types; the passphrase is never stored) and each part carries a checksum. It is kept in the server&apos;s private storage, downloaded by the Super Admin, or copied to the ARS Google Drive
           folder; scheduled copies use a separate server key. Before any restore a safety copy of the system as it is is made the same way. Every download, restore and display of the keys is
           recorded in the audit log and told to the Super Admin by email and WhatsApp. A restore puts back the records as they were at the backup&apos;s time and signs everyone out.
+        </p>
+        <p>
+          <strong>Moving the system to another ARS server.</strong> The Super Admin can send that encrypted file straight to another ARS server, let one fetch it, keep a copy in
+          ARS&apos;s S3-compatible storage, or copy the database straight into another ARS database. Each move to another server needs a one-time pairing code made on the other server
+          (only a fingerprint of it is stored; it expires within hours and works once); the address of the other server and of the computer that used the code are recorded. The file
+          stays encrypted on the way. Database passwords and links typed for a move are used only while it runs and never stored.
         </p>
 
         <h2>Keeping and deleting information</h2>

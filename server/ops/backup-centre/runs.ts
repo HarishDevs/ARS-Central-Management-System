@@ -6,7 +6,7 @@ import { getDbPool } from "@/lib/db/client";
 // D-408 (v1.81.0, BK-1): the centre's runs (backup_runs). A run is driven in
 // steps; a step holds a short lease so two tabs (or a tab and the job
 // runner) never work on the same run at once. Nothing secret is stored.
-export type RunKind = "BACKUP" | "VERIFY" | "RESTORE" | "DRIVE_COPY" | "DRIVE_FETCH";
+export type RunKind = "BACKUP" | "VERIFY" | "RESTORE" | "DRIVE_COPY" | "DRIVE_FETCH" | "SEND" | "PULL" | "URL_FETCH" | "S3_COPY" | "S3_FETCH" | "DB_COPY" | "LIVE_CHECK";
 export type RunStatus = "RUNNING" | "DONE" | "FAILED" | "CANCELLED" | "ROLLED_BACK";
 export type RunTrigger = "MANUAL" | "SCHEDULED" | "SAFETY";
 
