@@ -43,7 +43,8 @@ test("add from the library, reorder, duplicate, remove only after asking, undo",
   await designer.getByRole("button", { name: "Remove field Vendor (copy)" }).click();
   await page.getByRole("alertdialog").getByRole("button", { name: "Remove field" }).click();
   expect(await names()).not.toContain("Vendor (copy)");
-  await designer.getByRole("button", { name: "Undo" }).click();
+  // v1.89.0 stage 4 (D-426): the designer's own Undo (the "Removed" toast has an Undo too while it shows).
+  await designer.getByTitle("Undo (Ctrl+Z)").click();
   expect(await names()).toContain("Vendor (copy)");
   await designer.getByRole("button", { name: "Redo" }).click();
   expect(await names()).not.toContain("Vendor (copy)");

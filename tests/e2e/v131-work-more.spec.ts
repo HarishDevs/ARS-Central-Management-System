@@ -38,8 +38,12 @@ test("a project field shows as a List column and takes a value; two tasks change
 
   await page.goto(projectUrl);
   await expect(page.getByRole("columnheader", { name: "Plant" })).toBeVisible();
+  // v1.89.0 stage 4 (D-426): wait for the save itself. waitForLoadState("networkidle") returns at
+  // once when the page was already idle, so the reload could overtake the Server Action (seen in
+  // Chromium and WebKit under load; the value was saved a moment later).
+  const saved = page.waitForResponse((response) => response.request().method() === "POST" && response.url().includes("/users/work/projects/"));
   await page.getByLabel(`Plant of Reconcile bank ${stamp}`).selectOption("Raipur");
-  await page.waitForLoadState("networkidle");
+  await saved;
   await page.reload();
   await expect(page.getByLabel(`Plant of Reconcile bank ${stamp}`)).toHaveValue("Raipur");
 

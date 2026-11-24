@@ -1,5 +1,5 @@
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
-import { phoneLayoutCookie, sessionCookie } from "./db";
+import { phoneLayoutCookie, sessionCookie, motionSettled } from "./db";
 
 // v1.89.0 stage 3b (UI unification batch 2, shared components; D-422):
 //   UIQA-CON-05 / CON-06: every named control measures its token (field 42,
@@ -199,6 +199,8 @@ test("CON-18: a dialog has radius 16, an 18 px title, a 40 px close button, and 
   await page.keyboard.press("Enter");
   const dialog = page.locator("dialog.ars-dialog[open]").last();
   await expect(dialog).toBeVisible();
+  // v1.89.0 stage 4 (D-426): measured once its scale-in has finished (39 px mid-animation under load).
+  await motionSettled(page);
   const m = await dialog.evaluate((el) => {
     const close = el.querySelector<HTMLElement>('button[aria-label="Close"]');
     const h2 = el.querySelector("h2");

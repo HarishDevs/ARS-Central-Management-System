@@ -50,9 +50,11 @@ test("dragging a column title moves the column, and the order is kept for the pe
   for (let step = 0; step < 5 && (await titles()).indexOf("raised") < (await titles()).indexOf("status"); step += 1) {
     await header.locator('th[data-column="raised"]').focus();
     await page.keyboard.press("Alt+ArrowRight");
-    await page.waitForTimeout(400);
+    // v1.89.0 stage 4 (D-426): wait for each move to be saved (a fixed 400 ms was too short under load).
+    await page.waitForTimeout(100);
+    await expect(header).not.toHaveAttribute("aria-busy", "true");
   }
-  expect((await titles()).indexOf("raised")).toBeGreaterThan((await titles()).indexOf("status"));
+  await expect.poll(async () => (await titles()).indexOf("raised") > (await titles()).indexOf("status")).toBe(true);
 });
 
 test("v1.54.1: a remark given with an action shows in the task's comments; Planning and people folds", async ({ page, context }) => {
