@@ -1,5 +1,5 @@
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
-import { db, sessionCookie, userIdByLogin, fillDue } from "./db";
+import { db, sessionCookie, userIdByLogin, fillDue, motionSettled } from "./db";
 
 // D-238 (owner's Asana screenshots): the Draft task's toolbar: + (more),
 // Formatting, Emoji, @mention, Attach a file or paste an image, the due date
@@ -39,7 +39,9 @@ test("Create task: a tall panel on smaller screens, a centred two-column card on
   await as(context, "E2E_REQ");
   await page.setViewportSize({ width: 900, height: 800 });
   await page.goto("/users/work/my-tasks");
-  const small = (await (await openDraft(page)).boundingBox())!;
+  const draft = await openDraft(page);
+  await motionSettled(page);
+  const small = (await draft.boundingBox())!;
   expect(small.height).toBeGreaterThan(small.width);
   expect(small.height).toBeLessThanOrEqual(800 - 32 + 1);
   await page.getByTestId("create-dialog").getByRole("button", { name: "Close" }).click();
@@ -50,6 +52,7 @@ test("Create task: a tall panel on smaller screens, a centred two-column card on
     await page.setViewportSize(viewport);
     await page.goto("/users/work/my-tasks");
     const dialog = await openDraft(page);
+    await motionSettled(page); // v1.89.0 (D-424): measured once the window has finished opening
     const box = (await dialog.boundingBox())!;
     expect(box.width).toBeGreaterThan(box.height * 0.9);
     expect(Math.abs(box.x + box.width / 2 - viewport.width / 2)).toBeLessThanOrEqual(2);

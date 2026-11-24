@@ -141,7 +141,7 @@ export async function sql<T = ResultSetHeader>(query: string, values: unknown[] 
 export async function signIn(context: BrowserContext, role: RoleKey, viewport: Viewport, extra: { name: string; value: string }[] = []) {
   await context.clearCookies();
   const login = ROLES[role].login;
-  const cookies: { name: string; value: string; domain: string; path: string }[] = [{ name: "ars_theme", value: "light", domain: "localhost", path: "/" }];
+  const cookies: { name: string; value: string; domain: string; path: string }[] = [{ name: "ars_theme", value: process.env.UIQA_THEME === "dark" ? "dark" : "light", domain: "localhost", path: "/" }];
   if (login) cookies.push(await sessionCookie(login, { tourDone: true }));
   cookies.push(viewport.width < 768 ? phoneLayoutCookie() : { name: "ars_layout", value: "desktop", domain: "localhost", path: "/" });
   for (const cookie of extra) cookies.push({ ...cookie, domain: "localhost", path: "/" });
@@ -169,6 +169,12 @@ export async function webkitHttpsShim(context: BrowserContext, project: string) 
 export async function settle(page: Page) {
   await page.waitForLoadState("networkidle", { timeout: 8000 }).catch(() => undefined);
   await page.waitForFunction(() => !document.documentElement.hasAttribute("data-nav-pending"), undefined, { timeout: 4000 }).catch(() => undefined);
+  // v1.89.0 (D-424, OVL-01): in the app shell, measure and press keys only once the page has
+  // hydrated (data-session-watch); Playwright's WebKit on Windows runs its JavaScript seconds
+  // after load, so an Escape pressed earlier reached no listener.
+  await page
+    .waitForFunction(() => !document.querySelector("a.skip-link") || document.documentElement.hasAttribute("data-session-watch"), undefined, { timeout: 20_000 })
+    .catch(() => undefined);
   await page.waitForTimeout(250);
 }
 

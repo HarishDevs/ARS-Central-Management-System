@@ -88,6 +88,12 @@ test("a task is created, started and completed with its note; the assignee hears
   await expect(dropdown.getByTestId("notification-items").getByRole("button").first()).toContainText("Pump 3 leaks");
   await expect(dropdown.getByTestId("notification-items").getByRole("button").first()).toContainText("Task");
   await dropdown.getByTestId("notification-items").getByRole("button").first().click();
+  // v1.89.0 (D-424): since D-410 (owner) a task opens in the pane on the current screen
+  // (?task=<id>); the full page stays its own address. The pane is checked, then the full page.
+  await expect(page).toHaveURL(new RegExp(`/users\?task=${taskUrl.split("/").pop()}$`));
+  await expect(page.getByTestId("task-pane")).toBeVisible();
+  await expect(page.getByTestId("task-pane")).toContainText("Pump 3 leaks");
+  await page.goto(taskUrl);
   await expect(page).toHaveURL(taskUrl);
   await page.getByRole("button", { name: "Start", exact: true }).click();
   await expect(page.getByTestId("record-history")).toContainText(/started/i); // v1.52.2: Asana-style "Name started"

@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type BrowserContext, type Locator, type Page } from "@playwright/test";
 import type { RowDataPacket } from "mysql2/promise";
-import { db, sessionCookie, typeCreateDue, userIdByLogin } from "./db";
+import { db, motionSettled, sessionCookie, typeCreateDue, userIdByLogin } from "./db";
 import { createProject } from "./work-helpers";
 import { addDays, addMonths, weekStart } from "../../features/ui/date-range";
 
@@ -210,6 +210,7 @@ test("phone: the picker opens as a bottom sheet (axe dark)", async ({ page, cont
   await dialog.getByTestId("create-dates-button").click();
   const sheet = dialog.getByTestId("create-dates-panel");
   await expect(sheet).toHaveAttribute("data-sheet", "true");
+  await motionSettled(page); // v1.89.0 (D-424): the sheet is measured once it has finished rising
   const box = (await sheet.boundingBox())!;
   expect(Math.round(box.y + box.height)).toBeGreaterThanOrEqual(810);
   expect(Math.round(box.width)).toBe(375);

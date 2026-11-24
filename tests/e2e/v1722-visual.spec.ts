@@ -148,7 +148,7 @@ async function openVisible(page: Page, testId: string) {
   if (await menu.count()) await menu.click();
 }
 // scope: what axe checks (a modal pane: the pane, not the dimmed page behind it).
-type Screen = { name: string; login: string; path: () => string; prepare?: (page: Page) => Promise<void>; scope?: string };
+type Screen = { name: string; login: string; path: () => string; prepare?: (page: Page) => Promise<void>; scope?: string | ((width: number) => string | undefined) };
 const SCREENS: Screen[] = [
   { name: "home", login: "E2E_REQ", path: () => "/users" },
   { name: "account-menu", login: "E2E_REQ", path: () => "/users", prepare: async (page) => page.getByRole("button", { name: /Account menu for/ }).click() },
@@ -165,9 +165,14 @@ const SCREENS: Screen[] = [
     path: () => projectUrl,
     prepare: async (page) => {
       await page.getByTestId("task-row").filter({ hasText: openTitle }).getByRole("link").first().click();
-      await expect(page.getByTestId("task-pane")).toBeVisible();
+      // v1.89.0 (D-424): since D-410 a task opens in the pane on a computer and on its own
+      // page on a phone (the phone layout has no pane); each is checked as the person sees it.
+      if ((page.viewportSize()?.width ?? 1366) < 768) {
+        await expect(page).toHaveURL(/\/users\/tasks\/\d+/);
+        await expect(page.getByRole("heading", { level: 1, name: openTitle })).toBeVisible();
+      } else await expect(page.getByTestId("task-pane")).toBeVisible();
     },
-    scope: "[data-testid=task-pane]",
+    scope: (width) => (width < 768 ? undefined : "[data-testid=task-pane]"),
   },
   { name: "requests-row-menu", login: "E2E_STAFF", path: () => "/users/requests", prepare: (page) => openVisible(page, "row-menu") },
   { name: "users-row-menu", login: "E2E_ADMIN", path: () => "/admin/users", prepare: (page) => openVisible(page, "user-row-menu") },
@@ -188,7 +193,7 @@ for (const theme of ["light", "dark"] as const) {
         await page.waitForLoadState("networkidle");
         if (screen.prepare) await screen.prepare(page);
         // A modal (task pane) or an open menu: axe the page as the person sees it.
-        const found = await axe(page, screen.scope);
+        const found = await axe(page, typeof screen.scope === "function" ? screen.scope(width) : screen.scope);
         if (found.length) problems.push(`${screen.name} @${width} ${theme}: ${found.join("; ")}`);
         if (screen.name === "request-decision" && width === 375) {
           // H5: Pico Bot's launcher never covers the decision bar.

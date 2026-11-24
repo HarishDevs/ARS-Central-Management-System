@@ -166,3 +166,13 @@ export async function typeCreateDue(dialog: import("@playwright/test").Locator, 
   await field.fill(day);
   await field.press("Enter");
 }
+
+// v1.89.0 (D-424): wait until every finite animation and transition on the page
+// has finished (a window, sheet or pane is measured at rest, not mid-entry).
+// Endless ones (spinners, skeleton shimmer) are left out. Nothing is loosened:
+// the same measurements are taken, only once the motion is over.
+export async function motionSettled(page: import("@playwright/test").Page): Promise<void> {
+  await page.waitForFunction(() =>
+    document.getAnimations().every((animation) => animation.playState !== "running" || animation.effect?.getComputedTiming().iterations === Infinity),
+  );
+}

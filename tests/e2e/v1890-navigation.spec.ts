@@ -23,6 +23,11 @@ async function as(context: BrowserContext, loginId: string) {
 async function settle(page: Page) {
   await page.waitForLoadState("networkidle", { timeout: 6000 }).catch(() => undefined);
   await page.waitForFunction(() => !document.documentElement.hasAttribute("data-nav-pending"), undefined, { timeout: 5000 }).catch(() => undefined);
+  // v1.89.0 (D-424, NAV-03 WebKit flake): inside the app, act only once the page has hydrated
+  // (the shell's data-session-watch); WebKit on Windows runs its JavaScript seconds after load.
+  await page
+    .waitForFunction(() => !document.querySelector("a.skip-link") || document.documentElement.hasAttribute("data-session-watch"), undefined, { timeout: 20_000 })
+    .catch(() => undefined);
 }
 const here = (page: Page) => page.evaluate(() => location.pathname + location.search);
 // Firefox may abort a goto when the page it leaves starts its own move (NS_BINDING_ABORTED): try once more.
@@ -122,6 +127,10 @@ test("NAV-02 / S12a: the session ends on a pane → signing in again reopens the
   await go(page, start);
   await settle(page);
   await expect(page.locator("[data-task-pane]").first()).toBeVisible();
+  // v1.89.0 (D-424): the session check listens only once the page has hydrated (the app's
+  // data-session-watch signal). Ending the session before that left only the pane's 20 s live
+  // refresh to notice it: the ~21 s WebKit "delay" (its JavaScript runs ~5 s behind on Windows).
+  await page.waitForFunction(() => document.documentElement.hasAttribute("data-session-watch"), undefined, { timeout: 20_000 });
   const conn = await db();
   await conn.query("DELETE FROM user_sessions WHERE user_id = ?", [await userIdByLogin("E2E_STAFF")]);
   await conn.end();

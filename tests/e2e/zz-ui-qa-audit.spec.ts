@@ -28,6 +28,8 @@ const roleKeys = pick(process.env.UIQA_ROLES, Object.keys(ROLES) as RoleKey[]);
 const vpNames = pick(process.env.UIQA_VP, VIEWPORTS.map((v) => v.name));
 const axeVps = (process.env.UIQA_AXE_VP ?? "1440x900,390x844").split(",");
 const shots = process.env.UIQA_SHOTS !== "0";
+// v1.89.0 (D-424): UIQA_THEME=dark sweeps the dark theme (results under "<browser>-dark").
+const THEME_SUFFIX = process.env.UIQA_THEME === "dark" ? "-dark" : "";
 const IGNORED_CONSOLE = [/Download the React DevTools/, /favicon/i, /net::ERR_ABORTED/];
 
 test("set up: records for the detail routes (once per database)", async ({ page, context }) => {
@@ -262,7 +264,7 @@ async function sweep(page: Page, browserName: string, role: RoleKey, vp: Viewpor
   const consoleErrors: string[] = [];
   const failed: string[] = [];
   // WebKit only: the service worker can't register across the https shim (webkitHttpsShim); not an app error.
-  const shimNoise = browserName === "webkit" ? [/sw\.js/, /^Not allowed to request resource$/] : [];
+  const shimNoise = browserName.startsWith("webkit") ? [/sw\.js/, /^Not allowed to request resource$/] : [];
   page.on("console", (msg) => {
     if (msg.type() === "error" && ![...IGNORED_CONSOLE, ...shimNoise].some((re) => re.test(msg.text()))) consoleErrors.push(msg.text().slice(0, 300));
   });
@@ -331,7 +333,7 @@ for (const role of roleKeys) {
       await webkitHttpsShim(context, test.info().project.name);
       const page = await context.newPage();
       // The project name (chromium, msedge, firefox, webkit), not the engine: Edge's engine is "chromium".
-      await sweep(page, test.info().project.name, role, vp, false);
+      await sweep(page, `${test.info().project.name}${THEME_SUFFIX}`, role, vp, false);
       await context.close();
     });
     if (process.env.UIQA_RAIL && vp.width >= 1024 && role !== "public") {
@@ -341,7 +343,7 @@ for (const role of roleKeys) {
         await signIn(context, role, vp, [{ name: "ars_sidebar", value: "rail" }]);
         await webkitHttpsShim(context, test.info().project.name);
         const page = await context.newPage();
-        await sweep(page, test.info().project.name, role, vp, true);
+        await sweep(page, `${test.info().project.name}${THEME_SUFFIX}`, role, vp, true);
         await context.close();
       });
     }

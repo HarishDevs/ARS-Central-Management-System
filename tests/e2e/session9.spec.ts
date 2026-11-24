@@ -15,6 +15,11 @@ test("the account menu shows the space and switches to another", async ({ page, 
   await menu.getByRole("menuitem", { name: /Admin/ }).click();
   await expect(page).toHaveURL(/\/admin$/);
   await expect(page.getByRole("button", { name: /Account menu for/ })).toContainText("Admin");
+  // v1.89.0 (D-424): the Admin sidebar's groups start folded (D-411, kept per person); the
+  // test opens People & organisation as a person would, then finds Users & roles in it.
+  const people = page.getByRole("navigation", { name: "Main" }).getByRole("button", { name: "People & organisation" });
+  if ((await people.getAttribute("aria-expanded")) !== "true") await people.click();
+  await expect(people).toHaveAttribute("aria-expanded", "true");
   await expect(page.getByRole("link", { name: /Users & roles/ }).first()).toBeVisible();
 });
 
