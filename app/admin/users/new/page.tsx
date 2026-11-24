@@ -9,7 +9,7 @@ import { loadUserFormOptions } from "@/features/admin/user-options";
 import { requireArea } from "@/server/authorization/guards";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
-export const metadata: Metadata = { title: "Add user" };
+export const metadata: Metadata = { title: "New user" };
 
 export default async function NewUserPage() {
   const { user } = await requireArea("admin");
@@ -17,7 +17,7 @@ export default async function NewUserPage() {
   return (
     <>
       <Breadcrumbs
-        items={[{ href: "/admin", label: "Admin" }, { href: "/admin/users", label: "Users & roles" }, { label: "Add user" }]}
+        items={[{ href: "/admin", label: "Admin" }, { href: "/admin/users", label: "Users & roles" }, { label: "New user" }]}
         // v1.89.0 (NAV-03, D-419): back to the list with the search and sort it was left with;
         // D-423 (UIQA-CON-11): on the breadcrumb's line, as on every detail page.
         back={
@@ -26,7 +26,7 @@ export default async function NewUserPage() {
           </OriginLink>
         }
       />
-      <PageHeader title="Add user" description="Password users then get a set-password link by email from their user page." />
+      <PageHeader title="New user" description="Password users then get a set-password link by email from their user page." />
       <div className="max-w-3xl">
         <UserForm
           mode="create"

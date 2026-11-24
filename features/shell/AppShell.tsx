@@ -143,9 +143,9 @@ export async function AppShell({ area, user, nav, children, settingsIndex }: { a
     { href: "/users/information/new", label: "New information", group: "Information" },
     // v1.72.1 (D-395): the ticket pages (page access and the module decide, below).
     { href: "/users/tickets", label: "My tickets", group: "Tickets" },
-    { href: "/users/tickets/new", label: "Raise a ticket", group: "Tickets" },
+    { href: "/users/tickets/new", label: "New ticket", group: "Tickets" },
     { href: "/users/meetings", label: "Meetings", group: "Meetings" },
-    { href: "/users/meetings/new", label: "Schedule a meeting", group: "Meetings" },
+    { href: "/users/meetings/new", label: "New meeting", group: "Meetings" },
     { href: "/users/meetings/follow-ups", label: "Meeting follow-ups", group: "Meetings" },
     { href: "/users?home=meetings", label: "Meeting overview (dashboard)", group: "Meetings" },
     { href: "/users/inbox", label: "Inbox", group: "My approvals" },

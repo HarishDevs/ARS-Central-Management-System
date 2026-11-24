@@ -26,7 +26,7 @@ export const SHORTCUTS: { keys: string; what: string }[] = [
   { keys: "Esc", what: "Close a dialog or menu" },
   // D-215: Task & Project Management pages.
   { keys: "Q", what: "Tasks: create a task (ad hoc or periodic)" },
-  { keys: "G then H / M / I / R / P / S", what: "Tasks: go to Home / My Tasks / Inbox / Periodic tasks / All projects / Search" },
+  { keys: "G then H / M / I / R / P / S", what: "Tasks: go to Home / Task Summary / Inbox / Periodic tasks / All projects / Search" },
   { keys: "Esc", what: "Tasks: close the task pane" },
   { keys: "J / K", what: "Task lists: next / previous task" },
   { keys: "X", what: "Task lists: complete or reopen the selected task" },

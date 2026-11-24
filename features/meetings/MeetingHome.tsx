@@ -396,7 +396,7 @@ export async function MeetingHome({
         period={period}
         periodBase={base}
       />
-      {/* v1.77.1 (owner): quick actions row (Schedule meeting first); v1.79.0: + Add widgets / Customise at its right end. */}
+      {/* v1.77.1 (owner): quick actions row (New meeting first); v1.79.0: + Add widgets / Customise at its right end. */}
       <QuickActions items={quick} testId="meeting-quick-actions" widgets={widgets.editable} />
       <SummaryCards cards={cards} testId="meeting-tiles" cardTestId="meeting-card" />
       <div className="mt-6">

@@ -14,7 +14,7 @@ import { loadMeetingFor } from "@/server/meetings/service";
 import { actionState, carriesForward } from "@/server/meetings/rules";
 import { personLabel } from "@/lib/people/label";
 
-export const metadata: Metadata = { title: "Schedule a meeting" };
+export const metadata: Metadata = { title: "New meeting" };
 export const dynamic = "force-dynamic";
 
 // v1.51.0 (D-300): schedule a meeting, edit one (?edit=ID) or schedule the
@@ -58,7 +58,8 @@ export default async function NewMeetingPage({ searchParams }: { searchParams: P
     momDue: "",
     pointsPolicy: "LAST_APPROVED",
   };
-  let title = "Schedule a meeting";
+  // v1.89.0 (D-425): the create page is titled like the list action ("New meeting"); the button still says Schedule meeting.
+  let title = "New meeting";
   let carried: { actions: number; openPoints: number } | undefined;
 
   const source = editId ?? parentId;

@@ -77,7 +77,7 @@ export default async function MorePage() {
         has("/users/information") && { href: "/users/information", label: "Information", icon: Newspaper, hint: "Received, sent by me, new" },
         has("/users/meetings") && { href: "/users/meetings", label: "Meetings", icon: CalendarClock, hint: "Schedule, MOM, follow-ups" },
         // v1.72.1 (D-395): Tickets and Portfolios were missing on phones (only with the module, switch and page access).
-        has("/users/tickets") && { href: "/users/tickets", label: "Tickets", icon: Ticket, hint: "Raise a ticket, my tickets" },
+        has("/users/tickets") && { href: "/users/tickets", label: "Tickets", icon: Ticket, hint: "New ticket, my tickets" },
         has("/users/tickets/board") && { href: "/users/tickets/board", label: "Coordinator board", icon: Columns3 },
         has("/users/work/projects") && { href: "/users/work/projects", label: "Projects", icon: FolderKanban },
         has("/users/work/portfolios") && { href: "/users/work/portfolios", label: "Portfolios", icon: Briefcase },

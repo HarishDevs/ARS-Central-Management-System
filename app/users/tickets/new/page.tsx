@@ -13,7 +13,7 @@ import { loadFieldLookups } from "@/lib/db/repositories/lookups.repository";
 import { mayCreate, parseTicketSettings } from "@/server/modules/settings";
 import { personLabel } from "@/lib/people/label";
 
-export const metadata: Metadata = { title: "Raise a ticket" };
+export const metadata: Metadata = { title: "New ticket" };
 export const dynamic = "force-dynamic";
 
 // v1.55.0 (owner's ticketing brief §3): choose the ticket type (a form of a
@@ -33,7 +33,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
     for (const form of allowed) byCategory.set(form.categoryName, [...(byCategory.get(form.categoryName) ?? []), form]);
     return (
       <>
-        <PageHeader title="Raise a ticket" icon={TicketPlus} description="Choose what you need help with. The ticket goes to that form's coordinators, who assign it to someone." />
+        <PageHeader title="New ticket" icon={TicketPlus} description="Choose what you need help with. The ticket goes to that form's coordinators, who assign it to someone." />
         {allowed.length === 0 ? (
           <EmptyState title="No ticket forms yet" body="IT hasn't published any ticket forms. Please check back later." />
         ) : (
@@ -66,7 +66,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ t
   const may = type && settings && me && mayCreate(settings.access, { id: user.id, departmentId: me.departmentId });
   return (
     <>
-      <Breadcrumbs items={[{ href: "/users/tickets/new", label: "Raise a ticket" }, { label: chosen.name }]} />
+      <Breadcrumbs items={[{ href: "/users/tickets/new", label: "New ticket" }, { label: chosen.name }]} />
       <PageHeader title={chosen.name} icon={TicketPlus} description={chosen.description ?? `A ${chosen.categoryName} ticket.`} />
       {!type || !settings || !may ? (
         <EmptyState title="You can't raise this kind of ticket" body="Ask IT if you think you should." />

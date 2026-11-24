@@ -118,7 +118,7 @@ export const TOUR_STEPS: readonly TourStep[] = [
   {
     id: "tasks",
     section: "Tasks",
-    title: "My Tasks",
+    title: "Task Summary",
     intro: "Everything given to you, from every project, in your own sections (Overdue, Recently assigned, Today, Upcoming, Later).",
     points: [
       "Tick a task to complete it; click its name to open it beside the list (comments, files, subtasks, followers).",

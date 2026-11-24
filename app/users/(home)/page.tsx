@@ -141,7 +141,7 @@ export default async function UsersHome({ searchParams }: { searchParams: Promis
     const meetingHidden = (await navAccess(user)).hidden;
     // v1.77.1 (owner): the basic quick actions, as on the Task Management overview.
     const meetingQuick: QuickAction[] = [
-      { href: "/users/meetings/new", label: "Schedule meeting", icon: <CalendarPlus className="h-4 w-4" />, primary: true },
+      { href: "/users/meetings/new", label: "New meeting", icon: <CalendarPlus className="h-4 w-4" />, primary: true },
       { href: "/users/meetings", label: "All meetings", icon: <CalendarClock className="h-4 w-4" /> },
       { href: "/users/meetings?tab=approve", label: "To approve", icon: <ClipboardCheck className="h-4 w-4" /> },
       { href: "/users/meetings?tab=mine", label: "My meetings", icon: <FileEdit className="h-4 w-4" /> },

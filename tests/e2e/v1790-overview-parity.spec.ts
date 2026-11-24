@@ -37,7 +37,7 @@ test.afterAll(cleanUp);
 const OVERVIEWS = [
   { home: "approvals", title: "Approvals – Overview", quick: "approval-quick-actions", create: "New request", cards: "approval-cards" },
   { home: "tasks", title: "My Work – Overview", quick: "work-quick-actions", create: "Create task", cards: "work-kpis" },
-  { home: "meetings", title: "Meetings – Overview", quick: "meeting-quick-actions", create: "Schedule meeting", cards: "meeting-tiles" },
+  { home: "meetings", title: "Meetings – Overview", quick: "meeting-quick-actions", create: "New meeting", cards: "meeting-tiles" },
 ] as const;
 
 test("all three overviews: the same header, quick actions with Add widgets / Customise, four cards and widgets", async ({ page, context }) => {

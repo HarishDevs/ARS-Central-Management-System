@@ -15,12 +15,12 @@ test("quick actions on the Approval and Meeting overviews; Create offers Meeting
 
   await page.goto("/users?home=meetings");
   const meetings = page.getByTestId("meeting-quick-actions");
-  await expect(meetings.getByRole("link", { name: "Schedule meeting" })).toHaveAttribute("href", "/users/meetings/new");
+  await expect(meetings.getByRole("link", { name: "New meeting" })).toHaveAttribute("href", "/users/meetings/new");
   await expect(meetings.getByRole("link", { name: "Follow-ups" })).toBeVisible();
 
   await page.getByTestId("create-menu").getByRole("button", { name: "Create" }).first().click();
   await expect(page.getByRole("menuitem", { name: /^Meeting/ })).toBeVisible();
-  // Ticket shows only for people whose menu has "Raise a ticket" (the Tickets module).
+  // Ticket shows only for people whose menu has "New ticket" (the Tickets module).
   const canTicket = (await page.locator('a[href="/users/tickets/new"]').count()) > 0;
   await expect(page.getByRole("menuitem", { name: /^Ticket/ })).toHaveCount(canTicket ? 1 : 0);
   await page.getByRole("menuitem", { name: /^Meeting/ }).click();

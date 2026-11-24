@@ -55,7 +55,7 @@ export async function usersNav(user: { id: number; roles: readonly string[] }): 
         ]
       : []),
     // v1.55.1 (D-329): the Ticketing module (page access hides it without the module).
-    { href: "/users/tickets/new", label: "Raise a ticket", section: "Tickets" },
+    { href: "/users/tickets/new", label: "New ticket", section: "Tickets" },
     { href: "/users/tickets", label: "My tickets", section: "Tickets" },
     // v1.56.0 (D-332): the coordinator board (where each ticket is now).
     ...(ticketDashboards
@@ -65,7 +65,7 @@ export async function usersNav(user: { id: number; roles: readonly string[] }): 
         ]
       : []),
     // v1.51.0 (D-300): Meeting Management (the MEETING module; page access hides it otherwise).
-    { href: "/users/meetings/new", label: "Schedule meeting", section: "Meetings" },
+    { href: "/users/meetings/new", label: "New meeting", section: "Meetings" },
     { href: "/users/meetings", label: "Meetings", section: "Meetings" },
     { href: "/users/meetings/follow-ups", label: "Follow-ups", section: "Meetings" },
     // D-168: the fourth module. D-180 (owner): the assistant only; its
