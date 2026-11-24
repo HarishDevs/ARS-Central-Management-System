@@ -344,7 +344,11 @@ test("NAV-07 / H2: sign-in next to an area the person can't open lands on their 
 });
 
 // ------------------------------------------------------------------ NAV-08
-test("NAV-08: '← Back' stays in the app when the page was opened from outside; keeps the list from inside", async ({ page, context }) => {
+test("NAV-08: '← Back' stays in the app when the page was opened from outside; keeps the list from inside", async ({ page, context, browserName }) => {
+  // v1.89.0 (D-424): Playwright's WebKit on Windows cancels a navigation from a data: page into a
+  // site whose service worker controls it ("Provisional navigation canceled", 2 / 2; passes with
+  // the worker blocked). The worker plays no part in the Back link, so WebKit runs this one without it.
+  if (browserName === "webkit") await context.route("**/sw.js*", (route) => route.abort());
   await as(context, "E2E_STAFF");
   const staff = await userIdByLogin("E2E_STAFF");
   await go(page, "/users");

@@ -78,7 +78,7 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 - [x] UI-B4e (24 Nov 2026) ListPage wrapper on the 28 ListToolbar pages; one popover surface (bell, pickers, editors); toast live regions
 - [x] UI-B4f (24 Nov 2026) screen-reader-oriented pass (landmarks, headings, labels, live regions, focus, keyboard walks; no real screen reader) and dark-theme sweep
 - [x] UI-B4T (24 Nov 2026) unit motion-fill-v189 + motion-review; e2e v1890-accessibility (Chromium, Firefox, WebKit); full Chromium suite; motion / nav / ui / accessibility sets in Firefox and WebKit; UIQA sweep (Chromium 9 viewports, Firefox / WebKit 3, dark 2); docs/qa; general pages
-- [~] UI-B4x NAV-04 / S1 in WebKit: Playwright's WebKit renderer crashes on Admin → Records → Open full page in that test's flow (also on the stage 3c build); Chromium and Firefox pass; carried to stage 4 with real Safari
+- [x] UI-B4x (24 Nov 2026) WebKit page crash during view transitions (NAV-04, NAV-05; also on the 3c build): view transitions left out in WebKit until checked on a real Safari (stage 4)
 - [ ] UI-B5 batch 5 (content): one date / time / range / relative formatter replacing the ad-hoc toLocale* / Intl calls (CON-08, ERR-01 if time text), native date inputs → DateRangePicker, wording pass (form titles "Schedule a meeting" / "Raise a ticket" / "Add user", sidebar and + Create labels)
 - [ ] v1.89.0 stage 4: visual baselines and sign-off; then version bump, release-notes heading, merge to main and tag
 

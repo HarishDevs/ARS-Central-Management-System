@@ -194,7 +194,7 @@ Firefox (1440 / 768 / 390, 531 visits, in role chunks): conformance 0, overflow 
 | 2 | Entry motion fill (root cause, found via v1720 / v1750) | Every entry animation fills `backwards` (was `both`): the kept last frame (`translate: 0px`, `transform: translateY(0)`) made panes / windows the containing block of `position: fixed` menus and sheets. `fixedOrigin` also detects the single transform properties, container queries and backdrop filters; menus re-measure on animationend / transitionend. Unit guard. | `globals.css`, `MenuCore.tsx`, `tests/ui/motion-fill-v189.test.ts` |
 | 3 | ERR-02 + devices hang | Safari detection in the effect; no push-subscription lookup before permission "granted". | `AppDevicesPanel.tsx`, `pwa/browser.ts` |
 | 4 | meta-refresh | Dashboards hub: `next.config` redirect (307). | `next.config.ts` |
-| 5 | Page transitions across areas | None between users / admin / superadmin (the whole shell changes; Playwright's WebKit crashed on it). | `motion-rules.ts` |
+| 5 | Page transitions | None between users / admin / superadmin (the whole shell changes), and none in WebKit (Safari, iOS browsers): Playwright's WebKit renderer crashed during view transitions to request / task pages (also on the 3c build). | `motion-rules.ts`, `PageTransitions.tsx` |
 | 6 | FORM-01 / FORM-02 | Create task says what is missing; the delegate picker is tied to its error. | `TaskCreator.tsx`, `DelegationForms.tsx` |
 | 7 | RESP-06 | Clear strip + scroll padding for the Pico Bot launcher on phone lists. | `globals.css` |
 | 8 | ListPage everywhere | The 28 ListToolbar pages are inside `ListPage` (`header` slot); the Admin home's Attention section stays a section. | 21 files |

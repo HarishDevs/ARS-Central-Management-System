@@ -3,7 +3,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { nextRowIndex, PLACE_TTL_MS, readPlace, transitionKind } from "@/features/shell/motion-rules";
+import { nextRowIndex, PLACE_TTL_MS, readPlace, transitionKind, viewTransitionsAllowed } from "@/features/shell/motion-rules";
 import { swipeShouldClose, SWIPE_CLOSE_PX } from "@/features/ui/swipe";
 import { desktopSkeletonFor } from "@/features/shell/NavigationProgress";
 import { nextWaitingHref } from "@/features/requests/next-waiting";
@@ -44,6 +44,13 @@ describe("page transitions (point 4)", () => {
     expect(transitionKind({ href: "/users/queue?page=2" }, here)).toBeNull();
   });
   // v1.89.0 (D-424): between areas the whole shell changes; no transition (WebKit crashed on it).
+  it("leaves view transitions out in WebKit (Safari, every iOS browser), D-424", () => {
+    expect(viewTransitionsAllowed("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15")).toBe(false);
+    expect(viewTransitionsAllowed("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/130.0 Mobile/15E148 Safari/604.1")).toBe(false);
+    expect(viewTransitionsAllowed("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36")).toBe(true);
+    expect(viewTransitionsAllowed("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36 Edg/130.0")).toBe(true);
+    expect(viewTransitionsAllowed("Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:133.0) Gecko/20100101 Firefox/133.0")).toBe(true);
+  });
   it("never animates a move between areas", () => {
     expect(transitionKind({ href: "/admin/records/tasks" }, here)).toBeNull();
     expect(transitionKind({ href: "/users/tasks/5?from=%2Fadmin" }, { href: "http://localhost/admin/records/tasks?open=5" })).toBeNull();

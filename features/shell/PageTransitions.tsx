@@ -3,7 +3,7 @@
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { navigationHeld } from "@/features/ui/UnsavedGuard";
-import { transitionKind } from "@/features/shell/motion-rules";
+import { transitionKind, viewTransitionsAllowed } from "@/features/shell/motion-rules";
 import { MOTION_DELAY, prefersReducedMotion } from "@/features/ui/motion";
 import { PANE_HOST_ATTR, taskIdFromHref } from "@/features/work/pane-open";
 
@@ -56,7 +56,7 @@ export function PageTransitions() {
     const root = document.documentElement;
     const start = (kind: "title" | "fade", link: HTMLElement | null) => {
       const doc = document as WithTransitions;
-      if (typeof doc.startViewTransition !== "function" || prefersReducedMotion()) return;
+      if (typeof doc.startViewTransition !== "function" || prefersReducedMotion() || !viewTransitionsAllowed(navigator.userAgent)) return;
       // A click while a transition is still waiting: end it now; this move just happens.
       if (active.current) {
         active.current.end();

@@ -26,6 +26,17 @@ export function transitionKind(link: { href: string; target?: string; download?:
   return "fade";
 }
 
+// v1.89.0 (D-424): view transitions are left out in WebKit (Safari and every iOS browser).
+// Playwright's WebKit crashed the page (renderer) during view transitions on the way to a
+// request or task page (Inbox → request, Admin → Records → a task; reproduced on the stage
+// 3c build, never with transitions off or reduced motion). Until it is checked on a real
+// Safari (stage 4), WebKit changes pages like a browser without view transitions.
+export function viewTransitionsAllowed(userAgent: string): boolean {
+  const webkitOnly = /AppleWebKit/.test(userAgent) && !/(Chrome|Chromium|Edg|OPR|Firefox)\//.test(userAgent);
+  const iosBrowser = /(iPhone|iPad|iPod)/.test(userAgent);
+  return !webkitOnly && !iosBrowser;
+}
+
 // Keyboard flow (point 13): the row j / k moves to (wraps at neither end).
 export function nextRowIndex(count: number, current: number, key: "j" | "k"): number | null {
   if (count <= 0) return null;

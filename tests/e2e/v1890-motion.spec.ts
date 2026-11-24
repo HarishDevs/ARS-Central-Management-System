@@ -182,9 +182,11 @@ test("page transitions are on by default: the new page fades in, navigation land
   measured.transitionHops = hops;
   const counts = await vt(page);
   measured.transitionsDefaultOn = counts;
-  if (supported) expect(counts.calls).toBeGreaterThan(0);
+  // v1.89.0 (D-424): WebKit changes pages without view transitions (they crashed its page).
+  if (supported && browserName !== "webkit") expect(counts.calls).toBeGreaterThan(0);
+  if (browserName === "webkit") expect(counts.calls).toBe(0);
   // The new heading has focus after an animated move (the guide's accessibility routing).
-  if (supported && counts.calls > counts.skipped) await expect(page.locator("main h1").first()).toBeFocused();
+  if (supported && counts.calls > counts.skipped && browserName !== "webkit") await expect(page.locator("main h1").first()).toBeFocused();
   // One main area, one sidebar: nothing drawn twice.
   expect(await page.locator("main#main").count()).toBe(1);
   expect(await page.locator('[data-testid="sidebar"]').count()).toBe(1);
@@ -330,6 +332,8 @@ test("frame times while a dialog and the side pane open and close (60 FPS target
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/users/work/my-tasks");
   await page.waitForLoadState("networkidle").catch(() => undefined); // the pane host listens once the page is live
+  // v1.89.0 (D-424): and the shell has hydrated (WebKit on Windows hydrates seconds after load).
+  await page.waitForFunction(() => document.documentElement.hasAttribute("data-session-watch") && document.documentElement.hasAttribute("data-place-memory"), undefined, { timeout: 20_000 });
   const link = page.locator(`#main a[href="/users/tasks/${taskId}"]`).first();
   await link.scrollIntoViewIfNeeded();
   await startFrames(page);
