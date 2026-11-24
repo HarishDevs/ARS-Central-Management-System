@@ -19,7 +19,7 @@ The number of levels and how they combine is unlimited. There are no fixed "Leve
 |---|---|---|
 | A-01…A-12 | Asana reference flows | Reference |
 | F-NEXT-WAITING | Next waiting for you after a decision from Waiting for me | Built 23 Nov 2026 (v1.80.0) |
-| F-MOTION | Page changes: pending feedback, skeletons, place memory, toasts vs inline errors, page transitions (switch) | Built 23 Nov 2026 (v1.80.0); page transitions on by default and the WebKit hold fixed 24 Nov 2026 (v1.89.0, D-420) |
+| F-MOTION | Page changes: pending feedback, skeletons, place memory, toasts vs inline errors, page transitions (switch) | Built 23 Nov 2026 (v1.80.0); page transitions on by default and the WebKit hold fixed 24 Nov 2026 (v1.89.0, D-420); no transition between areas (users / admin / superadmin), entry motion never leaves a transform behind (v1.89.0, D-424) |
 | F-212 | Meeting Management: schedule, points and MOM approval, action tasks, follow-ups | Built 10 Nov 2026 (v1.51.0) |
 | F-PM-TABS | Project tabs for every view, Save view / Reset | Built 22 Nov 2026 (v1.61.0, behind pm_foundations) |
 | F-PM-LIST | The List as a keyboard treegrid, windowed; 15 s refresh | Built 22 Nov 2026 (v1.61.0) |

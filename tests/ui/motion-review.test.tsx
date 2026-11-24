@@ -43,6 +43,13 @@ describe("page transitions (point 4)", () => {
     expect(transitionKind({ href: "https://example.com/users" }, here)).toBeNull();
     expect(transitionKind({ href: "/users/queue?page=2" }, here)).toBeNull();
   });
+  // v1.89.0 (D-424): between areas the whole shell changes; no transition (WebKit crashed on it).
+  it("never animates a move between areas", () => {
+    expect(transitionKind({ href: "/admin/records/tasks" }, here)).toBeNull();
+    expect(transitionKind({ href: "/users/tasks/5?from=%2Fadmin" }, { href: "http://localhost/admin/records/tasks?open=5" })).toBeNull();
+    expect(transitionKind({ href: "/superadmin" }, { href: "http://localhost/admin" })).toBeNull();
+    expect(transitionKind({ href: "/admin/users" }, { href: "http://localhost/admin" })).toBe("fade");
+  });
   // v1.89.0 (D-420): on by default; the switch stays as the kill switch.
   it("is a Super Admin switch, on by default", () => {
     const definition = findSettingDefinition("features.page_transitions");

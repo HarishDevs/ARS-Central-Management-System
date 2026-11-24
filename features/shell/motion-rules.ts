@@ -15,6 +15,12 @@ export function transitionKind(link: { href: string; target?: string; download?:
   }
   if (url.origin !== current.origin || url.pathname.startsWith("/api/")) return null;
   if (url.pathname === current.pathname && url.search === current.search) return null;
+  // v1.89.0 (D-424): no page transition between areas (/users ↔ /admin ↔ /superadmin, or in or
+  // out of the app): the whole shell is replaced there, so there is no shared frame for the main
+  // area to fade in, and WebKit crashed the page on such a view transition (Admin → Records →
+  // Open full page of a task; Playwright's WebKit, the MOT-02 family). The page simply changes.
+  const area = (path: string) => /^\/(users|admin|superadmin)(\/|$)/.exec(path)?.[1] ?? "";
+  if (area(url.pathname) !== area(current.pathname)) return null;
   // Opening a request or ticket from a list: its title moves into the heading.
   if (link.inRow && /^\/users\/(requests|tickets)\/\d+$/.test(url.pathname) && url.pathname !== current.pathname) return "title";
   return "fade";

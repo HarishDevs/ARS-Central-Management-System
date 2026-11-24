@@ -54,6 +54,17 @@ One release in stages (owner): navigation fixes, then the motion and transition 
 - **Admin settings that are one form** (meeting settings, ticket categories, approver groups, AI rules, a reminder rule) keep a readable width on wide screens.
 - **Owner steps:** none.
 
+**Stage 3d: accessibility, overlays and the last layout items** (D-424, `docs/qa/UI_UX_DEFECT_REPORT.md` batch 4; record in `docs/qa/UI_REFACTORING_LOG.md`, `BUG_FIX_LOG.md` and `ACCESSIBILITY_TEST_REPORT.md`):
+- **Readable status colours:** green and orange status text is a shade darker, so a due date on the highlighted Task Summary row passes the contrast rule (5.0:1, was 4.2:1); dark theme unchanged.
+- **Create task says what is missing** instead of greying out its button (name, person, due date), and takes you to it. **Out of office** ties "choose a person" to the picker.
+- **Menus and pickers stay where you clicked:** a menu opened while the task pane was still sliding in (⋯) could open off screen, and the phone date sheet in Create task sat above the bottom edge; fixed at the root (an entry animation no longer leaves a transform behind).
+- **One popover look:** menus, the bell, and the date and people pickers share the same corners, border, shadow and short unfold; a people picker returns you to its button after Esc or a choice.
+- **Screen readers:** the corner messages are always announced; every list page has the same structure (title, tabs, toolbar, list).
+- **Phones:** the last row of a list scrolls clear of Pico Bot's button.
+- **Moving between the app, Admin and Super Admin** changes the page without the fade (the whole frame changes there); this also stops a crash seen in Safari-type test browsers.
+- **Fixed:** the Profile → App & devices page could hang Safari-type browsers in testing (it no longer looks up a notification subscription before notifications are allowed) and showed a hydration error there; the Dashboards hub opens Utilisation with a proper redirect (no page refresh tag).
+- **Owner steps:** none.
+
 ## v1.88.0 (23 Nov 2026): simple formulas
 No migration (D-418, owner: "use all these as simple formulas in my app"):
 - **Formula fields take functions** (names in any case): ADD, SUBTRACT, MULTIPLY, DIVIDE, DATEADD, DATESUBTRACT and ROLLUP (as in Asana), plus DAYS, WORKDAYS (on the Working calendar), IF with > < >= <= = <>, ROUND, MIN, MAX, ABS and COALESCE. Open **Functions** in the formula editor for a help card with an example; **Insert** puts the function in.
