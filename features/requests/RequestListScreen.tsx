@@ -1,4 +1,4 @@
-import { formatDate, formatMonth } from "@/lib/format/date";
+import { formatDate, formatMonth, formatPeriod } from "@/lib/format/date";
 import { Avatar } from "@/features/ui/Avatar";
 import { RecordNo } from "@/features/ui/RecordNo";
 import { groupOrder, NO_VALUE, type ListGroupData } from "@/server/requests/list-groups";
@@ -25,6 +25,7 @@ import { PersonSelect } from "@/features/ui/PersonSelect";
 import { personLabel } from "@/lib/people/label";
 import { formatIndiaTime } from "@/server/notifications/security-messages";
 import type { ChoicePerson, ListChoices, ListedRequest } from "@/lib/db/repositories/request-lists.repository";
+import { DateRangeField } from "@/features/ui/DateRangeField";
 import {
   activeCount,
   BASE_FEATURES,
@@ -283,23 +284,18 @@ export function RequestListScreen({
     filters.dueWithinDays !== null ? { label: `Due within ${filters.dueWithinDays} day${filters.dueWithinDays === 1 ? "" : "s"}`, remove: { dueWithinDays: null } } : null,
     filters.hasFiles !== null ? { label: filters.hasFiles ? "With files" : "Without files", remove: { hasFiles: null } } : null,
     filters.validity ? { label: VALIDITY_LABEL[filters.validity], remove: { validity: null } } : null,
-    filters.raisedFrom || filters.raisedTo ? { label: `Raised ${filters.raisedFrom ?? "…"} to ${filters.raisedTo ?? "…"}`, remove: { raisedFrom: null, raisedTo: null } } : null,
-    filters.addedFrom || filters.addedTo ? { label: `Added ${filters.addedFrom ?? "…"} to ${filters.addedTo ?? "…"}`, remove: { addedFrom: null, addedTo: null } } : null,
-    filters.closedFrom || filters.closedTo ? { label: `${closedLabel} ${filters.closedFrom ?? "…"} to ${filters.closedTo ?? "…"}`, remove: { closedFrom: null, closedTo: null } } : null,
-    filters.mineFrom || filters.mineTo ? { label: `I approved ${filters.mineFrom ?? "…"} to ${filters.mineTo ?? "…"}`, remove: { mineFrom: null, mineTo: null } } : null,
-    filters.activityFrom || filters.activityTo ? { label: `Activity ${filters.activityFrom ?? "…"} to ${filters.activityTo ?? "…"}`, remove: { activityFrom: null, activityTo: null } } : null,
+    // v1.89.0 (D-425): chips read the app's day format ("Raised 1 Nov to 10 Nov 2026"), not yyyy-mm-dd.
+    filters.raisedFrom || filters.raisedTo ? { label: `Raised ${formatPeriod(filters.raisedFrom, filters.raisedTo)}`, remove: { raisedFrom: null, raisedTo: null } } : null,
+    filters.addedFrom || filters.addedTo ? { label: `Added ${formatPeriod(filters.addedFrom, filters.addedTo)}`, remove: { addedFrom: null, addedTo: null } } : null,
+    filters.closedFrom || filters.closedTo ? { label: `${closedLabel} ${formatPeriod(filters.closedFrom, filters.closedTo)}`, remove: { closedFrom: null, closedTo: null } } : null,
+    filters.mineFrom || filters.mineTo ? { label: `I approved ${formatPeriod(filters.mineFrom, filters.mineTo)}`, remove: { mineFrom: null, mineTo: null } } : null,
+    filters.activityFrom || filters.activityTo ? { label: `Activity ${formatPeriod(filters.activityFrom, filters.activityTo)}`, remove: { activityFrom: null, activityTo: null } } : null,
   ];
   const chips = candidates.filter((chip): chip is Chip => chip !== null);
   const select = "field-input field-compact";
+  // v1.89.0 (D-425): one From – To picker per date filter (the app's day format) instead of two native inputs.
   const dates = (name: string, label: string, from: string | null, to: string | null) => (
-    <fieldset className="min-w-0">
-      <legend className="field-label">{label}</legend>
-      <div className="flex items-center gap-1.5">
-        <input type="date" name={`${name}From`} defaultValue={from ?? ""} aria-label={`${label} from`} className={`${select} min-w-0`} />
-        <span className="text-caption text-ink-muted">to</span>
-        <input type="date" name={`${name}To`} defaultValue={to ?? ""} aria-label={`${label} to`} className={`${select} min-w-0`} />
-      </div>
-    </fieldset>
+    <DateRangeField id={`rf-${name}`} label={label} pickerLabel={`${label} between`} from={from} to={to} names={{ start: `${name}From`, due: `${name}To` }} className="min-w-0" />
   );
   const people = (id: string, name: string, label: string, value: number | null, list: ChoicePerson[]) => (
     <div>

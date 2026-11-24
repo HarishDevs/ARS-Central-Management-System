@@ -24,6 +24,7 @@ import { featureOn } from "@/server/settings/features";
 import { MobileSearch } from "@/features/mobile/MobileSearch";
 import { openedPlainly } from "@/server/lists/views";
 import { ListPage } from "@/features/ui/ListPage";
+import { DateRangeField } from "@/features/ui/DateRangeField";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
 export const metadata: Metadata = { title: "Search" };
@@ -129,18 +130,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                 </select>
               </div>
             )}
-            <div>
-              <label htmlFor="s-from" className="field-label">
-                Raised from
-              </label>
-              <input id="s-from" name="from" type="date" defaultValue={filters.from ?? ""} className="field-input field-compact" />
-            </div>
-            <div>
-              <label htmlFor="s-to" className="field-label">
-                to
-              </label>
-              <input id="s-to" name="to" type="date" defaultValue={filters.to ?? ""} className="field-input field-compact" />
-            </div>
+            <DateRangeField id="s-dates" label="Raised" pickerLabel="Raised between" from={filters.from} to={filters.to} />
             <div>
               <label htmlFor="s-sort" className="field-label">
                 Order

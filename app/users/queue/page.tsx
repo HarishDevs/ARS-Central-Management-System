@@ -1,4 +1,4 @@
-import { indiaDay } from "@/lib/format/date";
+import { formatPeriod, indiaDay } from "@/lib/format/date";
 import type { Metadata } from "next";
 import { formDueDays } from "@/server/approvals/form-due";
 import Link from "next/link";
@@ -23,6 +23,7 @@ import { nextDir } from "@/server/lists/sorting";
 import { QUEUE_GROUP_LABEL, QUEUE_GROUPS, QUEUE_SORT_COLUMNS, QUEUE_SHOW_LABEL, QUEUE_SHOWS, QUEUE_SIZES, QUEUE_SORT_LABEL, QUEUE_SORTS, parseQueueFilter, queueFiltered, queueHref, type QueueFilter } from "@/server/approvals/queue-filters";
 import type { QueueItem } from "@/lib/db/repositories/approvals.repository";
 import { ListPage } from "@/features/ui/ListPage";
+import { DateRangeField } from "@/features/ui/DateRangeField";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
 export const metadata: Metadata = { title: "Waiting for me" };
@@ -67,8 +68,8 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
     filter.forWhom ? { label: filter.forWhom === "me" ? "Mine only" : "Covering for others", href: without({ forWhom: null }) } : null,
     filter.dueWithinDays ? { label: `Due within ${filter.dueWithinDays} day${filter.dueWithinDays === 1 ? "" : "s"}`, href: without({ dueWithinDays: null }) } : null,
     filter.hasFiles === true || filter.hasFiles === false ? { label: filter.hasFiles ? "With files" : "Without files", href: without({ hasFiles: null }) } : null,
-    filter.raisedFrom || filter.raisedTo ? { label: `Raised ${filter.raisedFrom ?? "…"} to ${filter.raisedTo ?? "…"}`, href: without({ raisedFrom: null, raisedTo: null }) } : null,
-    filter.waitingFrom || filter.waitingTo ? { label: `Waiting since ${filter.waitingFrom ?? "…"} to ${filter.waitingTo ?? "…"}`, href: without({ waitingFrom: null, waitingTo: null }) } : null,
+    filter.raisedFrom || filter.raisedTo ? { label: `Raised ${formatPeriod(filter.raisedFrom, filter.raisedTo)}`, href: without({ raisedFrom: null, raisedTo: null }) } : null,
+    filter.waitingFrom || filter.waitingTo ? { label: `Waiting since ${formatPeriod(filter.waitingFrom, filter.waitingTo)}`, href: without({ waitingFrom: null, waitingTo: null }) } : null,
   ].filter((chip): chip is { label: string; href: string } => chip !== null);
   const select = "field-input field-compact";
   // v1.58.0 (D-354, owner: "sorting in all the tables asc to desc or vice versa in all
@@ -237,14 +238,7 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
                   ["waiting", "Waiting since", filter.waitingFrom, filter.waitingTo],
                 ] as const
               ).map(([name, label, from, to]) => (
-                <fieldset key={name} className="min-w-0">
-                  <legend className="field-label">{label}</legend>
-                  <div className="flex items-center gap-1.5">
-                    <input type="date" name={`${name}From`} defaultValue={from ?? ""} aria-label={`${label} from`} className={`${select} min-w-0`} />
-                    <span className="text-caption text-ink-muted">to</span>
-                    <input type="date" name={`${name}To`} defaultValue={to ?? ""} aria-label={`${label} to`} className={`${select} min-w-0`} />
-                  </div>
-                </fieldset>
+                <DateRangeField key={name} id={`qf-${name}`} label={label} pickerLabel={`${label} between`} from={from} to={to} names={{ start: `${name}From`, due: `${name}To` }} className="min-w-0" />
               ))}
             </>
           }

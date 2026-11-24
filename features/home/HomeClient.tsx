@@ -6,6 +6,7 @@ import { CalendarDays, Plus, Trash2 } from "lucide-react";
 import { CREATE_TASK_EVENT } from "@/features/work/client";
 import { ConfirmDialog } from "@/features/ui/Dialog";
 import { discardDraftAction } from "@/app/users/draft-actions";
+import { DateRangePicker } from "@/features/ui/DateRangePicker";
 
 // D-265: Home's small client parts: the period picker, the workload chart's
 // hover, and a quiet refresh while the page is open.
@@ -76,15 +77,16 @@ export function PeriodPicker({
           onSubmit={(event) => {
             event.preventDefault();
             const data = new FormData(event.currentTarget);
-            go({ period: "custom", from: String(data.get("from") ?? ""), to: String(data.get("to") ?? "") });
+            const [start, end] = [String(data.get("from") ?? ""), String(data.get("to") ?? "")];
+            // One day picked is a one-day period (From = To).
+            if (start || end) go({ period: "custom", from: start || end, to: end || start });
           }}
         >
-          <label className="text-caption text-ink-muted">
-            From <input type="date" name="from" defaultValue={from} required className="field-input field-compact ml-1 w-auto text-label" />
-          </label>
-          <label className="text-caption text-ink-muted">
-            To <input type="date" name="to" defaultValue={to} required className="field-input field-compact ml-1 w-auto text-label" />
-          </label>
+          {/* v1.89.0 (D-425): one From – To picker (the app's day format) instead of two native date inputs. */}
+          <span id="home-period-dates" className="text-caption text-ink-muted">
+            Dates
+          </span>
+          <DateRangePicker idBase="home-period" label="Custom period" startLabel="From" dueLabel="To" defaultValue={{ start: from, due: to }} names={{ start: "from", due: "to" }} placeholder="Choose dates" triggerDescribedBy="home-period-dates" testId="home-period-dates" />
           <button type="submit" className="btn-secondary btn-compact">
             Show
           </button>

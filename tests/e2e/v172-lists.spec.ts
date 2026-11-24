@@ -46,8 +46,12 @@ test("Collaborating is its own screen in the sidebar, with quick tabs and the fu
 
   // D-226: the filters sit in the toolbar's Filter panel.
   await page.getByTestId("list-toolbar").getByTestId("filter-menu").locator("summary").click();
-  for (const label of ["Approval type", "Raised by", "Their department", "Added me", "Waiting at step", "Waiting with", "Due within", "Files", "Approval validity", "Raised from", "Added me from", "Closed from", "Last activity from"]) {
+  for (const label of ["Approval type", "Raised by", "Their department", "Added me", "Waiting at step", "Waiting with", "Due within", "Files", "Approval validity"]) {
     await expect(page.getByLabel(label, { exact: true })).toBeVisible();
+  }
+  // v1.89.0 (D-425): each date filter is one From – To picker (its button names the filter and the dates).
+  for (const label of ["Raised", "Added me", "Closed", "Last activity"]) {
+    await expect(page.getByRole("button", { name: new RegExp(`^${label} between: `) })).toBeVisible();
   }
   await pickPerson(page, page.getByLabel("Raised by", { exact: true }), "Ravi Requester");
   await page.getByLabel("Withdrawn").check();
@@ -105,8 +109,11 @@ test("Waiting for me has more filters, and every one becomes a removable chip", 
   await as(context, "E2E_MGR");
   await page.goto("/users/queue");
   await page.getByTestId("list-toolbar").getByTestId("filter-menu").locator("summary").click();
-  for (const label of ["Raised by", "Their department", "Step", "Due within", "Files", "Raised from", "Waiting since from"]) {
+  for (const label of ["Raised by", "Their department", "Step", "Due within", "Files"]) {
     await expect(page.getByLabel(label, { exact: true })).toBeVisible();
+  }
+  for (const label of ["Raised", "Waiting since"]) {
+    await expect(page.getByRole("button", { name: new RegExp(`^${label} between: `) })).toBeVisible();
   }
   await page.getByLabel("Files", { exact: true }).selectOption("no");
   await page.getByTestId("filter-menu").getByRole("button", { name: "Apply" }).click();

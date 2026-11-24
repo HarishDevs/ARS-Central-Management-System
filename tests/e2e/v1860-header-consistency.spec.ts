@@ -105,7 +105,9 @@ test("H-03: the period picker follows the address after an overview switch", asy
   await settle(page);
   const picker = page.getByTestId("period-picker");
   await expect(picker.locator("select")).toHaveValue("custom");
-  await expect(picker.locator('input[name="from"]')).toBeVisible();
+  // v1.89.0 (D-425): the custom dates are one From – To picker (hidden inputs carry from / to).
+  await expect(picker.getByTestId("home-period-dates-button")).toBeVisible();
+  await expect(picker.locator('input[type="hidden"][name="from"]')).toHaveValue("2026-11-01");
   for (const home of ["tasks", "meetings"] as const) {
     await switchTo(page, home);
     await expect(picker.locator("select")).not.toHaveValue("custom");
@@ -113,7 +115,7 @@ test("H-03: the period picker follows the address after an overview switch", asy
   }
   // Choosing Custom period still opens the From / To form on the overview.
   await picker.locator("select").selectOption("custom");
-  await expect(picker.locator('input[name="from"]')).toBeVisible();
+  await expect(picker.getByTestId("home-period-dates-button")).toBeVisible();
 });
 
 test("H-04: Admin → Insights tabs are all in view at 768; at 375 a fade shows there are more", async ({ page, context }) => {

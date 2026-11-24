@@ -13,6 +13,7 @@ import { X } from "lucide-react";
 import { listTags, listTaskItems, listVisibleProjects, WORK_SEARCH_PAGE, workSearchSql } from "@/lib/db/repositories/work.repository";
 import { parseWorkSearch, workSearchQuery } from "@/server/work/rules";
 import { peopleOptions, workPage } from "@/server/work/page-context";
+import { formatPeriod } from "@/lib/format/date";
 
 export const metadata: Metadata = { title: "Task search" };
 export const dynamic = "force-dynamic";
@@ -57,7 +58,7 @@ export default async function WorkSearchPage({ searchParams }: { searchParams: P
     search.project !== null && { label: `Project: ${projects.find((project) => project.id === search.project)?.name ?? "—"}`, href: without({ project: null }) },
     search.priority && { label: PRIORITY_TEXT[search.priority] ?? search.priority, href: without({ priority: null }) },
     search.tag !== null && { label: `#${tags.find((tag) => tag.id === search.tag)?.name ?? "tag"}`, href: without({ tag: null }) },
-    (search.dueFrom || search.dueTo) && { label: `Due ${search.dueFrom ?? "…"} to ${search.dueTo ?? "…"}`, href: without({ dueFrom: null, dueTo: null }) },
+    (search.dueFrom || search.dueTo) && { label: `Due ${formatPeriod(search.dueFrom, search.dueTo)}`, href: without({ dueFrom: null, dueTo: null }) },
     search.followed && { label: "I follow", href: without({ followed: false }) },
     search.overdue && { label: "Overdue", href: without({ overdue: false }) },
     search.team && { label: "My team", href: without({ team: false }) },

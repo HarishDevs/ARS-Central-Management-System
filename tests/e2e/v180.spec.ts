@@ -38,14 +38,16 @@ test("My approved requests and Approved by me are in the sidebar, with their fil
   await expect(page.getByRole("navigation", { name: "Quick filters" })).toHaveCount(0);
   await page.getByTestId("list-toolbar").getByTestId("filter-menu").locator("summary").click();
   await expect(page.getByLabel("Approved by")).toBeVisible();
-  await expect(page.getByLabel("Approved on from")).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Approved on between: / })).toBeVisible();
 
   await as(context, "E2E_MGR");
   await page.goto("/users/approved-by-me");
   await expect(page.getByRole("heading", { level: 1, name: "Approved by me" })).toBeVisible();
   await expect(page.getByTestId("request-table").getByRole("row").nth(1)).toBeVisible();
   await page.getByTestId("list-toolbar").getByTestId("filter-menu").locator("summary").click();
-  for (const label of ["Step I approved", "Approved for", "I approved from", "Raised by"]) await expect(page.getByLabel(label, { exact: true })).toBeVisible();
+  for (const label of ["Step I approved", "Approved for", "Raised by"]) await expect(page.getByLabel(label, { exact: true })).toBeVisible();
+  // v1.89.0 (D-425): the date filter is one From – To picker.
+  await expect(page.getByRole("button", { name: /^I approved between: / })).toBeVisible();
 });
 
 test("IT sets up custom approvals; the custom approval page follows it", async ({ page, context }) => {

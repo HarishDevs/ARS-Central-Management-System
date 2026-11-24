@@ -18,6 +18,7 @@ import { groupRows } from "@/server/lists/group-rows";
 import { listHref } from "@/server/lists/superadmin-lists";
 import { applySentBack, daysWaiting, filterCount, parseSentBackFilter, sentBackBucket, sentBackChoices, SENT_BACK_GROUP_LABEL, SENT_BACK_GROUPS, SENT_BACK_PAGE_SIZE, type SentBackRow } from "@/server/lists/sent-back";
 import { ListPage } from "@/features/ui/ListPage";
+import { DateRangeField } from "@/features/ui/DateRangeField";
 
 // WEB-05: a plain, non-confidential browser title.
 export const metadata: Metadata = { title: "Sent back for changes" };
@@ -115,18 +116,7 @@ export default async function SentBackPage({ searchParams }: { searchParams: Pro
             {select("dept", "Department", filter.dept, choices.departments)}
             {select("step", "Your step", filter.step, choices.steps)}
             <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label htmlFor="sb-from" className="field-label">
-                  Sent back from
-                </label>
-                <input id="sb-from" name="from" type="date" defaultValue={filter.from} className="field-input field-compact" />
-              </div>
-              <div>
-                <label htmlFor="sb-to" className="field-label">
-                  to
-                </label>
-                <input id="sb-to" name="to" type="date" defaultValue={filter.to} className="field-input field-compact" />
-              </div>
+              <DateRangeField id="sb-dates" label="Sent back" pickerLabel="Sent back between" from={filter.from} to={filter.to} />
             </div>
           </>
         }

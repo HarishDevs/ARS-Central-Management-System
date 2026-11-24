@@ -20,6 +20,7 @@ import { formatIndiaTime } from "@/server/notifications/security-messages";
 import { personLabel } from "@/lib/people/label";
 import { SortHead } from "@/features/admin/SortHead";
 import { parseColumnSort, sortRows } from "@/server/lists/sorting";
+import { DateRangeField } from "@/features/ui/DateRangeField";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
 export const metadata: Metadata = { title: "Report" };
@@ -133,18 +134,7 @@ export default async function ReportPage({ params, searchParams }: { params: Pro
                     ))}
                   </select>
                 </div>
-                <div>
-                  <label htmlFor="from" className="field-label">
-                    From <span className="font-normal text-ink-faint">(custom)</span>
-                  </label>
-                  <input id="from" name="from" type="date" defaultValue={filter.period.from} className="field-input field-compact" />
-                </div>
-                <div>
-                  <label htmlFor="to" className="field-label">
-                    To <span className="font-normal text-ink-faint">(custom)</span>
-                  </label>
-                  <input id="to" name="to" type="date" defaultValue={filter.period.to} className="field-input field-compact" />
-                </div>
+                <DateRangeField id="report-dates" label="Dates" hint="(custom)" pickerLabel="Custom period" from={filter.period.from} to={filter.period.to} />
               </>
             )}
             <div>

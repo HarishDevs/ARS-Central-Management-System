@@ -11,6 +11,7 @@ import { GroupedRows } from "@/features/admin/GroupedRows";
 import { nextDir, parseColumnSort, sortHref, sortRows } from "@/server/lists/sorting";
 import { groupRows } from "@/server/lists/group-rows";
 import { groupMenu, keepListState, type GroupChoice } from "@/server/admin/lists";
+import { DateRangeField } from "@/features/ui/DateRangeField";
 
 // Shared frame of the four admin dashboards (S11-12, F-74): tabs, one filter
 // bar (GET, so every view is a link that can be shared), period presets and
@@ -96,18 +97,7 @@ export function DashboardFrame({
         clearHref={filterCount ? `/admin/insights/dashboards/${slug}` : null}
         filters={
           <>
-            <div>
-              <label htmlFor="from" className="field-label">
-                From
-              </label>
-              <input id="from" name="from" type="date" defaultValue={filter.from} max={today} className="field-input field-compact" />
-            </div>
-            <div>
-              <label htmlFor="to" className="field-label">
-                To
-              </label>
-              <input id="to" name="to" type="date" defaultValue={filter.to} max={today} className="field-input field-compact" />
-            </div>
+            <DateRangeField id="dashboard-dates" label="Dates" pickerLabel="Dashboard dates" from={filter.from} to={filter.to} max={today} />
             <div>
               <label htmlFor="type" className="field-label">
                 Approval type

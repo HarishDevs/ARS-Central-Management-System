@@ -34,6 +34,7 @@ import { workViewer } from "@/server/work/task-access";
 import { parseRecurrence, recurrenceLabel } from "@/server/work/more-rules";
 import { StopRepeatButton } from "@/features/work/MoreParts";
 import { ListPage } from "@/features/ui/ListPage";
+import { DateRangeField } from "@/features/ui/DateRangeField";
 
 // v1.9.0 (D-143): My tasks / Assigned by me / Team tasks. Filters live in
 // the address (GET form), so a list can be bookmarked and shared.
@@ -223,22 +224,9 @@ export async function TaskListScreen({ base, query }: { base: TaskBase; query: R
                     ))}
                   </select>
                 </label>
-                <label className="text-label">
-                  Due from
-                  <input type="date" name="dueFrom" defaultValue={filters.dueFrom ?? ""} className="field-input field-compact" />
-                </label>
-                <label className="text-label">
-                  Due to
-                  <input type="date" name="dueTo" defaultValue={filters.dueTo ?? ""} className="field-input field-compact" />
-                </label>
-                <label className="text-label">
-                  Created from
-                  <input type="date" name="createdFrom" defaultValue={filters.createdFrom ?? ""} className="field-input field-compact" />
-                </label>
-                <label className="text-label">
-                  Created to
-                  <input type="date" name="createdTo" defaultValue={filters.createdTo ?? ""} className="field-input field-compact" />
-                </label>
+                {/* v1.89.0 (D-425): From – To pickers (the app's day format) instead of four native date inputs. */}
+                <DateRangeField id="task-due" label="Due" pickerLabel="Due between" from={filters.dueFrom} to={filters.dueTo} names={{ start: "dueFrom", due: "dueTo" }} />
+                <DateRangeField id="task-created" label="Created" pickerLabel="Created between" from={filters.createdFrom} to={filters.createdTo} names={{ start: "createdFrom", due: "createdTo" }} />
               </>
             }
             sort={{

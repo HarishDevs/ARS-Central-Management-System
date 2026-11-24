@@ -15,6 +15,7 @@ import { listDepartments } from "@/lib/db/repositories/organisation.repository";
 import { listPeopleFacts } from "@/lib/db/repositories/tasks.repository";
 import { TICKET_PRIORITIES, TICKET_PRIORITY_LABEL, type TicketPriority } from "@/server/modules/settings";
 import { TICKET_STATUSES, TICKET_STATUS_LABEL } from "@/server/tickets/rules";
+import { DateRangeField } from "@/features/ui/DateRangeField";
 
 export const metadata: Metadata = { title: "Ticket dashboard" };
 export const dynamic = "force-dynamic";
@@ -95,18 +96,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
         ))}
       </ul>
       <form method="get" action={base} className="card mb-4 flex flex-wrap items-end gap-3 px-4 py-3" aria-label="Ticket filters">
-        <div>
-          <label htmlFor="tf-from" className="field-label">
-            Raised from
-          </label>
-          <input id="tf-from" name="from" type="date" defaultValue={filter.from ?? ""} className={select} />
-        </div>
-        <div>
-          <label htmlFor="tf-to" className="field-label">
-            to
-          </label>
-          <input id="tf-to" name="to" type="date" defaultValue={filter.to ?? ""} className={select} />
-        </div>
+        <DateRangeField id="tf-dates" label="Raised" pickerLabel="Raised between" from={filter.from} to={filter.to} />
         <div>
           <label htmlFor="tf-dept" className="field-label">
             Department

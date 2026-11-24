@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { saveCalendarItemAction } from "@/app/users/calendar-actions";
 import { FieldError, ResultMessage, SubmitButton, useActionForm } from "@/features/ui/form";
+import { DateRangePicker } from "@/features/ui/DateRangePicker";
 
 export interface EntryValues {
   itemId?: number;
@@ -20,6 +21,17 @@ export interface EntryValues {
 export function EntryForm({ values, submitLabel }: { values: EntryValues; submitLabel: string }) {
   const { result, pending, onSubmit, formRef } = useActionForm(saveCalendarItemAction, { resetOnSuccess: values.itemId === undefined });
   const [allDay, setAllDay] = useState(values.allDay);
+  // v1.89.0 (D-425): the shared date picker (the app's day format, keyboard grid, phone sheet)
+  // instead of native date inputs; the form still sends date / endDate (yyyy-mm-dd).
+  const [date, setDate] = useState(values.date);
+  const [endDate, setEndDate] = useState(values.endDate);
+  const [round, setRound] = useState(0);
+  useEffect(() => {
+    if (!result?.ok || values.itemId !== undefined) return;
+    setDate(values.date);
+    setEndDate(values.endDate);
+    setRound((value) => value + 1);
+  }, [result, values.date, values.endDate, values.itemId]);
   return (
     <form ref={formRef} onSubmit={onSubmit} className="grid grid-cols-1 gap-3 sm:grid-cols-2" aria-label={values.itemId ? "Edit entry" : "New entry"}>
       {values.itemId !== undefined && <input type="hidden" name="itemId" value={values.itemId} />}
@@ -32,17 +44,50 @@ export function EntryForm({ values, submitLabel }: { values: EntryValues; submit
         <input type="checkbox" name="allDay" checked={allDay} onChange={(event) => setAllDay(event.target.checked)} className="h-4 w-4" />
         All day
       </label>
-      <label className="text-label">
-        {allDay ? "From" : "Date"}
-        <input name="date" type="date" required defaultValue={values.date} className="field-input mt-1 w-full" />
+      <div className="text-label">
+        <span id={`entry-date-label-${values.itemId ?? "new"}`} className="block">
+          {allDay ? "From" : "Date"}
+        </span>
+        <span className="mt-1 block">
+          <DateRangePicker
+            key={`d${round}`}
+            mode="single"
+            idBase={`entry-date-${values.itemId ?? "new"}`}
+            label={allDay ? "From" : "Date"}
+            dueLabel={allDay ? "From" : "Date"}
+            value={{ start: "", due: date }}
+            onChange={(next) => setDate(next.due)}
+            names={{ due: "date" }}
+            placeholder="Choose a day"
+            triggerDescribedBy={`entry-date-label-${values.itemId ?? "new"}`}
+            testId="entry-date"
+          />
+        </span>
         <FieldError result={result} name="date" />
-      </label>
+      </div>
       {allDay ? (
-        <label className="text-label">
-          To (optional)
-          <input name="endDate" type="date" defaultValue={values.endDate} className="field-input mt-1 w-full" />
+        <div className="text-label">
+          <span id={`entry-end-label-${values.itemId ?? "new"}`} className="block">
+            To (optional)
+          </span>
+          <span className="mt-1 block">
+            <DateRangePicker
+              key={`e${round}`}
+              mode="single"
+              idBase={`entry-end-${values.itemId ?? "new"}`}
+              label="To"
+              dueLabel="To"
+              value={{ start: "", due: endDate }}
+              onChange={(next) => setEndDate(next.due)}
+              min={date || undefined}
+              names={{ due: "endDate" }}
+              placeholder="Same day"
+              triggerDescribedBy={`entry-end-label-${values.itemId ?? "new"}`}
+              testId="entry-end-date"
+            />
+          </span>
           <FieldError result={result} name="endDate" />
-        </label>
+        </div>
       ) : (
         <div className="grid grid-cols-2 gap-3">
           <label className="text-label">

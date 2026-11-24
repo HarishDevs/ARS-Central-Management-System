@@ -3,11 +3,28 @@
 import { createDelegationAction, stopDelegationAction } from "@/app/users/collab-actions";
 import { FieldError, ResultMessage, SubmitButton, useActionForm } from "@/features/ui/form";
 import { PersonSelect } from "@/features/ui/PersonSelect";
+import { DateRangePicker, type DateRangeValue } from "@/features/ui/DateRangePicker";
+import { addDays } from "@/features/ui/date-range";
+import { useEffect, useState } from "react";
+
+// D-415: at most 90 days, both ends counted (checkDelegationInput says the same on the server).
+const MAX_DAYS = 90;
 
 // Out of office (F-30, D-062). userId is set only when IT sets it for someone.
 // v1.85.3 (owner): dates may go back up to 30 days (earliest), to record leave already taken.
 export function DelegationForm({ people, today, earliest, userId }: { people: { id: number; label: string; detail?: string }[]; today: string; earliest: string; userId?: number }) {
   const { result, pending, formRef, onSubmit } = useActionForm(createDelegationAction, { resetOnSuccess: true });
+  // v1.89.0 (D-425): the shared date picker (From – To) instead of two native date inputs. The D-415
+  // rules stay: the earliest day is 30 days back (min), and once From is chosen the last day
+  // offered is From + 89 (90 days). A saved out-of-office starts the picker again from today.
+  const fresh: DateRangeValue = { start: today, due: "" };
+  const [dates, setDates] = useState<DateRangeValue>(fresh);
+  const [round, setRound] = useState(0);
+  useEffect(() => {
+    if (!result?.ok) return;
+    setDates({ start: today, due: "" });
+    setRound((value) => value + 1);
+  }, [result, today]);
   return (
     <form ref={formRef} onSubmit={onSubmit} className="grid gap-3 px-5 py-4 sm:grid-cols-2">
       {userId && <input type="hidden" name="userId" value={userId} />}
@@ -27,20 +44,28 @@ export function DelegationForm({ people, today, earliest, userId }: { people: { 
         />
         <FieldError result={result} name="delegateId" />
       </div>
-      <div>
-        <label htmlFor="d-from" className="field-label">
-          From
-        </label>
-        <input id="d-from" name="startsOn" type="date" defaultValue={today} min={earliest} aria-describedby="d-dates-hint" className="field-input" />
-      </div>
-      <div>
-        <label htmlFor="d-to" className="field-label">
-          To (inclusive)
-        </label>
-        <input id="d-to" name="endsOn" type="date" min={earliest} aria-describedby="d-dates-hint" className="field-input" />
+      <div className="sm:col-span-2">
+        <span id="d-dates-label" className="field-label">
+          Away from – to (inclusive)
+        </span>
+        <DateRangePicker
+          key={round}
+          idBase="d-dates"
+          label="Out of office dates"
+          startLabel="From"
+          dueLabel="To"
+          value={dates}
+          onChange={setDates}
+          min={earliest}
+          max={dates.start ? addDays(dates.start, MAX_DAYS - 1) : ""}
+          names={{ start: "startsOn", due: "endsOn" }}
+          placeholder="Choose dates"
+          triggerDescribedBy="d-dates-label d-dates-hint"
+          testId="delegation-dates"
+        />
       </div>
       <p id="d-dates-hint" className="text-caption text-ink-muted sm:col-span-2">
-        You can go back up to 30 days to record leave already taken. Dates that are already over are only recorded: nobody is asked to cover them.
+        You can go back up to 30 days to record leave already taken, for up to 90 days at a time. Dates that are already over are only recorded: nobody is asked to cover them.
       </p>
       <div className="sm:col-span-2">
         <label htmlFor="d-reason" className="field-label">

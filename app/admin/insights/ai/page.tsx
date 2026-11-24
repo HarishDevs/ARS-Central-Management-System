@@ -21,6 +21,7 @@ import { parseColumnSort, sortRows } from "@/server/lists/sorting";
 import { departmentBucket, groupRows, pickGroup } from "@/server/lists/group-rows";
 import { groupMenu, keepListState } from "@/server/admin/lists";
 import { ListPage } from "@/features/ui/ListPage";
+import { DateRangeField } from "@/features/ui/DateRangeField";
 
 // v1.58.0 (D-354, owner): both tables sort on every column, both ways
 // ("p_" Providers, "u_" Top users; one table at a time); Group by Department
@@ -138,18 +139,7 @@ export default async function AiAnalyticsPage({ searchParams }: { searchParams: 
                 <option value="custom">Custom dates</option>
               </select>
             </div>
-            <div>
-              <label htmlFor="ai-from" className="field-label">
-                From
-              </label>
-              <input id="ai-from" type="date" name="from" defaultValue={period.key === "custom" ? period.from : ""} className="field-input field-compact" />
-            </div>
-            <div>
-              <label htmlFor="ai-to" className="field-label">
-                To
-              </label>
-              <input id="ai-to" type="date" name="to" defaultValue={period.key === "custom" ? period.to : ""} className="field-input field-compact" />
-            </div>
+            <DateRangeField id="ai-dates" label="Dates" pickerLabel="Custom period" from={period.key === "custom" ? period.from : ""} to={period.key === "custom" ? period.to : ""} />
           </>
         }
       />

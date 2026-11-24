@@ -29,6 +29,7 @@ import { NoResults } from "@/features/ui/Display";
 import { isMobileLayout } from "@/server/ui/layout-mode";
 import { MobileInfoList, type MobileInfoRow } from "@/features/mobile/MobileInfoList";
 import { ListPage } from "@/features/ui/ListPage";
+import { DateRangeField } from "@/features/ui/DateRangeField";
 
 // D-226: the sorts offered in the toolbar.
 const INFO_SORTS = ["newest", "oldest", "expiry"] as const;
@@ -220,14 +221,8 @@ export async function InfoListScreen({ base, query }: { base: InfoBase; query: R
                 />
               </div>
             )}
-            <label className="text-label">
-              {base === "INBOX" ? "Published from" : "Created from"}
-              <input type="date" name="from" defaultValue={filters.from ?? ""} className="field-input field-compact" />
-            </label>
-            <label className="text-label">
-              To
-              <input type="date" name="to" defaultValue={filters.to ?? ""} className="field-input field-compact" />
-            </label>
+            {/* v1.89.0 (D-425): one From – To picker instead of two native date inputs. */}
+            <DateRangeField id="info-dates" label={base === "INBOX" ? "Published" : "Created"} pickerLabel={base === "INBOX" ? "Published between" : "Created between"} from={filters.from} to={filters.to} />
           </>
         }
         sort={{

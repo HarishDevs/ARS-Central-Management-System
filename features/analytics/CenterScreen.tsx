@@ -1,5 +1,6 @@
 import { formatDate } from "@/lib/format/date";
 import { ClientSortTable } from "@/features/ui/ClientSortTable";
+import { DateRangeField } from "@/features/ui/DateRangeField";
 import { TicketBoard } from "@/features/analytics/TicketBoard";
 import { ComingSoonCard } from "@/features/ui/ComingSoon";
 import { TaskPriorityPill } from "@/features/ui/ChoicePill";
@@ -180,18 +181,8 @@ export async function CenterScreen({ base, board, boards, soon = [], modules, qu
             ))}
           </select>
         </div>
-        <div>
-          <label htmlFor="from" className="field-label">
-            From <span className="font-normal text-ink-faint">(custom)</span>
-          </label>
-          <input id="from" name="from" type="date" defaultValue={period.from} className="field-input field-compact" />
-        </div>
-        <div>
-          <label htmlFor="to" className="field-label">
-            To <span className="font-normal text-ink-faint">(custom)</span>
-          </label>
-          <input id="to" name="to" type="date" defaultValue={period.to} className="field-input field-compact" />
-        </div>
+        {/* v1.89.0 (D-425): one From – To picker instead of two native date inputs. */}
+        <DateRangeField id="period-dates" label="Dates" hint="(custom)" pickerLabel="Custom period" from={period.from} to={period.to} />
         <div>
           <label htmlFor="compare" className="field-label">
             Compare with
