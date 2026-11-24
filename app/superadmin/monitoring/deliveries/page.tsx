@@ -62,11 +62,11 @@ export default async function DeliveriesPage({ searchParams }: { searchParams: P
   const head = sortHeads(PATH, query, sort);
   const rowOf = (delivery: (typeof deliveries)[number]) => (
     <tr key={delivery.id}>
-      <td className="whitespace-nowrap">{formatIndiaTime(delivery.createdAt)}</td>
-      <td>{delivery.eventType}</td>
-      <td>{delivery.recipientName}</td>
-      <td>{delivery.channel === "EMAIL" ? "Email" : "WhatsApp"}</td>
-      <td className="text-ink-muted">
+      <td data-label="When" className="whitespace-nowrap">{formatIndiaTime(delivery.createdAt)}</td>
+      <td data-card-title>{delivery.eventType}</td>
+      <td data-label="To">{delivery.recipientName}</td>
+      <td data-label="Channel">{delivery.channel === "EMAIL" ? "Email" : "WhatsApp"}</td>
+      <td data-label="Provider" className="text-ink-muted">
         {delivery.provider}
         {delivery.providerReference && (
           <p className="max-w-[16rem] truncate text-caption" title={delivery.providerReference}>
@@ -74,17 +74,17 @@ export default async function DeliveriesPage({ searchParams }: { searchParams: P
           </p>
         )}
       </td>
-      <td>
+      <td data-label="Status">
         {/* v1.54.14: an email marked SENT was accepted by the mail server; delivery to the inbox can't be seen from here. */}
         <span className={`badge ${STATUS_STYLE[delivery.status] ?? ""}`} title={delivery.channel === "EMAIL" && delivery.status === "SENT" ? "Accepted by the mail server. Whether it reached the inbox can't be seen from here." : undefined}>
           {delivery.channel === "EMAIL" && delivery.status === "SENT" ? "ACCEPTED" : delivery.status}
         </span>
       </td>
-      <td className="text-ink-muted">
+      <td data-label="Reason" className="text-ink-muted">
         {delivery.failureCode ?? ""}
         {delivery.nextRetryAt && <p className="text-caption">Next try {formatIndiaTime(delivery.nextRetryAt)}</p>}
       </td>
-      <td>{delivery.attemptCount}</td>
+      <td data-label="Tries">{delivery.attemptCount}</td>
       <td>{delivery.canRetry && <RetryButton deliveryId={delivery.id} />}</td>
     </tr>
   );
@@ -100,7 +100,7 @@ export default async function DeliveriesPage({ searchParams }: { searchParams: P
         <EmptyState title="Nothing here" body="No messages match the period and filters chosen. Sign-in alerts, notifications and test sends appear here." />
       ) : (
         <FoldScope enabled={Boolean(group)}>
-          <div className="card overflow-x-auto">
+          <div className="card table-cards overflow-x-auto">
             <table className="data-table">
               <thead>
                 <tr>

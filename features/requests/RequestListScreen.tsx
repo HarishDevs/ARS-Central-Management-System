@@ -1,3 +1,4 @@
+import { Avatar } from "@/features/ui/Avatar";
 import { groupOrder, NO_VALUE, type ListGroupData } from "@/server/requests/list-groups";
 import Link from "next/link";
 import { Fragment } from "react";
@@ -104,14 +105,6 @@ function rowActions(item: ListedRequest, userId: number): RowAction[] {
   ];
 }
 
-const initialsOf = (name: string) =>
-  name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]!.toUpperCase())
-    .join("");
-
 // Page numbers with gaps: 1 … 4 5 6 … 12.
 function pageList(page: number, pages: number): (number | "gap")[] {
   const wanted = new Set([1, pages, page - 1, page, page + 1].filter((value) => value >= 1 && value <= pages));
@@ -216,9 +209,7 @@ export function RequestListScreen({
                       .split(", ")
                       .slice(0, 3)
                       .map((name) => (
-                        <span key={name} className="grid h-6 w-6 place-items-center rounded-full bg-primary-solid text-[10px] font-semibold text-on-solid ring-2 ring-surface">
-                          {initialsOf(name)}
-                        </span>
+                        <Avatar key={name} name={name} src={null} size="xs" className="ring-2 ring-surface" />
                       ))}
                   </span>
                 )}

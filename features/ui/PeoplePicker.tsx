@@ -1,5 +1,6 @@
 "use client";
 
+import { Avatar } from "@/features/ui/Avatar";
 import { useId, useMemo, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { useFitPanel } from "@/features/ui/fit";
@@ -110,9 +111,7 @@ export function PeoplePicker({
         <ul className="mb-2 flex flex-wrap gap-2" aria-label={`${label}: chosen`}>
           {chosen.map((personId) => (
             <li key={personId} className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface-muted py-0.5 pl-1 pr-1 text-label" title={byId.get(personId)?.detail}>
-              <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-primary-solid text-[10px] font-semibold text-on-solid" aria-hidden="true">
-                {initialsOf(byId.get(personId)?.label ?? "?")}
-              </span>
+              <Avatar name={byId.get(personId)?.label ?? "?"} src={null} size="xs" />
               {byId.get(personId)?.label ?? `#${personId}`}
               <button
                 type="button"

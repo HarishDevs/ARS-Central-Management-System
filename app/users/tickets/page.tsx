@@ -55,32 +55,33 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
           </Link>
         ))}
       </nav>
-      <div className="mb-3 flex flex-wrap items-center gap-2" role="group" aria-label="Status">
-        {(Object.keys(STATES) as (keyof typeof STATES)[]).map((key) => (
-          <Link key={key} href={href({ state: key, page: 1 })} aria-current={state === key ? "page" : undefined} className={`rounded-full border px-3 py-1 text-label ${state === key ? "border-primary-600 bg-primary-50 text-primary-700" : "border-line text-ink-muted hover:bg-surface-muted"}`}>
-            {STATES[key]}
-          </Link>
-        ))}
-        <span className="text-label text-ink-muted" role="status">
-          {total.toLocaleString("en-IN")} ticket{total === 1 ? "" : "s"}
-        </span>
-        <div className="ml-auto">
-          <ListToolbar
-            id="ticket-list"
-            path="/users/tickets"
-            label="Find tickets"
-            keep={{ view, state, group: group ?? undefined, ...sortKeep }}
-            search={{ name: "q", value: q, placeholder: "Ticket number or subject" }}
-            filterCount={0}
-            clearHref={q ? href({ q: null, page: 1 }) : null}
-            group={{
-              label: group ? TICKET_GROUP_LABEL[group] : null,
-              clearHref: href({ group: null, page: 1 }),
-              choices: TICKET_GROUPS.map((value) => ({ label: TICKET_GROUP_LABEL[value], href: href({ group: value, page: 1 }), active: group === value })),
-            }}
-          />
-        </div>
-      </div>
+      <ListToolbar
+        id="ticket-list"
+        path="/users/tickets"
+        label="Find tickets"
+        // v1.89.0 (D-422, UIQA-CON-01): the status pills lead the shared toolbar row (one list pattern).
+        lead={
+          <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Status">
+          {(Object.keys(STATES) as (keyof typeof STATES)[]).map((key) => (
+            <Link key={key} href={href({ state: key, page: 1 })} aria-current={state === key ? "page" : undefined} className={`rounded-full border px-3 py-1 text-label ${state === key ? "border-primary-600 bg-primary-50 text-primary-700" : "border-line text-ink-muted hover:bg-surface-muted"}`}>
+              {STATES[key]}
+            </Link>
+          ))}
+          <span className="text-label text-ink-muted" role="status">
+            {total.toLocaleString("en-IN")} ticket{total === 1 ? "" : "s"}
+          </span>
+          </div>
+        }
+        keep={{ view, state, group: group ?? undefined, ...sortKeep }}
+        search={{ name: "q", value: q, placeholder: "Ticket number or subject" }}
+        filterCount={0}
+        clearHref={q ? href({ q: null, page: 1 }) : null}
+        group={{
+          label: group ? TICKET_GROUP_LABEL[group] : null,
+          clearHref: href({ group: null, page: 1 }),
+          choices: TICKET_GROUPS.map((value) => ({ label: TICKET_GROUP_LABEL[value], href: href({ group: value, page: 1 }), active: group === value })),
+        }}
+      />
       {/* v1.58.0 (D-354): saved views (private) of this list: tab, status, search, group, sort. */}
       <ListViews userId={user.id} target="list_my_tickets" path="/users/tickets" query={{ view, state, ...(group ? { group } : {}), ...(q ? { q } : {}), ...sortKeep }} />
       {items.length === 0 ? (

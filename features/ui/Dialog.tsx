@@ -169,7 +169,7 @@ export function Dialog({
           )}
           <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4" {...(variant === "drawer" ? sheet : {})}>
             <div>
-              <h2 id={titleId} className="font-semibold">
+              <h2 id={titleId} className="text-section">
                 {title}
               </h2>
               {description && (
@@ -178,7 +178,7 @@ export function Dialog({
                 </div>
               )}
             </div>
-            <button type="button" onClick={requestClose} aria-label="Close" disabled={locked} className="-mr-2 -mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-ink-muted hover:bg-surface-muted hover:text-ink">
+            <button type="button" onClick={requestClose} aria-label="Close" disabled={locked} className="icon-btn -mr-2 -mt-1">
               <X aria-hidden="true" className="h-4 w-4" />
             </button>
           </div>

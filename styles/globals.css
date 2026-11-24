@@ -539,6 +539,15 @@ body {
   .btn-compact {
     @apply h-control-sm w-auto px-3 text-label;
   }
+  /* v1.89.0 (D-422): one icon-only button (a dialog's or pane's ×, a header
+     tool): 40 square, 32 for the small one, 44 on touch screens; the caller
+     gives it an aria-label. */
+  .icon-btn {
+    @apply inline-flex h-control-md w-control-md shrink-0 items-center justify-center rounded-md text-ink-muted transition-colors hover:bg-surface-muted hover:text-ink disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .icon-btn-sm {
+    @apply h-control-sm w-control-sm;
+  }
   /* v1.89.0 (D-421): the large size (phone decision bar, sign-in). */
   .btn-lg {
     @apply h-control-lg px-6;
@@ -650,6 +659,90 @@ body {
   }
 }
 
+/* v1.89.0 (D-422): the form designer (FormFieldsEditor) picks one or three
+   columns from its own width with a container query, so its first paint is
+   final (it was measured after hydration: a 0.098 layout shift at 1920). */
+.ffe {
+  container: ffe / inline-size;
+}
+.ffe-lib {
+  border-bottom: 1px solid var(--color-border-default);
+  padding: var(--space-3) 20px;
+}
+.ffe-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ffe-group {
+  display: contents;
+}
+.ffe-group-label,
+.ffe-wide-only,
+.ffe-props {
+  display: none;
+}
+.ffe-type {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--color-border-default);
+  border-radius: 9999px;
+  padding: var(--space-1) 10px;
+  font-size: calc(12px * var(--text-scale, 1));
+  line-height: calc(16px * var(--text-scale, 1));
+}
+@container ffe (min-width: 960px) {
+  .ffe-grid {
+    display: grid;
+    grid-template-columns: 13rem minmax(0, 1fr) 22rem;
+    align-items: start;
+  }
+  .ffe-lib {
+    position: sticky;
+    top: 5rem;
+    border-bottom: 0;
+    border-right: 1px solid var(--color-border-default);
+    padding: var(--space-3);
+  }
+  .ffe-nav {
+    display: block;
+  }
+  .ffe-nav > * + * {
+    margin-top: var(--space-4);
+  }
+  .ffe-group {
+    display: block;
+  }
+  .ffe-group > * + * {
+    margin-top: var(--space-1);
+  }
+  .ffe-group-label,
+  .ffe-wide-only {
+    display: block;
+  }
+  .ffe-wide-only {
+    display: inline;
+  }
+  .ffe-narrow-only {
+    display: none;
+  }
+  .ffe-props {
+    display: block;
+  }
+  .ffe-type {
+    display: flex;
+    width: 100%;
+    gap: var(--space-2);
+    border: 0;
+    border-radius: var(--radius-control);
+    padding: 6px var(--space-2);
+    text-align: left;
+    font-size: calc(var(--text-body) * var(--text-scale, 1));
+    line-height: calc(20px * var(--text-scale, 1));
+  }
+}
+
 /* Phones and tablets (spec #5): fingers need bigger targets than a mouse.
    v1.89.0 (D-421, UIQA-RESP-05): every named control size, not only
    btn-compact and field-input (the md button is 40 and the sm sizes 32). */
@@ -657,6 +750,10 @@ body {
   :is(.btn-primary, .btn-secondary, .btn-danger, .btn-danger-quiet, .btn-ghost, .btn-compact, .tb-btn, .tb-split, .pill-select),
   .field-input {
     min-height: var(--touch-min);
+  }
+  .icon-btn {
+    min-height: var(--touch-min);
+    min-width: var(--touch-min);
   }
   /* v1.89.0 (D-422, rest of UIQA-RESP-05): TaskGrid's inline editors (the
      priority select, a section's name) and the round task checks reach 44 on

@@ -96,23 +96,26 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
         </Link>
       </PageHeader>
       <MeetingSections current="/users/meetings" />
-      <nav aria-label="Meeting lists" className="mb-3 flex flex-wrap gap-2">
-        {TABS.map((item) => (
-          <Link
-            key={item.key}
-            href={href({ tab: item.key, page: 1 })}
-            aria-current={tab === item.key ? "page" : undefined}
-            className={`rounded-full border px-3 py-1 text-label ${tab === item.key ? "border-primary-600 bg-primary-50 font-semibold text-primary-700" : "border-line text-ink-muted hover:text-ink"}`}
-          >
-            {item.label}
-            {item.key === "approve" && approveCount.total > 0 ? ` (${approveCount.total})` : ""}
-          </Link>
-        ))}
-      </nav>
       {/* v1.51.1 (owner): toolbar filters only (Filter, Search icon). */}
       <ListToolbar
         id="meeting-filters"
         path="/users/meetings"
+        // v1.89.0 (D-422, UIQA-CON-01): the list tabs lead the shared toolbar row (one list pattern).
+        lead={
+            <nav aria-label="Meeting lists" className="flex flex-wrap gap-2">
+              {TABS.map((item) => (
+                <Link
+                  key={item.key}
+                  href={href({ tab: item.key, page: 1 })}
+                  aria-current={tab === item.key ? "page" : undefined}
+                  className={`rounded-full border px-3 py-1 text-label ${tab === item.key ? "border-primary-600 bg-primary-50 font-semibold text-primary-700" : "border-line text-ink-muted hover:text-ink"}`}
+                >
+                  {item.label}
+                  {item.key === "approve" && approveCount.total > 0 ? ` (${approveCount.total})` : ""}
+                </Link>
+              ))}
+            </nav>
+        }
         label="Filter meetings"
         keep={{ tab: tab !== "upcoming" ? tab : undefined, group: group ?? undefined, sortBy: sort.sortBy ?? undefined, dir: sort.sortBy ? sort.dir : undefined }}
         search={{ name: "q", value: q, placeholder: "Title or meeting number" }}
@@ -177,7 +180,7 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
         // v1.56.0 (D-333, owner: "i want the meeting to be like table format like the tickets").
         // v1.58.0 (D-354, owner): groups start folded; Expand all / Collapse all.
         <FoldScope enabled={Boolean(group)}>
-        <div className="card overflow-x-auto">
+        <div className="card table-cards overflow-x-auto">
           <table className="data-table" data-testid="meeting-list">
             <caption className="sr-only">Meetings</caption>
             <thead>
@@ -191,12 +194,12 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
             {(group ? groupRows(list.rows, (row) => meetingBucket(row, group)) : [{ key: "all", label: "", items: list.rows }]).map((section) => {
               const rows = section.items.map((row) => (
                 <tr key={row.id}>
-                  <td className="whitespace-nowrap font-mono text-label">
+                  <td data-label={MEETING_SORT_LABEL.no} className="whitespace-nowrap font-mono text-label">
                     <Link href={`/users/meetings/${row.id}`} className="link">
                       {row.meetingNo}
                     </Link>
                   </td>
-                  <td>
+                  <td data-card-title>
                     <Link href={`/users/meetings/${row.id}`} className="link font-medium">
                       {row.title}
                     </Link>
@@ -205,8 +208,8 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
                       {row.openActions > 0 ? ` · ${row.openActions} open action(s)` : ""}
                     </p>
                   </td>
-                  <td className="whitespace-nowrap text-label">{whenText(row.scheduledStart, row.scheduledEnd)}</td>
-                  <td className="text-label">
+                  <td data-label={MEETING_SORT_LABEL.when} className="whitespace-nowrap text-label">{whenText(row.scheduledStart, row.scheduledEnd)}</td>
+                  <td data-label={MEETING_SORT_LABEL.mode} className="text-label">
                     {MODE_LABEL[row.mode]}
                     {row.venue && <span className="block text-caption text-ink-muted">{row.venue}</span>}
                     {row.link && (
@@ -215,14 +218,14 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
                       </a>
                     )}
                   </td>
-                  <td className="text-label">{row.ownerName}</td>
-                  <td className="text-label">{row.coordinatorName}</td>
-                  <td className="text-label">{row.departmentName ?? "—"}</td>
-                  <td>
+                  <td data-label={MEETING_SORT_LABEL.owner} className="text-label">{row.ownerName}</td>
+                  <td data-label={MEETING_SORT_LABEL.coordinator} className="text-label">{row.coordinatorName}</td>
+                  <td data-label={MEETING_SORT_LABEL.dept} className="text-label">{row.departmentName ?? "—"}</td>
+                  <td data-label={MEETING_SORT_LABEL.priority}>
                     <TaskPriorityPill priority={row.priority} showNormal />
                   </td>
-                  <td className="text-label tabular-nums">{row.participants}</td>
-                  <td>
+                  <td data-label={MEETING_SORT_LABEL.invited} className="text-label tabular-nums">{row.participants}</td>
+                  <td data-label={MEETING_SORT_LABEL.status}>
                     <span className="flex flex-col items-start gap-1">
                       <MeetingStatusBadge status={row.status} />
                       {(row.status === "SCHEDULED" || row.status === "IN_PROGRESS") && <PointsBadge status={row.pointsStatus} />}

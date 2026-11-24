@@ -262,10 +262,15 @@ export function FormFieldsEditor({
   );
 
   const library = (
-    <nav aria-label="Add a field" className={wide ? "space-y-4" : "flex flex-wrap gap-1.5"} data-testid="field-library">
+    // v1.89.0 (D-422, the 0.098 layout shift on Admin → Set-up → Custom approval
+    // at 1920): the one- or three-column look comes from a CSS container query
+    // on the designer's own width (.ffe in globals.css), so the first paint is
+    // already right; JavaScript (useWide) only decides where the properties of
+    // a chosen field open, which follows a click.
+    <nav aria-label="Add a field" className="ffe-nav" data-testid="field-library">
       {(["BASIC", "ADVANCED", "LAYOUT"] as FieldGroup[]).map((group) => (
-        <div key={group} className={wide ? "space-y-1" : "contents"}>
-          {wide && <p className="px-1 text-caption font-semibold text-ink-faint">{GROUP_LABEL[group]}</p>}
+        <div key={group} className="ffe-group">
+          <p className="ffe-group-label px-1 text-caption font-semibold text-ink-faint">{GROUP_LABEL[group]}</p>
           {choices.filter((choice) => choice.group === group).map((choice) => {
             const Icon = TYPE_ICON[choice.value] ?? Type;
             return (
@@ -280,11 +285,7 @@ export function FormFieldsEditor({
                 onClick={() => add(choice.value)}
                 aria-label={intake ? `Add a ${choice.short} question` : `Add a ${choice.short} field`}
                 title={choice.label}
-                className={
-                  wide
-                    ? "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-label text-ink hover:bg-surface-muted"
-                    : "inline-flex items-center gap-1.5 rounded-full border border-line px-2.5 py-1 text-caption text-ink hover:bg-surface-muted"
-                }
+                className="ffe-type text-ink hover:bg-surface-muted"
               >
                 <Icon aria-hidden="true" className="h-4 w-4 shrink-0 text-ink-muted" />
                 {choice.short}
@@ -297,7 +298,7 @@ export function FormFieldsEditor({
   );
 
   return (
-    <section ref={box} className="card" aria-labelledby="form-fields-title" onKeyDown={onKeyDown} data-testid="form-designer">
+    <section ref={box} className="ffe card" aria-labelledby="form-fields-title" onKeyDown={onKeyDown} data-testid="form-designer">
       <div className="flex flex-wrap items-center gap-2 border-b border-line px-5 py-3">
         <div className="flex items-center gap-1.5">
           <h2 id="form-fields-title" className="font-semibold">
@@ -324,8 +325,8 @@ export function FormFieldsEditor({
         </span>
       </div>
 
-      <div className={wide ? "grid grid-cols-[13rem_minmax(0,1fr)_22rem] items-start" : ""}>
-        {wide ? <aside className="sticky top-20 border-r border-line p-3">{library}</aside> : <div className="border-b border-line px-5 py-3">{library}</div>}
+      <div className="ffe-grid">
+        <div className="ffe-lib">{library}</div>
 
         <div className="min-w-0 p-3">
           {form.length === 0 ? (
@@ -460,14 +461,14 @@ export function FormFieldsEditor({
               {intake ? "New question" : "Add field"}
             </button>
             <span className="text-caption text-ink-muted">
-              or pick a type{wide ? " on the left" : " above"}; drag {intake ? "questions" : "fields"}, or Alt+↑/↓, to change the order.
+              or pick a type<span className="ffe-wide-only"> on the left</span><span className="ffe-narrow-only"> above</span>; drag {intake ? "questions" : "fields"}, or Alt+↑/↓, to change the order.
             </span>
           </div>
         </div>
 
-        {wide && (
-          <aside className="sticky top-20 min-h-[12rem] border-l border-line p-4" aria-label="Field properties">
-            {selectedField && selected ? (
+        {/* Always drawn (CSS shows it from 960 px); the chosen field's properties only when wide, so they are never drawn twice. */}
+        <aside className="ffe-props sticky top-20 min-h-[12rem] border-l border-line p-4" aria-label="Field properties">
+            {wide && selectedField && selected ? (
               <>
                 <p className="mb-3 truncate text-label font-semibold">{selectedField.label || "Untitled field"}</p>
                 <Problems problems={[...fieldProblems(selectedField, form), ...(problemsFor ? problemsFor(selectedField) : [])]} field={selectedField} form={form} />
@@ -477,7 +478,6 @@ export function FormFieldsEditor({
               <p className="text-label text-ink-muted">{intake ? "Choose a question to see and change it." : "Choose a field to see and change its properties."}</p>
             )}
           </aside>
-        )}
       </div>
 
       <ConfirmDialog

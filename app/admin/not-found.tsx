@@ -1,28 +1,8 @@
-import Link from "next/link";
-import { SearchX } from "lucide-react";
+import { NOT_FOUND_BODY, NOT_FOUND_TITLE, StatePage } from "@/features/ui/StatePage";
 
 // FB-07: the same page whether something doesn't exist or isn't yours to
 // see, so it never confirms that a private request exists (D-016).
+// v1.89.0 (D-422, UIQA-CON-16): the shared StatePage with the Admin home (Admin has no record search box; it was the requests search before).
 export default function NotFound() {
-  return (
-    <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 px-4 py-12 text-center">
-      <span aria-hidden="true" className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-muted text-ink-faint">
-        <SearchX className="h-6 w-6" />
-      </span>
-      <h1 className="text-page-title">This page isn&apos;t available</h1>
-      <p className="max-w-md text-ink-muted">The link may be wrong, the item may have been removed, or it may not be shared with you.</p>
-      <form action="/users/search" method="get" className="flex w-full max-w-sm gap-2">
-        <label htmlFor="nf-q" className="sr-only">
-          Search your requests
-        </label>
-        <input id="nf-q" name="q" type="search" placeholder="Search by number or title" className="field-input" />
-        <button type="submit" className="btn-secondary">
-          Search
-        </button>
-      </form>
-      <Link href="/users" className="link">
-        Go to Overview
-      </Link>
-    </div>
-  );
+  return <StatePage kind="not-found" title={NOT_FOUND_TITLE} body={NOT_FOUND_BODY} home={{ href: "/admin", label: "Go to the Admin home" }} />;
 }

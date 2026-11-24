@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { FolderKanban } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { extrasOn } from "@/server/work/templates";
 import { projectTemplatesHref } from "@/features/shell/nav-routes";
-import { PageHeader } from "@/features/shell/PageHeader";
+import { ListPage } from "@/features/ui/ListPage";
+import { ListToolbar } from "@/features/ui/ListToolbar";
 import { Badge, EmptyState, NoResults } from "@/features/ui/Display";
 import { ProjectDot } from "@/features/work/client";
 import { ProjectCommandButton, StarButton } from "@/features/work/ProjectForms";
@@ -42,27 +42,38 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
   );
   return (
     <>
-      <PageHeader title="Projects" icon={FolderKanban} description="Projects group tasks in sections, with list, board, calendar and timeline views, members and status updates." >
-        <Link href="/users/work/projects/new" className="btn-primary btn-compact inline-flex items-center gap-1" data-testid="create-project">
-          + Create project
-        </Link>
-      </PageHeader>
-      <div>
+      {/* v1.89.0 (D-422, UIQA-CON-01): the shared list page: PageHeader, the view
+          tabs and the shared toolbar (Search) instead of a page-made search box. */}
+      <ListPage
+        title="Projects"
+        description="Projects group tasks in sections, with list, board, calendar and timeline views, members and status updates."
+        action={
+          <Link href="/users/work/projects/new" className="btn-primary btn-compact inline-flex items-center gap-1" data-testid="create-project">
+            + Create project
+          </Link>
+        }
+        toolbar={
+          <ListToolbar
+            id="project-list"
+            path="/users/work/projects"
+            label="Find a project"
+            keep={{ show: show !== "all" ? show : undefined }}
+            search={{ name: "q", value: q, placeholder: "Find a project…" }}
+            filterCount={0}
+            clearHref={null}
+            lead={
+              <nav aria-label="Project views" className="flex flex-wrap items-center gap-2">
+                {tab("all", "All I can see")}
+                {tab("mine", "I'm a member")}
+                {tab("archived", "Archived")}
+                {tab("templates", `Templates (${templates.length})`)}
+                {tab("deleted", "Deleted")}
+              </nav>
+            }
+          />
+        }
+      >
         <section aria-label="Project list" className="space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            {tab("all", "All I can see")}
-            {tab("mine", "I'm a member")}
-            {tab("archived", "Archived")}
-            {tab("templates", `Templates (${templates.length})`)}
-            {tab("deleted", "Deleted")}
-            <form className="ml-auto" action="/users/work/projects">
-              {show !== "all" && <input type="hidden" name="show" value={show} />}
-              <label htmlFor="project-q" className="sr-only">
-                Find a project
-              </label>
-              <input id="project-q" name="q" defaultValue={q} placeholder="Find a project…" className="field-input field-compact w-56 text-label" />
-            </form>
-          </div>
           {show === "templates" ? (
             templates.length === 0 ? (
               <EmptyState title="No templates yet" body="Open a project → Members & settings → Save as template. Its sections, fields and tasks (with their dates) become reusable." />
@@ -141,7 +152,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
             </ul>
           )}
         </section>
-      </div>
+      </ListPage>
     </>
   );
 }

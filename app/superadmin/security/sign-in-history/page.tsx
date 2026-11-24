@@ -47,22 +47,22 @@ export default async function LoginHistoryPage({ searchParams }: { searchParams:
   const keep = { group: group ?? undefined, sortBy: sort.sortBy ?? undefined, dir: sort.sortBy ? sort.dir : undefined };
   const rowOf = (item: (typeof items)[number]) => (
     <tr key={item.id}>
-      <td className="whitespace-nowrap">{formatIndiaTime(item.occurredAt)}</td>
-      <td>
+      <td data-label="When" className="whitespace-nowrap">{formatIndiaTime(item.occurredAt)}</td>
+      <td data-card-title>
         {item.userName ? <SafeText text={item.userName} /> : <span className="text-ink-faint">Unknown User ID</span>}
         {item.loginId && <p className="text-caption text-ink-muted">{item.loginId}</p>}
         {item.departmentName && <p className="text-caption text-ink-muted">{item.departmentName}</p>}
       </td>
-      <td>
+      <td data-label="How">
         {METHOD[item.method]}
         {item.step !== "GOOGLE" && <p className="text-caption text-ink-muted">step: {item.step === "OTP" ? "code" : "password"}</p>}
       </td>
-      <td>
+      <td data-label="Outcome">
         <span className={`badge ${item.success ? "bg-success-50 text-success-600" : "bg-danger-50 text-danger-600"}`}>{item.success ? "Signed in" : "Failed"}</span>
         {item.failureReason && <p className="text-caption text-ink-muted">{item.failureReason}</p>}
         {item.newDevice && <p className="text-caption text-warning-600">new device</p>}
       </td>
-      <td className="max-w-xs break-words text-caption text-ink-muted">
+      <td data-label="From" className="max-w-xs break-words text-caption text-ink-muted">
         {item.ipAddress ?? "—"}
         {item.userAgent && (
           <p className="truncate" title={item.userAgent}>
@@ -106,7 +106,7 @@ export default async function LoginHistoryPage({ searchParams }: { searchParams:
         )
       ) : (
         <FoldScope enabled={Boolean(group)}>
-          <div className="card overflow-x-auto">
+          <div className="card table-cards overflow-x-auto">
             <table className="data-table">
               <thead>
                 <tr>

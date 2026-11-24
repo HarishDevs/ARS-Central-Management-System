@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { Linter } from "eslint";
+import { buildCsp } from "@/lib/security/csp";
 import tsParser from "@typescript-eslint/parser";
 import { describe, expect, it } from "vitest";
 // @ts-expect-error -- a plain ESM module without types (the ESLint config imports it).
@@ -86,5 +87,16 @@ describe("control classes (D-422)", () => {
     walk("app");
     walk("features");
     expect(offenders).toEqual([]);
+  });
+  it("draws the form designer's one / three columns from a container query (no layout shift after hydration)", () => {
+    expect(css).toMatch(/\.ffe \{\s*container: ffe \/ inline-size;/);
+    expect(css).toMatch(/@container ffe \(min-width: 960px\)/);
+    const editor = read("features/admin/FormFieldsEditor.tsx");
+    expect(editor).toContain('className="ffe-grid"');
+    expect(editor).not.toMatch(/className=\{wide \?/);
+  });
+  it("keeps the strict CSP: Zod is told not to probe `new Function` in the browser (Firefox CSP console noise)", () => {
+    expect(read("instrumentation-client.ts")).toMatch(/config\(\{ jitless: true \}\)/);
+    expect(buildCsp("n0nce", { dev: false, firebaseAuthDomain: "example.firebaseapp.com" })).not.toContain("unsafe-eval");
   });
 });

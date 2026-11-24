@@ -195,7 +195,7 @@ export function HolidayPrompt() {
     <dialog ref={dialog} aria-labelledby="holiday-title" onCancel={() => answer(null)} className="ars-dialog w-[calc(100%-2rem)] max-w-md rounded-xl border border-line bg-raised p-0 text-ink shadow-overlay" data-testid="holiday-prompt">
       {ask && (
         <div className="space-y-3 p-5">
-          <h2 id="holiday-title" className="font-semibold">
+          <h2 id="holiday-title" className="text-section">
             {ask.info.away ? `${ask.info.day}: the person is out of office` : `${ask.info.day} is a holiday`}
           </h2>
           <p className="text-body">

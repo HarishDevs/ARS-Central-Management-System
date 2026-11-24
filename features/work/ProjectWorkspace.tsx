@@ -1,5 +1,6 @@
 "use client";
 
+import { Avatar } from "@/features/ui/Avatar";
 import { ApprovalBadge, approvalRowClass } from "@/features/work/ApprovalLink";
 import { ArrowDown, ArrowUp, ArrowUpDown, CalendarClock, ChevronDown, ChevronRight, Filter, GitBranch, GripVertical, Heart, Layers, ListPlus, Lock, MessageSquare, MoreHorizontal, Pencil, Plus, Repeat, Settings2, Trash2, Diamond, X, Zap } from "lucide-react";
 import { DueCell } from "@/features/work/DueCell";
@@ -10,7 +11,7 @@ import { dropTarget, focusNeighbour, lift, moveLifted, positionText, previewColu
 import { addSectionAction, fieldValueAction, projectTabAction, moveTaskAction, quickAddAction, quickAddManyAction, sectionAction, taskFieldsAction } from "@/app/users/work/actions";
 import { CREATE_TASK_EVENT, TaskCheck, usePaneLink, useWorkCall } from "@/features/work/client";
 import { dueLabel, indiaDayOf, TONE_TEXT } from "@/features/work/format";
-import { columnAccent, initialsOf } from "@/features/work/kanban";
+import { columnAccent } from "@/features/work/kanban";
 import { BulkBar, FieldInput, type FieldView } from "@/features/work/MoreParts";
 import { OptionsPanel, TaskGrid, type GridView } from "@/features/work/TaskGrid";
 import { AddTaskSplit, ADD_SECTION_EVENT, SortMenu, ViewSearch } from "@/features/work/ViewToolbar";
@@ -946,9 +947,7 @@ function TaskMeta({ task, now }: { task: BoardTask; now: Date }) {
   return (
     <div className="mt-2 flex flex-wrap items-center gap-2 text-caption text-ink-muted">
       <span className="inline-flex min-w-0 items-center gap-1.5">
-        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-primary-solid text-[10px] font-semibold text-on-solid" aria-hidden="true">
-          {initialsOf(task.assigneeName)}
-        </span>
+        <Avatar name={task.assigneeName ?? "?"} src={null} size="xs" />
         <span className="truncate">{task.assigneeName}</span>
       </span>
       {due && (

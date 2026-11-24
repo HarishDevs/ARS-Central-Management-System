@@ -32,6 +32,17 @@ One release in stages (owner): navigation fixes, then the motion and transition 
 - **The Classic view is unchanged** (owner's decision for now).
 - **Owner steps:** none.
 
+**Stage 3b: shared components** (D-422, `docs/qa/UI_UX_DEFECT_REPORT.md` batch 2; record in `docs/qa/UI_REFACTORING_LOG.md` and `BUG_FIX_LOG.md`):
+- **Every field and button now has its named size on every page** (fields 42, compact fields 32, buttons 40, compact buttons 32): about 200 places in 70 screens (Projects, the Tickets board, Admin set-up, Super Admin and more) had their own heights.
+- **Buttons are as wide as their words** (they filled the whole form before, for example **Save changes** on a calendar entry and **Approve and share points** on a meeting). The sign-in screens keep their full-width buttons.
+- **Lists on a phone are cards:** Tasks, Meetings, Tickets, Admin → Users and Records, and the Super Admin logs (audit, sign-ins, deliveries, AI history) show one card per row, with each value after its column name, the way Approvals and Information already did. Nothing scrolls sideways; a computer still shows the table.
+- **One list toolbar:** Projects now has the same toolbar as the other lists (its search is the toolbar's search icon); the tabs of Projects, Meetings and Tickets sit in the toolbar's row.
+- **Every page has a visible title:** the **AI Assistant** shows its title like the other modules, **Home** on a phone says Home, and every phone screen title has one size (22, bold). Section headings are one size (18), figures in tiles one size (22).
+- **On touch screens** the priority box in task lists, a section's name and the round task tick are at least 44 pixels to tap; a mouse keeps the dense list.
+- **Windows (dialogs):** one title size, one close button (40 pixels, 44 on touch), the same padding; the "page isn't available" screen in Admin and Super Admin now leads to their own home (it showed a requests search before), and **Search the app** in the main area.
+- **Forms** for a new task, notice, meeting and ticket keep a comfortable width (960 pixels) on wide screens.
+- **Owner steps:** none.
+
 ## v1.88.0 (23 Nov 2026): simple formulas
 No migration (D-418, owner: "use all these as simple formulas in my app"):
 - **Formula fields take functions** (names in any case): ADD, SUBTRACT, MULTIPLY, DIVIDE, DATEADD, DATESUBTRACT and ROLLUP (as in Asana), plus DAYS, WORKDAYS (on the Working calendar), IF with > < >= <= = <>, ROUND, MIN, MAX, ABS and COALESCE. Open **Functions** in the formula editor for a help card with an example; **Insert** puts the function in.

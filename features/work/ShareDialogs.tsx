@@ -77,14 +77,14 @@ function ProjectShareDialog({ projectId, name, privacy, departmentId, department
   };
   return (
     <dialog ref={ref} {...props} aria-labelledby="share-project-title" className="ars-dialog w-[calc(100%-2rem)] max-w-xl rounded-xl border border-line bg-raised p-0 text-ink shadow-overlay" data-testid="share-dialog">
-      <header className="flex items-center gap-2 border-b border-line px-6 py-4">
-        <h2 id="share-project-title" className="flex-1 text-section font-semibold">
+      <header className="flex items-center gap-2 border-b border-line px-5 py-4">
+        <h2 id="share-project-title" className="flex-1 text-section">
           Share {name}
         </h2>
         <Link href={`/users/work/projects/${projectId}/settings#permissions`} className="text-caption text-ink-muted hover:text-ink">
           Project permissions
         </Link>
-        <button type="button" aria-label="Close" onClick={onClose} className="rounded p-1 text-ink-muted hover:bg-surface-muted">
+        <button type="button" aria-label="Close" onClick={onClose} className="icon-btn -mr-2">
           <X aria-hidden="true" className="h-5 w-5" />
         </button>
       </header>
@@ -260,11 +260,11 @@ function TaskShareDialog({ taskId, title, followers, people, visibility, canAdd,
   const [who, setWho] = useState("");
   return (
     <dialog ref={ref} {...props} aria-labelledby="share-task-title" className="ars-dialog w-[calc(100%-2rem)] max-w-lg rounded-xl border border-line bg-raised p-0 text-ink shadow-overlay" data-testid="share-dialog">
-      <header className="flex items-center gap-2 border-b border-line px-6 py-4">
-        <h2 id="share-task-title" className="min-w-0 flex-1 truncate text-section font-semibold">
+      <header className="flex items-center gap-2 border-b border-line px-5 py-4">
+        <h2 id="share-task-title" className="min-w-0 flex-1 truncate text-section">
           Share {title}
         </h2>
-        <button type="button" aria-label="Close" onClick={onClose} className="rounded p-1 text-ink-muted hover:bg-surface-muted">
+        <button type="button" aria-label="Close" onClick={onClose} className="icon-btn -mr-2">
           <X aria-hidden="true" className="h-5 w-5" />
         </button>
       </header>

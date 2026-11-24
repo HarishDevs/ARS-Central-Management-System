@@ -51,11 +51,11 @@ export default async function AiActivityHistoryPage({ searchParams }: { searchPa
   const head = sortHeads(PATH, query, sort);
   const rowOf = (conversation: (typeof conversations)[number]) => (
     <tr key={conversation.id}>
-      <td className="font-medium">{conversation.ownerName}</td>
-      <td className="max-w-md break-words">{conversation.title}</td>
-      <td className="text-label">{chatLabel(conversation.mode)}</td>
-      <td>{conversation.messageCount}</td>
-      <td className="text-label text-ink-muted">{formatIndiaTime(conversation.updatedAt)}</td>
+      <td data-label="Person" className="font-medium">{conversation.ownerName}</td>
+      <td data-card-title className="max-w-md break-words">{conversation.title}</td>
+      <td data-label="Chat" className="text-label">{chatLabel(conversation.mode)}</td>
+      <td data-label="Messages">{conversation.messageCount}</td>
+      <td data-label="Last activity" className="text-label text-ink-muted">{formatIndiaTime(conversation.updatedAt)}</td>
     </tr>
   );
   return (
@@ -68,7 +68,7 @@ export default async function AiActivityHistoryPage({ searchParams }: { searchPa
           <ListToolbar id="ai-history" path={PATH} label="AI conversations" keep={{}} filterCount={0} clearHref={null} group={groupMenu(PATH, query, group, AI_HISTORY_GROUPS, AI_HISTORY_GROUP_LABEL)} />
           <ListViews userId={user.id} target={TARGET} path={PATH} query={query} />
           <FoldScope enabled={Boolean(group)}>
-            <div className="card overflow-x-auto">
+            <div className="card table-cards overflow-x-auto">
               <table className="data-table" data-testid="ai-history">
                 <thead>
                   <tr>

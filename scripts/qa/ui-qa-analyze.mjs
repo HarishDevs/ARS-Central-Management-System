@@ -124,5 +124,8 @@ for (const [mod, list] of Object.entries(groupBy(desk.filter((r) => r.browser ==
   summary.formats[mod] = merge(list.map((r) => r.formats));
   for (const k of Object.keys(summary.formats[mod])) if (!summary.formats[mod][k]) delete summary.formats[mod][k];
 }
+// v1.89.0 (D-422): list toolbar patterns (Chromium, 1440) and phone tables drawn as squeezed tables.
+summary.toolbars = distinct(desk.filter((r) => r.browser === "chromium" && r.vp === "1440x900" && r.toolbar), (r) => r.toolbar);
+summary.phoneTables = records.filter((r) => ok(r) && r.browser === "chromium" && /^(360|390|430)x/.test(r.vp) && r.tables?.squeezed > 0).map((r) => `${r.vp} ${r.role} ${r.path} (${r.tables.squeezed} of ${r.tables.total})`);
 fs.writeFileSync(path.join(OUT, "summary.json"), JSON.stringify(summary, null, 1));
-console.log(JSON.stringify({ counts: summary.counts, conformance: summary.conformance.length, overflow: summary.overflow.length, outside: summary.outside.length, errors: summary.errors.length, failed: summary.failed.length, axeRules: Object.keys(summary.axe).length, cls: summary.cls.length, slow: summary.slow.length, status: summary.status.length }, null, 1));
+console.log(JSON.stringify({ counts: summary.counts, conformance: summary.conformance.length, overflow: summary.overflow.length, outside: summary.outside.length, errors: summary.errors.length, failed: summary.failed.length, axeRules: Object.keys(summary.axe).length, cls: summary.cls.length, slow: summary.slow.length, status: summary.status.length, toolbarPatterns: Object.keys(summary.toolbars).length, phoneSqueezedTables: summary.phoneTables.length }, null, 1));

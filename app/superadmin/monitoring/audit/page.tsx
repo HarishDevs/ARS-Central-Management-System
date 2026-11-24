@@ -50,17 +50,17 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
   const keep = { group: group ?? undefined, sortBy: sort.sortBy ?? undefined, dir: sort.sortBy ? sort.dir : undefined };
   const rowOf = (entry: (typeof entries)[number]) => (
     <tr key={entry.id}>
-      <td className="whitespace-nowrap">{formatIndiaTime(entry.occurredAt)}</td>
-      <td>{entry.actorName ?? "System"}</td>
-      <td className="font-medium">{entry.action}</td>
-      <td className="text-ink-muted">
+      <td data-label="When" className="whitespace-nowrap">{formatIndiaTime(entry.occurredAt)}</td>
+      <td data-label="Who">{entry.actorName ?? "System"}</td>
+      <td data-card-title className="font-medium">{entry.action}</td>
+      <td data-label="On" className="text-ink-muted">
         {entry.entityType}
         {entry.entityId ? ` ${entry.entityId}` : ""}
       </td>
-      <td>
+      <td data-label="Result">
         <span className={`badge ${entry.result === "SUCCESS" ? "bg-success-50 text-success-600" : "bg-danger-50 text-danger-600"}`}>{entry.result}</span>
       </td>
-      <td className="max-w-md break-words font-mono text-caption text-ink-muted">{entry.metadata ? <SafeText text={JSON.stringify(entry.metadata)} /> : ""}</td>
+      <td data-label="Details" className="max-w-md break-words font-mono text-caption text-ink-muted">{entry.metadata ? <SafeText text={JSON.stringify(entry.metadata)} /> : ""}</td>
     </tr>
   );
   const today = await indiaToday();
@@ -122,7 +122,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
         )
       ) : (
         <FoldScope enabled={Boolean(group)}>
-          <div className="card overflow-x-auto">
+          <div className="card table-cards overflow-x-auto">
             <table className="data-table">
               <thead>
                 <tr>

@@ -1,6 +1,6 @@
 # Global component inventory (UI/UX QA, phase 1)
 
-**Date:** 24 Nov 2026. **Build:** v1.88.0 (`893fb4b`), worktree `qa-ui`. **Status:** discovery only. Nothing in the app was changed.
+**Date:** 24 Nov 2026. **Build:** v1.88.0 (`893fb4b`), worktree `qa-ui`. **Status:** discovery only (phase 1). **v1.89.0 stage 3b (D-422): §0 lists the canonical components.**
 
 This file lists every standard UI component the app needs, the current implementation(s), how widely each is used, and the duplicates. It also proposes the one component each part should use. The counts come from `grep` over `app/` and `features/` (`.tsx`) on this build:
 - **files** is the number of files that import or use the component or class;
@@ -15,6 +15,26 @@ Related documents:
 - **One:** a single implementation, used consistently.
 - **Split:** a shared implementation exists, but many screens bypass it with raw classes or markup.
 - **Duplicate:** two or more implementations of the same thing.
+
+## 0. Canonical components (v1.89.0 stage 3b, D-422): use these
+
+The phase-1 inventory below is kept as written (v1.88.0 counts). From v1.89.0 the components in this table are **the** implementation for their job; new code uses them, and lint (`eslint-ui-rules.mjs`) keeps the sizes on the tokens.
+
+| Job | Canonical | Notes |
+|---|---|---|
+| Page title + actions | `features/shell/PageHeader` | Title on `text-page-title` (24 / 600; **22 / 700 on phones**, the weight is in the token). Phone tab screens use `ScreenTitle` (`features/mobile/BottomSheet`), same token. Every page has a visible h1 (AI Assistant and phone Home included). Classic keeps its own title bar. |
+| List page | `features/ui/ListPage` | PageHeader (title, description, meta, the one "New …" action) → tabs (optional) → `ListToolbar` → the list, inside `.table-cards`. Projects uses it; Meetings and Tickets have the same order (tabs / pills as the toolbar's `lead`). |
+| List toolbar | `features/ui/ListToolbar` | Filter, Sort, Group, Options, Search (icon until used), `lead` for tabs or pills. No page-made search box beside a list. |
+| Table | `.data-table` (raw), `features/ui/DataTable`, `features/ui/RecordTable` | Phone cards below 768 via `.table-cards` + `data-label` on cells (`data-card-title` for the title cell, `data-card-lead` for a tick). RecordTable's column titles are 12 / 600 like `.data-table`. TaskGrid stays its own grid (phone layout has MobileTasks). |
+| Buttons | `.btn-primary / -secondary / -danger / -danger-quiet / -ghost`, size `.btn-compact` (32) / default (40) / `.btn-lg` (48), width `.btn-block` | Size to their words by default; `btn-block` opts into full width (sign-in). `Button` component = the same classes. |
+| Icon button | `.icon-btn` (40), `.icon-btn-sm` (32) | 44 on touch; always an `aria-label`. Dialog ×, share dialogs, the draft task window. |
+| Fields | `.field-input` (42), `.field-input.field-compact` (32), `.pill-select` (32) | No `h-*` beside them (lint `ars-ui/control-size`); textareas / multi-selects `h-auto` + `min-h-*`. |
+| Dialog | `features/ui/Dialog` (modal / drawer / sheet), `ConfirmDialog` | Radius 16 (`--radius-modal`), header 20 px padding with an 18 px title (`text-section`) and `.icon-btn` ×, footer right-aligned, focus in and back to the opener. The raw `<dialog>`s left (palette, share, confirm boxes in work) use the same radius, title size and ×. |
+| Popover / menu | `Menu` / `MenuCore`, `Drop` | Radius 12 (`--radius-popover`), `z-popover`. |
+| Avatar | `features/ui/Avatar` | xs 24 / sm 32 / md 40 / lg 64 / xl 96; `tone` solid / soft. `Display.Avatar` and `initials` delegate to it. |
+| Full-page state | `features/ui/StatePage` (not found / no access / empty) | Every area's `not-found.tsx`, the root 404 and `NoAccess`. Errors stay `ErrorState` (`States.tsx`, Try again); loading stays the skeletons. |
+| Type | `text-page-title` 24, `text-section` 18, `text-stat` 22 (figures), `text-body` 14, `text-caption` 12 | `text-title` (Classic only), `text-card-title`, `text-greeting` retired (lint `ars-ui/type-scale`). |
+| Spacing | Tailwind steps 1 2 3 4 5 6 8 10 12 (4-48) | Arbitrary px / rem padding, margin or gap is a lint error (`ars-ui/spacing-scale`); env() / calc() / vh allowed. |
 
 ## 1. Shell (one per app; owned by `features/shell`)
 

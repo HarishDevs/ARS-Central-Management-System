@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ShieldAlert } from "lucide-react";
+import { StatePage } from "@/features/ui/StatePage";
 import { PAGES } from "@/server/authorization/pages";
 import { MODULE_LABEL } from "@/server/modules/modules";
 
@@ -17,18 +17,14 @@ const WHY: Record<string, string> = {
 export function NoAccess({ pageKey, why, home }: { pageKey: string | undefined; why: string | undefined; home: string }) {
   const page = pageKey ? PAGES.find((item) => item.key === pageKey) : undefined;
   const moduleName = why === "MODULE" && page?.module ? MODULE_LABEL[page.module] : null;
+  // v1.89.0 (D-422): drawn by the shared StatePage.
   return (
-    <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 px-4 py-12 text-center" data-testid="no-access">
-      <span aria-hidden="true" className="flex h-12 w-12 items-center justify-center rounded-full bg-warning-50 text-warning-600">
-        <ShieldAlert className="h-6 w-6" />
-      </span>
-      <h1 className="text-page-title">You don&apos;t have access to this page</h1>
+    <StatePage kind="no-access" title="You don't have access to this page" body={moduleName ? `It belongs to the ${moduleName} module: coming soon for you. It opens once IT switches it on for you.` : (WHY[why ?? ""] ?? WHY.UNKNOWN_PAGE!)} testId="no-access">
       {page && <p className="font-semibold text-ink">{page.label}</p>}
-      <p className="max-w-md text-ink-muted">{moduleName ? `It belongs to the ${moduleName} module: coming soon for you. It opens once IT switches it on for you.` : (WHY[why ?? ""] ?? WHY.UNKNOWN_PAGE)}</p>
       <p className="max-w-md text-label text-ink-muted">If you need it for your work, ask IT to give you access.</p>
       <Link href={home} className="btn-primary btn-compact">
         Go to Home
       </Link>
-    </div>
+    </StatePage>
   );
 }

@@ -1,3 +1,4 @@
+import { Avatar as SharedAvatar, initialsFor } from "@/features/ui/Avatar";
 import Link from "next/link";
 import { ChevronRight, Inbox, SearchX } from "lucide-react";
 import { SafeText } from "@/features/ui/SafeText";
@@ -26,29 +27,15 @@ export function Badge({ tone = "neutral", icon, children, className = "" }: { to
   );
 }
 
+// One initials rule for the app (features/ui/Avatar).
 export function initials(name: string): string {
-  return (
-    name
-      .replace(/\s*\([^)]*\)\s*/g, " ")
-      .trim()
-      .split(/\s+/)
-      .map((part) => part.replace(/[^\p{L}]/gu, "")[0] ?? "")
-      .join("")
-      .slice(0, 2)
-      .toUpperCase() || "?"
-  );
+  return initialsFor(name);
 }
 
 // Decorative by default: the name is always written next to it.
+// v1.89.0 (D-422, UIQA-CON-17): drawn by the one Avatar (features/ui/Avatar).
 export function Avatar({ name, size = "md" }: { name: string; size?: "sm" | "md" }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={`inline-flex shrink-0 items-center justify-center rounded-full bg-primary-50 font-semibold text-primary-700 ${size === "sm" ? "h-6 w-6 text-[length:calc(10px*var(--text-scale,1))]" : "h-8 w-8 text-caption"}`}
-    >
-      {initials(name)}
-    </span>
-  );
+  return <SharedAvatar name={name} src={null} size={size === "sm" ? "xs" : "sm"} tone="soft" />;
 }
 
 export function Card({

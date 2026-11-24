@@ -1,10 +1,10 @@
 "use client";
 
+import { Avatar } from "@/features/ui/Avatar";
 import { useEffect, useRef, useState } from "react";
 import { Plus, X } from "lucide-react";
 import { followAction, tagAction } from "@/app/users/work/actions";
 import { useWorkCall } from "@/features/work/client";
-import { initials } from "@/features/ui/Display";
 import { PersonSelect } from "@/features/ui/PersonSelect";
 import { inside } from "@/features/ui/inside";
 
@@ -66,9 +66,7 @@ export function CollaboratorsCell({ taskId, title, followers, people, canEdit }:
   const avatars = (
     <span className="flex -space-x-1.5">
       {followers.slice(0, 4).map((person) => (
-        <span key={person.id} title={person.name} className="grid h-6 w-6 place-items-center rounded-full bg-primary-100 text-[10px] font-semibold text-primary-700 ring-2 ring-surface">
-          {initials(person.name)}
-        </span>
+        <Avatar key={person.id} name={person.name} src={null} size="xs" tone="soft" title={person.name} className="ring-2 ring-surface" />
       ))}
       {followers.length > 4 && <span className="ml-2 text-caption text-ink-muted">+{followers.length - 4}</span>}
       {followers.length === 0 && canEdit && <Plus aria-hidden="true" className="h-4 w-4 text-ink-faint" />}

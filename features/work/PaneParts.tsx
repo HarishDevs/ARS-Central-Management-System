@@ -224,7 +224,7 @@ export function PaneMoreMenu({ taskId, title, canDelete, closeHref, automations 
       {confirming && (
         <dialog ref={dialog} onClose={() => setConfirming(false)} aria-labelledby="pane-delete-title" className="ars-dialog w-[calc(100%-2rem)] max-w-sm rounded-xl border border-line bg-raised p-0 text-ink shadow-overlay" data-testid="pane-delete-dialog">
           <div className="space-y-3 p-5">
-            <h2 id="pane-delete-title" className="font-semibold">
+            <h2 id="pane-delete-title" className="text-section">
               Delete this task?
             </h2>
             <p className="text-label text-ink-muted">“{title}” and its subtasks go to Deleted. You can undo, or restore it for 30 days.</p>

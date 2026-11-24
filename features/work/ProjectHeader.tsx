@@ -260,7 +260,7 @@ export function ProjectHeader({
       {saving && (
         <dialog ref={dialog} onClose={() => setSaving(false)} aria-labelledby="save-template-title" className="ars-dialog w-[calc(100%-2rem)] max-w-md rounded-xl border border-line bg-raised p-0 text-ink shadow-overlay" data-testid="save-template-dialog">
           <div className="space-y-3 p-5">
-            <h2 id="save-template-title" className="font-semibold">
+            <h2 id="save-template-title" className="text-section">
               Save {name} as a template
             </h2>
             <p className="text-label text-ink-muted">Its sections, tasks (with their dates relative to the start), fields and settings become a template the project&apos;s people can start new projects from.</p>

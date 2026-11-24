@@ -75,7 +75,7 @@ export function TicketTable({ items, caption, testId = "ticket-table", withTask 
   const columns = (Object.keys(TICKET_COLUMN_LABEL) as TicketSortColumn[]).filter((column) => withTask || column !== "task");
   return (
     <FoldScope enabled={Boolean(group)}>
-      <div className="card overflow-x-auto">
+      <div className="card table-cards overflow-x-auto">
         <table className="data-table" data-testid={testId}>
           <caption className="sr-only">{caption}</caption>
           <thead>
@@ -96,12 +96,12 @@ export function TicketTable({ items, caption, testId = "ticket-table", withTask 
               const late = isOverdue({ status: item.status, dueAt: item.dueAt }, now);
               return (
                 <tr key={item.id}>
-                  <td className="whitespace-nowrap font-mono text-label">
+                  <td data-label={TICKET_COLUMN_LABEL.ticket} className="whitespace-nowrap font-mono text-label">
                     <Link href={`/users/tickets/${item.id}`} className="link">
                       {item.ticketNo}
                     </Link>
                   </td>
-                  <td>
+                  <td data-card-title>
                     <Link href={`/users/tickets/${item.id}`} className="link font-medium">
                       {item.title}
                     </Link>
@@ -109,23 +109,23 @@ export function TicketTable({ items, caption, testId = "ticket-table", withTask 
                       {item.categoryName} · {item.typeName}
                     </p>
                   </td>
-                  <td className="text-label">{item.requesterName}</td>
-                  <td className="text-label">{item.departmentName ?? "—"}</td>
-                  <td>
+                  <td data-label={TICKET_COLUMN_LABEL.requestor} className="text-label">{item.requesterName}</td>
+                  <td data-label={TICKET_COLUMN_LABEL.department} className="text-label">{item.departmentName ?? "—"}</td>
+                  <td data-label={TICKET_COLUMN_LABEL.priority}>
                     <TicketPriorityBadge priority={item.priority} />
                   </td>
-                  <td className="text-label">{item.assigneeName ?? "—"}</td>
-                  <td className="whitespace-nowrap text-label">{day(item.submittedAt)}</td>
-                  <td className={`whitespace-nowrap text-label ${late ? "font-semibold text-danger-600" : ""}`}>
+                  <td data-label={TICKET_COLUMN_LABEL.assignee} className="text-label">{item.assigneeName ?? "—"}</td>
+                  <td data-label={TICKET_COLUMN_LABEL.created} className="whitespace-nowrap text-label">{day(item.submittedAt)}</td>
+                  <td data-label={TICKET_COLUMN_LABEL.target} className={`whitespace-nowrap text-label ${late ? "font-semibold text-danger-600" : ""}`}>
                     {day(item.dueAt)}
                     {late && <span className="block text-caption">Overdue</span>}
                   </td>
-                  <td>
+                  <td data-label={TICKET_COLUMN_LABEL.status}>
                     <TicketStatusBadge status={item.status} closeKind={item.closeKind} />
                   </td>
                   {withTask && (
                     // v1.59.3 (D-362, owner): Assigned to me updates the ticket from its row (no task).
-                    <td className="min-w-[12rem]">
+                    <td data-label={TICKET_COLUMN_LABEL.task} className="min-w-[12rem]">
                       {item.status === "ASSIGNED" || item.status === "REOPENED" || item.status === "IN_PROGRESS" ? (
                         <TicketWorkForm ticketId={item.id} canStart={item.status !== "IN_PROGRESS"} canResolve compact />
                       ) : (

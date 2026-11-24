@@ -1,16 +1,13 @@
-import Link from "next/link";
+import { NOT_FOUND_BODY, NOT_FOUND_TITLE, StatePage } from "@/features/ui/StatePage";
 
 // Also shown for /admin and /superadmin when the user lacks the role, so
 // those areas don't confirm they exist (D-016).
+// v1.89.0 (D-422): the shared StatePage (the "404" caption is gone; the same
+// words as every area's not-found page).
 export default function NotFound() {
   return (
-    <main className="flex min-h-full flex-col items-center justify-center gap-4 px-4 py-16 text-center">
-      <p className="text-caption font-semibold text-ink-muted">404</p>
-      <h1 className="text-page-title">This page isn&apos;t available</h1>
-      <p className="max-w-sm text-ink-muted">The link may be wrong, the item may have been removed, or it may not be shared with you.</p>
-      <Link href="/users" className="link">
-        Go to Home
-      </Link>
+    <main className="flex min-h-full flex-col justify-center">
+      <StatePage kind="not-found" title={NOT_FOUND_TITLE} body={NOT_FOUND_BODY} home={{ href: "/users", label: "Go to Home" }} />
     </main>
   );
 }

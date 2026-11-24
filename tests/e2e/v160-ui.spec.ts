@@ -76,7 +76,7 @@ test("FB-07 a missing request shows the in-space page, with search and the menu"
   const response = await page.goto("/users/requests/99999999");
   expect(response?.status()).toBe(404);
   await expect(page.getByRole("heading", { name: "This page isn't available" })).toBeVisible();
-  await expect(page.getByRole("searchbox", { name: "Search your requests" })).toBeVisible();
+  await expect(page.getByRole("searchbox", { name: "Search the app" })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Main" })).toBeVisible();
 });
 

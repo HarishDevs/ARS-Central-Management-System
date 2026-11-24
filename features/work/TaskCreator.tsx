@@ -331,10 +331,10 @@ function CreateTaskDialog({
             </span>
           )}
         </h2>
-        <button type="button" aria-label={small ? "Expand" : "Minimise"} onClick={() => setSmall((value) => !value)} className="rounded p-1 text-ink-muted hover:bg-surface-muted">
+        <button type="button" aria-label={small ? "Expand" : "Minimise"} onClick={() => setSmall((value) => !value)} className="icon-btn icon-btn-sm">
           <ChevronDown aria-hidden="true" className={`h-4 w-4 ${small ? "rotate-180" : ""}`} />
         </button>
-        <button type="button" aria-label={restored ? "Discard draft" : "Close"} onClick={closeAsking} className="rounded p-1 text-ink-muted hover:bg-surface-muted">
+        <button type="button" aria-label={restored ? "Discard draft" : "Close"} onClick={closeAsking} className="icon-btn icon-btn-sm">
           <X aria-hidden="true" className="h-4 w-4" />
         </button>
       </header>

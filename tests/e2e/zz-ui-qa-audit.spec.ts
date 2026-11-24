@@ -164,7 +164,27 @@ async function measure(page: Page) {
     };
     const fontSizes = hist([...scope.querySelectorAll("*")].filter((el) => el.childNodes.length && [...el.childNodes].some((n) => n.nodeType === 3 && (n.textContent ?? "").trim())).slice(0, 2500).map((el) => parseFloat(getComputedStyle(el).fontSize)));
     const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
+    // v1.89.0 (D-422): the list toolbar pattern and the phone lists. toolbar = the kind of
+    // list toolbar on the page (shared ListToolbar, TaskGrid's own, a page-made search box,
+    // PowerSearch); tables = visible tables drawn as tables (not cards) and how many of them
+    // scroll sideways inside their box ("squeezed").
+    const inMain = (sel: string) => (main ? [...main.querySelectorAll(sel)].filter(visible) : []);
+    const toolbarKinds = [
+      inMain('[data-testid="list-toolbar"]').length ? "ListToolbar" : null,
+      inMain('[data-testid$="-toolbar"]:not([data-testid="list-toolbar"]), [role="toolbar"]:not([data-testid="list-toolbar"])').length ? "own toolbar" : null,
+      inMain('[data-testid*="power-search" i]').length ? "PowerSearch" : null,
+      inMain('input[type="search"], input[name="q"]').some((el) => !el.closest('[data-testid="list-toolbar"], [data-testid*="power-search" i], [role="dialog"], dialog')) ? "page search box" : null,
+    ].filter(Boolean);
+    const tables = inMain("table");
+    const asTable = tables.filter((el) => getComputedStyle(el).display === "table");
+    const squeezed = asTable.filter((el) => {
+      for (let node = el.parentElement; node && node !== main; node = node.parentElement) if (node.scrollWidth > node.clientWidth + 1 && getComputedStyle(node).overflowX !== "visible") return true;
+      return false;
+    }).length;
     return {
+      toolbar: toolbarKinds.join(" + ") || null,
+      listPage: inMain("[data-list-page]").length > 0,
+      tables: { total: tables.length, asTable: asTable.length, cards: tables.length - asTable.length, squeezed },
       viewport: { w: vw, h: vh, dpr: window.devicePixelRatio },
       layoutAttr: document.querySelector("[data-layout]")?.getAttribute("data-layout") ?? null,
       view: document.querySelector("[data-view]")?.getAttribute("data-view") ?? null,
