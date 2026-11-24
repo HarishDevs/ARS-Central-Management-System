@@ -114,7 +114,7 @@ List measures (added to the sweep in this batch; before = the 3a build swept at 
 | List toolbar kinds seen at 1440 (`summary.toolbars`) | 7 (ListToolbar on 41 pages, a page-made search box on 19, …) | 7 kinds (ListToolbar 43, page search box 17): Projects and its search moved onto the shared toolbar; the rest is batch 3 (below). The probe counts kinds of controls on any page (rich-text toolbars count as "own toolbar"), so it falls only as pages move. |
 | Phone pages with a squeezed table (390) | **41** | **27** (Tasks ×2, Meetings, Tickets, Admin users, Admin Records ×6, audit, deliveries, ticket dashboards … now cards) |
 
-Firefox and WebKit spot checks (1440 / 768 / 390): see the stage 3b work log (DEVELOPMENT-MEMORY).
+Firefox spot check (1440 / 768 / 390, 531 visits): conformance 0, overflow 0, outside 0, console errors 0 (the CSP "eval" message is gone), failed 0, CLS 0, axe = the same A11Y-04 node. WebKit spot check (1440 / 768 / 390, 531 visits): conformance 0, overflow 0, outside 0, failed requests 0, CLS 0; 521 visits measured: the 1440 USER chunk hangs on `/users/profile/devices` (page.evaluate never returns, twice) and the 9 routes after it were not reached; at 768 / 390 that page logs React #418, the known UIQA-ERR-02 (WebKit, AppDevicesPanel reads browser capabilities during the first render; batch 4). Not caused by this batch (the panel only lost its full-width buttons).
 
 ### For batch 3 (module pages)
 

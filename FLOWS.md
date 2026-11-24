@@ -415,6 +415,7 @@ flowchart TD
 ```
 - Everyone lands on `/users`. The three parts are called **spaces** on screen (D-083). The account menu at the top right (name → menu) shows the current space and a **Switch space** list, only with the spaces the person's roles allow, plus Sign out. On phones the space's pages open from a menu button as a drawer. *Superseded 8 Oct 2026: the "Switch area" block at the bottom of the sidebar.*
 - **Sidebar fold (v1.89.0, D-421):** ☰ folds the sidebar to a 72 px rail of icons (names on hover or focus) and opens it again (250 px); the choice is kept on the device (`ars_sidebar`) and always wins. With no choice yet, a tablet-sized window (768-1279 px) starts on the rail and a wider one open, following the window if it is resized; phones (below 768) have no sidebar (phone layout or menu drawer).
+- **Not found and phone lists (v1.89.0, D-422):** a page that isn't available in Admin or Super Admin now leads to that area's own home (it offered a requests search and Home in /users); /users offers **Search the app** and Home. On a phone, the lists of Tasks, Meetings, Tickets, Admin users / Records and the Super Admin logs are cards (one per row); the steps of every flow are unchanged.
 - **As built (28 Sep 2026):**
   - With no session, or an invalid or forged one, every area redirects to `/login?next=…`.
   - A signed-in user without the role gets a generic 404, and the attempt is audited.
