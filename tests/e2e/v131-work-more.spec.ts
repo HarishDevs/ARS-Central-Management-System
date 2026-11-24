@@ -1,5 +1,5 @@
 import { expect, test, type BrowserContext } from "@playwright/test";
-import { db, sessionCookie } from "./db";
+import { chooseDate, db, sessionCookie } from "./db";
 import { createProject } from "./work-helpers";
 
 // D-218 through the real screens: project fields in the List, bulk changes,
@@ -152,7 +152,7 @@ test("Admin → Task settings: a department holiday, the summary and repeating t
   const day = new Date(Date.now() + 120 * 86_400_000).toISOString().slice(0, 10);
   const form = page.getByRole("form", { name: "Add a department holiday" });
   await form.getByLabel("Department").selectOption({ index: 1 });
-  await form.getByLabel("Date").fill(day);
+  await chooseDate(page, form.getByLabel("Date"), day);
   await form.getByLabel("Name").fill(`E2E shutdown ${stamp}`);
   await form.getByRole("button", { name: "Add department holiday" }).click();
   const row = page.getByTestId("department-holiday").filter({ hasText: `E2E shutdown ${stamp}` });

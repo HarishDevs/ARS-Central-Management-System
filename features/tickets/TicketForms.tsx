@@ -13,6 +13,7 @@ import { TICKET_PRIORITIES, TICKET_PRIORITY_LABEL, type TicketPriority } from "@
 
 // v1.55.0 (owner's ticketing brief): the forms of the ticket pages.
 import { ACCEPT_ATTRIBUTE as ACCEPT } from "@/server/attachments/files";
+import { DateField } from "@/features/ui/DateField";
 
 export function RaiseTicketForm({
   typeId,
@@ -96,7 +97,7 @@ export function RaiseTicketForm({
             <label htmlFor="ticket-required" className="field-label">
               Required date <span className="text-danger-600" aria-hidden="true">*</span>
             </label>
-            <input id="ticket-required" name="required_on" type="date" min={today} required aria-required="true" className="field-input" />
+            <DateField id="ticket-required" name="required_on" label="Required date" min={today} required invalid={Boolean(result && !result.ok && result.fieldErrors?.required_on)} />
             <FieldError result={result} name="required_on" />
           </div>
         </div>
@@ -134,7 +135,7 @@ export function AssignTicketForm({ ticketId, rowVersion, people, current, defaul
           <label htmlFor="assign-target" className="field-label">
             Target date <span className="text-danger-600" aria-hidden="true">*</span>
           </label>
-          <input id="assign-target" name="target" type="date" min={today} defaultValue={defaultTarget} required className="field-input" />
+          <DateField id="assign-target" name="target" label="Target date" min={today} defaultValue={defaultTarget ?? ""} required invalid={Boolean(result && !result.ok && result.fieldErrors?.target)} />
           <FieldError result={result} name="target" />
         </div>
       </div>

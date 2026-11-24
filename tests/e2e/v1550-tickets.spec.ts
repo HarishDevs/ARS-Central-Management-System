@@ -1,5 +1,5 @@
 import { expect, test, type BrowserContext } from "@playwright/test";
-import { db, sessionCookie } from "./db";
+import { chooseDate, db, sessionCookie } from "./db";
 import { pickPerson } from "./people";
 
 // v1.55.0 (owner's ticketing brief): the whole journey on the real screens.
@@ -74,7 +74,7 @@ test("the requester raises a ticket: own details filled in, a number by its cate
   await form.getByLabel(/^Subject/).fill(subject);
   await form.getByRole("textbox", { name: /Issue Description/ }).fill("It shows a blue screen at start-up.");
   await form.getByLabel("Priority").selectOption("HIGH");
-  await form.getByLabel("Required date").fill(new Date(Date.now() + 330 * 60_000 + 86_400_000).toISOString().slice(0, 10));
+  await chooseDate(page, form.getByLabel("Required date"), new Date(Date.now() + 330 * 60_000 + 86_400_000).toISOString().slice(0, 10));
   await form.getByLabel("Asset tag").fill("LT-0042");
   await form.getByLabel("Item 1", { exact: true }).fill("USB mouse");
   await form.getByLabel("Item 1 quantity").fill("2");

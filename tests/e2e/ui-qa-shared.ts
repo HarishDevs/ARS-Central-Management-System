@@ -10,7 +10,8 @@ import { createProject } from "./work-helpers";
 // specs never fail on a finding; they write evidence under audit/ui-qa/
 // (git-ignored). They run only with UIQA=1 (never in the normal e2e run).
 
-export const OUT = "audit/ui-qa";
+// v1.89.0 stage 4 (D-426): UIQA_OUT lets parallel sweeps (one database per browser) keep their own ids.json and results.
+export const OUT = process.env.UIQA_OUT ?? "audit/ui-qa";
 export const IDS_FILE = path.join(OUT, "ids.json");
 
 // The owner's nine viewports. Below 768 px a real phone gets the phone layout
@@ -187,8 +188,9 @@ export async function grantModules() {
 
 // One of each record the detail screens need (the pattern of v1730-crawl's set-up),
 // plus long-text and bulk rows for the edge-case probes. Ids go to audit/ui-qa/ids.json.
-export async function setUpRecords(page: Page, context: BrowserContext): Promise<Ids> {
-  const stamp = `uiqa${Date.now().toString(36)}`;
+// v1.89.0 stage 4 (D-426): the visual baselines pass a fixed stamp, so every title is the same on every run.
+export async function setUpRecords(page: Page, context: BrowserContext, fixedStamp?: string): Promise<Ids> {
+  const stamp = fixedStamp ?? `uiqa${Date.now().toString(36)}`;
   const ids: Ids = {};
   await grantModules();
   const vp = VIEWPORTS[1];

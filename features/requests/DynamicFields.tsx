@@ -13,6 +13,7 @@ import type { FieldLookups, FormField } from "@/server/forms/fields";
 import type { ActionResult } from "@/lib/http/action-result";
 import { FileListInput } from "@/features/ui/FileListInput";
 import { RichEditor } from "@/features/ui/RichEditor";
+import { DateField } from "@/features/ui/DateField";
 
 // The fields of a form (v1.8.0: shared by raise / resubmit / amend and by
 // the custom approval page, whose fields IT sets up). Live values decide
@@ -215,7 +216,7 @@ export function FieldInput({
         </div>
       );
     case "DATETIME":
-      return <input id={id} name={field.key} {...a11y} type="datetime-local" defaultValue={defaultValue} className="field-input" />;
+      return <DateField id={id} name={field.key} label={field.label} withTime defaultValue={defaultValue} invalid={Boolean(error)} describedBy={describedBy} onChange={onPick} />;
     case "URL":
       return <input id={id} name={field.key} {...a11y} type="url" defaultValue={defaultValue} placeholder="https://" className="field-input" />;
     case "CHECKBOX":
@@ -239,7 +240,7 @@ export function FieldInput({
     case "MULTI_CHOICE":
       return <MultiChoiceInput id={id} name={field.key} options={field.options ?? []} defaultValue={defaultValue} describedBy={describedBy} invalid={Boolean(error)} />;
     case "DATE":
-      return <input id={id} name={field.key} {...a11y} type="date" defaultValue={defaultValue} className="field-input" />;
+      return <DateField id={id} name={field.key} label={field.label} defaultValue={defaultValue} invalid={Boolean(error)} describedBy={describedBy} onChange={onPick} />;
     case "CHOICE":
       return (
         <select id={id} name={field.key} {...a11y} defaultValue={defaultValue} className="field-input">

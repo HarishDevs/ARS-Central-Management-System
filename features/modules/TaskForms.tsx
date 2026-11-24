@@ -14,6 +14,7 @@ import { UnsavedGuard } from "@/features/ui/UnsavedGuard";
 import { PersonSelect } from "@/features/ui/PersonSelect";
 import { FileListInput } from "@/features/ui/FileListInput";
 import { RichEditor } from "@/features/ui/RichEditor";
+import { DateField } from "@/features/ui/DateField";
 
 type Option = { id: number; label: string; detail?: string };
 
@@ -89,7 +90,7 @@ export function CreateTaskForm({
           <label htmlFor="task-due" className="field-label">
             Due {!requireDue && <span className="font-normal text-ink-faint">(optional)</span>}
           </label>
-          <input id="task-due" name="due" type="datetime-local" defaultValue={defaultDue} required aria-required="true" className="field-input" />
+          <DateField id="task-due" name="due" label="Due" withTime defaultTime="17:00" defaultValue={defaultDue} required invalid={Boolean(result && !result.ok && result.fieldErrors?.due)} />
           <FieldError result={result} name="due" />
           <HolidayKeep result={result} />
         </div>
@@ -97,7 +98,7 @@ export function CreateTaskForm({
           <label htmlFor="task-start" className="field-label">
             Start on <span className="font-normal text-ink-faint">(optional)</span>
           </label>
-          <input id="task-start" name="starts_on" type="date" className="field-input" />
+          <DateField id="task-start" name="starts_on" label="Start on" />
         </div>
         {allowRelated && (
           <div className="md:col-span-2">
@@ -336,7 +337,7 @@ export function EditTaskForm({
           <label htmlFor="edit-due" className="field-label">
             Due
           </label>
-          <input id="edit-due" name="due" type="datetime-local" defaultValue={due} required aria-required="true" className="field-input" />
+          <DateField id="edit-due" name="due" label="Due" withTime defaultTime="17:00" defaultValue={due} required invalid={Boolean(result && !result.ok && result.fieldErrors?.due)} />
           <FieldError result={result} name="due" />
           <HolidayKeep result={result} />
         </div>

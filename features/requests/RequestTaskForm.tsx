@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { requestTaskAction } from "@/app/users/work/actions";
 import { FieldError, ResultMessage, SubmitButton, useActionForm } from "@/features/ui/form";
 import { PersonSelect } from "@/features/ui/PersonSelect";
+import { DateField } from "@/features/ui/DateField";
 
 // v1.50.3 (owner: "custom request also needs follow-up management from the
 // linked tasks"): add a follow-up task from the request page. It is linked to
@@ -64,7 +65,7 @@ export function RequestTaskForm({ requestId, people, meId }: { requestId: number
           <label htmlFor="rt-due" className="field-label">
             Due date <span className="font-normal text-ink-muted">(optional)</span>
           </label>
-          <input id="rt-due" name="dueDay" type="date" className="field-input" />
+          <DateField id="rt-due" name="dueDay" label="Due date" />
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2">

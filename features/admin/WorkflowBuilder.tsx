@@ -11,6 +11,7 @@ import { stepDefaults, type StepPolicy } from "@/server/workflows/step-policy";
 import { NUMERIC_TYPES, type FieldLookups, type FormField } from "@/server/forms/fields";
 import { Hint } from "@/features/ui/Hint";
 import { doaBandLabels, MAX_CHOICE_DEPTH, type ApproverPick, type BuilderCondition, type BuilderDoa, type BuilderInnerStage, type BuilderStage, type BuilderStep } from "@/server/workflows/builder";
+import { DateField } from "@/features/ui/DateField";
 
 // Structured workflow builder (D-056, F-50). Stages run in order; a stage
 // is one step or several steps in parallel. The server compiles, validates
@@ -795,14 +796,7 @@ function StepEditor({
             <label className="field-label" htmlFor={`work-due-${step.id}`}>
               Task due date <span className="font-normal text-ink-muted">(optional)</span>
             </label>
-            <input
-              id={`work-due-${step.id}`}
-              type="date"
-              min={indiaDay(new Date())}
-              value={step.workDueOn ?? ""}
-              onChange={(event) => onChange({ ...step, workDueOn: event.target.value || undefined })}
-              className="field-input"
-            />
+            <DateField id={`work-due-${step.id}`} label="Task due date" min={indiaDay(new Date())} value={step.workDueOn ?? ""} onChange={(next) => onChange({ ...step, workDueOn: next || undefined })} />
           </div>
         </div>
       )}

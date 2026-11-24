@@ -6,6 +6,7 @@ import { getDbPool } from "@/lib/db/client";
 import { createWorkflow, publishVersion, submitRequest, withdrawRequest, type Actor } from "@/server/approvals/service";
 import { setAccessRule } from "@/lib/db/repositories/page-access.repository";
 import { checkPageKey } from "@/server/authorization/page-access";
+import { PAGES } from "@/server/authorization/pages";
 import { createUser } from "./helpers";
 
 // v1.10.0 security hardening on real MySQL: page rules bound to the action
@@ -46,20 +47,27 @@ beforeAll(async () => {
   workflowId = created.value.workflowId;
 });
 
+// v1.89.0 stage 4 (D-426): the rule is on a page that exists. The test used "admin.import",
+// which v1.84.0 (D-411) removed (Import data became Super Admin only, and Super Admin pages
+// carry no page rules): an unknown key always reads FULL, so the test failed since then.
+// "admin.users" is an Admin page whose shared actions name it (app/users/collab-actions.ts).
+const PAGE_KEY = "admin.users";
+
 afterAll(async () => {
-  await setAccessRule({ pageKey: "admin.import", scope: "USER", scopeId: it1, level: null, actorId: admin.id });
+  await setAccessRule({ pageKey: PAGE_KEY, scope: "USER", scopeId: it1, level: null, actorId: admin.id });
 });
 
 describe("G-3: an action's own page rule applies wherever it is posted from", () => {
   it("Hidden refuses; View-only allows reading but not changing; Super Admin is exempt", async () => {
+    expect(PAGES.some((page) => page.key === PAGE_KEY && !page.neverHidden)).toBe(true);
     const person = { id: it1, roles: ["USER", "IT_ADMIN"], modules: ["APPROVAL", "TASK", "INFORMATION"] as const };
-    expect(await checkPageKey(person, "admin.import", true)).toEqual({ ok: true, level: "FULL" });
-    await setAccessRule({ pageKey: "admin.import", scope: "USER", scopeId: it1, level: "HIDDEN", actorId: admin.id });
-    expect(await checkPageKey(person, "admin.import", false)).toMatchObject({ ok: false, reason: "HIDDEN", pageKey: "admin.import" });
-    await setAccessRule({ pageKey: "admin.import", scope: "USER", scopeId: it1, level: "VIEW", actorId: admin.id });
-    expect(await checkPageKey(person, "admin.import", false)).toMatchObject({ ok: true, level: "VIEW" });
-    expect(await checkPageKey(person, "admin.import", true)).toMatchObject({ ok: false, reason: "VIEW_ONLY" });
-    expect(await checkPageKey({ id: it1, roles: ["USER", "SUPER_ADMIN"], modules: [] }, "admin.import", true)).toEqual({ ok: true, level: null });
+    expect(await checkPageKey(person, PAGE_KEY, true)).toEqual({ ok: true, level: "FULL" });
+    await setAccessRule({ pageKey: PAGE_KEY, scope: "USER", scopeId: it1, level: "HIDDEN", actorId: admin.id });
+    expect(await checkPageKey(person, PAGE_KEY, false)).toMatchObject({ ok: false, reason: "HIDDEN", pageKey: PAGE_KEY });
+    await setAccessRule({ pageKey: PAGE_KEY, scope: "USER", scopeId: it1, level: "VIEW", actorId: admin.id });
+    expect(await checkPageKey(person, PAGE_KEY, false)).toMatchObject({ ok: true, level: "VIEW" });
+    expect(await checkPageKey(person, PAGE_KEY, true)).toMatchObject({ ok: false, reason: "VIEW_ONLY" });
+    expect(await checkPageKey({ id: it1, roles: ["USER", "SUPER_ADMIN"], modules: [] }, PAGE_KEY, true)).toEqual({ ok: true, level: null });
   });
 });
 

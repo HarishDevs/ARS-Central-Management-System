@@ -1,10 +1,12 @@
 "use client";
 
+import { useId } from "react";
 import { ConditionRow } from "@/features/admin/conditions/ConditionRow";
 import { NumberDraftInput } from "@/features/admin/form-designer/FieldProperties";
 import { isConditionGroup, operatorNeedsValue, upgradeRule, type RuleComparison, type RuleCondition, type StoredRule } from "@/server/conditions/rule";
 import { NUMERIC_TYPES, type FieldLookups, type FormField } from "@/server/forms/fields";
 import { PersonSelect } from "@/features/ui/PersonSelect";
+import { DateField } from "@/features/ui/DateField";
 
 // One condition editor for every rule on the platform (owner, 2 Nov 2026:
 // "merge them into one editor used everywhere"): a workflow's skip and
@@ -74,6 +76,7 @@ export function ConditionValueInput({
   label?: string;
 }) {
   const current = Array.isArray(value) ? value[0] : value;
+  const dateKey = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const select = (items: { value: string; label: string }[], numeric = false) => (
     <select
       aria-label={label}
@@ -97,7 +100,7 @@ export function ConditionValueInput({
     case "NUMBER":
       return <NumberDraftInput label={label} value={typeof current === "number" ? current : undefined} onChange={(next) => onChange(next ?? "")} placeholder="e.g. 500000" className="field-input w-40" />;
     case "DATE":
-      return <input aria-label={label} type="date" value={typeof current === "string" ? current : ""} onChange={(event) => onChange(event.target.value)} className="field-input w-auto" />;
+      return <DateField id={`rule-date-${dateKey}`} label={label} value={typeof current === "string" ? current : ""} onChange={(next) => onChange(next)} className="w-48" />;
     case "CHOICE":
     case "RADIO":
     case "MULTI_CHOICE":

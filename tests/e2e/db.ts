@@ -70,11 +70,27 @@ export async function toWorkflowStep(page: import("@playwright/test").Page): Pro
         await field.click();
         await page.getByRole("listbox", { name: "People" }).getByRole("option").filter({ hasText: " - " }).first().click();
       }
-      else if (type === "date") await field.fill("2031-01-15");
-      else if (type === "datetime-local") await field.fill("2031-01-15T10:00");
+      else if (tag === "BUTTON" && (await field.getAttribute("aria-haspopup")) === "dialog") {
+        // v1.89.0 stage 4 (D-426): a date (or date and time) field is the shared picker.
+        await chooseDate(page, field, "2031-01-15");
+      }
       else await field.fill(type === "url" ? "https://example.com" : "1");
     }
   }
+}
+
+// v1.89.0 stage 4 (D-426): a DateField / single DateRangePicker: open it from its
+// button, type the day (yyyy-mm-dd) into the picker's field, Enter closes it; a time
+// (HH:MM) goes into the time box beside the button (DateField withTime).
+export async function chooseDate(page: import("@playwright/test").Page, trigger: import("@playwright/test").Locator | string, day: string, time?: string): Promise<void> {
+  const button = typeof trigger === "string" ? page.locator(`[id="${trigger}"]`) : trigger;
+  const id = await button.getAttribute("id");
+  await button.click();
+  const field = id ? page.locator(`[id="${id}-due"]`) : page.locator("[data-date-picker-open] input[type=text]").last();
+  await field.fill(day);
+  await field.press("Enter");
+  await field.waitFor({ state: "detached" });
+  if (time && id) await page.locator(`[id="${id}-time"]`).fill(time);
 }
 
 // Then on to Review & submit, where Submit is.

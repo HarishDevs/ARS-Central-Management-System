@@ -9,6 +9,7 @@ import type { DigestSettings, RecurrenceSettings } from "@/server/work/more-rule
 import { FieldError, ResultMessage, SubmitButton, useActionForm } from "@/features/ui/form";
 import { HOLIDAY_MODE_LABEL, HOLIDAY_MODES, type HolidaySettings } from "@/server/work/holidays";
 import { formatClock } from "@/lib/format/date";
+import { DateField } from "@/features/ui/DateField";
 
 // D-217: Admin → Task holidays.
 export function TaskHolidaySettingsForm({ settings }: { settings: HolidaySettings }) {
@@ -145,7 +146,7 @@ export function DepartmentHolidayForm({ departments }: { departments: { id: numb
         <label htmlFor="dept-holiday-date" className="field-label">
           Date
         </label>
-        <input id="dept-holiday-date" type="date" name="date" required className="field-input" />
+        <DateField id="dept-holiday-date" name="date" label="Date" required invalid={Boolean(result && !result.ok && result.fieldErrors?.date)} />
         <FieldError result={result} name="date" />
       </div>
       <div className="md:col-span-2">

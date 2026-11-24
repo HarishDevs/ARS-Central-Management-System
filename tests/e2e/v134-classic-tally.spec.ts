@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { db, sessionCookie, userIdByLogin } from "./db";
+import { chooseDate, db, sessionCookie, userIdByLogin } from "./db";
 import { pickFirstPerson } from "./people";
 
 // D-227 (owner: "in Classic mode make everything Classic… like Tally"):
@@ -38,7 +38,7 @@ test("Classic entry forms: Label : value rows, Enter moves on, Ctrl+A accepts; C
     // v1.69.1: the default due date is today; on a Sunday (the weekly off) the form asks first, so pick the next working day.
     const due = new Date(Date.now() + 330 * 60_000 + 86_400_000);
     if (due.getUTCDay() === 0) due.setUTCDate(due.getUTCDate() + 1);
-    await page.locator("#task-due").fill(`${due.toISOString().slice(0, 10)}T17:00`);
+    await chooseDate(page, "task-due", due.toISOString().slice(0, 10), "17:00");
     await page.locator("main form").getByLabel("Assign to").press("Control+a");
     await expect(page).toHaveURL(/\/users\/tasks\/\d+/);
     await expect(page.getByText(`Classic entry ${stamp}`).first()).toBeVisible();

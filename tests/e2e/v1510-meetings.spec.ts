@@ -1,6 +1,6 @@
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import type { RowDataPacket } from "mysql2/promise";
-import { db, sessionCookie } from "./db";
+import { chooseDate, db, sessionCookie } from "./db";
 
 // v1.51.0 (D-300, D-301): Meeting Management in the browser. The Coordinator
 // (Ravi) schedules with Manoj as Meeting Owner, sends the points, Manoj
@@ -34,7 +34,7 @@ test("the Coordinator schedules a meeting; people are chosen by search", async (
   await page.locator("#mtg-title").fill(title);
   await page.locator("#mtg-type").selectOption({ label: "IDM (Inter Department Meeting)" });
   // v1.55.2 (D-330): the form starts at today and now; this journey uses tomorrow 10:00 to 11:00, as before.
-  await page.locator("#mtg-date").fill(new Date(Date.now() + 330 * 60_000 + 86_400_000).toISOString().slice(0, 10));
+  await chooseDate(page, "mtg-date", new Date(Date.now() + 330 * 60_000 + 86_400_000).toISOString().slice(0, 10));
   await page.locator("#mtg-start").fill("10:00");
   await page.locator("#mtg-end").fill("11:00");
   await pick(page, "Meeting Owner", "Manoj", /Manoj Manager/);

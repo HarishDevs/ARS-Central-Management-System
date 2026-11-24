@@ -25,6 +25,12 @@ const eslintConfig = [
     plugins: { "ars-ui": arsUi },
     rules: { "ars-ui/date-format": "error" },
   },
+  {
+    // v1.89.0 stage 4 (D-426): one date picker everywhere (no native date inputs).
+    files: ["app/**/*.tsx", "features/**/*.tsx", "components/**/*.tsx"],
+    plugins: { "ars-ui": arsUi },
+    rules: { "ars-ui/date-input": "error" },
+  },
 ];
 
 export default eslintConfig;

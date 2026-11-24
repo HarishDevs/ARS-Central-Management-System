@@ -8,6 +8,7 @@ import { FieldError, ResultMessage, SubmitButton, useActionForm } from "@/featur
 import { UnsavedGuard } from "@/features/ui/UnsavedGuard";
 import { PRIORITIES, PRIORITY_LABEL, type Attendance, type MeetingPriority } from "@/server/meetings/rules";
 import { RichEditor } from "@/features/ui/RichEditor";
+import { DateField } from "@/features/ui/DateField";
 
 // v1.51.0 (D-300, D-301): Meeting Management forms. Every people choice is
 // search-and-select (owner rule): one person for Owner, Coordinator,
@@ -131,7 +132,7 @@ export function ScheduleMeetingForm({
           <label htmlFor="mtg-date" className="field-label">
             Date <span className="text-danger-600" aria-hidden="true">*</span>
           </label>
-          <input id="mtg-date" name="date" type="date" defaultValue={defaults.date} required className="field-input" />
+          <DateField id="mtg-date" name="date" label="Date" defaultValue={defaults.date} required />
           {err("start")}
         </div>
         <div>
@@ -278,7 +279,7 @@ export function ScheduleMeetingForm({
           <label htmlFor="mtg-agenda-due" className="field-label">
             Points due by
           </label>
-          <input id="mtg-agenda-due" name="agendaDue" type="datetime-local" defaultValue={defaults.agendaDue} className="field-input" />
+          <DateField id="mtg-agenda-due" name="agendaDue" label="Points due by" withTime defaultTime="17:00" defaultValue={defaults.agendaDue} />
           <p className="mt-1 text-caption text-ink-muted">Deadline for the Coordinator to send the points.</p>
           {err("agendaDueAt")}
         </div>
@@ -286,7 +287,7 @@ export function ScheduleMeetingForm({
           <label htmlFor="mtg-mom-due" className="field-label">
             MOM due by
           </label>
-          <input id="mtg-mom-due" name="momDue" type="datetime-local" defaultValue={defaults.momDue} className="field-input" />
+          <DateField id="mtg-mom-due" name="momDue" label="MOM due by" withTime defaultTime="17:00" defaultValue={defaults.momDue} />
           <p className="mt-1 text-caption text-ink-muted">Deadline for the Coordinator to send the MOM.</p>
           {err("momDueAt")}
         </div>
@@ -559,13 +560,13 @@ export function RecordHeldForm({ meetingId, rowVersion, start, end }: { meetingI
           <label htmlFor="held-start" className="field-label">
             Started
           </label>
-          <input id="held-start" name="actualStart" type="datetime-local" defaultValue={start} required className="field-input" />
+          <DateField id="held-start" name="actualStart" label="Started" withTime defaultTime="10:00" defaultValue={start} required />
         </div>
         <div>
           <label htmlFor="held-end" className="field-label">
             Ended
           </label>
-          <input id="held-end" name="actualEnd" type="datetime-local" defaultValue={end} required className="field-input" />
+          <DateField id="held-end" name="actualEnd" label="Ended" withTime defaultTime="11:00" defaultValue={end} required />
         </div>
       </div>
       <div className="flex gap-2">
@@ -839,7 +840,7 @@ export function MomEditor({
                   <label className="field-label" htmlFor={`act-due-${row.key}`}>
                     Due date
                   </label>
-                  <input id={`act-due-${row.key}`} type="date" value={row.dueOn} onChange={(event) => setAction(row.key, { dueOn: event.target.value })} className="field-input" />
+                  <DateField id={`act-due-${row.key}`} label="Due date" value={row.dueOn} onChange={(next) => setAction(row.key, { dueOn: next })} />
                 </div>
               </div>
               <div>
@@ -903,7 +904,7 @@ export function MomEditor({
                   <label className="field-label" htmlFor={`open-on-${row.key}`}>
                     Review on (optional)
                   </label>
-                  <input id={`open-on-${row.key}`} type="date" value={row.reviewOn} onChange={(event) => setOpen(row.key, { reviewOn: event.target.value })} className="field-input" />
+                  <DateField id={`open-on-${row.key}`} label="Review on" value={row.reviewOn} onChange={(next) => setOpen(row.key, { reviewOn: next })} />
                 </div>
               </div>
             </li>

@@ -13,6 +13,7 @@ import type { InfoAction } from "@/server/modules/info-rules";
 import { UnsavedGuard } from "@/features/ui/UnsavedGuard";
 import { FileListInput } from "@/features/ui/FileListInput";
 import { RichEditor } from "@/features/ui/RichEditor";
+import { DateField } from "@/features/ui/DateField";
 
 type Option = { id: number; label: string };
 
@@ -82,13 +83,13 @@ export function InfoForm({
           <label htmlFor="info-effective" className="field-label">
             Takes effect on <span className="font-normal text-ink-faint">(optional)</span>
           </label>
-          <input id="info-effective" name="effective_on" type="date" defaultValue={defaults.effectiveOn} className="field-input" />
+          <DateField id="info-effective" name="effective_on" label="Takes effect on" defaultValue={defaults.effectiveOn ?? ""} />
         </div>
         <div>
           <label htmlFor="info-expires" className="field-label">
             Expires on <span className="font-normal text-ink-faint">(optional)</span>
           </label>
-          <input id="info-expires" name="expires_on" type="date" defaultValue={defaults.expiresOn} className="field-input" />
+          <DateField id="info-expires" name="expires_on" label="Expires on" defaultValue={defaults.expiresOn ?? ""} invalid={Boolean(result && !result.ok && result.fieldErrors?.expires_on)} />
           <FieldError result={result} name="expires_on" />
         </div>
       </div>
@@ -235,7 +236,7 @@ export function EditPublishedForm({ infoId, rowVersion, editable, values, expire
         <label htmlFor="edit-expires" className="field-label">
           Expires on
         </label>
-        <input id="edit-expires" name="expires_on" type="date" defaultValue={expiresOn} className="field-input w-auto" />
+        <DateField id="edit-expires" name="expires_on" label="Expires on" defaultValue={expiresOn ?? ""} className="max-w-xs" invalid={Boolean(result && !result.ok && result.fieldErrors?.expires_on)} />
         <FieldError result={result} name="expires_on" />
       </div>
       {editable.length > 0 && <DynamicFields fields={editable} mode="resubmit" initial={values} people={people} lookups={lookups} result={result} />}

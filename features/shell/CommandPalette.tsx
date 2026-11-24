@@ -9,6 +9,7 @@ import { Avatar } from "@/features/ui/Avatar";
 import { openTaskHref } from "@/features/work/pane-open";
 import { openOverlay, type OverlayHandle } from "@/features/ui/overlay-stack";
 import { closeTopLayer } from "@/features/ui/top-layer";
+import { DateRangePicker } from "@/features/ui/DateRangePicker";
 
 // WS-03 (Ctrl+K) → D-232 (owner's screenshots of Asana's search): one search
 // for the whole app at the top of every page. Type chips (Requests, Tasks,
@@ -409,11 +410,7 @@ export function CommandPalette({ pages, saved }: { pages: PaletteLink[]; saved?:
                     {filters.due === "custom" &&
                       row(
                         "Between",
-                        <span className="flex items-center gap-2">
-                          <input id="sf-from" type="date" aria-label="Due from" className={select} value={filters.from} onChange={(event) => set("from", event.target.value)} />
-                          <span>and</span>
-                          <input type="date" aria-label="Due to" className={select} value={filters.to} onChange={(event) => set("to", event.target.value)} />
-                        </span>,
+                        <DateRangePicker idBase="sf-from" triggerId="sf-from" triggerLabel={`Due between: ${filters.from || filters.to ? `${filters.from || "any day"} to ${filters.to || "any day"}` : "any dates"}. Change`} label="Due between" startLabel="From" dueLabel="To" value={{ start: filters.from ?? "", due: filters.to ?? "" }} onChange={(next) => { set("from", next.start); set("to", next.due); }} placeholder="Any dates" triggerClass={`${select} flex w-full items-center gap-2 text-left`} testId="sf-from" />,
                         "sf-from",
                       )}
                     {extra.includes("priority") &&
@@ -476,11 +473,7 @@ export function CommandPalette({ pages, saved }: { pages: PaletteLink[]; saved?:
                     )}
                     {row(
                       "Raised between",
-                      <span className="flex items-center gap-2">
-                        <input id="sf-rfrom" type="date" aria-label="Raised from" className={select} value={filters.from} onChange={(event) => set("from", event.target.value)} />
-                        <span>and</span>
-                        <input type="date" aria-label="Raised to" className={select} value={filters.to} onChange={(event) => set("to", event.target.value)} />
-                      </span>,
+                      <DateRangePicker idBase="sf-rfrom" triggerId="sf-rfrom" triggerLabel={`Raised between: ${filters.from || filters.to ? `${filters.from || "any day"} to ${filters.to || "any day"}` : "any dates"}. Change`} label="Raised between" startLabel="From" dueLabel="To" value={{ start: filters.from ?? "", due: filters.to ?? "" }} onChange={(next) => { set("from", next.start); set("to", next.due); }} placeholder="Any dates" triggerClass={`${select} flex w-full items-center gap-2 text-left`} testId="sf-rfrom" />,
                       "sf-rfrom",
                     )}
                     {extra.includes("overdue") &&

@@ -2,6 +2,7 @@
 
 import { holidayAction, saveWorkingDaysAction } from "@/app/admin/calendar/actions";
 import { FieldError, ResultMessage, SubmitButton, useActionForm } from "@/features/ui/form";
+import { DateField } from "@/features/ui/DateField";
 
 const DAY_LABEL: Record<string, string> = { SUN: "Sunday", MON: "Monday", TUE: "Tuesday", WED: "Wednesday", THU: "Thursday", FRI: "Friday", SAT: "Saturday" };
 
@@ -39,7 +40,7 @@ export function AddHolidayForm() {
     <form ref={formRef} onSubmit={onSubmit} className="grid items-start gap-3 px-5 py-4 sm:grid-cols-[180px_minmax(0,1fr)_auto]">
       <input type="hidden" name="command" value="add" />
       <div>
-        <input aria-label="Date" type="date" name="date" className="field-input" />
+        <DateField id="holiday-add-date" name="date" label="Date" invalid={Boolean(result && !result.ok && result.fieldErrors?.date)} />
         <FieldError result={result} name="date" />
       </div>
       <div>

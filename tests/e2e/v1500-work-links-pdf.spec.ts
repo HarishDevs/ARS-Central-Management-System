@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { dropCustomDraft, sessionCookie, toWorkflowStep } from "./db";
+import { chooseDate, dropCustomDraft, sessionCookie, toWorkflowStep } from "./db";
 
 // v1.50.0 (owner): a work step has Task priority and Task due date; Linked
 // requests is a search over requests the person can see; the PDF downloads.
@@ -14,8 +14,9 @@ test("a work step offers Task priority and Task due date", async ({ page, contex
   const options = page.getByTestId("work-task-options").first();
   await expect(options.getByLabel("Task priority")).toHaveValue("NORMAL");
   await options.getByLabel("Task priority").selectOption("URGENT");
-  await options.getByLabel(/Task due date/).fill("2031-01-15");
-  await expect(options.getByLabel(/Task due date/)).toHaveValue("2031-01-15");
+  // v1.89.0 stage 4 (D-426): the shared date picker (type the day, Enter).
+  await chooseDate(page, options.getByLabel(/Task due date/), "2031-01-15");
+  await expect(options.getByRole("button", { name: /Task due date: Wednesday 15 January 2031/ })).toBeVisible();
   // Back to an approval: the work options go away.
   await page.getByLabel("Kind of step").first().selectOption("APPROVE");
   await expect(page.getByTestId("work-task-options")).toHaveCount(0);

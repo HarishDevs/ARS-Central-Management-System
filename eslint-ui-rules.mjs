@@ -94,4 +94,21 @@ const dateFormat = {
   },
 };
 
-export const arsUi = { rules: { "control-size": controlSize, "spacing-scale": spacingScale, "type-scale": typeScale, "date-format": dateFormat } };
+// v1.89.0 stage 4 (D-426, owner: one design system everywhere): no native date inputs.
+//   ars-ui/date-input    <input type="date" | "datetime-local" | "month" | "week">: use
+//                        DateField (one day, or a day and a time) or DateRangeField /
+//                        DateRangePicker (From - To) from features/ui. Time-only boxes stay.
+const NATIVE_DATE_TYPES = new Set(["date", "datetime-local", "month", "week"]);
+const dateInput = {
+  meta: { type: "problem", messages: { native: "<input type=\"{{type}}\"> shows the browser's own date format and calendar: use DateField (features/ui/DateField.tsx) or DateRangeField / DateRangePicker (D-426)." }, schema: [] },
+  create: (context) => ({
+    JSXOpeningElement(node) {
+      if (node.name?.type !== "JSXIdentifier" || node.name.name !== "input") return;
+      const type = node.attributes.find((a) => a.type === "JSXAttribute" && a.name?.name === "type");
+      const value = type?.value?.type === "Literal" ? type.value.value : type?.value?.type === "JSXExpressionContainer" && type.value.expression?.type === "Literal" ? type.value.expression.value : null;
+      if (typeof value === "string" && NATIVE_DATE_TYPES.has(value)) context.report({ node, messageId: "native", data: { type: value } });
+    },
+  }),
+};
+
+export const arsUi = { rules: { "control-size": controlSize, "spacing-scale": spacingScale, "type-scale": typeScale, "date-format": dateFormat, "date-input": dateInput } };

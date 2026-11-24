@@ -22,7 +22,8 @@ const indiaToday = () => new Date(Date.now() + 330 * 60_000).toISOString().slice
 test("the schedule form: today and now, required marks, department search, end after start", async ({ page, context }) => {
   await as(context, "E2E_REQ");
   await page.goto("/users/meetings/new");
-  await expect(page.locator("#mtg-date")).toHaveValue(indiaToday());
+  // v1.89.0 stage 4 (D-426): the date is the shared picker; the form still sends date=yyyy-mm-dd.
+  await expect(page.locator('form input[name="date"]')).toHaveValue(indiaToday());
   const start = await page.locator("#mtg-start").inputValue();
   const end = await page.locator("#mtg-end").inputValue();
   expect(start).toMatch(/^\d{2}:\d{2}$/);
@@ -67,7 +68,8 @@ test("an online meeting's link shows in the meetings list and on the calendar", 
   await page.goto(`/users/calendar?view=day&date=${indiaToday()}`);
   const row = page.getByTestId("calendar-list").locator("li", { hasText: title });
   await expect(row).toContainText("Meetings");
-  await expect(row).toContainText("10:00–11:00");
+  // v1.89.0 (D-425 part 8): calendar entries read 12 h like every other time.
+  await expect(row).toContainText("10:00 am – 11:00 am");
   await expect(row.getByTestId("calendar-join-link")).toHaveAttribute("href", link);
   await page.screenshot({ path: "test-results/v1552-calendar-meeting.png", fullPage: true });
 });

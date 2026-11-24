@@ -250,7 +250,11 @@ export function TaskCompleteButton({ taskId, done, disabled, title }: { taskId: 
           if (!result?.ok) return setShown(!next);
           if (next && pm) {
             celebrate(self.current);
-            toast({ tone: "success", title: `Completed: ${title}`, action: { label: "Undo", onClick: () => void call(() => completeAction(taskId), { success: "Reopened." }) } });
+            // v1.89.0 stage 4 (D-426, v162 root cause): Undo shows the task open itself. The
+            // button followed only the page's refreshed `done`; when the complete and the
+            // Undo refreshes arrived together, `done` never changed (false → false) and the
+            // button stayed pressed although the task was open again.
+            toast({ tone: "success", title: `Completed: ${title}`, action: { label: "Undo", onClick: () => void call(() => completeAction(taskId), { success: "Reopened." }).then((undone) => undone?.ok && setShown(false)) } });
           }
         });
       }}
