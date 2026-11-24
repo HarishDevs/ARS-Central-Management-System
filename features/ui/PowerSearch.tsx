@@ -43,6 +43,7 @@ export { powerHref } from "@/features/ui/power-href";
 import { powerHref } from "@/features/ui/power-href";
 import { useOverlay } from "@/features/ui/overlay-stack";
 import { navigateSurely } from "@/features/ui/sure-nav";
+import { DateField } from "@/features/ui/DateField";
 
 // v1.89.0 (D-423, UIQA-CON-01): `inToolbar` = the shared ListToolbar's lead (Admin -> Records): the chips and
 // Add filter sit on the toolbar row, as the Filter panel's advanced mode; no margin of its own.
@@ -166,8 +167,11 @@ export function PowerSearch({ base, fields, params, label = "Filters", inToolbar
                   <select id={`${id}-value`} value={value} onChange={(event) => setValue(event.target.value)} className="field-input field-compact">
                     <option value="1">Yes</option>
                   </select>
+                ) : field?.input === "date" ? (
+                  // v1.89.0 stage 4 (D-426): the shared date picker (required, yyyy-mm-dd as before).
+                  <DateField id={`${id}-value`} label="Value" value={value} onChange={setValue} required compact />
                 ) : (
-                  <input id={`${id}-value`} type={field?.input === "date" ? "date" : "search"} value={value} onChange={(event) => setValue(event.target.value)} className="field-input field-compact" required maxLength={100} />
+                  <input id={`${id}-value`} type="search" value={value} onChange={(event) => setValue(event.target.value)} className="field-input field-compact" required maxLength={100} />
                 )}
               </div>
               <div className="flex gap-2 sm:col-span-3">

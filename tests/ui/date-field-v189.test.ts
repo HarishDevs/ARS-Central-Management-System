@@ -22,6 +22,7 @@ describe("lint: ars-ui/date-input (D-426)", () => {
     expect(lint(`const a = <input type="date" name="d" />;`)).toEqual(["ars-ui/date-input"]);
     expect(lint(`const a = <input type="datetime-local" />;`)).toEqual(["ars-ui/date-input"]);
     expect(lint(`const a = <input type={"month"} />;`)).toEqual(["ars-ui/date-input"]);
+    expect(lint(`const a = <input type={kind === "DATE" ? "date" : kind === "NUMBER" ? "number" : "text"} />;`)).toEqual(["ars-ui/date-input"]);
   });
   it("allows time boxes and other inputs", () => {
     expect(lint(`const a = <input type="time" />;`)).toEqual([]);
@@ -36,7 +37,7 @@ describe("no native date input left in app/ or features/", () => {
       for (const entry of fs.readdirSync(path.join(root, dir), { withFileTypes: true })) {
         const rel = path.join(dir, entry.name);
         if (entry.isDirectory()) walk(rel);
-        else if (/\.tsx$/.test(entry.name) && /type=(["'{])\s*["']?(date|datetime-local)["']/.test(fs.readFileSync(path.join(root, rel), "utf8"))) found.push(rel);
+        else if (/\.tsx$/.test(entry.name) && /type=(["'{])\s*["']?(date|datetime-local)["']|\?\s*["'](date|datetime-local)["']\s*:/.test(fs.readFileSync(path.join(root, rel), "utf8"))) found.push(rel);
       }
     };
     walk("app");

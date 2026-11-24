@@ -9,6 +9,7 @@ import { Hint } from "@/features/ui/Hint";
 import { choicePillStyle } from "@/features/ui/ChoicePill";
 import { isOptionColor, OPTION_COLOR_LABEL, OPTION_COLORS, reconcileOptionColors, type OptionColor } from "@/server/forms/option-colors";
 import { choicesFor, formulaProblem, slugKey, TYPE_CHOICES, typeValue, type DesignerKind } from "@/features/admin/form-designer/model";
+import { DateField } from "@/features/ui/DateField";
 
 // D-235 (Form Designer): the selected field's properties, in tabs, showing
 // only what applies to its type. Labels stay as they were (Field label,
@@ -230,15 +231,20 @@ export function FieldProperties({
           {extra}
           {!intake && ["TEXT", "NUMBER", "CURRENCY", "DATE", "URL"].includes(field.type) && (
             <Row label="Default value" htmlFor="fd-default">
-              <input
-                id="fd-default"
-                aria-label={`Default value for ${name}`}
-                type={field.type === "DATE" ? "date" : "text"}
-                value={field.defaultValue ?? ""}
-                onChange={(event) => onChange((item) => ({ ...item, defaultValue: event.target.value ? event.target.value.slice(0, 200) : undefined }), "default")}
-                placeholder="Optional"
-                className="field-input"
-              />
+              {field.type === "DATE" ? (
+                // v1.89.0 stage 4 (D-426): the shared date picker (same yyyy-mm-dd value).
+                <DateField id="fd-default" label={`Default value for ${name}`} value={field.defaultValue ?? ""} onChange={(next) => onChange((item) => ({ ...item, defaultValue: next || undefined }), "default")} placeholder="Optional" />
+              ) : (
+                <input
+                  id="fd-default"
+                  aria-label={`Default value for ${name}`}
+                  type="text"
+                  value={field.defaultValue ?? ""}
+                  onChange={(event) => onChange((item) => ({ ...item, defaultValue: event.target.value ? event.target.value.slice(0, 200) : undefined }), "default")}
+                  placeholder="Optional"
+                  className="field-input"
+                />
+              )}
             </Row>
           )}
           {!intake && (field.type === "CHOICE" || field.type === "RADIO") && (field.options ?? []).length > 0 && (

@@ -6,7 +6,8 @@
 import fs from "node:fs";
 import path from "node:path";
 
-const OUT = "audit/ui-qa";
+// v1.89.0 stage 4 (D-426): UIQA_OUT, as tests/e2e/ui-qa-shared.ts (one folder per parallel sweep).
+const OUT = process.env.UIQA_OUT ?? "audit/ui-qa";
 const RAW = path.join(OUT, "raw");
 const OWNER = { header: 64, sidebar: 250, rail: 72, padX: 24, padTop: 24, h1: 24, h2: 18, body: 14, button: 40, input: 42, cardRadius: 12, modalRadius: 16 };
 // v1.89.0 (D-421): the owner's values are now the app's tokens. The expected shell at a

@@ -461,8 +461,9 @@ export function TabSettingsBar({ tabKey, range }: { tabKey: string; range: TabRa
   return (
     <div className="flex flex-wrap items-center gap-3" data-testid="tab-settings">
       <label className="inline-flex items-center gap-2 text-label">
-        <span className="text-ink-muted">Show</span>
-        <select value={range} disabled={pending} onChange={(event) => save({ range: event.target.value as TabRange })} className="field-input field-compact text-label" data-testid="tab-range" title={TAB_RANGE_HINT[range]}>
+        {/* v1.89.0 stage 4 (D-426, found by the visual baselines): field-input is full width, which squeezed "Show" into "Sho / w". */}
+        <span className="shrink-0 text-ink-muted">Show</span>
+        <select value={range} disabled={pending} onChange={(event) => save({ range: event.target.value as TabRange })} className="field-input field-compact w-auto text-label" data-testid="tab-range" title={TAB_RANGE_HINT[range]}>
           {TAB_RANGES.map((value) => (
             <option key={value} value={value}>
               {TAB_RANGE_LABEL[value]}

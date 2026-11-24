@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { DateRangePicker } from "@/features/ui/DateRangePicker";
 import { isRealDay, longDay } from "@/features/ui/date-range";
 import { formatClock } from "@/lib/format/date";
@@ -24,7 +24,7 @@ import { formatClock } from "@/lib/format/date";
 //   - an `input` event on change, so "unsaved changes" guards notice it.
 // The <label htmlFor={id}> outside names the button (the id is the button's).
 export function DateField({
-  id,
+  id: givenId,
   name,
   label,
   defaultValue = "",
@@ -43,7 +43,8 @@ export function DateField({
   className = "",
   testId,
 }: {
-  id: string;
+  /** The button's id (a <label htmlFor> names it); made up when not given. */
+  id?: string;
   name?: string;
   /** Read with the button and in the picker ("Due", "Date"). */
   label: string;
@@ -66,6 +67,8 @@ export function DateField({
   className?: string;
   testId?: string;
 }) {
+  const auto = useId().replace(/[^a-zA-Z0-9_-]/g, "");
+  const id = givenId ?? `df-${auto}`;
   const [own, setOwn] = useState(defaultValue);
   const [round, setRound] = useState(0);
   const [missing, setMissing] = useState(false);

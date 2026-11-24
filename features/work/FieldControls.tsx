@@ -9,6 +9,7 @@ import { useCellPanel } from "@/features/work/GridCellEditors";
 import { useWorkCall } from "@/features/work/client";
 import { FIELD_FILTER_LABEL, filterOps, timerText, type FieldCell, type FieldFilter, type FieldType, type FieldView } from "@/server/work/custom-fields";
 import { DateRangePicker } from "@/features/ui/DateRangePicker";
+import { DateField } from "@/features/ui/DateField";
 
 // v1.64.0 (D-371, PM phase B part 1, spec PC §8.9): how custom field values
 // show and change in the List, on Board cards and in the task pane. Every
@@ -418,10 +419,13 @@ export function FieldFilterRows({ fields, filters, onChange, people }: { fields:
                       </option>
                     ))}
                   </select>
+                ) : field.kind === "DATE" ? (
+                  // v1.89.0 stage 4 (D-426): the shared date picker.
+                  <DateField label={`${field.name} value`} value={filter.value} onChange={(next) => set(index, { value: next })} compact className="min-w-32 flex-1" />
                 ) : (
                   <input
                     aria-label={`${field.name} value${field.kind === "TIMER" ? " in minutes" : ""}`}
-                    type={field.kind === "DATE" ? "date" : "text"}
+                    type="text"
                     inputMode={field.kind === "NUMBER" || field.kind === "FORMULA" || field.kind === "TIMER" ? "decimal" : undefined}
                     value={filter.value}
                     onChange={(event) => set(index, { value: event.target.value })}

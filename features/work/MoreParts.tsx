@@ -12,6 +12,7 @@ import { PersonSelect } from "@/features/ui/PersonSelect";
 import { FIELD_TYPE_LABEL, type FieldView } from "@/server/work/custom-fields";
 import { DEFAULT_DUPLICATE, DUPLICATE_PART_LABEL, DUPLICATE_PARTS, type DuplicatePart } from "@/server/work/template-rules";
 import { DateRangePicker } from "@/features/ui/DateRangePicker";
+import { DateField } from "@/features/ui/DateField";
 
 // D-218: repeating tasks, custom fields, templates, bulk actions, the inbox
 // and the morning summary switch.
@@ -116,11 +117,13 @@ export function FieldInput({ taskId, field, value, canChange, compact }: { taskI
         ))}
       </select>
     );
+  // v1.89.0 stage 4 (D-426): a date field is the shared date picker (saved when a day is chosen or cleared).
+  if (field.kind === "DATE") return <DateField label={label} value={value} onChange={save} compact={compact} />;
   return (
     <input
       key={value}
       aria-label={label}
-      type={field.kind === "DATE" ? "date" : field.kind === "NUMBER" ? "number" : "text"}
+      type={field.kind === "NUMBER" ? "number" : "text"}
       defaultValue={value}
       maxLength={500}
       onBlur={(event) => save(event.target.value)}

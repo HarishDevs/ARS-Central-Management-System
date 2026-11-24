@@ -34,6 +34,7 @@ import {
   type QuickFilter,
   type VisibleRow,
 } from "@/server/work/portfolio-rules";
+import { DateField } from "@/features/ui/DateField";
 
 // v1.69.0 (D-382, spec PORTFOLIOS §3.5, 3.8-3.11): the portfolio's List:
 // one row per project or sub-portfolio with its latest status, task progress
@@ -417,11 +418,13 @@ function ValueEditor({ field, value, rowName, people, save }: { field: Field; va
         <PersonSelect ariaLabel={label} options={people} value={value ? Number(value) : null} onChange={(next) => save(next === null ? null : String(next))} emptyLabel="Nobody" compact floating />
       </div>
     );
+  // v1.89.0 stage 4 (D-426): a date is the shared date picker (saved when a day is chosen or cleared).
+  if (field.kind === "DATE") return <DateField label={label} value={value} onChange={(next) => next !== value && save(next || null)} compact className="w-40" />;
   const commit = () => draft !== value && save(draft.trim() || null);
   return (
     <input
       aria-label={label}
-      type={field.kind === "DATE" ? "date" : field.kind === "NUMBER" ? "number" : "text"}
+      type={field.kind === "NUMBER" ? "number" : "text"}
       step={field.kind === "NUMBER" ? "any" : undefined}
       value={draft}
       maxLength={500}

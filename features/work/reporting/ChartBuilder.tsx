@@ -36,6 +36,7 @@ import {
   type ChartStyle,
   type FieldInfo,
 } from "@/server/work/reporting";
+import { DateField } from "@/features/ui/DateField";
 
 // v1.67.0 (D-375, spec PV §7.2 "Edit chart"): the chart builder. A live
 // preview (worked out on the server, with the same visibility as the
@@ -473,11 +474,13 @@ function choicesFor(field: FieldInfo | undefined, choices: boolean | undefined, 
       </select>
     );
   }
+  // v1.89.0 stage 4 (D-426): a date is the shared date picker.
+  if (field?.type === "DATE") return <DateField label={`Filter ${index + 1}: value`} value={value} onChange={set} compact className="w-40" />;
   return (
     <input
       aria-label={`Filter ${index + 1}: value`}
       className={`${inputClass} w-40`}
-      type={field?.type === "DATE" ? "date" : "text"}
+      type="text"
       value={value}
       maxLength={100}
       placeholder={field?.type === "PEOPLE" ? "me" : field?.type === "TIMER" ? "minutes" : ""}

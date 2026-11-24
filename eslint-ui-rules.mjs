@@ -105,8 +105,19 @@ const dateInput = {
     JSXOpeningElement(node) {
       if (node.name?.type !== "JSXIdentifier" || node.name.name !== "input") return;
       const type = node.attributes.find((a) => a.type === "JSXAttribute" && a.name?.name === "type");
-      const value = type?.value?.type === "Literal" ? type.value.value : type?.value?.type === "JSXExpressionContainer" && type.value.expression?.type === "Literal" ? type.value.expression.value : null;
-      if (typeof value === "string" && NATIVE_DATE_TYPES.has(value)) context.report({ node, messageId: "native", data: { type: value } });
+      // A literal, or any literal inside the expression (type={kind === "DATE" ? "date" : "text"}).
+      const literals = [];
+      const collect = (expr) => {
+        if (!expr) return;
+        if (expr.type === "Literal") literals.push(expr.value);
+        else if (expr.type === "ConditionalExpression") [expr.consequent, expr.alternate].forEach(collect);
+        else if (expr.type === "LogicalExpression") [expr.left, expr.right].forEach(collect);
+        else if (expr.type === "TemplateLiteral" && expr.expressions.length === 0) literals.push(expr.quasis[0]?.value?.cooked);
+      };
+      if (type?.value?.type === "Literal") literals.push(type.value.value);
+      else if (type?.value?.type === "JSXExpressionContainer") collect(type.value.expression);
+      const value = literals.find((item) => typeof item === "string" && NATIVE_DATE_TYPES.has(item));
+      if (value) context.report({ node, messageId: "native", data: { type: value } });
     },
   }),
 };
