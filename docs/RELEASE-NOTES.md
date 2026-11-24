@@ -66,6 +66,15 @@ One release in stages (owner): navigation fixes, then the motion and transition 
 - **Fixed:** the Profile → App & devices page could hang Safari-type browsers in testing (it no longer looks up a notification subscription before notifications are allowed) and showed a hydration error there; the Dashboards hub opens Utilisation with a proper redirect (no page refresh tag).
 - **Owner steps:** none.
 
+**Stage 3e: dates, date pickers and wording** (D-425, `docs/qa/UI_UX_DEFECT_REPORT.md` batch 5; record in `docs/qa/UI_REFACTORING_LOG.md`, `BUG_FIX_LOG.md` and `GLOBAL_DESIGN_SYSTEM.md` §10):
+- **One way of writing dates and times, India time, everywhere:** "24 Nov 2026", "24 Nov 2026, 3:05 pm", "24 Nov" within the year, "Tue, 24 Nov 2026, 11:00 am to 12:30 pm" for a meeting. Admin → Records now shows 12-hour times (it showed 24-hour ones), the meetings list no longer shows "24 Nov, 2026", and days no longer start with a 0 ("1 Nov"). Emails, WhatsApp messages and notifications use the same forms.
+- **"2 h ago", "Yesterday"** and the like are worked out in your browser (the page first shows the exact time, then the short one, in the same place); the exact time is in the tooltip. The server and your browser can no longer write a time differently, the likely cause of an occasional loading error seen in testing.
+- **The date picker everywhere you choose dates to look at:** Analytics and report periods, the Admin and ticket dashboards, Home's custom period, the Task, Information and request filters, Search, a calendar entry and **Out of office**. One button shows the dates in the app's format; the calendar works with the keyboard and opens as a sheet on a phone; you can still type a date. Out of office keeps its rules: it can start up to 30 days back and last up to 90 days (the picker stops at the 90th day).
+- **Filter chips** read "Raised 1 Nov to 10 Nov 2026" instead of "2026-11-01 to 2026-11-10".
+- **Names match:** the pages that create a meeting, a ticket or a user are titled **New meeting**, **New ticket** and **New user**, like the buttons that open them; the sidebar and search say the same. The buttons that save them keep their words (Schedule meeting, Raise ticket, Create user). Help, the tour and the guide call your task list **Task Summary**, as the sidebar does.
+- **Downloads are unchanged:** report files keep their date format, so anything that reads them keeps working. The Admin → Records download shows the same 12-hour times as the screen.
+- **Owner steps:** none.
+
 ## v1.88.0 (23 Nov 2026): simple formulas
 No migration (D-418, owner: "use all these as simple formulas in my app"):
 - **Formula fields take functions** (names in any case): ADD, SUBTRACT, MULTIPLY, DIVIDE, DATEADD, DATESUBTRACT and ROLLUP (as in Asana), plus DAYS, WORKDAYS (on the Working calendar), IF with > < >= <= = <>, ROUND, MIN, MAX, ABS and COALESCE. Open **Functions** in the formula editor for a help card with an example; **Insert** puts the function in.

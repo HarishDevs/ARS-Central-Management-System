@@ -184,3 +184,36 @@ This **supersedes D-417's v1.87 values** (100/150/220/280/350/450; `(0.22,1,0.36
 | Q-UI-4 | The users phone layout (v1.43.0) has its own header (56 px), tab bar and screen titles (22 / 800). Keep it as the mobile variant of the one shell? | Yes. Align its tokens (title 22 / 700, padding 16, header token). |
 | Q-UI-5 | Motion values: the 24 Nov brief replaces v1.87's (D-417, the day before). Confirm the new set? | Yes, with page transitions ON after the probes pass (motion audit §4). |
 | Q-UI-6 | Tablet (768-1023): sidebar expanded today (220 of 768 px). Collapse by default below 1024? | Yes, rail by default below 1024 (content gains 140 px). |
+
+## 10. Content: dates, times and wording (v1.89.0, D-425)
+
+**One formatter: `lib/format/date.ts`.** India time (Asia/Kolkata, UTC+5:30, no daylight saving), written out by hand, so the server, every browser and every email print the same characters (Intl / `toLocale*` differ between Node's ICU and the browsers': "pm" / "PM", a narrow no-break space, "Sept"; a server-rendered text the browser then writes differently is React #418). ESLint `ars-ui/date-format` blocks `toLocaleDateString`, `toLocaleTimeString`, `Intl.DateTimeFormat`, `Intl.RelativeTimeFormat` and `toLocaleString` on a date in `app/`, `features/`, `components/` and `server/` (a number's `toLocaleString("en-IN")` stays allowed: figures, not dates).
+
+| Form | Text | Function |
+|---|---|---|
+| Date | 24 Nov 2026 (day without a leading zero) | `formatDate(at)` |
+| Short date (this year) | 24 Nov; another year: 24 Nov 2027 | `formatDate(at, { year: "auto" })` |
+| With weekday | Tue, 24 Nov 2026 / Tuesday, 24 November | `formatDate(at, { weekday: "short" })` |
+| Time | 3:05 pm (12 h, lower-case am / pm) | `formatTime(at)`; a stored "15:05": `formatClock` |
+| Date and time | 24 Nov 2026, 3:05 pm | `formatDateTime(at)` |
+| Meeting time | Tue, 24 Nov 2026, 11:00 am to 12:30 pm; over midnight: … 11:30 pm to 25 Nov, 12:30 am | `formatTimeRange(start, end)` |
+| Day range (pickers, task dates) | 30 Nov – 4 Dec, 7 – 11 Dec, 28 Dec 2026 – 5 Jan 2027 | `formatDayRange(start, due, today)` |
+| Period (filters, emails) | 1 Dec to 12 Dec 2026 | `formatPeriod(from, to)` |
+| Month | Nov 2026 / November 2026; chart axes only: Nov 26 | `formatMonth(at)` |
+| Relative moment | just now · 5 min ago · 2 h ago · Yesterday · 3 days ago · then the short date; future: in 5 min · in 2 h · Tomorrow · in 3 days | `formatRelative(at, now)` |
+| Relative day | Today · Tomorrow · Yesterday · Friday (within the coming week) · 24 Nov | `formatRelativeDay(day, today)` |
+| Day and time | Today at 2:27 pm · Yesterday at 3:41 pm · 28 Oct at 9:05 am | `formatDayTime(at, now)` |
+| Machine forms | yyyy-mm-dd (India day), HH:MM | `indiaDay`, `indiaClock`; inputs, addresses, file names, stored data |
+
+**Relative times on a page:** `<RelativeTime at kind>` (`features/ui/RelativeTime.tsx`). The server and the first paint show the absolute text (identical everywhere); after mount the browser draws the relative text in the same grid cell and refreshes it every minute (the box keeps the wider of the two: no layout shift). The absolute text is the tooltip; `<time datetime>` carries the ISO moment. A server component may print relative text for its own render (no hydration), but text computed from "now" inside a client component must use `<RelativeTime>`.
+
+**Exports keep their own format.** Report files (CSV / Excel / PDF, `server/reports/export.ts`) keep their cell text as before; date-only cells are yyyy-mm-dd. The Admin Records download writes the same display text as the screen (now 12 h). Stored data is unchanged everywhere.
+
+**Date entry:** the shared `DateRangePicker` (one button with the app's day format, a Monday-first grid, keyboard, the phone bottom sheet; type dd-mm-yyyy or yyyy-mm-dd). `DateRangeField` is its labelled From – To form for GET filters (hidden inputs keep the field names). Native `type="date"` stays only where a form needs a single day inside a module form that batch 5 did not cover (listed in UI_REFACTORING_LOG stage 3e).
+
+**Wording:**
+- A page that creates a record is titled like the list action that opens it: **New request, New task, New information, New meeting, New ticket, New project, New portfolio, New user**. The sidebar, the search palette and the breadcrumb use the same words. The submit button keeps the verb of what it does (Submit request, Create task, Schedule meeting, Raise ticket, Create user, Publish).
+- `+ Create` menu items are the record kind (Task, Project, Meeting, Ticket …) with a hint that describes it, not a second title.
+- Sentence case for titles, labels and buttons; proper names keep their capitals (Task Summary, Out of office, Pico Bot, Google Calendar). The owner's names are not renamed: Approvals, Information, Tickets, Meetings, Task Summary, Out of office, My sections.
+- Record numbers: "<Kind> no." in tables (Request no., Task no., Ticket no., Meeting no.), shown with `RecordNo`.
+- Filter chips read the app's day format ("Raised 1 Nov to 10 Nov 2026"), never yyyy-mm-dd.

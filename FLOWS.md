@@ -248,7 +248,7 @@ flowchart LR
 ## F-TKT Ticketing System lifecycle (v1.55.0, D-328)
 ```mermaid
 flowchart TD
-  R([Anyone with the Ticketing module (D-329): Raise a ticket → ticket type (a form of a category) → subject, description, priority, required date, fields, files]) --> N[NEW: number PREFIX-YEAR-00001, requestor details filled in]
+  R([Anyone with the Ticketing module (D-329): New ticket (v1.89.0 D-425; was Raise a ticket) → ticket type (a form of a category) → subject, description, priority, required date, fields, files]) --> N[NEW: number PREFIX-YEAR-00001, requestor details filled in]
   N --> C[The form's coordinators are told; any one of them assigns]
   C -->|assign: employee, target date, remarks| A[ASSIGNED: no task (v1.59.3, D-362)]
   A -->|assignee: Start work on the ticket or its row| P[IN PROGRESS]
@@ -372,7 +372,7 @@ flowchart LR
 **Invite and reset password (v1.13.0, D-166, owner 23 Oct 2026). Every message goes by email only.**
 ```mermaid
 flowchart TD
-  N[Admin: Add user, 'Email an invitation now' ticked by default] --> V{Sign-in method}
+  N[Admin: New user (D-425; was Add user), 'Email an invitation now' ticked by default] --> V{Sign-in method}
   U[Admin: user page, Send invitation] --> V
   V -- Google --> VG[Email: you've been added; sign in at /login with Google as your email]
   V -- Password --> VP{WhatsApp number on file?}
@@ -668,7 +668,7 @@ While a request is still open (in progress, on hold, or waiting for changes), **
 The approver (or the Super Admin) sets a date range, a delegate and a scope (all or listed types). While it is active, the delegate sees the steps and acts **on behalf of** the approver, and both are recorded. Delegation start and end notify both people.
 
 **Design for S4-03 (D-062):**
-- **Who sets it:** each person sets their own out-of-office in `/users/delegation`: a delegate, a from and to date (at most 90 days), and a reason. IT Admins can set or end one for anyone from the user page.
+- **Who sets it:** each person sets their own out-of-office in `/users/delegation`: a delegate, a from and to date (at most 90 days; since v1.89.0 one From – To date picker that starts at most 30 days back and stops at the 90th day, D-415 / D-425), and a reason. IT Admins can set or end one for anyone from the user page.
 - **While active** (today within the dates, not ended, delegate active):
   - the delegate sees the person's pending approvals in "Waiting for me", marked "for <name>";
   - the delegate can open those requests and act; the task records the actor and "on behalf of".
@@ -1229,7 +1229,7 @@ After 28 minutes without activity (default 30): "Still there?" → **Stay signed
 
 ## F-212 Meeting Management (v1.51.0, D-300, D-301)
 Roles: one **Meeting Owner** (approves the points and the MOM) and one **Coordinator** (runs the meeting); the same person may be both. People are always chosen by search (one for Owner, Coordinator, presenter and action owner; several for participants and departments).
-1. **Schedule** (Meetings → Schedule a meeting): title, type (one general format; the type suggests default points), date and times, Owner, Coordinator (defaults to the scheduler), participants, organising and involved departments, mode/venue/link, priority, visibility (General or Management only), external guests, optional "Points due by" and "MOM due by" deadlines, and the Owner's choice if points aren't approved in time (hold anyway / don't start). Owner and Coordinator are added as participants. Everyone is told (MEETING_INVITED).
+1. **Schedule** (Meetings → New meeting, D-425): title, type (one general format; the type suggests default points), date and times, Owner, Coordinator (defaults to the scheduler), participants, organising and involved departments, mode/venue/link, priority, visibility (General or Management only), external guests, optional "Points due by" and "MOM due by" deadlines, and the Owner's choice if points aren't approved in time (hold anyway / don't start). Owner and Coordinator are added as participants. Everyone is told (MEETING_INVITED).
 2. **Points:** the Coordinator edits and sends them; the Owner approves or returns them with remarks. If the Coordinator is the Owner, sending approves them. Approved points are shared with the participants (MEETING_PUBLISHED). Changing approved points before the meeting sends them back to draft.
 3. **Answers:** invitees (not the Owner or Coordinator) answer Attend / Maybe / Can't attend before the meeting; Can't attend needs a reason and tells the Coordinator.
 4. **Run:** the Coordinator starts it (refused under "don't start" until the points are approved) or records it as held with the real times; marks attendance; writes the MOM: discussion per point, decisions, action items (title, one responsible person, priority, due date), open points.

@@ -52,7 +52,7 @@ export function DateRangeField({
         names={names}
         placeholder="Any dates"
         triggerDescribedBy={`${id}-label`}
-        testId={testId ?? `${id}-dates`}
+        testId={testId ?? id}
       />
     </div>
   );
