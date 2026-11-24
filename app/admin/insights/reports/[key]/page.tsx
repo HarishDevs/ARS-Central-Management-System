@@ -134,7 +134,7 @@ export default async function ReportPage({ params, searchParams }: { params: Pro
                     ))}
                   </select>
                 </div>
-                <DateRangeField id="report-dates" label="Dates" hint="(custom)" pickerLabel="Custom period" from={filter.period.from} to={filter.period.to} />
+                <DateRangeField id="report-dates" label="Dates" hint="(custom)" pickerLabel="Custom dates" from={filter.period.from} to={filter.period.to} />
               </>
             )}
             <div>

@@ -162,7 +162,7 @@ export async function AnalyticsScreen({ searchParams, base }: { searchParams: Re
             </select>
           </div>
           {/* v1.89.0 (D-425): one From – To picker (the app's day format) instead of two native date inputs. */}
-          <DateRangeField id="period-dates" label="Dates" hint="(custom)" pickerLabel="Custom period" from={period.from} to={period.to} />
+          <DateRangeField id="period-dates" label="Dates" hint="(custom)" pickerLabel="Custom dates" from={period.from} to={period.to} />
           <div>
             <label htmlFor="compare" className="field-label">
               Compare with

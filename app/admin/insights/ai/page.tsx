@@ -139,7 +139,7 @@ export default async function AiAnalyticsPage({ searchParams }: { searchParams: 
                 <option value="custom">Custom dates</option>
               </select>
             </div>
-            <DateRangeField id="ai-dates" label="Dates" pickerLabel="Custom period" from={period.key === "custom" ? period.from : ""} to={period.key === "custom" ? period.to : ""} />
+            <DateRangeField id="ai-dates" label="Dates" pickerLabel="Custom dates" from={period.key === "custom" ? period.from : ""} to={period.key === "custom" ? period.to : ""} />
           </>
         }
       />

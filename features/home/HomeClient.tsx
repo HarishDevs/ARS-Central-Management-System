@@ -86,7 +86,7 @@ export function PeriodPicker({
           <span id="home-period-dates" className="text-caption text-ink-muted">
             Dates
           </span>
-          <DateRangePicker idBase="home-period" label="Custom period" startLabel="From" dueLabel="To" defaultValue={{ start: from, due: to }} names={{ start: "from", due: "to" }} placeholder="Choose dates" triggerDescribedBy="home-period-dates" testId="home-period-dates" />
+          <DateRangePicker idBase="home-period" label="Custom dates" startLabel="From" dueLabel="To" defaultValue={{ start: from, due: to }} names={{ start: "from", due: "to" }} placeholder="Choose dates" triggerDescribedBy="home-period-dates" testId="home-period-dates" />
           <button type="submit" className="btn-secondary btn-compact">
             Show
           </button>
