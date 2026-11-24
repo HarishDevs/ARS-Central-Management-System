@@ -32,7 +32,8 @@ export default defineConfig({
     { name: "chromium", use: { ...devices["Desktop Chrome"] } },
     { name: "msedge", use: { ...devices["Desktop Edge"], channel: "msedge" } },
     // Installed with the owner's approval (23 Nov 2026): WebKit stands in for Safari.
-    { name: "firefox", use: { ...devices["Desktop Firefox"] } },
+    // v1.89.0 (D-424): E2E_FIREFOX_PATH, as in playwright.config.ts (Windows refuses the copy under %LOCALAPPDATA%).
+    { name: "firefox", use: { ...devices["Desktop Firefox"], ...(process.env.E2E_FIREFOX_PATH ? { launchOptions: { executablePath: process.env.E2E_FIREFOX_PATH } } : {}) } },
     // WebKit upgrades http://localhost assets to https (HSTS / upgrade-insecure-requests of the production
     // headers); the specs route them back to http (webkitHttpsShim in tests/e2e/ui-qa-shared.ts).
     { name: "webkit", use: { ...devices["Desktop Safari"] } },

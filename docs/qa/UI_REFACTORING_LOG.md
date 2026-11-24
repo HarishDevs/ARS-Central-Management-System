@@ -181,3 +181,37 @@ Firefox (1440 / 768 / 390, 531 visits, in role chunks): conformance 0, overflow 
 1. One date / time / range / relative formatter (`lib/format/date.ts`) replacing the ad-hoc `toLocale*` / `Intl.DateTimeFormat` calls (224 in 127 files at v1.88.0; e.g. the board's `dayText`, Records' 24 h times, the meetings list) behind tests, module by module (CON-08, ERR-01 if time text).
 2. Native date inputs → DateRangePicker (Analytics period, dashboards, Task / Information filters, calendar entry, delegation, …; the audit log's moved in this batch).
 3. Wording: form titles "Schedule a meeting" / "Raise a ticket" / "Add user" and the sidebar / + Create labels against the "New …" list actions; one verb set for record numbers and empty states.
+
+## Stage 3d: batch 4 (accessibility, overlays, pre-existing e2e failures), D-424
+
+**Decision (owner: "go ahead with my recommendations"):** the stage 3c handover's batch 4 list and the defect report's remaining batch 4 items, as one sweep. Classic unchanged. No element hidden, no feature removed, no business logic changed. Rows per defect: [BUG_FIX_LOG.md](BUG_FIX_LOG.md) stage 3d.
+
+### What changed
+
+| # | Item | Change | Where |
+|---|---|---|---|
+| 1 | A11Y-04 | Light status text tokens: success-600 `#137333`, warning-600 `#b93c0b` (≥ 4.78:1 on row-active); the contrast script checks status text on row-active. | `globals.css`, `token-contrast.mjs` |
+| 2 | Entry motion fill (root cause, found via v1720 / v1750) | Every entry animation fills `backwards` (was `both`): the kept last frame (`translate: 0px`, `transform: translateY(0)`) made panes / windows the containing block of `position: fixed` menus and sheets. `fixedOrigin` also detects the single transform properties, container queries and backdrop filters; menus re-measure on animationend / transitionend. Unit guard. | `globals.css`, `MenuCore.tsx`, `tests/ui/motion-fill-v189.test.ts` |
+| 3 | ERR-02 + devices hang | Safari detection in the effect; no push-subscription lookup before permission "granted". | `AppDevicesPanel.tsx`, `pwa/browser.ts` |
+| 4 | meta-refresh | Dashboards hub: `next.config` redirect (307). | `next.config.ts` |
+| 5 | Page transitions across areas | None between users / admin / superadmin (the whole shell changes; Playwright's WebKit crashed on it). | `motion-rules.ts` |
+| 6 | FORM-01 / FORM-02 | Create task says what is missing; the delegate picker is tied to its error. | `TaskCreator.tsx`, `DelegationForms.tsx` |
+| 7 | RESP-06 | Clear strip + scroll padding for the Pico Bot launcher on phone lists. | `globals.css` |
+| 8 | ListPage everywhere | The 28 ListToolbar pages are inside `ListPage` (`header` slot); the Admin home's Attention section stays a section. | 21 files |
+| 9 | Popovers | `.popover-surface` for menus, bell, pickers, field editors, emoji, Try as; PersonSelect focus back to its button. | 12 files |
+| 10 | Toast live regions | Real boxes instead of `display: contents`. | `Toast.tsx` |
+| 11 | Readiness signals | `<html data-session-watch>` and `data-place-memory` (the shell's listeners are on); the sweep, nav and accessibility specs wait for them. | `SessionWatch.tsx`, `PlaceMemory.tsx`, specs |
+| 12 | Sweep tooling | `UIQA_THEME=dark` (results under `<browser>-dark`); settle waits for hydration. | `zz-ui-qa-audit.spec.ts`, `ui-qa-shared.ts` |
+
+### The 6 pre-existing Chromium failures (stage 3c)
+
+| Test | App or test | Cause | Fix |
+|---|---|---|---|
+| session9 "account menu … switches" | Test (outdated) | Since D-411 the Admin sidebar groups start folded; "Users & roles" is not rendered until People & organisation is opened. | The test opens the group like a person, checks `aria-expanded`, then the link. |
+| v139-draft-task "a centred two-column card" | Test (race) | The window was measured 3.8 px off centre while its scale-in still ran. | `motionSettled()` (all finite animations finished) before measuring; the 2 px bound kept. |
+| v1720-layout-parity "task pane ⋯ menu" | **App bug** | The pane's entry animation left `translate: 0px` (fill `both`); the fixed menu was positioned relative to the pane: x 1558 on a 1280 window, invisible. | Entry fill `backwards`; `fixedOrigin` sees `translate`; re-measure after motion. |
+| v1722-visual "axe (light)" | Test (outdated) | At 375 a task opens its own page (D-410: no pane on phones); the step expected the pane. | Phones: the task page and its h1, axe on the page; computers: the pane. |
+| v1750-date-picker "phone bottom sheet" | **App bug** + race | Same containing-block bug (sheet inside the Create task window: 341 wide mid-animation, 17 px above the bottom once settled). | As v1720; the test measures after `motionSettled()`. |
+| v190 "assignee hears through the bell" | Test (outdated) | Since D-410 the bell opens a task in the pane (`?task=`). | Asserts the pane (address, title), then continues on the full page. |
+
+WebKit: **NAV-02 S12a** (the ~21 s): the test ended the session before WebKit had hydrated (Playwright's WebKit on Windows hydrates 5-7 s after load), so only the pane's 20 s live refresh noticed; for people the check runs at once when they come back to the tab and every 60 s, which is enough for an ended session (any action also goes to the signed-out page). The test now waits for `data-session-watch`; the 20 s limit is unchanged. **NAV-03** (flake): the list link was clicked before PlaceMemory's Suspense boundary hydrated; `settle` waits for `data-place-memory`. **OVL-01**: same hydration timing.

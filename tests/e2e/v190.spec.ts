@@ -90,7 +90,7 @@ test("a task is created, started and completed with its note; the assignee hears
   await dropdown.getByTestId("notification-items").getByRole("button").first().click();
   // v1.89.0 (D-424): since D-410 (owner) a task opens in the pane on the current screen
   // (?task=<id>); the full page stays its own address. The pane is checked, then the full page.
-  await expect(page).toHaveURL(new RegExp(`/users\?task=${taskUrl.split("/").pop()}$`));
+  await expect(page).toHaveURL(new RegExp(`/users\\?task=${taskUrl.split("/").pop()}$`));
   await expect(page.getByTestId("task-pane")).toBeVisible();
   await expect(page.getByTestId("task-pane")).toContainText("Pump 3 leaks");
   await page.goto(taskUrl);
@@ -170,6 +170,9 @@ test("the sidebar stays put and scrolls only when its entries don't fit", async 
   await as(context, "E2E_REQ");
   await page.setViewportSize({ width: 1280, height: 1600 });
   await page.goto("/users/tasks");
+  // v1.89.0 (D-424): read once the shell has hydrated (its readiness signals); read mid-hydration
+  // the scroller's computed overflow came back empty once in three runs.
+  await page.waitForFunction(() => document.documentElement.hasAttribute("data-session-watch") && document.documentElement.hasAttribute("data-place-memory"));
   const scroller = page.getByTestId("sidebar-scroll");
   const tall = await scroller.evaluate((element) => ({ overflow: getComputedStyle(element).overflowY, fits: element.scrollHeight <= element.clientHeight }));
   expect(tall).toEqual({ overflow: "auto", fits: true });
@@ -195,10 +198,14 @@ test("the sidebar stays put and scrolls only when its entries don't fit", async 
 test("the user sidebar: Home, Inbox, collapsible My Approvals, Tasks & projects, Information, Meetings, then Calendar, Analytics", async ({ page, context }) => {
   await as(context, "E2E_REQ");
   await page.goto("/users");
-  const nav = page.locator("aside nav");
+  // v1.89.0 (D-424): since D-421 the folded rail (`sidebar-rail`, shown 768-1279) is in the page
+  // beside the full list; the test reads the full sidebar list, as before.
+  const SIDEBAR = "aside nav:not([data-testid=sidebar-rail])";
+  const nav = page.locator(SIDEBAR);
   // Top-level order.
   const top = await nav.evaluate((element) =>
-    Array.from(element.children).map((child) => (child.querySelector(":scope > button") ?? child).textContent?.trim().replace(/\s+/g, " ") ?? ""),
+    // The current-page bar (D-420, aria-hidden) is decoration, not an entry.
+    Array.from(element.children).filter((child) => child.getAttribute("aria-hidden") !== "true").map((child) => (child.querySelector(":scope > button") ?? child).textContent?.trim().replace(/\s+/g, " ") ?? ""),
   );
   expect(top.map((text) => text.replace(/\s*\d+( waiting)?$/, ""))).toEqual(["Home", "Inbox", "My Approvals", "Tasks", "Projects", "Information", "Meetings", "Calendar", "Analytics"]);
   // A group opens like a dropdown, with its pages in the owner's order.
@@ -213,15 +220,15 @@ test("the user sidebar: Home, Inbox, collapsible My Approvals, Tasks & projects,
   // The choice is remembered on the next page.
   await nav.getByRole("link", { name: "Calendar" }).click();
   await expect(page).toHaveURL(/\/users\/calendar/);
-  await expect(page.locator("aside nav").getByRole("button", { name: "My Approvals" })).toHaveAttribute("aria-expanded", "true");
+  await expect(page.locator(SIDEBAR).getByRole("button", { name: "My Approvals" })).toHaveAttribute("aria-expanded", "true");
   // The group holding the current page opens by itself and marks it.
   await page.goto("/users/information/sent");
-  await expect(page.locator("aside nav").getByRole("button", { name: "Information" })).toHaveAttribute("aria-expanded", "true");
-  await expect(page.locator("aside nav").getByRole("link", { name: "Sent by me" })).toHaveAttribute("aria-current", "page");
+  await expect(page.locator(SIDEBAR).getByRole("button", { name: "Information" })).toHaveAttribute("aria-expanded", "true");
+  await expect(page.locator(SIDEBAR).getByRole("link", { name: "Sent by me" })).toHaveAttribute("aria-current", "page");
   // Closing a group hides its pages; keyboard works (Enter on the header).
-  await page.locator("aside nav").getByRole("button", { name: "Information" }).focus();
+  await page.locator(SIDEBAR).getByRole("button", { name: "Information" }).focus();
   await page.keyboard.press("Enter");
-  await expect(page.locator("aside nav").getByRole("link", { name: "Sent by me" })).toBeHidden();
+  await expect(page.locator(SIDEBAR).getByRole("link", { name: "Sent by me" })).toBeHidden();
 });
 
 test.afterAll(async () => {

@@ -44,3 +44,29 @@
 2. Add the reflow-at-320 check for every detail page to the sweep.
 3. Make PageHeader mandatory (one visible h1, a phone variant), so pages can't ship without a heading.
 4. Run NVDA / VoiceOver on the 6 representative pages in phase 3, in both themes.
+
+## 5. Stage 3d results (v1.89.0, D-424, 24 Nov 2026)
+
+### Fixed
+| ID | Result |
+|---|---|
+| UIQA-A11Y-04 | Confirmed at 4.23:1 (`#15803d` on `--color-row-active`). Light status text tokens darkened: success `#137333` (5.03:1 on row-active, 5.95 on white), warning `#b93c0b` (4.78 / 5.65). `scripts/qa/token-contrast.mjs` now checks every text token on row-active in light and dark: 0 failures (dark ≥ 7:1). e2e: axe `color-contrast` on the open row and the measured ratio of "Today", light and dark, Chromium / Firefox / WebKit. |
+| UIQA-FORM-01 | Create task keeps its button enabled; a missing name / person / due date is announced (`role=alert`) under the name, which is `aria-invalid` and `aria-describedby`, and focus moves to it (3.3.1, 3.3.3). |
+| UIQA-FORM-02 | The Out of office picker is marked and described by its error (`aria-describedby`); `aria-invalid` is not permitted on its button role (ARIA 1.2), so it is not used. |
+| UIQA-RESP-06 | Phone lists keep a clear strip under the last row and `scroll-padding-bottom` for the Pico Bot launcher, so focus is never hidden behind it (2.4.11). |
+| UIQA-ERR-02 | The hydration mismatch (React #418) on Profile → App & devices: a browser check ran during render; now in the effect. |
+| meta-refresh | The Dashboards hub is a server redirect (no `<meta http-equiv=refresh>`, 2.2.1 / 3.2.5). |
+| Toast live regions | `role=status` (polite) and `role=alert` (assertive) are real boxes present before any toast (were `display: contents`, which some screen readers drop together with the role). |
+| Popovers | One surface; PersonSelect returns focus to its button on Escape and after a choice (2.4.3). |
+
+### Screen-reader-oriented pass (without a screen reader)
+**No real NVDA, JAWS, VoiceOver or TalkBack was run** (none is available to the agent in this environment). What was checked instead, by script, in Chromium, Firefox and WebKit (`tests/e2e/v1890-accessibility.spec.ts`):
+- **Landmarks and headings:** `/users`, `/users/requests`, `/users/work/my-tasks`, `/users/information`, `/admin/users`, `/superadmin` at 1440: exactly one `main`, a banner and navigation, exactly one h1, and no skipped heading level inside `main`.
+- **Labelled controls:** axe (wcag2a / aa / 21aa / 22aa) on every route in the sweep (sections 1 and the UI_REFACTORING_LOG stage 3d numbers): no `label`, `button-name`, `link-name`, `aria-*` violations.
+- **Live regions:** the toast regions exist with their roles before a toast arrives; Create task's missing-field message is `role=alert`.
+- **Focus management:** Create task: focus starts in the task name; the missing-field message moves focus to the first missing part; Escape closes; the task pane: opened from a task link by Enter, focus moves inside, Escape closes it and the address loses `?task=`; menus and pickers give focus back (stage 1-3 e2e).
+- **Keyboard-only walks:** + Create → Task (Tab, Enter, ↓, Enter), type the name, the due date, Ctrl + Enter creates it; open the task pane by Enter and close it by Escape; a manager tabs to **Approve** on a request and presses Enter (Approved by Manoj Manager); Admin → Users: the toolbar's Search button by keyboard, type, Enter filters the list. The first Tab is **Skip to content** (Chromium, Firefox). WebKit (Safari) moves Tab between form controls and buttons only by default (links need Option + Tab, which Playwright's WebKit on Windows does not send); there the walks use buttons and fields, and the skip link is checked as the first focusable element.
+- **Not verified:** how a screen reader actually voices the pages (reading order, verbosity, the names of icon-only controls in context), VoiceOver rotor / NVDA elements lists, speech for the toasts while a dialog is open (the toasts move into the open dialog: D-394), mobile screen readers, Windows high-contrast mode. Recommended for stage 4 sign-off with a real NVDA + Firefox and VoiceOver + Safari run on the 6 representative pages, both themes.
+
+### Dark theme
+axe was run on the sweep routes in dark at 1440 and 390 in Chromium for the first time (results in UI_REFACTORING_LOG stage 3d).
