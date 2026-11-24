@@ -52,7 +52,10 @@ test("ERR-01: the request timeline's relative time is drawn after mount; the ser
   await settle(page);
   const time = page.locator('time[data-relative="ready"]').first();
   await expect(time).toBeVisible();
-  await expect(time).toHaveText(/^(just now|\d+ min ago)$/);
+  // The visible text is the relative one; the absolute text stays in the cell, hidden, keeping its width.
+  await expect(time.locator("span:not([aria-hidden])")).toHaveText(/^(just now|\d+ min ago)$/);
+  await expect(time.locator("span[aria-hidden]")).toHaveText(DATE_TIME);
+  await expect(time.locator("span[aria-hidden]")).toHaveCSS("visibility", "hidden");
   expect(await time.getAttribute("title")).toMatch(DATE_TIME);
   expect(await time.getAttribute("datetime")).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
   expect(errors.filter((text) => /#418|Hydration|did not match/i.test(text))).toEqual([]);

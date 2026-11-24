@@ -102,7 +102,7 @@ describe("create and edit fields", () => {
     expect(view[stage]!.text).toBe("Open");
     expect(view[plants]!.text).toBe("Raipur, Bilaspur");
     expect(view[cost]!.text).toBe("₹1,234.50");
-    expect(view[review]!.text).toBe("1 Dec 2026, 10:30");
+    expect(view[review]!.text).toBe("1 Dec 2026, 10:30 am");
     expect(view[reviewer]!.text).toMatch(/CF editor/);
     expect(view[rate]!.text).toBe("308.6");
     expect(view[timer]!.text).toBe("1:30");
