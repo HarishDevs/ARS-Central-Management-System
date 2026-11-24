@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/format/date";
 import "server-only";
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { getDbPool } from "@/lib/db/client";
@@ -11,7 +12,7 @@ import { appBaseUrl } from "@/lib/http/app-url";
 
 export { expiryState, EXPIRY_NOTICE_DAYS };
 
-const indiaDay = (date: Date) => date.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" });
+const indiaDay = (date: Date) => formatDate(date);
 
 // Job-runner step (A1): tells the requester once, 7 days before an approval
 // stops being valid (or straight away if it already has). Each request is

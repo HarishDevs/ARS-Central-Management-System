@@ -1,3 +1,4 @@
+import { formatDateTime } from "@/lib/format/date";
 import { TaskPriorityPill } from "@/features/ui/ChoicePill";
 import { RichText } from "@/features/work/RichText";
 import Link from "next/link";
@@ -244,7 +245,7 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
             </div>
             <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3">
               <dt className="col-start-2 row-start-1 text-[length:calc(13px*var(--text-scale,1))] text-ink-muted">Due date</dt>
-              <dd className={`col-start-2 row-start-2 truncate text-[length:calc(15px*var(--text-scale,1))] ${late ? "text-danger-600" : ""}`}>{task.dueAt ? DUE_DAY.format(new Date(task.dueAt)) : "None"}</dd>
+              <dd className={`col-start-2 row-start-2 truncate text-[length:calc(15px*var(--text-scale,1))] ${late ? "text-danger-600" : ""}`}>{task.dueAt ? formatDateTime(task.dueAt, { year: "auto" }) : "None"}</dd>
               <dd aria-hidden="true" className={`col-start-1 row-span-2 row-start-1 grid h-11 w-11 shrink-0 place-items-center rounded-full border-2 ${late ? "border-danger-600 text-danger-600" : "border-line text-ink-muted"}`}>
                 <CalendarDays className="h-5 w-5" />
               </dd>
@@ -493,7 +494,6 @@ function activityKind(eventType: string): "comment" | "done" | "created" | "upda
   return "update";
 }
 
-const DUE_DAY = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata" });
 
 // v1.62.0 (D-368, spec CMP-28): who can see this task, above its details.
 function VisibilityBanner({ text }: { text: string }) {

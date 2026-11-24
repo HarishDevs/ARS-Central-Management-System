@@ -1,3 +1,4 @@
+import { formatMonth } from "@/lib/format/date";
 import { ClientSortTable } from "@/features/ui/ClientSortTable";
 import Link from "next/link";
 import { analyticsMeetings, meetingMonths, openActionsInScope, peopleOfDepartments, type AnalyticsMeeting, type MeetingAnalyticsScope } from "@/lib/db/repositories/meeting-analytics.repository";
@@ -252,7 +253,7 @@ export async function MeetingBoard({ scope, viewer, period, previous, everything
         <Table
           caption="Meetings by month"
           head={["Month", "Meetings", "Held", "Cancelled", "MOM in time", "Attendance"]}
-          rows={months.map((row) => [new Date(`${row.month}-01T00:00:00Z`).toLocaleDateString("en-IN", { month: "short", year: "numeric", timeZone: "UTC" }), row.meetings, row.held, row.cancelled, pctText(pct(row.momOnTime, row.momJudged)), pctText(pct(row.present, row.invited))])}
+          rows={months.map((row) => [formatMonth(row.month), row.meetings, row.held, row.cancelled, pctText(pct(row.momOnTime, row.momJudged)), pctText(pct(row.present, row.invited))])}
         />
       </Section>
 

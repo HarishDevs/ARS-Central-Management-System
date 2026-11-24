@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/format/date";
 import type { Metadata } from "next";
 import { CalendarDays, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { TaskCheck } from "@/features/work/client";
@@ -62,7 +63,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   const title = periodTitle(state);
   const unit = state.view === "month" ? "month" : state.view === "week" ? "week" : "day";
   const href = (change: Parameters<typeof viewHref>[1]) => viewHref(state, change, state.anchor);
-  const dayLabel = (date: string) => new Date(`${date}T00:00:00Z`).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+  const dayLabel = (date: string) => formatDate(date, { weekday: "short", year: "never" });
   const countOf = (kind: Kind) => entries.filter((entry) => entry.kind === kind).length;
   const toggle = (kind: Kind) => (state.kinds.includes(kind) ? state.kinds.filter((item) => item !== kind) : [...state.kinds, kind]);
 

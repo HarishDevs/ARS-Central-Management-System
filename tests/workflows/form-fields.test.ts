@@ -92,7 +92,7 @@ describe("what the requester sends", () => {
   it("shows stored values back readably", () => {
     const names = new Map([[7, "Ravi Kumar"]]);
     const lookupNames = new Map([["DEPARTMENT:FIN", "Finance & Accounts"]]);
-    expect(displayValue(ALL_TYPES[3]!, "2026-11-05", names)).toBe("05 Nov 2026");
+    expect(displayValue(ALL_TYPES[3]!, "2026-11-05", names)).toBe("5 Nov 2026");
     expect(displayValue(ALL_TYPES[5]!, "FIN", names, lookupNames)).toBe("Finance & Accounts");
     expect(displayValue(ALL_TYPES[5]!, "OLD", names, lookupNames)).toBe("OLD");
     expect(displayValue(ALL_TYPES[2]!, 1250000, names)).toBe("12,50,000");
@@ -166,6 +166,6 @@ describe("the request page's level map previews skip conditions (S12)", () => {
       ["Plant head", "SKIPPED", "Skipped: Department is FIN"],
       ["Urgent check", "WAITING", ""],
     ]);
-    expect(describeCondition({ field: "needed_by", operator: "LT", value: "2027-01-01" }, () => "Needed by")).toBe("Needed by is before 01 Jan 2027");
+    expect(describeCondition({ field: "needed_by", operator: "LT", value: "2027-01-01" }, () => "Needed by")).toBe("Needed by is before 1 Jan 2027");
   });
 });

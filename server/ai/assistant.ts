@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/format/date";
 import "server-only";
 import { addMessage, conversationMode, createConversation, findByRequestKey, listMessages, questionsToday, type AiEvidence } from "@/lib/db/repositories/ai.repository";
 import { recordAudit } from "@/lib/db/repositories/audit.repository";
@@ -117,7 +118,7 @@ export function ruleScopesFor(mode: ChatMode, dataModes: readonly ChatMode[]): R
   return [...new Set(["ALL", ...sources, mode] as RuleScope[])];
 }
 
-const today = () => new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Kolkata" });
+const today = () => formatDate(new Date(), { month: "long" });
 const REQUEST_KEY = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export type AskPerson = ToolPerson & ChatPerson & { name: string; email: string; sessionId?: string };

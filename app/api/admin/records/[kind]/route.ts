@@ -1,3 +1,4 @@
+import { indiaDay } from "@/lib/format/date";
 import type { NextRequest } from "next/server";
 import { requireApiArea } from "@/server/authorization/guards";
 import { canExport } from "@/server/settings/features";
@@ -29,7 +30,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     // toCsv already starts with the byte-order mark Excel needs (UTF-8: names, ₹).
     const body = toCsv(columns.map((column) => column.label), rows.map((row) => columns.map((column) => column.value(row))));
     await recordAudit({ actorUserId: session.user.id, action: "RECORDS_EXPORTED", entityType: "RECORDS", entityId: kind, sessionId: session.sessionId, metadata: { rows: rows.length, truncated } });
-    const day = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+    const day = indiaDay(new Date()); // the file name's yyyy-mm-dd (machine form, D-425)
     return new Response(body, {
       status: 200,
       headers: {

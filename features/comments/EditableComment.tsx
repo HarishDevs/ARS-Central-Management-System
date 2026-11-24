@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDateTime } from "@/lib/format/date";
 import { useState } from "react";
 import { changeCommentAction, commentVersionsAction } from "@/app/users/comment-actions";
 import { ConfirmButton } from "@/features/ui/ConfirmButton";
@@ -13,7 +14,7 @@ import { useWorkCall } from "@/features/work/client";
 // delete). Shared by request comments, ticket remarks and task comments.
 export type CommentTargetName = "REQUEST" | "TICKET" | "TASK";
 type Version = { id: number; body: string; kind: "EDIT" | "DELETE"; by: string; at: string };
-const when = (iso: string) => new Date(iso).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+const when = (iso: string) => formatDateTime(iso);
 
 // "(edited) · Show edits": the earlier texts, oldest first, for anyone who sees the comment.
 export function ShowEdits({ target, commentId, deleted = false }: { target: CommentTargetName; commentId: number; deleted?: boolean }) {

@@ -1,3 +1,4 @@
+import { formatClock, formatDate } from "@/lib/format/date";
 import { z } from "zod";
 import type { FormData as EngineFormData } from "@/server/engine/types";
 import { conditionSpecSchema, operatorNeedsValue, ruleComparisons, upgradeRule } from "@/server/conditions/rule";
@@ -413,10 +414,10 @@ export function displayValue(field: FormField, value: unknown, names: ReadonlyMa
   if (field.type === "CURRENCY" && typeof value === "number") return `₹${value.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   if (field.type === "DATETIME" && isDateTime(value)) {
     const [day, time] = value.split("T");
-    return `${new Date(`${day}T00:00:00Z`).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" })}, ${time}`;
+    return `${formatDate(day)}, ${formatClock(time) || time}`;
   }
   if (field.type === "DATE" && isIsoDate(value)) {
-    return new Date(`${value}T00:00:00Z`).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
+    return formatDate(value);
   }
   if (field.type === "LOOKUP" && field.source && typeof value === "string") return lookupNames?.get(`${field.source}:${value}`) ?? value;
   if (field.type === "NUMBER" && typeof value === "number") return value.toLocaleString("en-IN");

@@ -1,26 +1,15 @@
+import { formatDate, formatDateTime } from "@/lib/format/date";
 import type { Checkpoint, CheckpointState } from "@/server/approvals/road";
 import type { StatusTone } from "@/features/ui/status-tones";
 
 // India time, written out by hand: the server and the browser must print the
 // very same text (their locale data can differ), or hydration fails.
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-export const when = (iso?: string) => {
-  if (!iso) return null;
-  const ist = new Date(Date.parse(iso) + 330 * 60_000);
-  const hours = ist.getUTCHours();
-  return `${String(ist.getUTCDate()).padStart(2, "0")} ${MONTHS[ist.getUTCMonth()]}, ${hours % 12 || 12}:${String(ist.getUTCMinutes()).padStart(2, "0")} ${hours < 12 ? "am" : "pm"}`;
-};
+// v1.89.0 (D-425): the app's one formatter (lib/format/date.ts), written by hand there.
+export const when = (iso?: string) => formatDateTime(iso, { year: "never" }) || null;
 
-// "01 Nov 2026" and "01 Nov 2026, 10:30 pm" (the Request Status card).
-export const whenDate = (iso?: string | null) => {
-  if (!iso) return null;
-  const ist = new Date(Date.parse(iso) + 330 * 60_000);
-  return `${String(ist.getUTCDate()).padStart(2, "0")} ${MONTHS[ist.getUTCMonth()]} ${ist.getUTCFullYear()}`;
-};
-export const whenLong = (iso?: string | null) => {
-  if (!iso) return null;
-  return `${whenDate(iso)}, ${when(iso)!.split(", ")[1]}`;
-};
+// "1 Nov 2026" and "1 Nov 2026, 10:30 pm" (the Request Status card).
+export const whenDate = (iso?: string | null) => formatDate(iso) || null;
+export const whenLong = (iso?: string | null) => formatDateTime(iso) || null;
 
 // `now` comes from the server for the first render, then from the browser.
 export function duration(fromIso: string | undefined, toIso: string | null, now: number): string | null {

@@ -20,7 +20,7 @@ describe("help and details for IT (#13, #14)", () => {
     expect(text).toContain("Reference: 8a1b2c3d4e5f6789-BOM");
     expect(text).toContain("Error code: 123");
     expect(text).toContain("App version: 1.5.0");
-    expect(text).toContain("12:00:00");
+    expect(text).toContain("Time: 9 Oct 2026, 12:00 pm India time, 2026-10-09T06:30:00.000Z");
     expect(itDetails({ reference: "", path: "/x", userAgent: "UA", screen: "1×1", now: new Date() })).not.toContain("Reference");
   });
 

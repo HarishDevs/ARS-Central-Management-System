@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/format/date";
 import { ItemChecklist } from "@/features/modules/ItemChecklist";
 import { EditableComment } from "@/features/comments/EditableComment";
 import { checklistsFor, mayTickTicket } from "@/server/records/item-checks";
@@ -33,7 +34,7 @@ export const dynamic = "force-dynamic";
 // v1.55.0 (owner's ticketing brief §5-7, §12): one ticket. Coordinators assign
 // (making the linked task) and add remarks; the assignee works in the task;
 // the requester confirms or reopens once the work is done.
-const day = (value: string | null) => (value ? new Date(`${value}T00:00:00Z`).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" }) : "—");
+const day = (value: string | null) => formatDate(value, { empty: "—" });
 
 export default async function Page({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ raised?: string; from?: string }> }) {
   const { user } = await ticketsPage({ partyOpen: true });

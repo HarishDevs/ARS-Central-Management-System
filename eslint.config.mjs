@@ -19,6 +19,12 @@ const eslintConfig = [
     plugins: { "ars-ui": arsUi },
     rules: { "ars-ui/control-size": "error", "ars-ui/spacing-scale": "error", "ars-ui/type-scale": "error" },
   },
+  {
+    // v1.89.0 (D-425, UIQA-CON-08 / ERR-01): one date formatter (lib/format/date.ts) for every text people read.
+    files: ["app/**/*.{ts,tsx}", "features/**/*.{ts,tsx}", "components/**/*.{ts,tsx}", "server/**/*.{ts,tsx}"],
+    plugins: { "ars-ui": arsUi },
+    rules: { "ars-ui/date-format": "error" },
+  },
 ];
 
 export default eslintConfig;

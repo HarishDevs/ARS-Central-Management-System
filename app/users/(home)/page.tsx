@@ -1,3 +1,4 @@
+import { indiaHour } from "@/lib/format/date";
 import { ListSkeleton } from "@/features/ui/Skeleton";
 import type { Metadata } from "next";
 import { Suspense } from "react";
@@ -292,7 +293,7 @@ function ModulesHome({ name, user, tasks, boardFirst = false }: { name: string; 
 
 // v1.43.0: the greeting by the hour in India.
 function greetingFor(now: Date): string {
-  const hour = Number(new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", hour: "numeric", hourCycle: "h23" }).format(now));
+  const hour = indiaHour(now);
   return hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 }
 

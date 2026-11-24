@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/format/date";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -198,5 +199,4 @@ export default async function MorePage() {
   );
 }
 
-const DAY_TEXT = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", timeZone: "UTC" });
-const dayText = (ymd: string) => DAY_TEXT.format(new Date(`${ymd}T00:00:00Z`));
+const dayText = (ymd: string) => formatDate(ymd, { year: "never" });

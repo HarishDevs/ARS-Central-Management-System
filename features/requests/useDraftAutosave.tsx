@@ -1,5 +1,6 @@
 "use client";
 
+import { formatTime } from "@/lib/format/date";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { discardDraftAction, saveDraftAction } from "@/app/users/draft-actions";
 import { actionErrorMessage } from "@/features/ui/form";
@@ -110,7 +111,7 @@ export function useDraftAutosave(options: { draftKey: string; initialVersion: nu
 }
 
 export function DraftStatus({ state, onDiscard, restoredAt }: { state: DraftState; onDiscard?: () => void; restoredAt?: Date | null }) {
-  const time = (date: Date) => date.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" });
+  const time = (date: Date) => formatTime(date);
   return (
     <div className="flex flex-wrap items-center gap-3 text-caption">
       <span role="status" aria-live="polite" className={state.status === "error" || state.status === "conflict" ? "text-danger-600" : "text-ink-muted"}>

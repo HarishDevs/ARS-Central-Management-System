@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/format/date";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { EmptyState } from "@/features/ui/Display";
@@ -28,7 +29,7 @@ export const metadata: Metadata = { title: "Profile" };
 
 const MODULE_LABEL: Record<string, string> = { APPROVAL: "Approvals", TASK: "Tasks", PROJECT: "Projects", INFORMATION: "Information", MEETING: "Meeting Management", TICKET: "Ticketing", AI: "AI Assistant" };
 const SIGN_IN_LABEL: Record<string, string> = { GOOGLE: "Google", PASSWORD: "User ID, password and WhatsApp code", BOTH: "Google, or User ID with password and WhatsApp code" };
-const day = (value: Date) => new Date(value).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Kolkata" });
+const day = (value: Date) => formatDate(value);
 
 // D-230 (owner, Asana's profile): your photo, name, job and team at the top
 // (photo and About me are yours to change), then everything the user master

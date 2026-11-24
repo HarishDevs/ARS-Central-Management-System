@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { ArrowUpDown, Check, ChevronDown } from "lucide-react";
 import { Menu } from "@/features/ui/Menu";
 import { RichText } from "@/features/work/RichText";
+import { RelativeTime } from "@/features/ui/RelativeTime";
 
 // v1.52.1 (owner: "activity of the task shown separately", Asana's task
 // page): Comments and All activity are two tabs over one card.
@@ -20,22 +21,8 @@ export interface ActivityEntry {
   kind?: "comment" | "done" | "created" | "update";
 }
 
-const WHEN = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata" });
-const TIME = new Intl.DateTimeFormat("en-IN", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata" });
-const DAY = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", timeZone: "Asia/Kolkata" });
-const indiaDay = (date: Date) => new Date(date.getTime() + 330 * 60_000).toISOString().slice(0, 10);
-
-// "Today at 2:27 pm", "Yesterday at 3:41 pm", "28 Oct at 9:05 am".
-function whenText(iso: string): string {
-  const date = new Date(iso);
-  const today = indiaDay(new Date());
-  const yesterday = indiaDay(new Date(Date.now() - 86_400_000));
-  const day = indiaDay(date);
-  const time = TIME.format(date).toLowerCase();
-  if (day === today) return `Today at ${time}`;
-  if (day === yesterday) return `Yesterday at ${time}`;
-  return `${DAY.format(date)} at ${time}`;
-}
+// "Today at 2:27 pm", "Yesterday at 3:41 pm", "28 Oct at 9:05 am": <RelativeTime kind="daytime">
+// draws it after mount (v1.89.0 D-425, ERR-01; the server and first paint show "28 Oct 2026, 9:05 am").
 
 const initialsOf = (name: string | null) =>
   (name ?? "ARS")
@@ -87,9 +74,9 @@ function Entry({ entry }: { entry: ActivityEntry }) {
   const kind = entry.kind ?? "update";
   const verb = entry.what.charAt(0).toLowerCase() + entry.what.slice(1);
   const time = (
-    <span className="text-caption text-ink-muted" title={WHEN.format(new Date(entry.when))} suppressHydrationWarning>
+    <span className="text-caption text-ink-muted">
       {" "}
-      · {whenText(entry.when)}
+      · <RelativeTime at={entry.when} kind="daytime" />
     </span>
   );
   if (kind === "update")

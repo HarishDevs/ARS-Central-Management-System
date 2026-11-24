@@ -16,8 +16,9 @@ describe("timeline (RD-01)", () => {
     const now = new Date("2026-10-09T12:00:00Z");
     expect(relativeTime(new Date("2026-10-09T11:59:30Z"), now)).toBe("just now");
     expect(relativeTime(new Date("2026-10-09T10:00:00Z"), now)).toBe("2 h ago");
-    expect(relativeTime(new Date("2026-10-08T11:00:00Z"), now)).toBe("yesterday");
-    expect(relativeTime(new Date("2026-08-01T12:00:00Z"), now)).toBe("2 months ago");
+    expect(relativeTime(new Date("2026-10-08T11:00:00Z"), now)).toBe("Yesterday");
+    // D-425: past a week the date itself (this year without the year).
+    expect(relativeTime(new Date("2026-08-01T12:00:00Z"), now)).toBe("1 Aug");
     // 20:00 UTC is already the next day in India.
     expect(indiaDay(new Date("2026-10-09T20:00:00Z"))).toBe("2026-10-10");
   });

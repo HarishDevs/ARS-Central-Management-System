@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/format/date";
 import Link from "next/link";
 import { BarList, Heatmap, LineChart, StackedBar } from "@/features/analytics/Charts";
 import { DELIVERY_STATUSES, type DeliveryFilter, type DeliverySummary } from "@/lib/db/repositories/notifications.repository";
@@ -34,7 +35,7 @@ export function DeliveryDashboard({ summary, filter, path, keep = {} }: { summar
   const today = new Date(Date.now() + 330 * 60_000);
   for (let index = Math.min(filter.days, 90) - 1; index >= 0; index -= 1) days.push(new Date(today.getTime() - index * 86_400_000).toISOString().slice(0, 10));
   const volume = (channel: string) => days.map((day) => summary.daily.filter((row) => row.day === day && row.channel === channel).reduce((value, row) => value + row.n, 0));
-  const dayLabel = (day: string) => new Date(`${day}T00:00:00Z`).toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "UTC" });
+  const dayLabel = (day: string) => formatDate(day, { year: "never" });
 
   // Channel · provider × status.
   const rowKey = (row: { channel: string; provider: string }) => `${CHANNEL_LABEL[row.channel] ?? row.channel} · ${row.provider}`;

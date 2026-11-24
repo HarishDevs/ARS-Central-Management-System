@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/format/date";
 import { requireFeature } from "@/server/settings/feature-guard";
 import Link from "next/link";
 import { ListToolbar } from "@/features/ui/ListToolbar";
@@ -118,7 +119,7 @@ export async function AnalyticsScreen({ searchParams, base }: { searchParams: Re
   const drill = (kind: DrillKind, changes: Record<string, string | null> = {}) => withParams(`${base}/list`, carried, { kind, ...changes });
   const here = (changes: Record<string, string | null>) => withParams(base, carried, changes);
   const approvals = scope.kind === "APPROVALS";
-  const day = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+  const day = (iso: string) => formatDate(iso);
   const onTime = share(kpis.onTimeDecisions, kpis.timedDecisions);
   const onTimeBefore = share(before.onTimeDecisions, before.timedDecisions);
   const departmentId = (name: string) => choices.departments.find((department) => department.name === name)?.id ?? null;

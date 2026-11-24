@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDateTime } from "@/lib/format/date";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -41,7 +42,7 @@ const TYPE_CLASS: Record<Category, string> = {
 };
 
 function when(iso: string): string {
-  return new Date(iso).toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata" });
+  return formatDateTime(iso, { year: "auto" });
 }
 
 export function NotificationBell({ initialUnread }: { initialUnread: number }) {

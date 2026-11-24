@@ -1,3 +1,4 @@
+import { formatDateTime } from "@/lib/format/date";
 import "server-only";
 import { listUserIdsWithRole } from "@/lib/db/repositories/users.repository";
 import { activeDelegates, approvalCandidates, claimSend, listActiveRules, recordRecipients, sentSoFar, taskCandidates, type RuleCandidate, type StoredRule } from "@/lib/db/repositories/notification-rules.repository";
@@ -19,7 +20,7 @@ export interface RuleRunResult {
 }
 
 const formatDue = (due: Date | null) =>
-  due ? new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(due) : "no due time";
+  formatDateTime(due, { empty: "no due time" });
 
 async function recipientsFor(stage: Stage, record: RuleCandidate, itAdmins: () => Promise<number[]>): Promise<number[]> {
   const ids = new Set<number>(stage.userIds);

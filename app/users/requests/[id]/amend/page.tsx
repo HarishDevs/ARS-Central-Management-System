@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/format/date";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -16,7 +17,7 @@ import { personLabel } from "@/lib/people/label";
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
 export const metadata: Metadata = { title: "Amend request" };
 
-const indiaDate = (at: Date) => at.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" });
+const indiaDate = (at: Date) => formatDate(at);
 
 // FN5: amend an approved request (D-120). Only the fields the approval type
 // allows can change; the amendment is approved through the steps again.

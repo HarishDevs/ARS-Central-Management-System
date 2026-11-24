@@ -1,3 +1,4 @@
+import { indiaDay } from "@/lib/format/date";
 import type { Metadata } from "next";
 import { formDueDays } from "@/server/approvals/form-due";
 import Link from "next/link";
@@ -78,7 +79,7 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
   const columnSortLabel = filter.sortBy ? `${COLUMN_SORT_LABEL[filter.sortBy]}, ${filter.dir === "desc" ? "descending" : "ascending"}` : null;
   // v1.57.4 (D-343, owner: "add group"): the page's rows in folding groups.
   const formDue = await formDueDays(queue.map((item) => item.requestId));
-  const todayDay = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
+  const todayDay = indiaDay(new Date());
   const groupOf = (item: QueueItem): [string, number] => {
     switch (filter.group) {
       case "dept":
@@ -94,7 +95,7 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
         return shown && !shown.hidden ? [shown.label, shown.rank] : shown?.hidden ? ["Hidden", 98] : ["No priority", 99];
       }
       default: {
-        const day = formDue[item.requestId] ?? (item.dueAt ? new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(item.dueAt) : null);
+        const day = formDue[item.requestId] ?? (item.dueAt ? indiaDay(item.dueAt) : null);
         if (!day) return ["No due date", 9];
         if (day < todayDay) return ["Overdue", 0];
         if (day === todayDay) return ["Due today", 1];

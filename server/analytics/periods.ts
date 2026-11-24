@@ -1,3 +1,4 @@
+import { formatDate, formatMonth } from "@/lib/format/date";
 // Reporting periods in India time (D-122). Pure. A request belongs to a
 // period by the India date it was raised; decisions by the India date they
 // were made. Every period has an equally long previous period to compare.
@@ -124,8 +125,9 @@ export function buckets(period: Period, grain: Grain): string[] {
 }
 
 export function bucketLabel(key: string, grain: Grain): string {
-  if (grain === "month") return new Date(`${key}-01T00:00:00Z`).toLocaleDateString("en-IN", { month: "short", year: "2-digit", timeZone: "UTC" });
-  return new Date(`${key}T00:00:00Z`).toLocaleDateString("en-IN", { day: "2-digit", month: "short", timeZone: "UTC" });
+  // Chart axes (D-425): "Nov 26" for a month, "24 Nov" for a day.
+  if (grain === "month") return formatMonth(key, { year: "2-digit", empty: key });
+  return formatDate(key, { year: "never", empty: key });
 }
 
 // v1.7.0 (B04): what to compare with.

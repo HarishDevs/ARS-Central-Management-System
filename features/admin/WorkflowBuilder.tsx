@@ -1,4 +1,5 @@
 "use client";
+import { indiaDay } from "@/lib/format/date";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { ChevronDown, Copy, GripVertical, TriangleAlert } from "lucide-react";
 import { PeoplePicker } from "@/features/ui/PeoplePicker";
@@ -797,7 +798,7 @@ function StepEditor({
             <input
               id={`work-due-${step.id}`}
               type="date"
-              min={new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" })}
+              min={indiaDay(new Date())}
               value={step.workDueOn ?? ""}
               onChange={(event) => onChange({ ...step, workDueOn: event.target.value || undefined })}
               className="field-input"

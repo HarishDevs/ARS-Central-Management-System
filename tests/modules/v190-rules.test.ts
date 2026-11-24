@@ -39,7 +39,7 @@ describe("new field types", () => {
   it("shows values and evaluates rules on a multi-select", () => {
     expect(displayValue(form[0]!, 1250.5, new Map())).toBe("₹1,250.50");
     expect(displayValue(form[2]!, ["Red", "Blue"], new Map())).toBe("Red, Blue");
-    expect(displayValue(form[1]!, "2026-10-20T14:30", new Map())).toMatch(/20 Oct 2026, 14:30/);
+    expect(displayValue(form[1]!, "2026-10-20T14:30", new Map())).toBe("20 Oct 2026, 2:30 pm");
     expect(ruleHolds({ field: "tags", op: "EQ", value: "blue" }, { tags: ["Red", "Blue"] })).toBe(true);
     expect(ruleHolds({ field: "tags", op: "NEQ", value: "Green" }, { tags: ["Red"] })).toBe(true);
     expect(ruleHolds({ field: "tags", op: "FILLED" }, { tags: [] })).toBe(false);

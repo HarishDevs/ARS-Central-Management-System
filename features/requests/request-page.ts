@@ -1,6 +1,7 @@
 // v1.49 request page layout (owner, 2 Nov 2026): the small pure rules the
 // request page's cards use. No React, no server imports, unit-tested in
 // tests/ui/request-page.test.ts.
+import { formatDateTime } from "@/lib/format/date";
 
 // ---------------------------------------------------------------- Timeline
 // Owner: "Timeline should show last 3 in a desc order; if they click show
@@ -25,20 +26,12 @@ export function splitTimeline<T extends TimelineItem>(entries: readonly T[], vis
 }
 
 // ------------------------------------------------------------------ Times
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
 /**
- * India time written out by hand (server and browser print the same text):
- * "01 Nov, 10:30 pm", or with the year "01 Nov 2026, 10:30 pm".
+ * India time (server and browser print the same text; v1.89.0 D-425: the one formatter):
+ * "1 Nov, 10:30 pm", or with the year "1 Nov 2026, 10:30 pm".
  */
 export function indiaDateTime(iso: string | Date | null | undefined, withYear = false): string | null {
-  if (!iso) return null;
-  const ms = typeof iso === "string" ? Date.parse(iso) : iso.getTime();
-  if (!Number.isFinite(ms)) return null;
-  const ist = new Date(ms + 330 * 60_000);
-  const hours = ist.getUTCHours();
-  const day = `${String(ist.getUTCDate()).padStart(2, "0")} ${MONTHS[ist.getUTCMonth()]}${withYear ? ` ${ist.getUTCFullYear()}` : ""}`;
-  return `${day}, ${hours % 12 || 12}:${String(ist.getUTCMinutes()).padStart(2, "0")} ${hours < 12 ? "am" : "pm"}`;
+  return formatDateTime(iso, { year: withYear ? "always" : "never" }) || null;
 }
 
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? "" : "s"}`;

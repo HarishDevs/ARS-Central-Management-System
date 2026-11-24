@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDate } from "@/lib/format/date";
 import { Building2, Eye, LayoutTemplate, Pencil } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -101,7 +102,7 @@ function TemplateCard({ item, isAdmin }: { item: GalleryCard; isAdmin: boolean }
             <h2 className="font-semibold [overflow-wrap:anywhere]">{item.name}</h2>
           )}
           <p className="text-caption text-ink-muted">
-            {item.ownerName} · {new Date(item.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" })}
+            {item.ownerName} · {formatDate(item.createdAt)}
           </p>
         </div>
         {item.shared && (

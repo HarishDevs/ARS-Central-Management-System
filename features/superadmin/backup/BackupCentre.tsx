@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDateTime } from "@/lib/format/date";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CloudDownload, CloudUpload, Download, FileCheck2, HardDriveDownload, KeyRound, RotateCcw, ShieldCheck, Trash2, Upload } from "lucide-react";
 import { Button, buttonClass } from "@/features/ui/Button";
@@ -45,7 +46,7 @@ function readToken(id: number): string | null {
 }
 
 function when(iso: string) {
-  return new Date(iso).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" });
+  return formatDateTime(iso);
 }
 
 const tone = (status: RunView["status"]) => (status === "DONE" ? "success" : status === "RUNNING" ? "info" : status === "ROLLED_BACK" || status === "CANCELLED" ? "warning" : "danger");

@@ -1,3 +1,4 @@
+import { formatDate, formatTime } from "@/lib/format/date";
 import {
   ArrowRightLeft,
   Ban,
@@ -19,7 +20,8 @@ import {
 } from "lucide-react";
 import { SafeText } from "@/features/ui/SafeText";
 import { formatIndiaTime } from "@/server/notifications/security-messages";
-import { indiaDay, relativeTime, type TimelineKind } from "@/server/approvals/timeline";
+import { indiaDay, type TimelineKind } from "@/server/approvals/timeline";
+import { RelativeTime } from "@/features/ui/RelativeTime";
 
 // RD-01 the request's history: only stored events, grouped by India day,
 // each with an icon, the sentence, how long ago, and the exact time.
@@ -43,15 +45,14 @@ export const TIMELINE_ICON: Record<TimelineKind, { icon: LucideIcon; tone: strin
   admin: { icon: Wrench, tone: "text-ink-muted" },
 };
 
-const DAY = new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", weekday: "short", day: "2-digit", month: "short", year: "numeric" });
 
-export function Timeline({ entries, now = new Date() }: { entries: { id: number; at: Date; text: string; kind: TimelineKind }[]; now?: Date }) {
+export function Timeline({ entries }: { entries: { id: number; at: Date; text: string; kind: TimelineKind }[]; now?: Date }) {
   const days: { day: string; label: string; items: typeof entries }[] = [];
   for (const entry of entries) {
     const day = indiaDay(entry.at);
     const last = days.at(-1);
     if (last && last.day === day) last.items.push(entry);
-    else days.push({ day, label: DAY.format(entry.at), items: [entry] });
+    else days.push({ day, label: formatDate(entry.at, { weekday: "short" }), items: [entry] });
   }
   return (
     <div className="space-y-4">
@@ -70,11 +71,10 @@ export function Timeline({ entries, now = new Date() }: { entries: { id: number;
                     <SafeText text={entry.text} />
                   </p>
                   <p className="text-caption text-ink-faint">
-                    <time dateTime={entry.at.toISOString()} title={formatIndiaTime(entry.at)}>
-                      {relativeTime(entry.at, now)}
-                    </time>
+                    {/* v1.89.0 (D-425, ERR-01): relative text after mount only. */}
+                    <RelativeTime at={entry.at} />
                     <span className="sr-only">, {formatIndiaTime(entry.at)}</span>
-                    <span aria-hidden="true"> · {formatIndiaTime(entry.at).split(", ").at(-1)}</span>
+                    <span aria-hidden="true"> · {formatTime(entry.at)}</span>
                   </p>
                 </li>
               );

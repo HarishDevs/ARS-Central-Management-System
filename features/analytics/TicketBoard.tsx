@@ -1,3 +1,4 @@
+import { formatDate, formatMonth } from "@/lib/format/date";
 import Link from "next/link";
 import { ClientSortTable } from "@/features/ui/ClientSortTable";
 import { analyticsTickets, openTicketsInScope, ticketMonths, type AnalyticsTicket, type TicketAnalyticsScope } from "@/lib/db/repositories/ticket-analytics.repository";
@@ -23,7 +24,7 @@ const pct = (part: number, whole: number) => (whole ? Math.round((part / whole) 
 const pctText = (value: number | null) => (value === null ? "—" : `${value}%`);
 const avg = (values: number[]) => (values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null);
 const hours = (from: Date | null, to: Date | null) => (from && to ? Math.max(0, (to.getTime() - from.getTime()) / 3_600_000) : null);
-const dayText = (day: string) => new Date(`${day}T00:00:00Z`).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
+const dayText = (day: string) => formatDate(day);
 const hoursText = (value: number | null) => (value === null ? "—" : value < 24 ? `${Math.round(value)} h` : `${(value / 24).toFixed(1)} days`);
 
 async function scopeFor(scope: Scope, viewer: Viewer): Promise<TicketAnalyticsScope> {
@@ -164,7 +165,7 @@ export async function TicketBoard({ scope, viewer, period, previous }: { scope: 
         <Table
           caption="Tickets by month"
           head={["Month", "Raised", "Closed", "Auto closed"]}
-          rows={months.map((row) => [new Date(`${row.month}-01T00:00:00Z`).toLocaleDateString("en-IN", { month: "short", year: "numeric", timeZone: "UTC" }), row.raised, row.closed, row.autoClosed])}
+          rows={months.map((row) => [formatMonth(row.month), row.raised, row.closed, row.autoClosed])}
         />
       </Section>
 
@@ -179,7 +180,7 @@ export async function TicketBoard({ scope, viewer, period, previous }: { scope: 
             row.categoryName,
             TICKET_PRIORITY_LABEL[row.priority],
             row.assigneeName ?? "—",
-            row.dueAt ? row.dueAt.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", timeZone: "Asia/Kolkata" }) : "—",
+            formatDate(row.dueAt, { empty: "—" }),
           ])}
         />
       </Section>

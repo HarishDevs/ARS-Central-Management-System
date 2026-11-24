@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDateTime } from "@/lib/format/date";
 import { checkReadinessAction, resubmitAction, submitAmendmentAction, submitRequestAction } from "@/app/users/actions";
 import { ReadinessPanel } from "@/features/requests/ReadinessPanel";
 import type { Readiness } from "@/server/approvals/readiness";
@@ -143,7 +144,7 @@ export function RequestForm({
     >
       {draft && restoredAt && (
         <p role="status" className="border-b border-line bg-primary-50/50 px-5 py-2 text-label text-primary-700">
-          Restored your draft from {restoredAt.toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" })}. Files aren&apos;t kept in drafts: add them again before submitting.
+          Restored your draft from {formatDateTime(restoredAt, { year: "auto" })}. Files aren&apos;t kept in drafts: add them again before submitting.
         </p>
       )}
       {workflowId && <input type="hidden" name="workflowId" value={workflowId} />}

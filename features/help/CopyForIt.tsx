@@ -1,14 +1,15 @@
 "use client";
 
+import { formatDateTime } from "@/lib/format/date";
 import { useState } from "react";
 
 // #13/#14 "Copy details for IT": what IT needs to find a problem, and
 // nothing private (no cookies, no form contents, no address query).
 export function itDetails(input: { reference: string; digest?: string; version?: string; path: string; userAgent: string; screen: string; now: Date }): string {
-  const time = new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "medium" }).format(input.now);
+  const time = `${formatDateTime(input.now)} India time, ${input.now.toISOString()}`;
   return [
     "ARS CMS: details for IT",
-    `Time: ${time} (India)`,
+    `Time: ${time}`,
     `Page: ${input.path}`,
     input.reference ? `Reference: ${input.reference}` : null,
     input.digest ? `Error code: ${input.digest}` : null,

@@ -131,7 +131,7 @@ describe("values by type", () => {
     expect(storedCell(select, stored({ optionId: 11 }), context)).toMatchObject({ text: "Open", sort: 0, optionIds: [11] });
     expect(storedCell(def({ type: "PEOPLE" }), stored({ ids: [7, 8] }), context).text).toBe("Asha Rao, Former user");
     expect(storedCell(def({ type: "REFERENCE" }), stored({ ids: [9, 10] }), context).text).toBe("TSK-1 Linked, 1 task you can't see");
-    expect(storedCell(def({ type: "DATE", config: { ...DEFAULT_CONFIG, withTime: true } }), stored({ date: "2026-11-05", time: "09:15" }), context).text).toBe("5 Nov 2026, 09:15");
+    expect(storedCell(def({ type: "DATE", config: { ...DEFAULT_CONFIG, withTime: true } }), stored({ date: "2026-11-05", time: "09:15" }), context).text).toBe("5 Nov 2026, 9:15 am");
     expect(legacyText(def({ type: "MULTI_SELECT", options: select.options }), stored({ ids: [11, 12] }))).toBe("Open, Old");
     expect(legacyText(def({ type: "TIMER" }), stored({ number: 3600 }))).toBe("1:00");
   });

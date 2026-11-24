@@ -1,5 +1,6 @@
 "use client";
 
+import { RelativeTime } from "@/features/ui/RelativeTime";
 import { EmptyState } from "@/features/ui/Display";
 import { Copy, Pencil, Plus, Trash2, Zap } from "lucide-react";
 import Link from "next/link";
@@ -25,20 +26,16 @@ export interface RuleRowView {
   lastRunAt: string | null;
   lastResult: string | null;
 }
-const AGO = new Intl.RelativeTimeFormat("en-GB", { numeric: "auto" });
-function ago(iso: string): string {
-  const seconds = Math.min(0, (new Date(iso).getTime() - Date.now()) / 1000);
-  const size = Math.abs(seconds);
-  if (size < 60) return AGO.format(Math.round(seconds), "second");
-  if (size < 3600) return AGO.format(Math.round(seconds / 60), "minute");
-  if (size < 86400) return AGO.format(Math.round(seconds / 3600), "hour");
-  if (size < 30 * 86400) return AGO.format(Math.round(seconds / 86400), "day");
-  return AGO.format(Math.round(seconds / (30 * 86400)), "month");
-}
-export function lastRunText(row: Pick<RuleRowView, "lastRunAt" | "lastResult">): string {
-  if (!row.lastRunAt) return "Never run";
+// v1.89.0 (D-425, ERR-01): "Last run 2 h ago" depends on now: the relative text is drawn after mount.
+export function LastRun({ row }: { row: Pick<RuleRowView, "lastRunAt" | "lastResult"> }) {
+  if (!row.lastRunAt) return <>Never run</>;
   const result = row.lastResult === "FAILED" ? " (failed)" : row.lastResult === "SKIPPED" ? " (skipped)" : "";
-  return `Last run ${ago(row.lastRunAt)}${result}`;
+  return (
+    <>
+      Last run <RelativeTime at={row.lastRunAt} />
+      {result}
+    </>
+  );
 }
 
 export function AutomationsPanel({ projectId, rows, build, limit }: { projectId: number; rows: RuleRowView[]; build: boolean; limit: number }) {
@@ -80,7 +77,15 @@ export function AutomationsPanel({ projectId, rows, build, limit }: { projectId:
                 {!row.published && <span className="ml-1 rounded-full bg-surface-muted px-2 py-0.5 text-caption font-semibold text-ink-muted">Draft</span>}
                 {row.paused && <span className="ml-1 rounded-full bg-warning-50 px-2 py-0.5 text-caption font-semibold text-warning-600">Paused</span>}
                 <span className="block text-caption text-ink-muted" suppressHydrationWarning>
-                  {row.trigger} · {row.published ? `${!row.enabled ? "Disabled · " : ""}${lastRunText(row)}${row.draftChanged ? " · unpublished changes" : ""}` : "Not published"} · owner {row.ownerName}
+                  {row.trigger} · {row.published ? (
+                    <>
+                      {!row.enabled ? "Disabled · " : ""}
+                      <LastRun row={row} />
+                      {row.draftChanged ? " · unpublished changes" : ""}
+                    </>
+                  ) : (
+                    "Not published"
+                  )} · owner {row.ownerName}
                 </span>
               </span>
               {build && (

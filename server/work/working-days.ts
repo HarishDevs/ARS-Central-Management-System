@@ -4,6 +4,7 @@
 // holidays (server/work/durations.ts loads it). Also used in the browser (the
 // Gantt recomputes while a bar is dragged), so no server imports here.
 import { z } from "zod";
+import { formatDate } from "@/lib/format/date";
 import { addDays, dayDiff, weekdayOf, type WorkCalendar } from "@/server/work/schedule";
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
@@ -83,12 +84,10 @@ export function effectiveEstimate(manualMinutes: number | null, durationDays: nu
 }
 
 // ---- words ------------------------------------------------------------------------------------
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-// "12 Dec", or "12 Dec 2027" when the year isn't `thisYear`.
+// "12 Dec", or "12 Dec 2027" when the year isn't `thisYear` (v1.89.0 D-425: the one formatter).
 export function dayText(day: string, thisYear?: string): string {
   if (!isDay(day)) return day;
-  const text = `${Number(day.slice(8, 10))} ${MONTHS[Number(day.slice(5, 7)) - 1]}`;
-  return thisYear && day.slice(0, 4) === thisYear ? text : `${text} ${day.slice(0, 4)}`;
+  return formatDate(day, { year: thisYear && day.slice(0, 4) === thisYear ? "never" : "always" });
 }
 const hoursText = (hours: number) => `${Number.isInteger(hours) ? hours : hours.toFixed(1)} h`;
 export const daysText = (days: number) => `${days} working day${days === 1 ? "" : "s"}`;

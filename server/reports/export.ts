@@ -22,6 +22,8 @@ export interface ExportMeta {
   generatedBy: string;
 }
 
+// v1.89.0 (D-425): report files (CSV / Excel / PDF) keep their own cell text, unchanged for whoever reads the files.
+// eslint-disable-next-line ars-ui/date-format -- export cell format left as it was (documented in D-425)
 const IST = (iso: string) => new Date(iso).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" });
 
 function display(cell: Cell, column: Column): string {

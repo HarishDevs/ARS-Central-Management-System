@@ -1,3 +1,4 @@
+import { formatTime } from "@/lib/format/date";
 import "server-only";
 import type { NotifyInput } from "@/server/notifications/notify";
 import { indiaDateTimeText } from "@/server/modules/settings";
@@ -161,7 +162,7 @@ export interface MeetingInfo {
 export type MeetingRole = "OWNER" | "COORDINATOR" | "PARTICIPANT";
 const meetingPath = (meeting: MeetingInfo) => `/users/meetings/${meeting.id}`;
 const MODE_TEXT: Record<string, string> = { OFFLINE: "In person", ONLINE: "Online", HYBRID: "Hybrid" };
-const endClock = (end: Date) => end.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata" });
+const endClock = (end: Date) => formatTime(end);
 const when = (meeting: MeetingInfo) => {
   if (!meeting.start) return "";
   const parts = [` On ${indiaDateTimeText(meeting.start)}${meeting.end ? ` to ${endClock(meeting.end)}` : ""}.`];

@@ -1,3 +1,4 @@
+import { formatMonth } from "@/lib/format/date";
 import type { Metadata } from "next";
 import { PagedRows } from "@/features/ui/PagedRows";
 import Link from "next/link";
@@ -31,8 +32,7 @@ function hours(value: number | null): string {
 }
 
 function monthLabel(month: string): string {
-  const [year, m] = month.split("-");
-  return new Date(Date.UTC(Number(year), Number(m) - 1, 1)).toLocaleString("en-IN", { month: "short", year: "numeric", timeZone: "UTC" });
+  return formatMonth(month, { empty: month });
 }
 
 // v1.74.1 (D-397): `textColumns` = how many leading columns are words (the rest are numbers, set to the right);

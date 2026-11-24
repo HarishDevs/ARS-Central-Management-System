@@ -3,14 +3,15 @@ import { SafeText } from "@/features/ui/SafeText";
 import { TIMELINE_ICON } from "@/features/requests/Timeline";
 import { TimelineShowMore } from "@/features/requests/TimelineShowMore";
 import { indiaDateTime, splitTimeline } from "@/features/requests/request-page";
-import { relativeTime, type TimelineKind } from "@/server/approvals/timeline";
+import type { TimelineKind } from "@/server/approvals/timeline";
+import { RelativeTime } from "@/features/ui/RelativeTime";
 
 // v1.49 (owner's layout, 2 Nov 2026): the request's history in the bottom
 // row: the latest 3 events, newest first; "Show more" opens the rest in a
 // scrolling box. Each event: an icon for its kind, the sentence, the time.
 type Entry = { id: number; at: Date; text: string; kind: TimelineKind };
 
-function Event({ entry, now }: { entry: Entry; now: Date }) {
+function Event({ entry }: { entry: Entry; now: Date }) {
   const { icon: Icon, tone } = TIMELINE_ICON[entry.kind] ?? TIMELINE_ICON.info;
   const exact = indiaDateTime(entry.at, true) ?? "";
   return (
@@ -26,7 +27,10 @@ function Event({ entry, now }: { entry: Entry; now: Date }) {
           <time dateTime={entry.at.toISOString()} title={exact}>
             {exact}
           </time>
-          <span aria-hidden="true"> · {relativeTime(entry.at, now)}</span>
+          <span aria-hidden="true">
+            {" · "}
+            <RelativeTime at={entry.at} />
+          </span>
         </p>
       </div>
     </li>

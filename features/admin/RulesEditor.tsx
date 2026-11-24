@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDateTime } from "@/lib/format/date";
 import { useEffect, useRef, useState } from "react";
 import { Bold, Eraser, Heading2, Heading3, Italic, Link2, List, ListOrdered, Quote, Redo2, Strikethrough, Table, Underline, Undo2 } from "lucide-react";
 import { saveAiRuleAction } from "@/app/admin/setup/ai-rules/actions";
@@ -174,7 +175,7 @@ export function RulesEditor({ rules, maxChars }: { rules: { scope: string; conte
           ))}
         </select>
         <Hint text={scope === "ALL" ? "Applies to every chat, before that chat's own rules." : `Applies to ${SCOPE_LABEL[scope]} chats, after the rules for all chats.`} align="start" />
-        <span className="ml-auto text-caption text-ink-muted">{current?.updatedAt ? `Last saved by ${current.updatedBy ?? "someone"}, ${new Date(current.updatedAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}` : "Not written yet"}</span>
+        <span className="ml-auto text-caption text-ink-muted">{current?.updatedAt ? `Last saved by ${current.updatedBy ?? "someone"}, ${formatDateTime(current.updatedAt)}` : "Not written yet"}</span>
       </div>
       <div role="toolbar" aria-label="Formatting" className="flex flex-wrap gap-0.5 border-b border-line px-3 py-1.5">
         {TOOLS.map((tool) => (

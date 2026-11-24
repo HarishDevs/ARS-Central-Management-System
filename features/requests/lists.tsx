@@ -1,3 +1,4 @@
+import { formatDate, indiaDay } from "@/lib/format/date";
 import Link from "next/link";
 import { Fragment } from "react";
 import { ReorderHeader, type HeaderColumn, type HeaderSort } from "@/features/requests/ReorderHeader";
@@ -37,8 +38,8 @@ const QUEUE_HEADER: Record<QueueColumn, HeaderColumn> = {
 // hold) has a Change details button at the end.
 export function QueueTable({ items, priority, order: savedOrder, formDue = {}, groups, sort, editable = false }: { items: QueueItem[]; priority?: Record<number, ShownPriority>; order?: string[]; formDue?: Record<number, string>; groups?: { key: string; label: string; items: QueueItem[] }[]; sort?: HeaderSort; editable?: boolean }) {
   // v1.53.0: the request's own due date (its form's Due date field), India day.
-  const todayDay = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
-  const dayText = (day: string) => new Date(`${day}T00:00:00Z`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+  const todayDay = indiaDay(new Date());
+  const dayText = (day: string) => formatDate(day);
   const all: QueueColumn[] = priority ? ["priority", "from", "step", "since", "due"] : ["from", "step", "since", "due"];
   const order: QueueColumn[] = savedOrder ? (savedOrder.filter((key): key is QueueColumn => (all as string[]).includes(key))) : all;
   const cellFor = (item: QueueItem, column: QueueColumn): React.ReactNode => {

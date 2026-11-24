@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDate } from "@/lib/format/date";
 import { Lock, X } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
@@ -23,7 +24,7 @@ export interface DependencyView {
 }
 type Found = { id: number; taskNo: string; title: string; projectName: string | null; dueAt: string | null; status: string };
 const OPEN = ["OPEN", "IN_PROGRESS", "BLOCKED"];
-const dueText = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "Asia/Kolkata" }) : "");
+const dueText = (iso: string | null | undefined) => formatDate(iso, { year: "auto" });
 const typeOf = (item: DependencyView): DepType => (isDepType(item.type) ? item.type : "FS");
 
 export function DependencyEditor({ taskId, title, blockedBy, blocking, canChange }: { taskId: number; title: string; blockedBy: DependencyView[]; blocking: DependencyView[]; canChange: boolean }) {

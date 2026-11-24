@@ -71,6 +71,7 @@ export const CLIENT_ID = /^[0-9]+-[a-z0-9_-]+\.apps\.googleusercontent\.com$/i;
 
 export function isValidTimezone(zone: string): boolean {
   try {
+    // eslint-disable-next-line ars-ui/date-format -- checks that a zone name exists; no text is written
     new Intl.DateTimeFormat("en-GB", { timeZone: zone });
     return true;
   } catch {

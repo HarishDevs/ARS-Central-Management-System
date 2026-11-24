@@ -1,3 +1,4 @@
+import { formatDate, formatDateTime } from "@/lib/format/date";
 import { doaBandIndex, isConditionGroup, toCondition, type BuilderCondition, type BuilderInnerStage, type BuilderSpec, type BuilderStage, type BuilderStep } from "@/server/workflows/builder";
 import { evaluateCondition } from "@/server/engine/conditions";
 import type { ApprovalNode, CompletionRule, FormData, InstanceState, NodeStatus, NotifyNode, TaskStatus, WorkflowDefinition } from "@/server/engine/types";
@@ -61,7 +62,7 @@ export function describeCondition(condition: { field: string; operator: string; 
     typeof condition.value === "number"
       ? condition.value.toLocaleString("en-IN")
       : isDate
-        ? new Date(`${condition.value as string}T00:00:00Z`).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" })
+        ? formatDate(condition.value as string)
         : condition.value === undefined
           ? ""
           : String(condition.value);
@@ -276,7 +277,7 @@ export function summarizeTracker(
   const total = steps.length;
   const names = (step: MapStep) => step.people.filter((person) => person.status === "PENDING").map((person) => person.name);
   const when = (iso?: string | null) =>
-    iso ? new Date(iso).toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" }) : null;
+    formatDateTime(iso, { year: "auto" }) || null;
   const blocked = steps.filter((step) => step.status === "BLOCKED");
   const active = steps.filter((step) => step.status === "ACTIVE");
   const next = steps.find((step) => step.status === "WAITING");

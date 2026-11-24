@@ -1,5 +1,6 @@
 "use client";
 
+import { indiaClock, indiaDay } from "@/lib/format/date";
 import { CalendarDays, GitBranch, Lock, Globe2, UserRound } from "lucide-react";
 import { useState } from "react";
 import { privacyAction, taskFieldsAction } from "@/app/users/work/actions";
@@ -16,8 +17,7 @@ import type { PanelData } from "@/features/work/TaskWorkPanel";
 // and the visibility banner's "Make public". Every change goes through the
 // existing server actions (their rules and the holiday question apply).
 
-const IST = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Kolkata" });
-const indiaDayOf = (iso: string) => new Date(new Date(iso).getTime() + 330 * 60_000).toISOString().slice(0, 10);
+const indiaDayOf = (iso: string) => indiaDay(iso);
 
 export function PaneTitle({ taskId, title, canEdit }: { taskId: number; title: string; canEdit: boolean }) {
   const { call } = useWorkCall();
@@ -62,7 +62,7 @@ export function PaneTitle({ taskId, title, canEdit }: { taskId: number; title: s
 export function TaskDatesPicker({ data, compact = false }: { data: PanelData; compact?: boolean }) {
   const { call } = useWorkCall();
   const dueDay = data.dueAt ? indiaDayOf(data.dueAt) : "";
-  const dueTime = data.dueAt ? IST.format(new Date(data.dueAt)) : "23:59";
+  const dueTime = data.dueAt ? indiaClock(data.dueAt) : "23:59";
   const may = data.canProgress && data.open && !data.deleted;
   const today = todayInIndia();
   const text = formatDayRange(data.isMilestone ? "" : data.startsOn, dueDay, today);

@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/format/date";
 // v1.65.0 (D-373, PM phase B part 2, spec PV §16): dependency types, the
 // working-day calendar used for shifting, and the auto-shift plan. Pure and
 // unit-tested; server/work/schedule-service.ts loads the data and applies the
@@ -206,8 +207,7 @@ export function reminderDue(indiaNow: { day: string; hour: number }, remindedOn:
 }
 // Default title of a status update: "<project> – 22 Nov".
 export function statusTitleFor(projectName: string, day: string): string {
-  const date = new Date(`${day}T00:00:00Z`);
-  return `${projectName} – ${date.getUTCDate()} ${date.toLocaleString("en-GB", { month: "short", timeZone: "UTC" })}`;
+  return `${projectName} – ${formatDate(day, { year: "never" })}`;
 }
 // Undo of a shift is possible for this long.
 export const SHIFT_UNDO_MINUTES = 15;

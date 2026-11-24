@@ -1,3 +1,4 @@
+import { formatDate, indiaHour } from "@/lib/format/date";
 import { z } from "zod";
 
 // v1.63.0 (D-369, PM-A12, spec HOME_MODULE §3–§6): the person's Home widgets.
@@ -227,7 +228,7 @@ export const resizeWidget = (layout: readonly WidgetItem[], kind: WidgetKind, si
 // By the hour in India, like the rest of the app; the first name (or both
 // words of a two-word name, as Home did before).
 export function greetingFor(now: Date): string {
-  const hour = Number(new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", hour: "numeric", hourCycle: "h23" }).format(now));
+  const hour = indiaHour(now);
   return hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 }
 export function greetingName(name: string): string {
@@ -235,7 +236,7 @@ export function greetingName(name: string): string {
   return words.length <= 2 ? words.join(" ") : words[0]!;
 }
 export function homeDate(now: Date): string {
-  return new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", weekday: "long", day: "numeric", month: "long" }).format(now);
+  return formatDate(now, { weekday: "long", month: "long", year: "never" });
 }
 
 // ---- the notepad ---------------------------------------------------------------------------

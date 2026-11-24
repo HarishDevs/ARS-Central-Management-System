@@ -1,5 +1,6 @@
 "use client";
 
+import { formatTime } from "@/lib/format/date";
 import { useCallback, useEffect, useState } from "react";
 import { ArrowLeftRight, Database, Link2, Send } from "lucide-react";
 import { Button } from "@/features/ui/Button";
@@ -149,7 +150,7 @@ function Pairings({ purpose, packages, onError }: { purpose: "RECEIVE" | "OFFER"
       </form>
       {fresh && (
         <p role="status" className="rounded-md bg-primary-50 px-3 py-2 text-label">
-          Pairing code (shown once): <strong className="font-mono">{fresh.code}</strong> · valid until {new Date(fresh.expiresAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" })}. Type it on the other server.
+          Pairing code (shown once): <strong className="font-mono">{fresh.code}</strong> · valid until {formatTime(fresh.expiresAt)}. Type it on the other server.
         </p>
       )}
       {list.length > 0 && (

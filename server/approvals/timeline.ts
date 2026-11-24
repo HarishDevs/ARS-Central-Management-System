@@ -1,4 +1,5 @@
 import type { TimelineEvent } from "@/lib/db/repositories/approvals.repository";
+import { formatRelative, indiaDay as indiaDayOf } from "@/lib/format/date";
 
 // One plain sentence per timeline event (F-14). Pure and unit-tested.
 // Internal bookkeeping events return null and are not shown.
@@ -178,21 +179,13 @@ export function eventKind(event: TimelineEvent): TimelineKind {
   }
 }
 
-// "2 h ago" style, against a given now (pure; server-rendered).
+// "2 h ago" style, against a given now (pure). v1.89.0 (D-425): the app's one formatter;
+// on a page, <RelativeTime> shows it after mount (the server's text is the absolute date).
 export function relativeTime(at: Date, now: Date): string {
-  const seconds = Math.round((now.getTime() - at.getTime()) / 1000);
-  if (seconds < 60) return "just now";
-  const minutes = Math.round(seconds / 60);
-  if (minutes < 60) return `${minutes} min ago`;
-  const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours} h ago`;
-  const days = Math.round(hours / 24);
-  if (days < 30) return days === 1 ? "yesterday" : `${days} days ago`;
-  const months = Math.round(days / 30);
-  return months < 12 ? `${months} month${months === 1 ? "" : "s"} ago` : `${Math.round(months / 12)} year${months < 24 ? "" : "s"} ago`;
+  return formatRelative(at, now);
 }
 
 // The India date a moment falls on, for grouping by day.
 export function indiaDay(at: Date): string {
-  return new Date(at.getTime() + 330 * 60_000).toISOString().slice(0, 10);
+  return indiaDayOf(at);
 }

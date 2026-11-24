@@ -1,3 +1,4 @@
+import { formatDateTime } from "@/lib/format/date";
 import type { Metadata } from "next";
 import { BellRing } from "lucide-react";
 import Link from "next/link";
@@ -28,7 +29,7 @@ export default async function NotificationSettingsPage() {
   const dnd = parseDnd(dndRaw);
   const now = new Date();
   const paused = dnd.pausedUntil && Date.parse(dnd.pausedUntil) > now.getTime() ? dnd.pausedUntil : null;
-  const pausedText = paused ? new Date(paused).toLocaleString("en-IN", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Asia/Kolkata" }) : null;
+  const pausedText = paused ? formatDateTime(paused, { weekday: "short", year: "auto", now }) : null;
   return (
     <>
       <PageHeader title="Notifications" icon={BellRing} description="Choose what reaches you in the app, by email and on WhatsApp, kind by kind; pause them when you need quiet. Everything is always kept in your Inbox.">

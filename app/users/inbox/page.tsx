@@ -1,3 +1,4 @@
+import { formatDayTime, formatRelativeDay } from "@/lib/format/date";
 import type { Metadata } from "next";
 import { Inbox } from "lucide-react";
 import Link from "next/link";
@@ -13,18 +14,12 @@ import { Check, Settings, Smartphone } from "lucide-react";
 import { ScreenTitle, SheetChoices, SheetLink, ViewDock } from "@/features/mobile/BottomSheet";
 
 // v1.45.0: the phone's day groups and times ("Today", "Today at 12:45 am").
-const IST_DAY = (date: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(date);
-const IST_TIME = new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", hour: "numeric", minute: "2-digit", hour12: true });
-const IST_DATE = new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" });
+// v1.89.0 (D-425): the one formatter; a server component, so the text is never hydrated.
 function phoneDay(date: Date, now = new Date()): string {
-  const day = IST_DAY(date);
-  if (day === IST_DAY(now)) return "Today";
-  if (day === IST_DAY(new Date(now.getTime() - 86_400_000))) return "Yesterday";
-  return IST_DATE.format(date);
+  return formatRelativeDay(date, now, { weekdays: false });
 }
 function phoneWhen(date: Date): string {
-  const day = phoneDay(date);
-  return `${day === "Today" || day === "Yesterday" ? day : IST_DATE.format(date)} at ${IST_TIME.format(date)}`;
+  return formatDayTime(date, new Date());
 }
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.

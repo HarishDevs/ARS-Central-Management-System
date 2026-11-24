@@ -1,3 +1,4 @@
+import { indiaYear as yearInIndia } from "@/lib/format/date";
 import { BrandLockup } from "@/features/ui/Brand";
 import Link from "next/link";
 import { MailLink } from "@/features/ui/MailLink";
@@ -8,7 +9,7 @@ import { MailLink } from "@/features/ui/MailLink";
 export const CONTACT_EMAIL = "itadmin@arssteels.co.in";
 export const COMPANY = "ARS Steels & Alloy International Pvt. Ltd.";
 
-export const indiaYear = () => Number(new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", year: "numeric" }).format(new Date()));
+export const indiaYear = () => yearInIndia(new Date());
 
 export function PublicPage({ children }: { children: React.ReactNode }) {
   return (

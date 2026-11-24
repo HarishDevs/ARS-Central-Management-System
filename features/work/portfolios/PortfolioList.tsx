@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDate } from "@/lib/format/date";
 import { ArrowDown, ArrowUp, Briefcase, ChevronDown, ExternalLink, Filter, FolderKanban, Group, Link2, Lock, MoreHorizontal, Plus, Trash2, X } from "lucide-react";
 import { Menu, type MenuItem } from "@/features/ui/Menu";
 import { useToast } from "@/features/ui/Toast";
@@ -48,8 +49,7 @@ const STATUS_DOT: Record<ProjectStatusKind, string> = {
   COMPLETE: "bg-primary-solid",
   DROPPED: "bg-ink-faint",
 };
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-export const dayWords = (day: string | null) => (day ? `${Number(day.slice(8, 10))} ${MONTHS[Number(day.slice(5, 7)) - 1]} ${day.slice(0, 4)}` : "—");
+export const dayWords = (day: string | null) => formatDate(day, { empty: "—" });
 interface Field {
   id: number;
   name: string;
@@ -313,7 +313,7 @@ function MaskedLine({ row, columns, canEdit, portfolioId }: { row: Extract<Portf
         </span>
       </th>
       <td colSpan={columns - 2} className="px-3 py-2 text-caption text-ink-muted">
-        Added by {row.addedByName} on {added.getUTCDate()} {MONTHS[added.getUTCMonth()]} {added.getUTCFullYear()}. You don&apos;t have access: ask {row.addedByName} or the {row.kind === "PROJECT" ? "project" : "portfolio"}&apos;s owner for access.
+        Added by {row.addedByName} on {formatDate(added)}. You don&apos;t have access: ask {row.addedByName} or the {row.kind === "PROJECT" ? "project" : "portfolio"}&apos;s owner for access.
       </td>
       <td className="px-3 py-2">
         <RowMenu portfolioId={portfolioId} itemId={row.itemId} name={maskedName(row)} href={null} canEdit={canEdit} />

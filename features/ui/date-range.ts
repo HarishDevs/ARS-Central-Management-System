@@ -17,8 +17,8 @@ export interface PickerCalendar {
 }
 
 const DAY_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
-const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-const WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+import { formatDate, formatDayRange as formatDayRangeText, indiaToday, MONTHS_LONG as MONTHS, WEEKDAYS_LONG as WEEKDAY_NAMES } from "@/lib/format/date";
+
 export const WEEK_HEAD = [
   { short: "M", long: "Monday" },
   { short: "T", long: "Tuesday" },
@@ -67,12 +67,10 @@ export function fieldText(day: Day | ""): string {
   return `${day.slice(8, 10)}/${day.slice(5, 7)}/${day.slice(2, 4)}`;
 }
 
-/** "1 Dec" (this year) or "1 Dec 2027". */
+/** "1 Dec" (this year) or "1 Dec 2027" (v1.89.0 D-425: the one formatter). */
 export function shortDay(day: Day, today: Day): string {
   if (!isRealDay(day)) return "";
-  const month = MONTHS[Number(day.slice(5, 7)) - 1]!.slice(0, 3);
-  const text = `${Number(day.slice(8, 10))} ${month}`;
-  return day.slice(0, 4) === today.slice(0, 4) ? text : `${text} ${day.slice(0, 4)}`;
+  return formatDate(day, { year: "auto", now: today });
 }
 
 /** "Monday 1 December 2026": a day read out in full. */
@@ -204,32 +202,11 @@ export function rangeText(draft: RangeDraft, today: Day, labels: { start?: strin
  * 5 Jan 2027" (years differ or not this year). Start = due is one day.
  */
 export function formatDayRange(start: Day | "" | null | undefined, due: Day | "" | null | undefined, today: Day, relative = true): string {
-  const one = (day: Day) => {
-    if (relative) {
-      const diff = Math.round((utc(day).getTime() - utc(today).getTime()) / 86_400_000);
-      if (diff === 0) return "Today";
-      if (diff === 1) return "Tomorrow";
-      if (diff === -1) return "Yesterday";
-      if (diff > 1 && diff < 7) return WEEKDAY_NAMES[utc(day).getUTCDay()]!;
-    }
-    return shortDay(day, today);
-  };
-  const s = start && isRealDay(start) ? start : "";
-  const d = due && isRealDay(due) ? due : "";
-  if (!s && !d) return "";
-  if (!s || !d || s === d) return one((d || s) as Day);
-  const month = (day: Day) => MONTHS[Number(day.slice(5, 7)) - 1]!.slice(0, 3);
-  const num = (day: Day) => Number(day.slice(8, 10));
-  const thisYear = today.slice(0, 4);
-  if (s.slice(0, 4) !== d.slice(0, 4) || s.slice(0, 4) !== thisYear) {
-    if (s.slice(0, 7) === d.slice(0, 7)) return `${num(s)} – ${num(d)} ${month(d)} ${d.slice(0, 4)}`;
-    return `${num(s)} ${month(s)} ${s.slice(0, 4)} – ${num(d)} ${month(d)} ${d.slice(0, 4)}`;
-  }
-  if (s.slice(0, 7) === d.slice(0, 7)) return `${num(s)} – ${num(d)} ${month(d)}`;
-  return `${num(s)} ${month(s)} – ${num(d)} ${month(d)}`;
+  // v1.89.0 (D-425): the rules live in the app's one formatter.
+  return formatDayRangeText(start && isRealDay(start) ? start : "", due && isRealDay(due) ? due : "", today, relative);
 }
 
 /** Today in India (the app's day). */
 export function todayInIndia(now: Date = new Date()): Day {
-  return new Date(now.getTime() + 330 * 60_000).toISOString().slice(0, 10);
+  return indiaToday(now);
 }

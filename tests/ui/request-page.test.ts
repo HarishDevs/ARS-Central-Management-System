@@ -51,9 +51,9 @@ describe("time in process", () => {
 
 describe("India date-time", () => {
   it("prints IST the same everywhere", () => {
-    expect(indiaDateTime("2026-11-01T17:00:00Z")).toBe("01 Nov, 10:30 pm");
-    expect(indiaDateTime(at("2026-11-01T17:00:00Z"), true)).toBe("01 Nov 2026, 10:30 pm");
-    expect(indiaDateTime("2026-11-01T18:45:00Z")).toBe("02 Nov, 12:15 am");
+    expect(indiaDateTime("2026-11-01T17:00:00Z")).toBe("1 Nov, 10:30 pm");
+    expect(indiaDateTime(at("2026-11-01T17:00:00Z"), true)).toBe("1 Nov 2026, 10:30 pm");
+    expect(indiaDateTime("2026-11-01T18:45:00Z")).toBe("2 Nov, 12:15 am");
     expect(indiaDateTime(null)).toBeNull();
   });
 });

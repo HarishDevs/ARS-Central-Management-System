@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDateTime } from "@/lib/format/date";
 import Link from "next/link";
 import { useState } from "react";
 import { bulkReassignAction } from "@/app/admin/insights/workload/actions";
@@ -11,7 +12,7 @@ import { PersonSelect } from "@/features/ui/PersonSelect";
 // server checks each task again and moves them one by one; every task gets
 // its own result line.
 const MAX = 100;
-const time = (value: Date | string) => new Date(value).toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" });
+const time = (value: Date | string) => formatDateTime(value, { year: "auto" });
 
 export interface ReassignRow {
   requestId: number;

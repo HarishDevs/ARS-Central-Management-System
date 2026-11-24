@@ -1,3 +1,4 @@
+import { indiaYear as yearInIndia } from "@/lib/format/date";
 import { BrandLockup, BrandLogoClear } from "@/features/ui/Brand";
 import { BlueBackdrop, SkylineBackdrop } from "@/features/ui/BrandBackdrops";
 import { MailLink } from "@/features/ui/MailLink";
@@ -85,5 +86,5 @@ export function AuthLayout({ children, landing = false }: { children: React.Reac
 }
 
 function indiaYear(): number {
-  return Number(new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", year: "numeric" }).format(new Date()));
+  return yearInIndia(new Date());
 }

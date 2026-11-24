@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDateTime } from "@/lib/format/date";
 import { useCallback, useEffect, useState } from "react";
 import { previewRouteAction } from "@/app/users/actions";
 import type { StepPreview } from "@/server/approvals/route-preview";
@@ -392,7 +393,7 @@ export function CustomApprovalForm({
       {/* Compact, dismissible notices instead of large banners. */}
       {draft && restoredAt && (
         <Notice tone="info">
-          Restored your draft from {restoredAt.toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata" })}. Files aren&apos;t kept in drafts: add them again.
+          Restored your draft from {formatDateTime(restoredAt, { year: "auto" })}. Files aren&apos;t kept in drafts: add them again.
         </Notice>
       )}
       {stepError && (

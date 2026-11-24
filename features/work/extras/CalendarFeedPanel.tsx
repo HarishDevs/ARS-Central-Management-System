@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDateTime } from "@/lib/format/date";
 import { CalendarPlus, Copy } from "lucide-react";
 import { useState } from "react";
 import { calendarFeedAction } from "@/app/users/work/extras-actions";
@@ -38,7 +39,7 @@ export function CalendarFeedPanel({ scope, projectId = null, current }: { scope:
       setCopied(false);
     }
   };
-  const when = (iso: string) => new Date(iso).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", timeZone: "Asia/Kolkata" });
+  const when = (iso: string) => formatDateTime(iso);
   return (
     <div className="space-y-3" data-testid="calendar-feed">
       <p className="text-caption text-ink-muted">

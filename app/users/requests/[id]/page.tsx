@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/format/date";
 import { countPendingTasksFor, listPendingTasksFor } from "@/lib/db/repositories/approvals.repository";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -663,7 +664,7 @@ export default async function RequestPage({
 function ValidityBadge({ validUntil }: { validUntil: Date | null }) {
   const state = expiryState(validUntil);
   if (state === "NONE" || !validUntil) return null;
-  const day = validUntil.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" });
+  const day = formatDate(validUntil);
   if (state === "EXPIRED")
     return (
       <span data-testid="validity" className="rounded-full bg-danger-50 px-2.5 py-0.5 text-caption font-semibold text-danger-600">

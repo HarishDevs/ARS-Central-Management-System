@@ -1,3 +1,4 @@
+import { formatDateTime } from "@/lib/format/date";
 import type { InfoRecord, RequestRecord, TaskRecord } from "@/lib/db/repositories/records.repository";
 import type { RecordKind } from "@/server/records/filters";
 import { amountText } from "@/server/records/amount";
@@ -32,7 +33,8 @@ export const STATUS_LABEL: Record<string, string> = {
 };
 export const PRIORITY_LABEL: Record<string, string> = { LOW: "Low", NORMAL: "Normal", ELEVATED: "High", IMPORTANT: "Important", HIGH: "Most Important", URGENT: "Critical" };
 
-const dateTime = (value: Date | null) => (value ? new Date(value).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }) : "");
+// v1.89.0 (D-425, UIQA-CON-08): the app's 12 h form (was 24 h); the records download writes the same text.
+const dateTime = (value: Date | null) => formatDateTime(value);
 const daysBetween = (start: Date, end: Date | null) => Math.max(0, Math.floor(((end ? new Date(end) : new Date()).getTime() - new Date(start).getTime()) / 86_400_000));
 // A cancelled task reads "Cancelled" (a withdrawn request reads "Withdrawn").
 const taskStatus = (status: string) => (status === "CANCELLED" ? "Cancelled" : STATUS_LABEL[status] ?? status);

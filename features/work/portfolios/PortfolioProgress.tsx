@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDateTime } from "@/lib/format/date";
 import { useEffect, useId, useRef, useState } from "react";
 import { portfolioStatusAction, removePortfolioStatusAction } from "@/app/users/work/portfolio-actions";
 import { useWorkCall } from "@/features/work/client";
@@ -68,7 +69,7 @@ export function PortfolioProgress({
                       <span className="font-medium">{update.title}</span>
                     </div>
                     <p className="text-caption text-ink-muted">
-                      {update.authorName} · {new Date(update.createdAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      {update.authorName} · {formatDateTime(update.createdAt)}
                     </p>
                     {update.body && <RichText text={update.body} className="text-label" />}
                     {update.authorId === meId && <RemoveUpdate statusId={update.id} />}

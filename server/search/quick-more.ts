@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/format/date";
 import "server-only";
 import { isAdminActor } from "@/server/modules/tasks";
 import { listTickets, viewerCategories } from "@/lib/db/repositories/tickets.repository";
@@ -26,7 +27,7 @@ export async function quickTickets(actor: Actor, q: string, limit = 5): Promise<
   return [...found.values()].sort((a, b) => b.id - a.id).slice(0, limit);
 }
 
-const WHEN = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" });
+const WHEN = { format: (value: Date | string | number) => formatDate(value) };
 
 export async function quickMeetings(actor: Actor, q: string, limit = 5): Promise<QuickMeeting[]> {
   if (q.length < 2) return [];

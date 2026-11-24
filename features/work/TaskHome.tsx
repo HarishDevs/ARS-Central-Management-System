@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/format/date";
 import "server-only";
 import { ApprovalBadge, approvalRowClass } from "@/features/work/ApprovalLink";
 import { taskHref } from "@/features/work/TaskPane";
@@ -154,7 +155,7 @@ export async function TaskHome({
       <header className={greet ? "mb-6 text-center" : "mb-4 mt-10"} data-testid="home-header">
         {greet ? (
           <>
-            <p className="text-label text-ink-muted">{new Date(`${today}T12:00:00Z`).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" })}</p>
+            <p className="text-label text-ink-muted">{formatDate(today, { weekday: "long", month: "long", year: "never" })}</p>
             <h1 className="mt-1 text-display font-semibold tracking-tight">{`${greeting}, ${user.name.split(" ")[0]}`}</h1>
           </>
         ) : (

@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDate } from "@/lib/format/date";
 import { Clock, Play, Square } from "lucide-react";
 import { useEffect, useState } from "react";
 import { changeTimeEntryAction, logTimeAction, setEstimateAction, timeTimerAction } from "@/app/users/work/collab-actions";
@@ -29,7 +30,7 @@ export interface TimeData {
   canEstimate: boolean;
   today: string;
 }
-const dayText = (day: string) => new Date(`${day}T00:00:00Z`).toLocaleDateString("en-IN", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" });
+const dayText = (day: string) => formatDate(day);
 
 function Elapsed({ since }: { since: string }) {
   const [now, setNow] = useState(() => Date.now());

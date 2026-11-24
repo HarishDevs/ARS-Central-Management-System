@@ -1,3 +1,4 @@
+import { formatDate, formatMonth } from "@/lib/format/date";
 import { addDays } from "@/server/calendar/events";
 import { monthGrid, parseMonth, shiftMonth } from "@/server/approvals/calendar-rules";
 
@@ -62,10 +63,9 @@ export function viewHref(state: Pick<ViewState, "view" | "kinds" | "showAll">, c
 }
 
 export function periodTitle(state: Pick<ViewState, "view" | "anchor" | "from" | "to">): string {
-  const fmt = (date: string, options: Intl.DateTimeFormatOptions) => new Date(`${date}T00:00:00Z`).toLocaleDateString("en-IN", { ...options, timeZone: "UTC" });
-  if (state.view === "month") return fmt(state.anchor, { month: "long", year: "numeric" });
-  if (state.view === "day") return fmt(state.anchor, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-  return `${fmt(state.from, { day: "numeric", month: "short" })} – ${fmt(state.to, { day: "numeric", month: "short", year: "numeric" })}`;
+  if (state.view === "month") return formatMonth(state.anchor, { month: "long" });
+  if (state.view === "day") return formatDate(state.anchor, { weekday: "long", month: "long" });
+  return `${formatDate(state.from, { year: "never" })} – ${formatDate(state.to)}`;
 }
 
 // The days an entry covers inside the period (multi-day all-day entries).

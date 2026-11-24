@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/format/date";
 import { z } from "zod";
 
 // v1.62.0 (D-368, PM phase A part 2): pure rules for reactions, the task
@@ -162,7 +163,7 @@ export function purgeableTasks(candidates: readonly { id: number; parentId: numb
     .map((task) => task.id);
 }
 // What the Deleted lists say about an item: when it goes for good.
-const PURGE_DAY = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" });
+const PURGE_DAY = { format: (value: Date | string | number) => formatDate(value) };
 export function purgeText(deletedAt: Date, now: Date, active: boolean): string {
   if (!active) return "Kept until restored (automatic removal is off)";
   const days = daysUntilPurge(deletedAt, now);

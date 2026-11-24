@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/format/date";
 import "server-only";
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { getDbPool, type Queryable } from "@/lib/db/client";
@@ -42,7 +43,7 @@ export async function awayDays(personId: number, db: Queryable = getDbPool()): P
   );
   const days = new Map<string, string>();
   for (const row of rows) {
-    const label = `Out of office until ${new Date(`${row.ends}T00:00:00Z`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" })}`;
+    const label = `Out of office until ${formatDate(row.ends)}`;
     for (let day = String(row.starts), guard = 0; day <= String(row.ends) && guard < 400; guard += 1) {
       days.set(day, label);
       day = new Date(new Date(`${day}T00:00:00Z`).getTime() + 86_400_000).toISOString().slice(0, 10);

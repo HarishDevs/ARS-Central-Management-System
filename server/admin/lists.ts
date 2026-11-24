@@ -3,6 +3,7 @@
 // option for all the pages where table is available"): the Admin tables'
 // column keys, the ORDER BY whitelists of the server-paged ones, their Group
 // by choices and the group buckets. Pure (used by pages, repositories, tests).
+import { formatMonth } from "@/lib/format/date";
 import { sqlDir, type ColumnSort, type SortDir } from "@/server/lists/sorting";
 
 export type GroupChoice<K extends string = string> = { key: K; label: string };
@@ -82,12 +83,11 @@ export function keepListState(query: Record<string, unknown>): Record<string, st
 
 // ------------------------------------------------------------- group buckets
 // Each returns [label, order]: lower order first, ties by label (groupRows).
-const MONTH = new Intl.DateTimeFormat("en-IN", { month: "short", year: "numeric", timeZone: "Asia/Kolkata" });
 // A month, newest first ("No date" last).
 export function monthBucket(at: Date | null | undefined): [string, number] {
   if (!at) return ["No date", Number.MAX_SAFE_INTEGER];
   const india = new Date(new Date(at).getTime() + 330 * 60_000);
-  return [MONTH.format(new Date(at)), -(india.getUTCFullYear() * 12 + india.getUTCMonth())];
+  return [formatMonth(at), -(india.getUTCFullYear() * 12 + india.getUTCMonth())];
 }
 
 // How long something has waited, in days.

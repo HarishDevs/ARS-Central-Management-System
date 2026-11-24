@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/format/date";
 import type { Metadata } from "next";
 import { RecordNo } from "@/features/ui/RecordNo";
 import Link from "next/link";
@@ -58,8 +59,8 @@ const BOARD_COLUMN_LABEL: Record<BoardSortColumn, string> = {
 const BOARD_PATH = "/users/tickets/board";
 const VIEW_TARGET = "list_ticket_board";
 
-const dayText = (value: Date) => value.toLocaleDateString("en-IN", { day: "2-digit", month: "short", timeZone: "Asia/Kolkata" });
-const isoDayText = (value: string) => new Date(`${value}T00:00:00Z`).toLocaleDateString("en-IN", { day: "2-digit", month: "short", timeZone: "UTC" });
+const dayText = (value: Date) => formatDate(value, { year: "auto" });
+const isoDayText = (value: string) => formatDate(value, { year: "auto" });
 function ago(since: Date, now: Date): string {
   const minutes = Math.max(0, Math.round((now.getTime() - since.getTime()) / 60_000));
   if (minutes < 60) return `${minutes} min`;

@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/format/date";
 import Link from "next/link";
 import { RecordNo } from "@/features/ui/RecordNo";
 import { TicketWorkForm } from "@/features/tickets/TicketForms";
@@ -22,7 +23,7 @@ export function TicketPriorityBadge({ priority }: { priority: TicketPriority }) 
   return <Badge tone={PRIORITY_TONE[priority]}>{TICKET_PRIORITY_LABEL[priority]}</Badge>;
 }
 
-const day = (value: Date | null) => (value ? value.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", timeZone: "Asia/Kolkata" }) : "—");
+const day = (value: Date | null) => formatDate(value, { empty: "—" });
 
 // The ticket table (owner's columns): number, subject, requestor, department,
 // priority, assigned employee, created, target date, status.

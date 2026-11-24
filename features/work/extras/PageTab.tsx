@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDate, formatDateTime } from "@/lib/format/date";
 import { History, Link2, Pencil, RotateCcw } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -27,7 +28,7 @@ export interface PageData {
   linked: { id: number; taskNo: string; title: string; status: string; dueAt: string | null; assigneeName: string }[];
   hiddenLinks: number;
 }
-const when = (iso: string) => new Date(iso).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" });
+const when = (iso: string) => formatDateTime(iso);
 const STATUS: Record<string, string> = { OPEN: "Open", IN_PROGRESS: "In progress", BLOCKED: "Blocked", COMPLETED: "Done", CANCELLED: "Cancelled" };
 
 export function PageTab({ projectId, page, people, tasks, taskHref }: { projectId: number; page: PageData; people: MentionPerson[]; tasks: { id: number; taskNo: string; title: string }[]; taskHref: string }) {
@@ -149,7 +150,7 @@ export function PageTab({ projectId, page, people, tasks, taskHref }: { projectI
                 </Link>
                 <span className="block text-caption text-ink-muted">
                   {STATUS[task.status] ?? task.status} · {task.assigneeName}
-                  {task.dueAt ? ` · due ${new Date(task.dueAt).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short" })}` : ""}
+                  {task.dueAt ? ` · due ${formatDate(task.dueAt, { year: "auto" })}` : ""}
                 </span>
               </li>
             ))}

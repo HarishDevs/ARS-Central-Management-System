@@ -185,8 +185,8 @@ describe("the journey's request facts", () => {
   });
 
   it("dates read in India time, with the year on the card", () => {
-    expect(whenDate("2026-11-01T17:00:00.000Z")).toBe("01 Nov 2026");
-    expect(whenLong("2026-11-01T17:00:00.000Z")).toBe("01 Nov 2026, 10:30 pm");
+    expect(whenDate("2026-11-01T17:00:00.000Z")).toBe("1 Nov 2026");
+    expect(whenLong("2026-11-01T17:00:00.000Z")).toBe("1 Nov 2026, 10:30 pm");
     expect(whenDate(null)).toBeNull();
   });
 

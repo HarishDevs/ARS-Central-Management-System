@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/format/date";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { COMPACT_COOKIE } from "@/lib/ui/layout";
@@ -188,7 +189,6 @@ function groupTasks(items: WorkTaskItem[], group: Group, now: Date, today: strin
   return group === "due" ? sections.sort((a, b) => a.key.localeCompare(b.key)) : sections;
 }
 
-const DAY = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", timeZone: "Asia/Kolkata" });
 const CHIP: Record<string, string> = {
   danger: "bg-danger-50 text-danger-600",
   warning: "bg-warning-50 text-warning-600",
@@ -232,7 +232,7 @@ function TaskRow({ task, now, compact, showAssignee }: { task: WorkTaskItem; now
         </span>
         {task.dueAt && (
           <span className={`shrink-0 rounded-md px-2.5 py-1 text-[length:calc(13px*var(--text-scale,1))] font-medium ${CHIP[due?.tone ?? "neutral"] ?? CHIP.neutral}`} title={due?.text}>
-            {DAY.format(new Date(task.dueAt))}
+            {formatDate(task.dueAt, { year: "auto" })}
             {due && <span className="sr-only">, {due.text}</span>}
           </span>
         )}

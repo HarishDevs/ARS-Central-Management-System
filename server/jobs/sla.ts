@@ -1,3 +1,4 @@
+import { formatDateTime } from "@/lib/format/date";
 import "server-only";
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { getDbPool } from "@/lib/db/client";
@@ -68,7 +69,7 @@ export async function runDueSoon(): Promise<number> {
   for (const row of rows) {
     const link = requestLink(base, row.request_id);
     const ref = `${row.request_no} · ${row.title}`;
-    const due = new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(row.due_at);
+    const due = formatDateTime(row.due_at, { year: "auto" });
     try {
       const [delegates] = await getDbPool().query<(RowDataPacket & { delegate_id: number })[]>(
         `SELECT delegate_id FROM delegations WHERE user_id = ? AND ended_at IS NULL AND ${INDIA_TODAY_SQL} BETWEEN starts_on AND ends_on`,

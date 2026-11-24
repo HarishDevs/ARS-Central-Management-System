@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDate } from "@/lib/format/date";
 import { EmptyState } from "@/features/ui/Display";
 import { Download, ExternalLink, Eye, File as FileIcon, FileSpreadsheet, FileText, Image as ImageIcon, LayoutGrid, List as ListIcon, MessageSquare, Search } from "lucide-react";
 import Link from "next/link";
@@ -16,7 +17,7 @@ import { DateRangePicker } from "@/features/ui/DateRangePicker";
 // downloads; "Go to task" opens the task beside the view. The server sent
 // only files on tasks this person may see.
 const SORT_LABEL: Record<FileSort, string> = { newest: "Newest first", oldest: "Oldest first", name: "Name", size: "Largest first" };
-const when = (iso: string) => new Date(iso).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" });
+const when = (iso: string) => formatDate(iso);
 const KIND_ICON: Record<FileKind, typeof FileIcon> = { image: ImageIcon, pdf: FileText, document: FileText, sheet: FileSpreadsheet, other: FileIcon };
 
 // v1.78.0 (D-405): also a Task Summary tab (files on the person's tasks): its own caption and empty text.

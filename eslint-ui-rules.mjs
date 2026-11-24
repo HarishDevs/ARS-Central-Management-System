@@ -63,4 +63,35 @@ const typeScale = {
     }),
 };
 
-export const arsUi = { rules: { "control-size": controlSize, "spacing-scale": spacingScale, "type-scale": typeScale } };
+// v1.89.0 (D-425, UIQA-CON-08 / ERR-01): dates and times are written by lib/format/date.ts only.
+//   ars-ui/date-format   toLocaleDateString / toLocaleTimeString, Intl.DateTimeFormat /
+//                        RelativeTimeFormat, and toLocaleString on a Date (new Date(...)) or
+//                        with date options (day, month, hour, dateStyle, timeZone …). A plain
+//                        number's toLocaleString("en-IN") stays allowed (figures, not dates).
+const DATE_KEYS = new Set(["day", "month", "year", "weekday", "hour", "minute", "second", "dateStyle", "timeStyle", "timeZone", "hour12", "hourCycle", "era", "timeZoneName"]);
+const dateFormat = {
+  meta: { type: "problem", messages: { local: "Write dates with lib/format/date.ts (formatDate, formatDateTime, formatTime, formatRelative, <RelativeTime> …), not {{what}}: one India-time format everywhere and no server / browser difference (D-425)." }, schema: [] },
+  create: (context) => {
+    const report = (node, what) => context.report({ node, messageId: "local", data: { what } });
+    const isIntl = (node, name) => node?.type === "MemberExpression" && node.object?.type === "Identifier" && node.object.name === "Intl" && node.property?.name === name;
+    return {
+      NewExpression(node) {
+        if (isIntl(node.callee, "DateTimeFormat") || isIntl(node.callee, "RelativeTimeFormat")) report(node, `Intl.${node.callee.property.name}`);
+      },
+      CallExpression(node) {
+        if (isIntl(node.callee, "DateTimeFormat")) return report(node, "Intl.DateTimeFormat");
+        if (node.callee.type !== "MemberExpression" || node.callee.property?.type !== "Identifier") return;
+        const name = node.callee.property.name;
+        if (name === "toLocaleDateString" || name === "toLocaleTimeString") return report(node, name);
+        if (name !== "toLocaleString") return;
+        const target = node.callee.object;
+        const onDate = target?.type === "NewExpression" && target.callee?.type === "Identifier" && target.callee.name === "Date";
+        const options = node.arguments[1];
+        const dateOptions = options?.type === "ObjectExpression" && options.properties.some((p) => p.type === "Property" && DATE_KEYS.has(p.key?.name ?? p.key?.value));
+        if (onDate || dateOptions) report(node, "toLocaleString on a date");
+      },
+    };
+  },
+};
+
+export const arsUi = { rules: { "control-size": controlSize, "spacing-scale": spacingScale, "type-scale": typeScale, "date-format": dateFormat } };

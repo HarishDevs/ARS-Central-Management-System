@@ -1,3 +1,4 @@
+import { formatDate } from "@/lib/format/date";
 import { ClientSortTable } from "@/features/ui/ClientSortTable";
 import { TicketBoard } from "@/features/analytics/TicketBoard";
 import { ComingSoonCard } from "@/features/ui/ComingSoon";
@@ -86,7 +87,7 @@ function Ratio({ value, of, text }: { value: number; of: number; text?: string }
 function Rate({ value }: { value: number | null }) {
   return value === null ? <span>—</span> : <Ratio value={value} of={100} text={`${value}%`} />;
 }
-const day = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+const day = (iso: string) => formatDate(iso);
 
 function Section({ title, children, note }: { title: string; children: React.ReactNode; note?: string }) {
   return (
@@ -400,7 +401,7 @@ async function Tasks({ scope, viewer, period, previous, compareLabel, buckets }:
       <Section title="Created and completed">
         <LineChart
           title="Tasks created and completed"
-          labels={trend.labels.map((label) => (label.length === 7 ? monthLabel(label) : new Date(`${label}T00:00:00Z`).toLocaleDateString("en-IN", { day: "2-digit", month: "short", timeZone: "UTC" })))}
+          labels={trend.labels.map((label) => (label.length === 7 ? monthLabel(label) : formatDate(label, { year: "never" })))}
           series={[
             { key: "created", label: "Created", colorVar: "--color-primary-600", marker: "circle" },
             { key: "completed", label: "Completed", colorVar: "--color-success-600", marker: "square", dash: "6 3" },

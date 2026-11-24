@@ -1,3 +1,4 @@
+import { formatTimeRange } from "@/lib/format/date";
 import Link from "next/link";
 import { Badge, type Tone } from "@/features/ui/Display";
 import { FOLLOW_UP_LABEL, POINTS_LABEL, STATUS_LABEL, type FollowUpState, type MeetingStatus, type PointsStatus } from "@/server/meetings/rules";
@@ -49,7 +50,6 @@ export const indiaInput = (date: Date | null) => (date ? new Date(date.getTime()
 export const indiaDay = (date: Date | null) => (date ? new Date(date.getTime() + IST).toISOString().slice(0, 10) : "");
 export const indiaTime = (date: Date | null) => (date ? new Date(date.getTime() + IST).toISOString().slice(11, 16) : "");
 export function whenText(start: Date, end: Date) {
-  const day = start.toLocaleDateString("en-IN", { weekday: "short", day: "2-digit", month: "short", year: "numeric", timeZone: "Asia/Kolkata" });
-  const time = (date: Date) => date.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata" });
-  return `${day}, ${time(start)} to ${time(end)}`;
+  // v1.89.0 (D-425, UIQA-CON-08): "Tue, 24 Nov 2026, 11:00 am to 12:30 pm" (the one formatter).
+  return formatTimeRange(start, end, { weekday: "short" });
 }

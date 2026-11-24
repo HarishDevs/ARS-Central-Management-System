@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { formatClock, formatDate } from "@/lib/format/date";
 import { compareValues } from "@/server/lists/sorting";
 import { analyseFormula, dayNumber, dayOf, evaluateFormula, FORMULA_ERROR_TEXT, formulaFields, parseFormula, type Builtin, type FormulaAnalysis, type FormulaResult, type FxField } from "@/server/work/formula";
 import type { WorkCalendar } from "@/server/work/schedule";
@@ -109,11 +110,11 @@ export function cleanIdPrefix(raw: unknown): string | null {
   const value = typeof raw === "string" ? raw.trim().toUpperCase() : "";
   return ID_PREFIX.test(value) ? value : null;
 }
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+// "24 Nov 2026" or "24 Nov 2026, 3:05 pm" (v1.89.0 D-425: the one formatter; the time is India "HH:MM").
 export function dateText(day: string, time: string | null): string {
-  const [y, m, d] = day.split("-").map(Number);
-  const text = `${d} ${MONTHS[(m ?? 1) - 1]} ${y}`;
-  return time ? `${text}, ${time.slice(0, 5)}` : text;
+  const text = formatDate(day) || day;
+  const clock = formatClock(time);
+  return clock ? `${text}, ${clock}` : text;
 }
 // Days since 1 Jan 1970 (dates in formulas).
 export { dayNumber };

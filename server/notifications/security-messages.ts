@@ -1,3 +1,5 @@
+import { formatDateTime } from "@/lib/format/date";
+
 // Wording for the security notifications (N-02 to N-04). Email text is
 // ready now; WhatsApp uses the owner's templates once supplied and approved
 // (Q-013), filled from the variable keys below.
@@ -8,16 +10,9 @@ export interface SignInDetails {
   ipAddress: string | null;
 }
 
-export function formatIndiaTime(date: Date): string {
-  return new Intl.DateTimeFormat("en-IN", {
-    timeZone: "Asia/Kolkata",
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  }).format(date);
+// v1.89.0 (D-425): the app's one date formatter ("24 Nov 2026, 3:05 pm", India time).
+export function formatIndiaTime(date: Date | string | number): string {
+  return formatDateTime(date);
 }
 
 // A short, readable device description from the user-agent string.

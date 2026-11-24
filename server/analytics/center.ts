@@ -1,3 +1,4 @@
+import { formatMonth } from "@/lib/format/date";
 // v1.12.0 (D-156): the Analytics Center. One Analytics page with dashboard
 // views (tabs), not separate navigation items. Pure rules: the boards, the
 // configurable age buckets, safe rates, and the explainable alert rules.
@@ -182,7 +183,8 @@ export function lastMonths(today: string, count: number): string[] {
   return out;
 }
 
-export const monthLabel = (key: string) => new Date(`${key}-01T00:00:00Z`).toLocaleDateString("en-IN", { month: "short", year: "2-digit", timeZone: "UTC" });
+// Chart axes keep the two-digit year ("Nov 26"): the one compact form (D-425).
+export const monthLabel = (key: string) => formatMonth(key, { year: "2-digit", empty: key });
 
 // Forecasts only with enough history (brief §9). Twelve months of data are
 // needed; until then the page says so instead of guessing.

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { formatDateTime } from "@/lib/format/date";
 import { checkFormDefinition, type FormField } from "@/server/forms/fields";
 
 // v1.9.0 (owner, D-144): Task types and Information types are kept by IT in
@@ -224,5 +225,5 @@ export function utcToIndiaLocal(date: Date | null): string {
 
 export function indiaDateTimeText(date: Date | null): string {
   if (!date) return "—";
-  return date.toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata" });
+  return formatDateTime(date, { empty: "—" });
 }

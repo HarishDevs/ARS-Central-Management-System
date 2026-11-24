@@ -1,3 +1,4 @@
+import { formatDate, formatMonth } from "@/lib/format/date";
 import { Avatar } from "@/features/ui/Avatar";
 import { RecordNo } from "@/features/ui/RecordNo";
 import { groupOrder, NO_VALUE, type ListGroupData } from "@/server/requests/list-groups";
@@ -49,8 +50,8 @@ import {
 // also My approved requests and Approved by me. Plain GET forms (every
 // filter is in the address, so it can be bookmarked, saved as a view, and
 // Back keeps it). Each list shows only the filters that apply to it.
-const month = (value: Date) => new Date(value).toLocaleDateString("en-IN", { month: "long", year: "numeric", timeZone: "Asia/Kolkata" });
-const day = (value: Date) => new Date(value).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", timeZone: "Asia/Kolkata" });
+const month = (value: Date) => formatMonth(value, { month: "long" });
+const day = (value: Date) => formatDate(value);
 
 export const VIEW_TARGET: Record<ListBase, string> = { MINE: "my_requests", COLLAB: "collaborating", APPROVED_MINE: "my_approved", APPROVED_BY_ME: "approved_by_me" };
 

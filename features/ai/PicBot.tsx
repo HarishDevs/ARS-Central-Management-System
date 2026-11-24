@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDateTime } from "@/lib/format/date";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Copy, History, Minus, Plus, RotateCcw, Square, Trash2, X } from "lucide-react";
@@ -44,7 +45,7 @@ async function api<T>(path: string, init?: RequestInit): Promise<{ ok: boolean; 
 // D-178: the technical detail of an answer, for its hover hint.
 function aboutAnswer(message: Message): string {
   const sources = [...new Set(message.evidence.map((item) => item.source))];
-  const read = message.evidence[0] ? new Date(message.evidence[0].asOf).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : null;
+  const read = message.evidence[0] ? formatDateTime(message.evidence[0].asOf) : null;
   const parts = [sources.length ? `From ${sources.join(" and ")}${read ? `, read ${read}` : ""}.` : "Answered without company data."];
   if (message.unverified.length) parts.push(`Calculated by Pico Bot, not read directly: ${message.unverified.join(", ")}.`);
   parts.push("Pico Bot can't approve, send or change anything.");
@@ -296,7 +297,7 @@ export function PicBot({ initialModes }: { initialModes: ModeOption[] }) {
                       <button type="button" onClick={() => void openConversation(conversation.id)} className="min-w-0 flex-1 text-left">
                         <span className="block truncate text-label font-medium">{conversation.title}</span>
                         <span className="block text-caption text-ink-muted">
-                          {modeLabel(conversation.mode)} · {new Date(conversation.updatedAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}
+                          {modeLabel(conversation.mode)} · {formatDateTime(conversation.updatedAt)}
                         </span>
                       </button>
                       <button type="button" onClick={() => setConfirmDelete(conversation.id)} aria-label={`Delete chat: ${conversation.title}`} className="rounded-md p-1.5 text-ink-muted hover:bg-surface-muted hover:text-danger-600">

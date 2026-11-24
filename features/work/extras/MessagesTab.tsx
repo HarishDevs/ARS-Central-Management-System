@@ -1,5 +1,6 @@
 "use client";
 
+import { formatDateTime } from "@/lib/format/date";
 import { ChevronDown, ChevronRight, Download, MessageSquarePlus, Paperclip } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useToast } from "@/features/ui/Toast";
@@ -36,7 +37,7 @@ export interface MessageItem {
   files: { id: number; name: string; contentType: string; size: number }[];
   canChange: boolean;
 }
-const when = (iso: string) => new Date(iso).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+const when = (iso: string) => formatDateTime(iso, { year: "auto" });
 
 export function MessagesTab({ projectId, projectName, threads, replies, canWrite, people, openThread }: { projectId: number; projectName: string; threads: MessageItem[]; replies: MessageItem[]; canWrite: boolean; people: MentionPerson[]; openThread: number | null }) {
   const [composing, setComposing] = useState(false);
