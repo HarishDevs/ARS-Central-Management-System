@@ -1,7 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { isUnknownUsersPath, UNKNOWN_PAGE_REWRITE } from "@/lib/routing/unknown-users-path";
+import { isOpenAddress, pageForPath } from "@/server/authorization/pages";
+import { isUnknownAdminPath, isUnknownUsersPath, UNKNOWN_AREA_ADDRESS, UNKNOWN_PAGE_REWRITE, unknownAreaRewrite } from "@/lib/routing/unknown-users-path";
 
 // v1.89.0 stage 3c (D-423, UI unification batch 3: the module pages). Static
 // guarantees; the behaviour is in tests/e2e/v1890-ui-modules.spec.ts.
@@ -87,19 +88,40 @@ describe("consistency items", () => {
 });
 
 describe("unknown addresses inside the area's shell (UIQA-LAY-03)", () => {
-  it("each area has a guarded [...unknown] page that answers notFound(), with no title of its own", () => {
+  it("each area has a guarded [...rest] page that answers notFound(), with no title of its own", () => {
     for (const area of ["users", "admin", "superadmin"]) {
-      const text = read(`app/${area}/[...unknown]/page.tsx`);
+      const text = read(`app/${area}/[...rest]/page.tsx`);
       expect(text).toMatch(new RegExp(`requireArea\\("${area}"\\)`));
       expect(text).toMatch(/notFound\(\)/);
       expect(text).not.toMatch(/export (const metadata|(async )?function generateMetadata)/);
     }
   });
 
-  it("the middleware sends an unknown /users address to that page (the @pane slot can't take it)", () => {
-    expect(UNKNOWN_PAGE_REWRITE).toBe("/users/__unknown-address");
+  it("the users catch-all has the same slug name as the @pane slot's (Next refuses two names for one dynamic path)", () => {
+    const top = (dir: string) => fs.readdirSync(path.join(root, dir), { withFileTypes: true }).filter((entry) => entry.isDirectory() && /^\[\.\.\./.test(entry.name)).map((entry) => entry.name);
+    expect(top("app/users")).toEqual(top("app/users/@pane"));
+  });
+
+  it("the middleware sends a page view of an unknown /users or /admin address to the area's not-found address; anything else as before", () => {
+    expect(unknownAreaRewrite("/users/not-a-page", true)).toBe(UNKNOWN_AREA_ADDRESS.users);
+    expect(unknownAreaRewrite("/admin/not-a-page", true)).toBe(UNKNOWN_AREA_ADDRESS.admin);
+    expect(unknownAreaRewrite("/users/not-a-page", false)).toBe(UNKNOWN_PAGE_REWRITE); // a POST / Server Action: the root 404, as in D-413
+    expect(unknownAreaRewrite("/admin/not-a-page", false)).toBeNull(); // unchanged for Admin
+    for (const known of ["/users/tasks", "/users/tasks/42", "/admin", "/admin/users", "/admin/users/7", "/admin/setup/task-types/3", "/admin/records/requests"]) expect(unknownAreaRewrite(known, true), known).toBeNull();
     expect(isUnknownUsersPath("/users/not-a-page")).toBe(true);
-    expect(isUnknownUsersPath("/users/tasks")).toBe(false);
-    expect(read("middleware.ts")).toMatch(/isUnknownUsersPath\(pathname\)\s*\?\s*NextResponse\.rewrite\(new URL\(UNKNOWN_PAGE_REWRITE/);
+    expect(isUnknownAdminPath("/admin/setup/not-a-page")).toBe(true);
+    expect(unknownAreaRewrite("/superadmin/not-a-page", true)).toBeNull(); // Super Admin: its [...rest] page alone
+    const mw = read("middleware.ts");
+    expect(mw).toMatch(/const pageView = \(request\.method === "GET" \|\| request\.method === "HEAD"\) && !request\.headers\.has\("next-action"\)/);
+    expect(mw).toMatch(/signPath\(pagePath,/);
+  });
+
+  it("the not-found addresses are open (no page rule) and are no configured page; real pages keep their rules", () => {
+    for (const address of Object.values(UNKNOWN_AREA_ADDRESS)) {
+      expect(isOpenAddress(address), address).toBe(true);
+      expect(pageForPath(address), address).toBeNull();
+    }
+    expect(isOpenAddress("/users/not-a-page")).toBe(false);
+    expect(isOpenAddress("/admin/not-a-page")).toBe(false);
   });
 });

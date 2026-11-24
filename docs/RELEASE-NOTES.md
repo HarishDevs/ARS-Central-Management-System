@@ -43,6 +43,17 @@ One release in stages (owner): navigation fixes, then the motion and transition 
 - **Forms** for a new task, notice, meeting and ticket keep a comfortable width (960 pixels) on wide screens.
 - **Owner steps:** none.
 
+**Stage 3c: the module pages** (D-423, `docs/qa/UI_UX_DEFECT_REPORT.md` batch 3; record in `docs/qa/UI_REFACTORING_LOG.md` and `BUG_FIX_LOG.md`):
+- **Every list has the same toolbar:** Portfolios, the coordinator board and every Admin → Records tab now use it. In Records the filter chips and **Add filter** sit on the toolbar's line with **Sort** and **Group** (Tickets and Meetings gained **Sort**); on the board the status chips lead the line and **Category** and **Only overdue** are under **Filter**. The audit log's download dates are one **From – To** date picker.
+- **More lists are cards on a phone:** the Insights dashboards, reports, workload and metrics, the Admin set-up lists (budgets, task / information / ticket forms), the coordinator board, a portfolio's list and the Super Admin data pages (jobs, retention, backup, page access, Google, WhatsApp templates, AI data sources). Nothing is left as a squeezed table.
+- **"New …" everywhere:** each list's main button says **New ticket**, **New meeting**, **New project**, **New portfolio**, **New user**, **New task** or **New information**, with a **+** icon.
+- **A record's page reads the same in every module:** its status and priority badges sit beside the title, **← Back to …** (when there is one) at the right end of the breadcrumb line, and record numbers look the same in every list.
+- **Windows** for a holiday date, deleting a task from its side panel, saving a project as a template, sharing a project or task and the keyboard shortcuts now open and close like every other window (same title, close button, buttons on the right).
+- **A mistyped address** inside the app shows **This page isn't available** inside the app, with the sidebar and your area's way home; someone who may not open an area still sees the plain page, as before.
+- **Fixed:** in Admin → Records → Tickets and Meetings a click on a row did not open the record beside the table.
+- **Admin settings that are one form** (meeting settings, ticket categories, approver groups, AI rules, a reminder rule) keep a readable width on wide screens.
+- **Owner steps:** none.
+
 ## v1.88.0 (23 Nov 2026): simple formulas
 No migration (D-418, owner: "use all these as simple formulas in my app"):
 - **Formula fields take functions** (names in any case): ADD, SUBTRACT, MULTIPLY, DIVIDE, DATEADD, DATESUBTRACT and ROLLUP (as in Asana), plus DAYS, WORKDAYS (on the Working calendar), IF with > < >= <= = <>, ROUND, MIN, MAX, ABS and COALESCE. Open **Functions** in the formula editor for a help card with an example; **Insert** puts the function in.

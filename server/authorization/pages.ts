@@ -134,6 +134,11 @@ export const OPEN_PATHS: readonly RegExp[] = [
   exact("/users/no-access"), // v1.50.3: the "you don't have access" screen itself
   exact("/users/switched-off"), // v1.72.1 (D-395): the "switched off" screen itself
   exact("/admin/no-access"),
+  // v1.89.0 (D-423, UIQA-LAY-03): the areas' "This page isn't available" address. The middleware
+  // sends a page view of an address no page has here (lib/routing/unknown-users-path.ts); it
+  // renders nothing but the not-found page (app/<area>/[...rest]). Not a page, so no page rule.
+  exact("/users/__unknown-address"),
+  exact("/admin/__unknown-address"),
   // v1.66.0 (D-374): a project form's link: who may submit is the form's own setting (checked on the server).
   under("/users/forms"),
 ];

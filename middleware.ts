@@ -7,7 +7,7 @@ import { pickRequestId, REQUEST_ID_HEADER } from "@/lib/logging/request-id";
 import { PATH_HEADER, PATH_SIGNATURE_HEADER, signPath, WRITE_HEADER, NEXT_HEADER } from "@/lib/security/path-signature";
 import { sessionCookieLooksValid } from "@/lib/security/session-cookie-edge";
 import { panelRedirectUrl } from "@/lib/routing/panel-redirects";
-import { isUnknownUsersPath, UNKNOWN_PAGE_REWRITE } from "@/lib/routing/unknown-users-path";
+import { UNKNOWN_PAGE_REWRITE, unknownAreaRewrite } from "@/lib/routing/unknown-users-path";
 import { returnAddress } from "@/lib/http/safe-next";
 
 // Layer 1 of 3 (P1-30a): only checks that a session cookie is present.
@@ -155,9 +155,15 @@ export async function middleware(request: NextRequest) {
   // caller sent is replaced.
   requestHeaders.delete(PATH_HEADER);
   requestHeaders.delete(PATH_SIGNATURE_HEADER);
-  const signature = await signPath(pathname, process.env.SESSION_SECRET);
+  // v1.85.1 (D-413) / v1.89.0 (D-423, UIQA-LAY-03): an address under /users or /admin
+  // that no page has. A page view goes to the area's own not-found address (404 inside
+  // the shell; that address is the page signed below); anything else to the root 404.
+  const pageView = (request.method === "GET" || request.method === "HEAD") && !request.headers.has("next-action");
+  const unknownTarget = unknownAreaRewrite(pathname, pageView);
+  const pagePath = unknownTarget && unknownTarget !== UNKNOWN_PAGE_REWRITE ? unknownTarget : pathname;
+  const signature = await signPath(pagePath, process.env.SESSION_SECRET);
   if (signature) {
-    requestHeaders.set(PATH_HEADER, pathname);
+    requestHeaders.set(PATH_HEADER, pagePath);
     requestHeaders.set(PATH_SIGNATURE_HEADER, signature);
   }
   // D-185: marks a request that may change something (see WRITE_HEADER).
@@ -169,13 +175,10 @@ export async function middleware(request: NextRequest) {
   requestHeaders.set("x-nonce", nonce);
   requestHeaders.set("Content-Security-Policy", csp);
   requestHeaders.set(REQUEST_ID_HEADER, requestId);
-  // v1.85.1 (D-413): an address under /users that no page has gets the real
-  // 404. v1.89.0 (D-423, UIQA-LAY-03): it is sent to app/users/[...unknown]
-  // (named, so the @pane catch-all slot of D-410 can't take it), which answers
-  // 404 with the users area's not-found page inside the shell, after the
-  // layout's usual checks (the same as app/admin and app/superadmin).
-  const response = isUnknownUsersPath(pathname)
-    ? NextResponse.rewrite(new URL(UNKNOWN_PAGE_REWRITE, request.url), { request: { headers: requestHeaders } })
+  // v1.85.1 (D-413): the @pane catch-all slot (D-410) would otherwise make an unknown
+  // /users address a route of the users layout. v1.89.0 (D-423): see unknownTarget above.
+  const response = unknownTarget
+    ? NextResponse.rewrite(new URL(unknownTarget, request.url), { request: { headers: requestHeaders } })
     : NextResponse.next({ request: { headers: requestHeaders } });
   if (!FILE_ROUTE.test(pathname)) response.headers.set("Content-Security-Policy", csp);
   response.headers.set(REQUEST_ID_HEADER, requestId);
