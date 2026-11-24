@@ -32,6 +32,10 @@ async function as(context: BrowserContext, loginId: string, theme?: "dark" | "li
 }
 async function settle(page: Page) {
   await page.waitForLoadState("networkidle", { timeout: 8000 }).catch(() => undefined);
+  // The shell has hydrated (its listeners are on): data-session-watch and data-place-memory.
+  await page
+    .waitForFunction(() => !document.querySelector("a.skip-link") || (document.documentElement.hasAttribute("data-session-watch") && document.documentElement.hasAttribute("data-place-memory")), undefined, { timeout: 20_000 })
+    .catch(() => undefined);
   await motionSettled(page);
 }
 async function axe(page: Page, include?: string, rules?: string[]) {
@@ -47,9 +51,10 @@ const focusedName = (page: Page) =>
     const el = document.activeElement as HTMLElement | null;
     return el ? (el.getAttribute("aria-label") ?? el.textContent ?? "").trim().replace(/\s+/g, " ") : "";
   });
-// Safari moves Tab between form controls only; Option+Tab includes links (its "press Tab to
-// highlight each item" setting is off by default). The walk uses the key a Safari user would.
-const TAB = process.env.E2E_BROWSER === "webkit" ? "Alt+Tab" : "Tab";
+// Safari's Tab moves between form controls and buttons only (links need Option+Tab, which
+// Playwright's WebKit on Windows does not send), so the walks Tab to buttons and fields.
+const WEBKIT = process.env.E2E_BROWSER === "webkit";
+const TAB = "Tab";
 // Tab until the focused element matches (a real keyboard walk), at most `max` presses.
 async function tabTo(page: Page, match: RegExp, max = 80, back = false) {
   for (let i = 0; i < max; i += 1) {
@@ -74,8 +79,13 @@ test("keyboard only: + Create → Task; an empty Create says what is missing (FO
   await page.goto("/users/work/my-tasks");
   await settle(page);
   // The first stop is the skip link; it moves focus to the main region.
-  await page.keyboard.press(TAB);
-  expect(await focusedName(page)).toBe("Skip to content");
+  if (WEBKIT) {
+    // The skip link is still the first focusable element and targets the main region.
+    expect(await page.evaluate(() => document.querySelector<HTMLElement>("a[href], button, input, select, textarea, [tabindex]:not([tabindex='-1'])")?.textContent?.trim())).toBe("Skip to content");
+  } else {
+    await page.keyboard.press(TAB);
+    expect(await focusedName(page)).toBe("Skip to content");
+  }
   await tabTo(page, /^\+?\s*Create$/);
   await page.keyboard.press("Enter");
   await page.keyboard.press("ArrowDown");

@@ -24,9 +24,9 @@ async function settle(page: Page) {
   await page.waitForLoadState("networkidle", { timeout: 6000 }).catch(() => undefined);
   await page.waitForFunction(() => !document.documentElement.hasAttribute("data-nav-pending"), undefined, { timeout: 5000 }).catch(() => undefined);
   // v1.89.0 (D-424, NAV-03 WebKit flake): inside the app, act only once the page has hydrated
-  // (the shell's data-session-watch); WebKit on Windows runs its JavaScript seconds after load.
+  // (the shell's data-session-watch and data-place-memory); WebKit on Windows runs its JavaScript seconds after load.
   await page
-    .waitForFunction(() => !document.querySelector("a.skip-link") || document.documentElement.hasAttribute("data-session-watch"), undefined, { timeout: 20_000 })
+    .waitForFunction(() => !document.querySelector("a.skip-link") || (document.documentElement.hasAttribute("data-session-watch") && document.documentElement.hasAttribute("data-place-memory")), undefined, { timeout: 20_000 })
     .catch(() => undefined);
 }
 const here = (page: Page) => page.evaluate(() => location.pathname + location.search);

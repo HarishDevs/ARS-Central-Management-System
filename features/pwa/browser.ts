@@ -185,7 +185,11 @@ export async function disablePushHere(): Promise<void> {
 
 // This browser's endpoint (to mark "This device" in the list).
 export async function currentEndpoint(): Promise<string | null> {
-  if (pushSupport() !== "supported") return null;
+  // v1.89.0 (D-424): a push subscription exists only once notifications are allowed, so
+  // without "granted" there is nothing to look up. Asking anyway hung the whole page in
+  // Playwright's WebKit on Windows (PushManager.getSubscription() never returns once the
+  // service worker controls the page): the Profile → App & devices "hang" of stage 3b.
+  if (pushSupport() !== "supported" || Notification.permission !== "granted") return null;
   const registration = await navigator.serviceWorker.getRegistration();
   return (await registration?.pushManager.getSubscription())?.endpoint ?? null;
 }

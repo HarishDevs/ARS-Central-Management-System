@@ -173,7 +173,7 @@ export async function settle(page: Page) {
   // hydrated (data-session-watch); Playwright's WebKit on Windows runs its JavaScript seconds
   // after load, so an Escape pressed earlier reached no listener.
   await page
-    .waitForFunction(() => !document.querySelector("a.skip-link") || document.documentElement.hasAttribute("data-session-watch"), undefined, { timeout: 20_000 })
+    .waitForFunction(() => !document.querySelector("a.skip-link") || (document.documentElement.hasAttribute("data-session-watch") && document.documentElement.hasAttribute("data-place-memory")), undefined, { timeout: 20_000 })
     .catch(() => undefined);
   await page.waitForTimeout(250);
 }

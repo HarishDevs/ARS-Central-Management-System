@@ -82,7 +82,12 @@ export function PlaceMemory() {
     document.addEventListener("click", onClick, true);
     window.addEventListener("popstate", markPop, true);
     window.addEventListener("popstate", onPop);
+    // v1.89.0 (D-424): says the place / origin memory is listening. It sits in its own Suspense
+    // boundary, which can hydrate seconds after the rest of the shell (Playwright's WebKit on
+    // Windows); tests wait for it before leaving a list (e2e NAV-03).
+    document.documentElement.setAttribute("data-place-memory", "");
     return () => {
+      document.documentElement.removeAttribute("data-place-memory");
       window.clearTimeout(timer);
       document.removeEventListener("click", onClick, true);
       window.removeEventListener("popstate", markPop, true);
