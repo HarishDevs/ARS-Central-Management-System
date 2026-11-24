@@ -24,7 +24,7 @@ export const SETTING_DEFINITIONS: readonly SettingDefinition[] = [
   // FN2: an open request with no activity for this many days is listed as possibly stuck.
   // D-233 (UI states: maintenance): a notice for everyone, e.g. planned
   // downtime. Shown at the top of every page while it is filled in.
-  { key: "general.maintenance_notice", group: "GENERAL", label: "Maintenance notice shown to everyone (leave empty for none), e.g. \"ARS will be unavailable on Sunday 10:00–12:00 for an upgrade.\"", valueType: "STRING", encrypted: false, schema: z.string().trim().max(300) },
+  { key: "general.maintenance_notice", group: "GENERAL", label: "Maintenance notice shown to everyone (leave empty for none), e.g. \"ARS will be unavailable on Sunday 10:00 am – 12:00 pm for an upgrade.\"", valueType: "STRING", encrypted: false, schema: z.string().trim().max(300) },
   // D-246 (audit OPS-08): the off-site copy of each daily backup (S3-compatible storage; encrypted backups only).
   { key: "backup.offsite_enabled", group: "BACKUP", label: "Copy each daily backup off-site (needs BACKUP_ENCRYPTION_KEY on the server)", valueType: "STRING", encrypted: false, schema: z.enum(["ON", "OFF"]), defaultValue: "OFF" },
   { key: "backup.s3_endpoint", group: "BACKUP", label: "Storage endpoint (https://…, e.g. https://<account>.r2.cloudflarestorage.com or https://s3.ap-south-1.amazonaws.com)", valueType: "STRING", encrypted: false, schema: z.string().trim().url().startsWith("https://").max(300) },

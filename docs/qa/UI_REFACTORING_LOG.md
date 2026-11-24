@@ -274,3 +274,28 @@ The Chromium light sweep ran on the build before the PERF-02 fix (the fix touche
 - Full Chromium suite in suite order (112 files, 10 chunks, one database): 482 passed, 4 skipped, 5 failed, 15 not run behind them. The 5: **v1120-analytics, v160-zanalytics** (the period picker's first name "Custom period" also matched `getByLabel("Period")`: renamed "Custom dates" in the app; then pass); **v1510-meetings** (the test clicked "New meeting" anywhere; the sidebar now says New meeting too: scoped to the page; then passes with its serial tests); **v1870-navigation-continuity** (test 1 timed out once; on re-run its "My Tasks" test matched the new comment twice, in Comments and in the hidden All activity tab, the same on the stage 3d build: scoped to Comments; 9/9 on a fresh database); **v162-pm-part2** "Mark complete … reactions" (flaky on the stage 3d build too: 2 of 3 runs failed there, 1 of 4 passed here; a refresh after an action can land after the next click; stage 4).
 - Firefox, v1890-* (accessibility, content, motion, navigation, ui-components, ui-modules, ui-shell): 58/58. WebKit, the same: 57/58 on the first run (a request submit hung 5 min in Playwright's WebKit inside `raisePurchase`), `v1890-ui-shell` re-run 7/7.
 - Typecheck, `npm run lint`, `npm run build`: clean.
+
+### Measured (UIQA sweep on the stage 3e build; before = the stage 3d sweep)
+
+| Measure | Before (3d) | After (3e) |
+|---|---|---|
+| Chromium visits (9 viewports + rail sample) / measured | 1,783 / 1,783 | 1,783 / 1,783 |
+| Shell token mismatches / page overflow / outside | 0 / 0 / 0 | **0 / 0 / 0** |
+| axe (wcag2a / aa / 21aa / 22aa) Chromium 1440 + 390 | 0 | **0** |
+| Console errors incl. #418 / failed requests / status ≥ 400 (Chromium) | 0 / 0 / 0 | **0 / 0 / 0** |
+| Visits with CLS > 0.05 (Chromium) | 0 | **0** (largest 0.021) |
+| Firefox 1440 / 768 / 390 (531 visits): axe / console / failed / status / CLS / overflow | 0 / 0 / 0 / 0 / 0 / 0 | **0 / 0 / 0 / 0 / 0 / 0** |
+| WebKit 1440 / 768 / 390 (531 visits): measured / axe / console / CLS | 531 / 0 / 0 / 0 | **531 / 0 / 0 / 0** |
+| Phone pages with a squeezed table | 0 | **0** |
+| Text formats seen by the probe (Chromium visits with): 24 h clock / yyyy-mm-dd | not separated in 3d | 127 / 18 on the sweep build; **after part 8** (calendar entries, the pane's due time, report schedule hours, Pause until 9:00 am, custom period labels, Analytics list and AI usage metas), re-measured at 1440 for user / admin / super: yyyy-mm-dd **0**; the 24 h matches left are not clocks (durations "1:30" in Help and the time field hint, "UTC+5:30"), plus the task-settings hours list, two job descriptions and the maintenance-notice example, changed to 12 h in part 9 after that re-measure |
+
+Harness notes: the UI QA config's default output folder is `test-results/`, which Playwright empties at the start of a run; keep run scripts and logs elsewhere (this stage: `audit/ui-qa/r189-run/`, git-ignored) and pass `--output` to a temporary folder. `ids.json` must be removed when the database is recreated (the set-up test skips while it exists).
+
+### For stage 4 (visual baselines and final QA sign-off)
+
+1. **Visual baselines:** take them on this build (dates now read "24 Nov 2026, 3:05 pm"; relative times appear after mount, so baseline screenshots must wait for `time[data-relative="ready"]` or mask `time[data-relative]`; the date pickers' buttons replaced native inputs on the filter, period, calendar entry and Out of office forms). Light and dark, Chromium at 1440 / 390 at least, Firefox and WebKit at 1440.
+2. **Final sign-off sweep:** Chromium 9 viewports + rail, Firefox / WebKit 1440 / 768 / 390, dark 1440 / 390; all counters must stay 0; also count the probe's "24 h time" and "yyyy-mm-dd" per route (expect only durations and UTC+5:30).
+3. **Not done in batch 5 (left on purpose, list them in sign-off):** 26 native date inputs inside record forms (meeting form 7, task forms 3, information forms 3, dynamic form fields 2, tickets 2, the palette's search filters 4, admin calendar / holiday / workflow / rule editors 4, request task 1); report-file date cells (`server/reports/export.ts`) and the export headers' "from to" periods stay in their machine form for whoever reads the files.
+4. **Known flaky / pre-existing (reproduced on the stage 3d build):** e2e `v162-pm-part2` "Mark complete … reactions" (an action's refresh can land after the next click); integration `v1100` G-3 (page-rule cache). Decide fix or quarantine in stage 4.
+5. Carry-overs from stage 3d: real Safari (macOS / iOS) for view transitions, the devices page and the service worker; NVDA + Firefox and VoiceOver + Safari on the 6 representative pages in both themes.
+6. Then: version bump to 1.89.0, release-notes heading with the date, merge to main and tag (owner's one release).

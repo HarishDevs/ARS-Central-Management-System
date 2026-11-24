@@ -217,6 +217,8 @@ Phase 3 fills this in: one row per ID with Fixed / Not fixed / Won't fix, the bu
 
 **v1.89.0 stage 3d (D-424, batch 4):** fixed PERF-02 (reproduced in the dark sweep), A11Y-04, ERR-02 (and the WebKit hang on the same page), FORM-01, FORM-02, RESP-06; OVL-01 closed as a harness timing artefact (the sweep waits for hydration); ERR-01 part (none reproduced; the formatter is batch 5); the Dashboards hub `meta-refresh` (server redirect); BRW-01 obsolete (Firefox runs from `D:\pw-firefox-1543`, stages 1-3). Found while fixing: entry animations left a transform behind (the task pane's ⋯ menu off screen, the phone date sheet above the bottom edge), and Playwright's WebKit crashed on a page transition across areas. Rows in [BUG_FIX_LOG.md](BUG_FIX_LOG.md) stage 3d.
 
+**v1.89.0 stage 3e (D-425, batch 5):** fixed CON-08 (one formatter in India time, lint, 24 native date inputs on the shared picker, filter chips) and ERR-01 (relative times after mount); wording: create pages titled New meeting / New ticket / New user like their list actions, sidebar and palette the same, Task Summary in the general pages. Found by the sweep: the last 24 h clocks and yyyy-mm-dd texts (fixed). Sweep: every counter 0 in Chromium, Firefox and WebKit. Rows in [BUG_FIX_LOG.md](BUG_FIX_LOG.md) stage 3e. Left: 26 native date inputs inside record forms (stage 4 list in UI_REFACTORING_LOG).
+
 ## F. Blocked and not covered
 
 - **Firefox:** BLOCKED (BRW-01). Installed, but it does not start (SideBySide error). No Firefox geometry or probes.

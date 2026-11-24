@@ -286,7 +286,7 @@ export const AUTOMATIONS: readonly Automation[] = [
   {
     key: "hodWeekly",
     name: "Weekly HOD report",
-    what: "Every Monday from 9:00 (India time) emails each department's head their department's requests of the last 7 days: raised, approved, rejected, open and overdue now, the oldest waiting (D-247). Off until the Super Admin switches it on.",
+    what: "Every Monday from 9:00 am (India time) emails each department's head their department's requests of the last 7 days: raised, approved, rejected, open and overdue now, the oldest waiting (D-247). Off until the Super Admin switches it on.",
     trigger: "Every job run; sends once a week.",
     everyMinutes: 5,
     // v1.57.6 (D-348, owner): an interrupted send is retried once.
@@ -348,7 +348,7 @@ export const AUTOMATIONS: readonly Automation[] = [
     key: "myTaskRules",
     name: "Task Summary section rules",
     what: "Moves open tasks into the person's Today and Upcoming sections by their Task Summary rules (v1.76.0, D-401): \"due today\" and \"due within N working days\" (weekly offs and holidays don't count), from any section, once per due day, with a note in the task's activity that only the person sees. Only for people who use My sections.",
-    trigger: "Every job run; each person once per India day, from 00:00 India time.",
+    trigger: "Every job run; each person once per India day, from midnight India time.",
     everyMinutes: 5,
     retry: "Up to 500 people a run; the next run carries on with the rest.",
     idempotency: "Each person's last run day is kept, and each move is marked with its rule and due day, so a task is moved once per due day and the person can move it back.",

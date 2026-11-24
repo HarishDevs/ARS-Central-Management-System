@@ -8,6 +8,7 @@ import { CELEBRATION_LABEL, CELEBRATIONS, PURGE_DAYS, type PmExtras } from "@/se
 import type { DigestSettings, RecurrenceSettings } from "@/server/work/more-rules";
 import { FieldError, ResultMessage, SubmitButton, useActionForm } from "@/features/ui/form";
 import { HOLIDAY_MODE_LABEL, HOLIDAY_MODES, type HolidaySettings } from "@/server/work/holidays";
+import { formatClock } from "@/lib/format/date";
 
 // D-217: Admin → Task holidays.
 export function TaskHolidaySettingsForm({ settings }: { settings: HolidaySettings }) {
@@ -93,7 +94,7 @@ export function TaskExtrasForm({ digest, recurrence }: { digest: DigestSettings;
           <select name="digestHour" defaultValue={digest.hour} className="field-input field-compact w-auto py-0" aria-label="Summary hour">
             {[5, 6, 7, 8, 9, 10, 11, 12].map((hour) => (
               <option key={hour} value={hour}>
-                {hour}:00
+                {formatClock(`${String(hour).padStart(2, "0")}:00`)}
               </option>
             ))}
           </select>
