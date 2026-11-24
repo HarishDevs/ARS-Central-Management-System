@@ -7,6 +7,23 @@
 
 Defect IDs refer to [UI_UX_DEFECT_REPORT.md](UI_UX_DEFECT_REPORT.md).
 
+## Status after v1.89.0 stage 3b (D-422, batch 2: shared components)
+
+| Area (§3 ID) | Now | Left for batch 3 (module pages) |
+|---|---|---|
+| List toolbar (CON-01) | One `ListPage` order (PageHeader → tabs → `ListToolbar` → list). Projects moved onto it (no own search box); Meetings' tabs and Tickets' status pills lead the toolbar row; Requests, Tasks (list), Information, Admin users, the Super Admin logs already used ListToolbar. | Portfolios (own search box), Admin Records (PowerSearch + toolbar), the audit log's native From / To dates, Insights / dashboards pages, wrapping every list page in `ListPage`. |
+| Section heading size (CON-02) | `text-section` 18 on page sections (Home overviews, Meetings home, Admin editors, Profile, Calendar, dialogs, phone sheets, journey). | Card titles stay 14 (by design). |
+| Page title (CON-03, CON-04) | New project and AI Assistant on the page-title token; phone titles 22 / 700 everywhere; phone Home titled. | Detail pages' badge / back placement (CON-11, CON-12), Home overview header (CON-15). |
+| Input / button heights (CON-05, CON-06) | Every page on the tokens (no `h-*` beside a control; lint). | — |
+| Primary action wording (CON-07) | unchanged | "New …" wording, the icon instead of "+" (batch 3). |
+| Box radius (CON-09) | unchanged | batch 3. |
+| Record numbers (CON-10) | unchanged | `RecordNo` cell (batch 3 / 5). |
+| Full-width buttons (CON-13) | Buttons size to their words; `btn-block` for sign-in. | — |
+| Phone lists (CON-14) | Cards below 768 for DataTable, RecordTable, Tasks, Meetings, Tickets and the Super Admin logs. | The remaining admin / superadmin tables (Insights dashboards, set-up type lists, budgets, backup, retention, Google, WhatsApp templates, jobs, page access): add `data-label` and `.table-cards` per table. |
+| Avatars (CON-17) | One `Avatar`. | — |
+| Overlays (CON-18) | Shared dialog title / × / padding; radius tokens. | The raw `<dialog>`s → `Dialog` (motion / close path), Popover variants. |
+
+
 ## 1. Verdict
 
 **The shell is one product:**

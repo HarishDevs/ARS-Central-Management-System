@@ -762,6 +762,9 @@ body {
   .grid-editor {
     min-height: var(--touch-min);
   }
+  [data-layout="mobile"] .action-bar button.btn-compact:is(button) {
+    min-height: var(--touch-min);
+  }
   .task-check::before {
     inset: calc((var(--touch-min) - 100%) / -2) !important;
   }
@@ -1340,9 +1343,10 @@ body[data-decision-bar] [data-layout="mobile"] .picbot-launcher {
   padding: 6px;
   box-shadow: none;
 }
+/* v1.89.0 (D-422): the compact size token (it was its own 36), 44 on touch. */
 [data-layout="mobile"] .action-bar button {
-  height: 36px;
-  min-height: 36px;
+  height: var(--control-h-sm);
+  min-height: var(--control-h-sm);
   padding-inline: 10px;
   font-size: 13px;
   white-space: nowrap;

@@ -194,7 +194,9 @@ test("CON-18: a dialog has radius 16, an 18 px title, a 40 px close button, and 
   await settle(page);
   const opener = page.getByTestId("lab-open-dialog");
   await expect(opener).toBeVisible();
-  await opener.click();
+  // Opened from the keyboard: Safari (WebKit) does not focus a button on a mouse click, so focus could not return to it.
+  await opener.focus();
+  await page.keyboard.press("Enter");
   const dialog = page.locator("dialog.ars-dialog[open]").last();
   await expect(dialog).toBeVisible();
   const m = await dialog.evaluate((el) => {

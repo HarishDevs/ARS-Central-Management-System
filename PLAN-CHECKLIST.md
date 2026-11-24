@@ -50,7 +50,18 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 - [x] UI-B1c (24 Nov 2026) tablet 768-1279 starts on the rail (RESP-02); saved ☰ choice wins; ars_vw width cookie; privacy cookies paragraph
 - [x] UI-B1d (24 Nov 2026) shared controls on the named sizes (btn-* 40, compact / ghost / tb-btn / pill 32, field-input 42, field-compact 32, btn-lg 48, Button size sm/md/lg); touch rule for every class; size modifiers after variants; 23 custom h1s → text-page-title
 - [x] UI-B1T (24 Nov 2026) unit shell-tokens-v189; e2e v1890-ui-shell; sweep analyzer checks the tokens (summary.conformance); UIQA sweep 9 viewports Chromium + Firefox / WebKit spot check; existing shell/nav/motion/phone specs re-run; docs/qa (BUG_FIX_LOG, UI_REFACTORING_LOG, design system §A, layout standard §2, defect report fix status); general pages
-- [ ] UI-B2 batch 2: shared components sweep (list in docs/qa/UI_REFACTORING_LOG.md "For batch 2")
+- [x] UI-B2 (24 Nov 2026) batch 2: shared components sweep (D-422; docs/qa/UI_REFACTORING_LOG.md stage 3b)
+- [x] UI-B2a (24 Nov 2026) control heights from tokens: 172 field-input + 26 btn-compact h-* overrides removed (65 + 22 files); ESLint ars-ui/control-size, spacing-scale, type-scale (CON-05, CON-06, C15)
+- [x] UI-B2b (24 Nov 2026) buttons size to their words, btn-block opt-in (sign-in pages) (CON-13)
+- [x] UI-B2c (24 Nov 2026) one phone title 22/700 in the page-title token; ScreenTitle; New project, AI Assistant, phone Home, task phone title (CON-03, CON-04, RESP-04, A11Y-02)
+- [x] UI-B2d (24 Nov 2026) text-section 18 for page section h2s; text-stat 22 for figures; text-card-title / text-greeting retired, text-title Classic only (CON-02)
+- [x] UI-B2e (24 Nov 2026) touch 44 for TaskGrid editors and round task checks on coarse pointers (RESP-05 rest)
+- [x] UI-B2f (24 Nov 2026) 960 form width for New task / information / meeting / ticket
+- [x] UI-B2g (24 Nov 2026) ListPage + phone cards (.table-cards): Projects migrated; Meetings / Tickets tabs in the toolbar row; DataTable, RecordTable, Tasks, Meetings, Tickets, Super Admin logs as cards on phones (CON-01 part, RESP-01, TBL-01 part)
+- [x] UI-B2h (24 Nov 2026) Dialog title / × / padding, .icon-btn; one Avatar; StatePage for not found / no access (CON-16, CON-17, CON-18 rest)
+- [x] UI-B2i (24 Nov 2026) /admin/setup/custom-approval CLS 0.098 → 0.0001 (container query); Firefox CSP eval message = the app's Zod probe → jitless (CSP unchanged)
+- [x] UI-B2T (24 Nov 2026) unit ui-components-v189; e2e v1890-ui-components (Chromium, Firefox, WebKit); sweep before / after; existing specs; docs/qa; general pages
+- [ ] UI-B3 batch 3 (module pages): Portfolios / Records / audit dates / Insights onto ListPage; phone cards for the remaining admin tables; RecordTable → DataTable; raw <dialog>s → Dialog; CON-07 wording, CON-09 radius, CON-10 RecordNo, CON-11 / 12 detail header slots, CON-15; LAY-03 routing (with navigation)
 - [ ] v1.89.0 stage 4: visual baselines and sign-off; then version bump, release-notes heading, merge to main and tag
 
 - **Before (23 Nov 2026):** **v1.88.0** (D-418): simple formulas from the owner's FORMULA_FIELDS brief: functions (ADD, SUBTRACT, MULTIPLY, DIVIDE, DATEADD, DATESUBTRACT, ROLLUP, DAYS, WORKDAYS, IF, ROUND, MIN, MAX, ABS, COALESCE), task dates and Today as inputs (Today worked out on reading, never stored), number/date types, the limits (10 inputs, 2 layers, 500 characters, no loops), ready-made TAT / Delay / NFD Delay / Delay Days, Functions help cards, live check and preview in the formula editor. **Owner:** publish (no migration). **Next:** the Users screen redesign (AD-8); the pre-existing v1850 power-search test (Q-follow-up).
