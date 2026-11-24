@@ -1,9 +1,11 @@
 "use client";
 
 import { ArrowDown, ArrowUp, ArrowUpDown, Columns3, Rows3 } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/features/ui/Display";
 import { FoldScope, FoldTbody } from "@/features/ui/GroupFold";
+import { RowClickHost } from "@/features/ui/RecordPane";
 import { SortLink } from "@/features/ui/SortTh";
 import type { SortDir } from "@/server/lists/sorting";
 
@@ -18,12 +20,31 @@ export interface Column {
   numeric?: boolean;
   sortable?: boolean;
   optional?: boolean; // can be hidden from the Columns menu
+  wide?: boolean; // records look: a wrapping text column (title, reason)
 }
 
 export interface Row {
   id: string | number;
   cells: Record<string, React.ReactNode>;
   sort?: Record<string, string | number | null>;
+  // Records look (v1.89.0, D-423): the row opens the record pane (?open=<id>);
+  // the first cell is the link, a click on the row does the same.
+  href?: string;
+  fullHref?: string; // the record's own page
+  current?: boolean;
+}
+
+// v1.89.0 (D-423, UIQA-TBL-01, UI unification batch 3): RecordTable (the
+// Admin -> Records grid of D-412) is merged into this component as the
+// "records" look: numbered rows, a spreadsheet grid with sticky header and
+// first column, rows that open the record pane, folded groups, and the
+// server's paging (Previous / Next links). One table component; the list
+// look (count bar, Columns, density, client paging) is unchanged.
+export interface ServerPager {
+  firstRow: number;
+  total: number;
+  prevHref?: string | null;
+  nextHref?: string | null;
 }
 
 // v1.58.0 (D-354, owner: "sorting in all the tables asc to desc or vice versa
@@ -66,6 +87,9 @@ export function DataTable({
   stickyFirst = true,
   serverSort,
   groups,
+  look = "list",
+  pager,
+  testId,
 }: {
   caption: string;
   columns: Column[];
@@ -76,6 +100,9 @@ export function DataTable({
   stickyFirst?: boolean;
   serverSort?: ServerSort;
   groups?: RowGroupIds[] | null;
+  look?: "list" | "records";
+  pager?: ServerPager;
+  testId?: string;
 }) {
   const [sort, setSort] = useState(initialSort ?? null);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
@@ -111,6 +138,7 @@ export function DataTable({
   };
 
   if (rows.length === 0) return <EmptyState title={empty.title} body={empty.body} action={empty.action} />;
+  if (look === "records") return <RecordsGrid caption={caption} columns={columns} rows={rows} groups={groups} serverSort={serverSort} pager={pager ?? { firstRow: 1, total: rows.length }} testId={testId ?? "records-table"} />;
   const pad = density === "compact" ? "py-1.5" : "py-3";
   // Grouped: every row on one page, inside its group.
   const pages = groups ? 1 : Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
@@ -268,5 +296,87 @@ export function DataTable({
         </nav>
       )}
     </div>
+  );
+}
+
+// The records look (was features/ui/RecordTable.tsx, D-412): numbered, a
+// spreadsheet-like grid; phone cards below 768 by `data-cards` (D-422).
+function RecordsGrid({ caption, columns, rows, groups, serverSort, pager, testId }: { caption: string; columns: Column[]; rows: Row[]; groups?: RowGroupIds[] | null; serverSort?: ServerSort; pager: ServerPager; testId: string }) {
+  const position = new Map(rows.map((row, index) => [String(row.id), index]));
+  const byId = new Map(rows.map((row) => [String(row.id), row]));
+  const numbered = (row: Row) => (
+    <tr key={row.id} data-row-href={row.href} aria-current={row.current ? "true" : undefined} className={`cursor-pointer odd:bg-surface even:bg-page hover:bg-primary-50/60 ${row.current ? "!bg-primary-50" : ""}`}>
+      <td className="sticky left-0 border-b border-r border-line bg-inherit px-2 py-1.5 text-right tabular-nums text-ink-faint" data-row-number>
+        {pager.firstRow + (position.get(String(row.id)) ?? 0)}
+      </td>
+      {columns.map((column, cellIndex) => (
+        <td key={column.key} data-label={cellIndex === 0 ? undefined : column.header} data-card-title={cellIndex === 0 ? "" : undefined} className={`border-b border-r border-line px-3 py-1.5 align-top ${column.wide ? "min-w-[14rem] max-w-[22rem]" : "whitespace-nowrap"}`}>
+          {cellIndex === 0 && row.href ? (
+            <Link href={row.href} scroll={false} data-open-link={row.fullHref} className="link font-medium" data-testid="record-open">
+              {row.cells[column.key]}
+            </Link>
+          ) : (
+            row.cells[column.key]
+          )}
+        </td>
+      ))}
+    </tr>
+  );
+  return (
+    <FoldScope enabled={Boolean(groups)}>
+      <RowClickHost />
+      <div className="card table-cards overflow-hidden">
+        <div className="max-h-[70vh] overflow-auto" data-testid={testId} data-table-scroll>
+          <table className="w-max min-w-full border-collapse text-label" data-cards>
+            <caption className="sr-only">{caption}</caption>
+            <thead className="sticky top-0 z-10 bg-surface-muted">
+              <tr>
+                <th scope="col" className="sticky left-0 z-[2] w-12 border-b border-r border-line bg-surface-muted px-2 py-2 text-right text-caption font-semibold text-ink-faint">
+                  #
+                </th>
+                {columns.map((column) => {
+                  const href = serverSort?.hrefs[column.key];
+                  const active = serverSort?.sortBy === column.key;
+                  return (
+                    <th key={column.key} scope="col" aria-sort={href && active ? (serverSort?.dir === "asc" ? "ascending" : "descending") : undefined} className="whitespace-nowrap border-b border-r border-line px-3 py-2 text-left text-caption font-semibold text-ink-muted">
+                      {href && serverSort ? <SortLink label={column.header} active={active} dir={serverSort.dir} href={href} /> : column.header}
+                    </th>
+                  );
+                })}
+              </tr>
+            </thead>
+            {groups ? (
+              groups.map((group) => {
+                const members = group.ids.map((id) => byId.get(String(id))).filter((row): row is Row => Boolean(row));
+                return (
+                  <FoldTbody key={group.key} label={group.label} count={members.length} colSpan={columns.length + 1} testId="records-group">
+                    {members.map(numbered)}
+                  </FoldTbody>
+                );
+              })
+            ) : (
+              <tbody>{rows.map(numbered)}</tbody>
+            )}
+          </table>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-4 py-2 text-label text-ink-muted">
+          <span>
+            Rows {pager.firstRow.toLocaleString("en-IN")}–{(pager.firstRow + rows.length - 1).toLocaleString("en-IN")} of {pager.total.toLocaleString("en-IN")}
+          </span>
+          <span className="flex gap-2">
+            {pager.prevHref && (
+              <Link href={pager.prevHref} className="btn-secondary btn-compact" rel="prev">
+                Previous
+              </Link>
+            )}
+            {pager.nextHref && (
+              <Link href={pager.nextHref} className="btn-secondary btn-compact" rel="next">
+                Next
+              </Link>
+            )}
+          </span>
+        </div>
+      </div>
+    </FoldScope>
   );
 }

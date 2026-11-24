@@ -95,8 +95,8 @@ export async function ModuleTypesListScreen({ module, searchParams = {} }: { mod
         <EmptyState title={`No ${PLURAL[module].toLowerCase()} yet`} body="Create the first one above, then set up its form and publish it." />
       ) : (
         <FoldScope enabled={Boolean(group)}>
-        <div className="card overflow-x-auto">
-          <table className="data-table" data-testid="module-types">
+        <div className="card table-cards overflow-x-auto">
+          <table className="data-table max-md:p-3" data-testid="module-types">
             <SortHead
               path={base}
               query={searchParams}
@@ -123,11 +123,11 @@ export async function ModuleTypesListScreen({ module, searchParams = {} }: { mod
                     </Link>
                     {type.description && <p className="text-caption text-ink-muted">{type.description}</p>}
                   </td>
-                  <td className="font-mono text-label">{type.code}</td>
-                  <td>{type.liveVersion ? `v${type.liveVersion}` : <span className="text-ink-faint">Not published</span>}</td>
-                  <td>{type.hasDraft ? <Badge tone="warning">Draft</Badge> : "—"}</td>
-                  <td className="tabular-nums">{type.records}</td>
-                  <td>{type.active ? <Badge tone="success">Active</Badge> : <Badge>Retired</Badge>}</td>
+                  <td data-label="Code" className="font-mono text-label">{type.code}</td>
+                  <td data-label="Live version">{type.liveVersion ? `v${type.liveVersion}` : <span className="text-ink-faint">Not published</span>}</td>
+                  <td data-label="Draft">{type.hasDraft ? <Badge tone="warning">Draft</Badge> : "—"}</td>
+                  <td data-label="Records" className="tabular-nums">{type.records}</td>
+                  <td data-label="Status">{type.active ? <Badge tone="success">Active</Badge> : <Badge>Retired</Badge>}</td>
                 </tr>
               )}
             />
@@ -224,8 +224,8 @@ export async function ModuleTypeDetailScreen({ module, id, view, searchParams = 
         <h2 id="versions-heading" className="mb-3 text-section font-semibold">
           Versions
         </h2>
-        <div className="card overflow-x-auto">
-          <table className="data-table" data-testid="type-versions">
+        <div className="card table-cards overflow-x-auto">
+          <table className="data-table max-md:p-3" data-testid="type-versions">
             <SortHead
               path={`${base}/${type.id}`}
               query={searchParams}
@@ -242,9 +242,9 @@ export async function ModuleTypeDetailScreen({ module, id, view, searchParams = 
               {sortedVersions.map((version) => (
                 <tr key={version.id}>
                   <td>v{version.versionNo}</td>
-                  <td>{version.status === "PUBLISHED" ? <Badge tone="success">Live</Badge> : version.status === "DRAFT" ? <Badge tone="warning">Draft</Badge> : <Badge>Earlier</Badge>}</td>
-                  <td>{version.form.length}</td>
-                  <td className="text-label">{version.publishedAt ? `${indiaDateTimeText(version.publishedAt)}${version.publishedByName ? ` by ${version.publishedByName}` : ""}` : "—"}</td>
+                  <td data-label="Status">{version.status === "PUBLISHED" ? <Badge tone="success">Live</Badge> : version.status === "DRAFT" ? <Badge tone="warning">Draft</Badge> : <Badge>Earlier</Badge>}</td>
+                  <td data-label="Fields">{version.form.length}</td>
+                  <td data-label="Published" className="text-label">{version.publishedAt ? `${indiaDateTimeText(version.publishedAt)}${version.publishedByName ? ` by ${version.publishedByName}` : ""}` : "—"}</td>
                   <td>
                     <Link href={`${base}/${type.id}?view=${version.versionNo}#view`} className="link text-label">
                       View form

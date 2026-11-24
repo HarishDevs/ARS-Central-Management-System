@@ -28,7 +28,7 @@ test("the Coordinator schedules a meeting; people are chosen by search", async (
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/users/meetings");
   await expect(page.getByRole("heading", { name: "Meetings", level: 1 })).toBeVisible();
-  await page.getByRole("link", { name: "Schedule a meeting" }).click();
+  await page.getByRole("link", { name: "New meeting" }).click();
   await expect(page).toHaveURL(/\/users\/meetings\/new$/);
   await page.locator("#mtg-title").fill(title);
   await page.locator("#mtg-type").selectOption({ label: "IDM (Inter Department Meeting)" });

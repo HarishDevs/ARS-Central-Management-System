@@ -10,7 +10,7 @@ export default async function NotMePage({ searchParams }: { searchParams: Promis
   const { token } = await searchParams;
   return (
     <main className="flex min-h-full items-center justify-center px-4 py-12">
-      <div className="w-full max-w-[440px] rounded-xl border border-line bg-surface p-8 shadow-card">
+      <div className="w-full max-w-[440px] rounded-card border border-line bg-surface p-8 shadow-card">
         {/* eslint-disable-next-line @next/next/no-img-element -- static brand logo */}
         <img src={APP_BRANDING.logo} alt={APP_BRANDING.logoAlt} width={72} height={48} className="h-12 w-auto rounded-md" />
         <NotMeConfirm token={token ?? ""} />

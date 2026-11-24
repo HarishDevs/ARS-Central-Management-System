@@ -651,8 +651,9 @@ body {
     max-height: none;
     overflow: visible;
   }
-  /* The card that framed the table: the rows are the cards now. */
-  .table-cards .card:has(> table:is(.data-table, [data-cards]), > div > table:is(.data-table, [data-cards])) {
+  /* The card that framed the table: the rows are the cards now. v1.89.0 (D-423): a card that
+     also holds the section's heading keeps its frame (the heading stays with its rows). */
+  .table-cards .card:has(> table:is(.data-table, [data-cards]), > div > table:is(.data-table, [data-cards])):not(:has(> :is(h2, h3, header))) {
     border: 0;
     background: transparent;
     box-shadow: none;

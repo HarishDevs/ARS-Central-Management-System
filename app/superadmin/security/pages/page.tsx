@@ -116,11 +116,11 @@ export default async function PageAccessPage({ searchParams }: { searchParams: P
       )}
 
       {(["users", "admin"] as const).map((area) => ({ area, ...areaPages(area) })).map(({ area, pages, head }) => (
-        <section key={area} aria-labelledby={`area-${area}`} className="card mb-6 overflow-x-auto">
+        <section key={area} aria-labelledby={`area-${area}`} className="card table-cards mb-6 overflow-x-auto">
           <h2 id={`area-${area}`} className="border-b border-line px-5 py-3 font-semibold">
             {area === "users" ? "My approvals (everyone)" : "Admin space (IT team)"}
           </h2>
-          <table className="data-table">
+          <table className="data-table max-md:p-3">
             <thead>
               <tr>
                 {head("Page", AREA_COLUMNS[area][0])}
@@ -137,10 +137,10 @@ export default async function PageAccessPage({ searchParams }: { searchParams: P
                       <Hint text={page.what} align="start" />
                     </span>
                   </td>
-                  <td>
+                  <td data-label="For everyone">
                     <PageRuleForm pageKey={page.key} scope="EVERYONE" level={everyone(page.key)} neverHidden={page.neverHidden} label={`${page.label}: for everyone`} />
                   </td>
-                  <td className="whitespace-nowrap text-label">
+                  <td data-label="Departments and people" className="whitespace-nowrap text-label">
                     <Link href={`/superadmin/security/pages/${encodeURIComponent(page.key)}`} className="link">
                       {count(page.key, "DEPARTMENT")} department{count(page.key, "DEPARTMENT") === 1 ? "" : "s"}, {count(page.key, "USER")} {count(page.key, "USER") === 1 ? "person" : "people"}
                     </Link>

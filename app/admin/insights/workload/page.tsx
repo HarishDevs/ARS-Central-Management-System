@@ -76,7 +76,7 @@ export default async function WorkloadPage({ searchParams }: { searchParams: Pro
       </div>
       <ListToolbar id="workload-view" path={PATH} label="Workload view" keep={{}} filterCount={0} clearHref={null} group={groupMenu(PATH, query, GROUPS, group)} />
       <ListViews userId={user.id} target="list_admin_workload" path={PATH} query={query} />
-      <section className="card overflow-x-auto">
+      <section className="card table-cards overflow-x-auto">
         <h2 className="border-b border-line px-5 py-4 font-semibold">By person</h2>
         {rows.length === 0 ? (
           <div className="p-4">
@@ -84,7 +84,7 @@ export default async function WorkloadPage({ searchParams }: { searchParams: Pro
           </div>
         ) : (
           <FoldScope enabled={Boolean(group)}>
-            <table className="data-table">
+            <table className="data-table max-md:p-3">
               <SortHead
                 path={PATH}
                 query={query}
@@ -112,16 +112,16 @@ export default async function WorkloadPage({ searchParams }: { searchParams: Pro
                       </Link>
                       {row.onHold > 0 && <span className="block text-caption text-ink-muted">{row.onHold} on hold</span>}
                     </td>
-                    <td className="text-label">{row.department ?? <span className="text-ink-faint">—</span>}</td>
-                    <td className="text-right tabular-nums">{row.pending}</td>
-                    <td className={`text-right tabular-nums ${row.overdue ? "font-semibold text-danger-600" : ""}`}>{row.overdue}</td>
+                    <td data-label="Department" className="text-label">{row.department ?? <span className="text-ink-faint">—</span>}</td>
+                    <td data-label="Waiting" className="text-right tabular-nums">{row.pending}</td>
+                    <td data-label="Overdue" className={`text-right tabular-nums ${row.overdue ? "font-semibold text-danger-600" : ""}`}>{row.overdue}</td>
                     {AGE_BANDS.map((band) => (
-                      <td key={band.key} className="text-right tabular-nums">
+                      <td key={band.key} data-label={band.label} className="text-right tabular-nums">
                         {row.bands[band.key] || "—"}
                       </td>
                     ))}
-                    <td className="text-right tabular-nums">{ageText(row.medianHours)}</td>
-                    <td className="text-right tabular-nums">{ageText(row.oldestHours)}</td>
+                    <td data-label="Median wait" className="text-right tabular-nums">{ageText(row.medianHours)}</td>
+                    <td data-label="Oldest" className="text-right tabular-nums">{ageText(row.oldestHours)}</td>
                   </tr>
                 )}
               />

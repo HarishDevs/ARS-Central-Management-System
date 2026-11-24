@@ -43,18 +43,18 @@ function Table({ id, title, empty, head, rows, values, query, sort, textColumns 
   const order = rows.map((_, index) => index);
   const sorted = column === null ? order : sortRows(order, (index) => values[index]?.[column], sort.dir);
   return (
-    <section className={`card overflow-x-auto ${wide ? "xl:col-span-2" : ""}`}>
+    <section className={`card table-cards overflow-x-auto ${wide ? "xl:col-span-2" : ""}`}>
       <h2 className="border-b border-line px-5 py-4 font-semibold">{title}</h2>
       {rows.length === 0 ? (
         <p className="px-5 py-4 text-label text-ink-muted">{empty}</p>
       ) : (
-        <table className="data-table">
+        <table className="data-table max-md:p-3">
           <SortHead path={PATH} query={query} sort={sort} columns={head.map((cell, index) => ({ key: `${id}_${index}`, label: cell, className: index >= textColumns ? "text-right" : undefined }))} />
           <PagedRows colSpan={1}>
             {sorted.map((rowIndex) => (
               <tr key={rowIndex}>
                 {rows[rowIndex]!.map((cell, index) => (
-                  <td key={index} className={index >= textColumns ? "text-right tabular-nums" : undefined}>
+                  <td key={index} data-label={index === 0 ? undefined : head[index]} className={index >= textColumns ? "text-right tabular-nums" : undefined}>
                     {cell}
                   </td>
                 ))}

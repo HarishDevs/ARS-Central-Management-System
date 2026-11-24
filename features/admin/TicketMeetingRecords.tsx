@@ -1,11 +1,12 @@
-import { PageHeader } from "@/features/shell/PageHeader";
+import { ListPage } from "@/features/ui/ListPage";
+import { ListToolbar } from "@/features/ui/ListToolbar";
 import { EmptyState, NoResults } from "@/features/ui/Display";
 import { ChoicePill } from "@/features/ui/ChoicePill";
 import { DetailsList } from "@/features/ui/DetailsList";
 import { PowerSearch, type PowerField } from "@/features/ui/PowerSearch";
 import { powerHref } from "@/features/ui/power-href";
 import { RecordPane } from "@/features/ui/RecordPane";
-import { RecordTable, type RecordTableRow } from "@/features/ui/RecordTable";
+import { DataTable, type Row as TableRow } from "@/features/ui/DataTable";
 import { RecordsTabs } from "@/features/admin/RecordsTabs";
 import { requireArea } from "@/server/authorization/guards";
 import { isAdminActor } from "@/server/modules/tasks";
@@ -46,9 +47,45 @@ function pageHref(base: string, query: Query, n: number) {
   return n <= 1 ? href : `${href}${href.includes("?") ? "&" : "?"}page=${n}`;
 }
 
+// v1.89.0 (D-423, UIQA-CON-01): the shared list toolbar for Tickets and Meetings: the power
+// search (chips, Add filter) leads the row, and Sort lists the same columns as the column
+// titles, as on the other Records tabs.
+function RecordsToolbar({ id: toolbarId, base, query, fields, label, columns, sort }: { id: string; base: string; query: Query; fields: PowerField[]; label: string; columns: { label: string; sort?: string }[]; sort: { sortBy: string | null; dir: "asc" | "desc" } }) {
+  const sortable = columns.filter((column) => column.sort);
+  return (
+    <ListToolbar
+      id={toolbarId}
+      path={base}
+      label={label}
+      keep={{}}
+      filterCount={0}
+      clearHref={null}
+      lead={<PowerSearch inToolbar base={base} fields={fields} params={query} label={label} />}
+      sort={{
+        label: sortable.find((column) => column.sort === sort.sortBy)?.label ?? "Newest first",
+        changed: Boolean(sort.sortBy),
+        clearHref: powerHref(base, query, { sortBy: null, dir: null }),
+        choices: sortable.map((column) => ({ label: column.label, href: powerHref(base, query, { sortBy: column.sort!, dir: "asc" }), active: sort.sortBy === column.sort })),
+      }}
+    />
+  );
+}
+
+function tableColumns(columns: { key: string; label: string; wide?: boolean }[]) {
+  return columns.map((column) => ({ key: column.key, header: column.label, wide: column.wide }));
+}
+
+function serverSortOf(base: string, query: Query, columns: { key: string; sort?: string }[], sort: { sortBy: string | null; dir: "asc" | "desc" }) {
+  return {
+    sortBy: columns.find((column) => column.sort && column.sort === sort.sortBy)?.key ?? null,
+    dir: sort.dir,
+    hrefs: Object.fromEntries(columns.filter((column) => column.sort).map((column) => [column.key, sortHref(base, query, column.sort!, sort.sortBy === column.sort, sort.dir)])),
+  };
+}
+
 function Pane({ base, query, title, fullHref, items }: { base: string; query: Query; title: string; fullHref: string; items: { label: string; value: React.ReactNode; wide?: boolean }[] | null }) {
   return (
-    <RecordPane title={title} closeHref={powerHref(base, query, { open: null })} fullHref={fullHref}>
+    <RecordPane title={title} closeHref={powerHref(base, query, { open: null, page: query.page ?? null })} fullHref={fullHref}>
       {items ? <DetailsList testId="record-details" items={items} /> : <p className="text-label text-ink-muted">This record isn&apos;t on this page of the list (or no longer matches the filters). Open its full page to see it.</p>}
     </RecordPane>
   );
@@ -98,24 +135,28 @@ export async function TicketRecords({ query }: { query: Query }) {
   ];
   const openId = id(query.open);
   const openItem = openId === null ? null : (items.find((item) => item.id === openId) ?? null);
-  const row = (item: (typeof items)[number]): RecordTableRow => ({ id: item.id, openHref: powerHref(base, { ...query, page: page > 1 ? String(page) : undefined }, { open: String(item.id) }), fullHref: `/users/tickets/${item.id}`, current: item.id === openId, cells: columns.map((column) => column.value(item)) });
+  const row = (item: (typeof items)[number]): TableRow => ({ id: item.id, href: powerHref(base, query, { open: String(item.id), page: page > 1 ? String(page) : null }), fullHref: `/users/tickets/${item.id}`, current: item.id === openId, cells: Object.fromEntries(columns.map((column) => [column.key, column.value(item)])) });
   const pages = Math.max(1, Math.ceil(total / TICKET_PAGE_SIZE));
   return (
-    <>
-      <PageHeader title="Tickets" description="Every ticket in the app, whoever raised it. Add filters as chips, click a column title to sort, click a row to open it beside the table." meta={`${total.toLocaleString("en-IN")} ${total === 1 ? "ticket" : "tickets"}${filtered ? " match the filters" : ""}`} />
-      <RecordsTabs current="tickets" user={user} />
-      <PowerSearch base={base} fields={fields} params={query} label="Filter tickets" />
+    <ListPage
+      title="Tickets"
+      description="Every ticket in the app, whoever raised it. Add filters as chips, click a column title to sort, click a row to open it beside the table."
+      meta={`${total.toLocaleString("en-IN")} ${total === 1 ? "ticket" : "tickets"}${filtered ? " match the filters" : ""}`}
+      tabs={<RecordsTabs current="tickets" user={user} />}
+      toolbar={<RecordsToolbar id="records-tickets" base={base} query={query} fields={fields} label="Filter tickets" columns={columns} sort={sort} />}
+    >
       {items.length === 0 ? (
         filtered ? <NoResults what="tickets" query={filter.q} resetHref={base} /> : <EmptyState title="No tickets" body="No tickets yet." />
       ) : (
-        <RecordTable
+        <DataTable
+          look="records"
           caption="Tickets"
-          columns={columns.map((column) => ({ key: column.key, label: column.label, wide: column.wide, sort: column.sort ? { active: sort.sortBy === column.sort, dir: sort.dir, href: sortHref(base, query, column.sort, sort.sortBy === column.sort, sort.dir) } : undefined }))}
+          storageKey="admin-records-tickets"
+          empty={{ title: "No tickets" }}
+          columns={tableColumns(columns)}
+          serverSort={serverSortOf(base, query, columns, sort)}
           rows={items.map(row)}
-          firstRow={(page - 1) * TICKET_PAGE_SIZE + 1}
-          total={total}
-          prevHref={page > 1 ? pageHref(base, query, page - 1) : null}
-          nextHref={page < pages ? pageHref(base, query, page + 1) : null}
+          pager={{ firstRow: (page - 1) * TICKET_PAGE_SIZE + 1, total, prevHref: page > 1 ? pageHref(base, query, page - 1) : null, nextHref: page < pages ? pageHref(base, query, page + 1) : null }}
         />
       )}
       {openId !== null && (
@@ -127,7 +168,7 @@ export async function TicketRecords({ query }: { query: Query }) {
           items={openItem ? columns.map((column) => ({ label: column.label, value: column.value(openItem), wide: column.wide })).concat(openItem.taskNo ? [{ label: "Linked task", value: openItem.taskNo, wide: false }] : []) : null}
         />
       )}
-    </>
+    </ListPage>
   );
 }
 
@@ -168,29 +209,33 @@ export async function MeetingRecords({ query }: { query: Query }) {
   ];
   const openId = id(query.open);
   const openRow = openId === null ? null : (rows.find((row) => row.id === openId) ?? null);
-  const tableRow = (row: Row): RecordTableRow => ({ id: row.id, openHref: powerHref(base, { ...query, page: page > 1 ? String(page) : undefined }, { open: String(row.id) }), fullHref: `/users/meetings/${row.id}`, current: row.id === openId, cells: columns.map((column) => column.value(row)) });
+  const tableRow = (row: Row): TableRow => ({ id: row.id, href: powerHref(base, query, { open: String(row.id), page: page > 1 ? String(page) : null }), fullHref: `/users/meetings/${row.id}`, current: row.id === openId, cells: Object.fromEntries(columns.map((column) => [column.key, column.value(row)])) });
   const pages = Math.max(1, Math.ceil(total / MEETING_PAGE_SIZE));
   return (
-    <>
-      <PageHeader title="Meetings" description="Every meeting in the app, whoever runs it. Add filters as chips, click a column title to sort, click a row to open it beside the table." meta={`${total.toLocaleString("en-IN")} ${total === 1 ? "meeting" : "meetings"}${filtered ? " match the filters" : ""}`} />
-      <RecordsTabs current="meetings" user={user} />
-      <PowerSearch base={base} fields={fields} params={query} label="Filter meetings" />
+    <ListPage
+      title="Meetings"
+      description="Every meeting in the app, whoever runs it. Add filters as chips, click a column title to sort, click a row to open it beside the table."
+      meta={`${total.toLocaleString("en-IN")} ${total === 1 ? "meeting" : "meetings"}${filtered ? " match the filters" : ""}`}
+      tabs={<RecordsTabs current="meetings" user={user} />}
+      toolbar={<RecordsToolbar id="records-meetings" base={base} query={query} fields={fields} label="Filter meetings" columns={columns} sort={sort} />}
+    >
       {rows.length === 0 ? (
         filtered ? <NoResults what="meetings" query={filterQ} resetHref={base} /> : <EmptyState title="No meetings" body="No meetings yet." />
       ) : (
-        <RecordTable
+        <DataTable
+          look="records"
           caption="Meetings"
-          columns={columns.map((column) => ({ key: column.key, label: column.label, wide: column.wide, sort: column.sort ? { active: sort.sortBy === column.sort, dir: sort.dir, href: sortHref(base, query, column.sort, sort.sortBy === column.sort, sort.dir) } : undefined }))}
+          storageKey="admin-records-meetings"
+          empty={{ title: "No meetings" }}
+          columns={tableColumns(columns)}
+          serverSort={serverSortOf(base, query, columns, sort)}
           rows={rows.map(tableRow)}
-          firstRow={(page - 1) * MEETING_PAGE_SIZE + 1}
-          total={total}
-          prevHref={page > 1 ? pageHref(base, query, page - 1) : null}
-          nextHref={page < pages ? pageHref(base, query, page + 1) : null}
+          pager={{ firstRow: (page - 1) * MEETING_PAGE_SIZE + 1, total, prevHref: page > 1 ? pageHref(base, query, page - 1) : null, nextHref: page < pages ? pageHref(base, query, page + 1) : null }}
         />
       )}
       {openId !== null && (
         <Pane base={base} query={query} title={openRow ? `${openRow.meetingNo}: ${openRow.title}` : "Meeting"} fullHref={`/users/meetings/${openId}`} items={openRow ? columns.map((column) => ({ label: column.label, value: column.value(openRow), wide: column.wide })) : null} />
       )}
-    </>
+    </ListPage>
   );
 }

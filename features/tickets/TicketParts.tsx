@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { RecordNo } from "@/features/ui/RecordNo";
 import { TicketWorkForm } from "@/features/tickets/TicketForms";
 import { FoldScope, FoldTbody } from "@/features/ui/GroupFold";
 import { SortTh } from "@/features/ui/SortTh";
@@ -96,10 +97,8 @@ export function TicketTable({ items, caption, testId = "ticket-table", withTask 
               const late = isOverdue({ status: item.status, dueAt: item.dueAt }, now);
               return (
                 <tr key={item.id}>
-                  <td data-label={TICKET_COLUMN_LABEL.ticket} className="whitespace-nowrap font-mono text-label">
-                    <Link href={`/users/tickets/${item.id}`} className="link">
-                      {item.ticketNo}
-                    </Link>
+                  <td data-label={TICKET_COLUMN_LABEL.ticket} className="whitespace-nowrap">
+                    <RecordNo no={item.ticketNo} href={`/users/tickets/${item.id}`} />
                   </td>
                   <td data-card-title>
                     <Link href={`/users/tickets/${item.id}`} className="link font-medium">

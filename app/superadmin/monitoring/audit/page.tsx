@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { PagedRows } from "@/features/ui/PagedRows";
 import Link from "next/link";
-import { PageHeader, EmptyState } from "@/features/shell/PageHeader";
+import { EmptyState } from "@/features/shell/PageHeader";
 import { NoResults } from "@/features/ui/Display";
+import { DateRangePicker } from "@/features/ui/DateRangePicker";
+import { ListPage } from "@/features/ui/ListPage";
 import { ListToolbar } from "@/features/ui/ListToolbar";
 import { requireArea } from "@/server/authorization/guards";
 import { listAuditActions, listAuditEntries } from "@/lib/db/repositories/audit.repository";
@@ -68,8 +70,12 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
 
   return (
     <>
-      <PageHeader title="Audit log" description="Every sign-in, access denial and admin change. Entries can't be edited or deleted by anyone." />
       {/* v1.51.1 (owner): toolbar filters instead of a filter form. */}
+      {/* v1.89.0 (D-423, UIQA-CON-01): the shared list page (PageHeader, toolbar, list). */}
+      <ListPage
+        title="Audit log"
+        description="Every sign-in, access denial and admin change. Entries can't be edited or deleted by anyone."
+        toolbar={
       <ListToolbar
         id="audit-filters"
         path={PATH}
@@ -94,20 +100,28 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
           </div>
         }
       />
+        }
+      >
       <ListViews userId={user.id} target={TARGET} path={PATH} query={query} />
       <form className="mb-6 flex flex-wrap items-end gap-3 rounded-md border border-line bg-surface p-3" method="get" action="/api/superadmin/audit">
         <p className="w-full text-label font-semibold">Download as CSV (up to 50,000 entries)</p>
+        {/* v1.89.0 (D-423, UIQA-CON-01 / CON-08): the shared date range picker (one "From – To" button,
+            the app's day format) instead of two native date inputs; the form still sends from / to. */}
         <div>
-          <label htmlFor="export-from" className="field-label">
-            From
-          </label>
-          <input id="export-from" type="date" name="from" defaultValue={monthAgo} className="field-input" />
-        </div>
-        <div>
-          <label htmlFor="export-to" className="field-label">
-            To
-          </label>
-          <input id="export-to" type="date" name="to" defaultValue={today} className="field-input" />
+          <span id="export-dates-label" className="field-label">
+            Dates
+          </span>
+          <DateRangePicker
+            idBase="export"
+            label="Download dates"
+            startLabel="From"
+            dueLabel="To"
+            defaultValue={{ start: monthAgo, due: today }}
+            max={today}
+            names={{ start: "from", due: "to" }}
+            triggerDescribedBy="export-dates-label"
+            testId="audit-export-dates"
+          />
         </div>
         {action && <input type="hidden" name="action" value={action} />}
         <button type="submit" className="btn-secondary">
@@ -172,6 +186,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
           </div>
         )
       )}
+      </ListPage>
     </>
   );
 }

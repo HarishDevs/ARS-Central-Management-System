@@ -29,6 +29,7 @@ export function Dialog({
   testId,
   guardDraft = false,
   locked = false,
+  flush = false,
 }: {
   open: boolean;
   onClose: () => void;
@@ -43,6 +44,8 @@ export function Dialog({
   guardDraft?: boolean;
   /** v1.87.0 (D-417, audit gap 13): while true (an action under way) Escape, × and a click outside don't close it. */
   locked?: boolean;
+  /** v1.89.0 (D-423): the body has no padding of its own (its sections bring theirs: the share dialogs). */
+  flush?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const opener = useRef<Element | null>(null);
@@ -182,7 +185,7 @@ export function Dialog({
               <X aria-hidden="true" className="h-4 w-4" />
             </button>
           </div>
-          {children && <div className="overflow-y-auto px-5 py-4">{children}</div>}
+          {children && <div className={flush ? "overflow-y-auto" : "overflow-y-auto px-5 py-4"}>{children}</div>}
           {footer && <div className="flex flex-wrap justify-end gap-2 border-t border-line px-5 py-3">{footer}</div>}
         </div>
       )}

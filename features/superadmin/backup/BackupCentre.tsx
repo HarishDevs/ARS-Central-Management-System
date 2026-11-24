@@ -307,7 +307,7 @@ export function BackupCentre({ initial, databaseName, driveReady, serverKeySet, 
         {data.runs.length === 0 ? (
           <p className="mt-2 text-label text-ink-muted">Nothing yet.</p>
         ) : (
-          <div className="mt-3 overflow-x-auto" tabIndex={0} role="group" aria-label="Recent activity table">
+          <div className="table-cards mt-3 overflow-x-auto" tabIndex={0} role="group" aria-label="Recent activity table">
             <table className="data-table">
               <caption className="sr-only">Recent backups, checks and restores</caption>
               <thead>
@@ -322,16 +322,16 @@ export function BackupCentre({ initial, databaseName, driveReady, serverKeySet, 
               <tbody>
                 {data.runs.map((item) => (
                   <tr key={item.id}>
-                    <td className="whitespace-nowrap">{when(item.createdAt)}</td>
-                    <td>
+                    <td data-label="When" className="whitespace-nowrap">{when(item.createdAt)}</td>
+                    <td data-card-title="">
                       {KIND_LABEL[item.kind]}
                       {item.trigger === "SCHEDULED" ? " (scheduled)" : ""}
                     </td>
-                    <td className="break-all">{item.packageName ?? "—"}</td>
-                    <td>
+                    <td data-label="Package" className="break-all">{item.packageName ?? "—"}</td>
+                    <td data-label="Status">
                       <Badge tone={tone(item.status)}>{STATUS_LABEL[item.status]}</Badge>
                     </td>
-                    <td className="max-w-md text-caption text-ink-muted">{[item.message, item.error].filter(Boolean).join(" ")}</td>
+                    <td data-label="Details" className="max-w-md text-caption text-ink-muted">{[item.message, item.error].filter(Boolean).join(" ")}</td>
                   </tr>
                 ))}
               </tbody>
@@ -623,7 +623,7 @@ function Packages({
       {packages.length === 0 ? (
         <p className="mt-3 text-label text-ink-muted">No packages yet.</p>
       ) : (
-        <div className="mt-3 overflow-x-auto" tabIndex={0} role="group" aria-label="Packages table">
+        <div className="table-cards mt-3 overflow-x-auto" tabIndex={0} role="group" aria-label="Packages table">
           <table className="data-table">
             <caption className="sr-only">Backup packages on this server</caption>
             <thead>
@@ -645,7 +645,7 @@ function Packages({
                     {item.name}
                     {item.source && <span className="block text-caption text-ink-muted">{item.source}</span>}
                   </td>
-                  <td>
+                  <td data-label="Kind">
                     {PACKAGE_KIND_LABEL[item.kind] ?? item.kind}
                     {item.checked && (
                       <Badge tone="success" className="ml-1">
@@ -653,9 +653,9 @@ function Packages({
                       </Badge>
                     )}
                   </td>
-                  <td className="whitespace-nowrap">{formatBytes(item.bytes)}</td>
-                  <td className="whitespace-nowrap">{when(item.createdAt)}</td>
-                  <td>{item.keyKind === "SERVER_KEY" ? "Server key" : "Passphrase"}</td>
+                  <td data-label="Size" className="whitespace-nowrap">{formatBytes(item.bytes)}</td>
+                  <td data-label="Made" className="whitespace-nowrap">{when(item.createdAt)}</td>
+                  <td data-label="Opens with">{item.keyKind === "SERVER_KEY" ? "Server key" : "Passphrase"}</td>
                   <td>
                     <div className="flex flex-wrap justify-end gap-1.5">
                       <a className={buttonClass("secondary", "sm")} href={`${BASE}/packages/${encodeURIComponent(item.name)}`} aria-label={`Download ${item.name}`}>
@@ -854,7 +854,7 @@ function Restore({
             {mode === "tables" && (
               <fieldset className="space-y-2">
                 <legend className="field-label">Tables ({tables.length} ticked)</legend>
-                <input type="search" className="field-input max-w-xs" placeholder="Filter tables" aria-label="Filter tables" value={filter} onChange={(event) => setFilter(event.target.value)} />
+                <input type="search" data-search-kind="finder" className="field-input max-w-xs" placeholder="Filter tables" aria-label="Filter tables" value={filter} onChange={(event) => setFilter(event.target.value)} />
                 <div className="grid max-h-64 gap-1 overflow-y-auto rounded-md border border-line p-2 sm:grid-cols-2 lg:grid-cols-3">
                   {summary.tables
                     .filter((table) => table.name.includes(filter.trim().toLowerCase()))
@@ -981,7 +981,7 @@ function SecretsPanel({ name }: { name: string }) {
           </Button>
         )}
       </div>
-      <div className="overflow-x-auto" tabIndex={0} role="group" aria-label="Server secrets table">
+      <div className="table-cards overflow-x-auto" tabIndex={0} role="group" aria-label="Server secrets table">
         <table className="data-table">
           <caption className="sr-only">Server secrets in the package</caption>
           <thead>
@@ -995,8 +995,8 @@ function SecretsPanel({ name }: { name: string }) {
             {Object.entries(secrets.env).map(([envName, value]) => (
               <tr key={envName}>
                 <td className="font-mono text-caption">{envName}</td>
-                <td className="max-w-md break-all font-mono text-caption">{shown ? value : "••••••••"}</td>
-                <td>
+                <td data-label="Value" className="max-w-md break-all font-mono text-caption">{shown ? value : "••••••••"}</td>
+                <td data-label="On this server">
                   <Badge tone={secrets.here[envName] === "same" ? "success" : secrets.here[envName] === "missing" ? "warning" : "neutral"}>{secrets.here[envName] === "same" ? "Same" : secrets.here[envName] === "missing" ? "Not set" : "Different"}</Badge>
                 </td>
               </tr>

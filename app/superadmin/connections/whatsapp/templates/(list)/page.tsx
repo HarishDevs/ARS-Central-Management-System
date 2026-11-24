@@ -64,9 +64,9 @@ export default async function TemplatesPage({ searchParams }: { searchParams: Pr
           {entry.eventType} · {entry.group}
         </p>
       </td>
-      <td className="text-label">{entry.sentTo}</td>
-      <td>{current ? <span className="font-mono text-label">{current.providerName}</span> : <span className="text-ink-faint">—</span>}</td>
-      <td>
+      <td data-label="Sent to" className="text-label">{entry.sentTo}</td>
+      <td data-label="Live version">{current ? <span className="font-mono text-label">{current.providerName}</span> : <span className="text-ink-faint">—</span>}</td>
+      <td data-label="Status">
         <StatusBadge version={latest} />
         {latest && latest !== current && <p className="mt-1 font-mono text-caption text-ink-faint">{latest.providerName}</p>}
       </td>
@@ -131,8 +131,8 @@ export default async function TemplatesPage({ searchParams }: { searchParams: Pr
       <ListToolbar id="template-list" path={PATH} label="Templates list" keep={{}} filterCount={0} clearHref={null} group={groupMenu(PATH, query, group, TEMPLATE_GROUPS, TEMPLATE_GROUP_LABEL)} />
       <ListViews userId={user.id} target={TARGET} path={PATH} query={query} />
       <FoldScope enabled={Boolean(group)}>
-        <section className="card overflow-x-auto">
-          <table className="data-table">
+        <section className="card table-cards overflow-x-auto">
+          <table className="data-table max-md:p-3">
             <thead>
               <tr>
                 {head("Message", "message")}

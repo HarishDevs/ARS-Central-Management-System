@@ -41,7 +41,7 @@ export function StatePage({
           <label htmlFor="state-q" className="sr-only">
             {search.label}
           </label>
-          <input id="state-q" name="q" type="search" placeholder={search.placeholder} className="field-input" />
+          <input id="state-q" data-search-kind="finder" name="q" type="search" placeholder={search.placeholder} className="field-input" />
           <button type="submit" className="btn-secondary">
             Search
           </button>

@@ -1,8 +1,8 @@
 "use client";
 
-import { Link2, Lock, Plus, Share2, Users, X } from "lucide-react";
+import { Link2, Lock, Plus, Share2, Users } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { followAction, memberAction, privacyAction } from "@/app/users/work/actions";
 import { initials } from "@/features/ui/Display";
 import { useToast } from "@/features/ui/Toast";
@@ -10,21 +10,13 @@ import { useWorkCall } from "@/features/work/client";
 import { PersonSelect } from "@/features/ui/PersonSelect";
 import { PRIVACY, PRIVACY_LABEL, PROJECT_ROLE_LABEL, PROJECT_ROLES, type ProjectRole } from "@/server/work/access";
 import { COPY_BLOCKED, copyText } from "@/features/ui/clipboard";
-import { closeTopLayer } from "@/features/ui/top-layer";
+import { Dialog } from "@/features/ui/Dialog";
 
 // D-220 (owner's screenshot: Asana's Share dialog): share a project or a
 // task from its own screen. Project: invite people or a department with a
 // role, who can see it (access settings), who has access with their roles,
 // copy the link. Task: add collaborators (followers), who can see it, copy
 // the link. Every change is checked again on the server.
-function useDialog(open: boolean, onClose: () => void) {
-  const ref = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    if (open && ref.current && !ref.current.open) ref.current.showModal();
-    if (!open && ref.current?.open) void closeTopLayer(ref.current); // v1.89.0 (D-420): with its exit animation
-  }, [open]);
-  return { ref, props: { onClose, onCancel: onClose } };
-}
 
 function copy(path: string, toast: ReturnType<typeof useToast>, what: string) {
   const link = `${window.location.origin}${path}`;
@@ -60,7 +52,6 @@ export function ProjectShareButton(props: {
 }
 
 function ProjectShareDialog({ projectId, name, privacy, departmentId, departments, members, people, canShare, canManage, onClose }: Parameters<typeof ProjectShareButton>[0] & { onClose: () => void }) {
-  const { ref, props } = useDialog(true, onClose);
   const toast = useToast();
   const { call, pending } = useWorkCall();
   const [who, setWho] = useState("");
@@ -76,18 +67,25 @@ function ProjectShareDialog({ projectId, name, privacy, departmentId, department
     return call(() => memberAction(null, data));
   };
   return (
-    <dialog ref={ref} {...props} aria-labelledby="share-project-title" className="ars-dialog w-[calc(100%-2rem)] max-w-xl rounded-xl border border-line bg-raised p-0 text-ink shadow-overlay" data-testid="share-dialog">
-      <header className="flex items-center gap-2 border-b border-line px-5 py-4">
-        <h2 id="share-project-title" className="flex-1 text-section">
-          Share {name}
-        </h2>
-        <Link href={`/users/work/projects/${projectId}/settings#permissions`} className="text-caption text-ink-muted hover:text-ink">
+    // v1.89.0 (D-423, UIQA-CON-18): the shared Dialog (title 18, ×, motion, focus back, footer on the right).
+    <Dialog
+      open
+      onClose={onClose}
+      title={`Share ${name}`}
+      description={
+        <Link href={`/users/work/projects/${projectId}/settings#permissions`} className="hover:text-ink">
           Project permissions
         </Link>
-        <button type="button" aria-label="Close" onClick={onClose} className="icon-btn -mr-2">
-          <X aria-hidden="true" className="h-5 w-5" />
+      }
+      size="lg"
+      flush
+      testId="share-dialog"
+      footer={
+        <button type="button" className="btn-secondary btn-compact inline-flex items-center gap-1" onClick={() => copy(`/users/work/projects/${projectId}`, toast, "Project")}>
+          <Link2 aria-hidden="true" className="h-4 w-4" /> Copy project link
         </button>
-      </header>
+      }
+    >
       {canShare && (
         <section className="space-y-2 border-b border-line px-6 py-4" aria-labelledby="invite-title">
           <h3 id="invite-title" className="font-semibold">
@@ -209,12 +207,7 @@ function ProjectShareDialog({ projectId, name, privacy, departmentId, department
           ))}
         </ul>
       </section>
-      <footer className="flex justify-end border-t border-line px-6 py-3">
-        <button type="button" className="btn-secondary btn-compact inline-flex items-center gap-1" onClick={() => copy(`/users/work/projects/${projectId}`, toast, "Project")}>
-          <Link2 aria-hidden="true" className="h-4 w-4" /> Copy project link
-        </button>
-      </footer>
-    </dialog>
+    </Dialog>
   );
 }
 
@@ -254,20 +247,24 @@ export function TaskShareButton(props: { taskId: number; title: string; follower
 }
 
 function TaskShareDialog({ taskId, title, followers, people, visibility, canAdd, onClose }: Parameters<typeof TaskShareButton>[0] & { onClose: () => void }) {
-  const { ref, props } = useDialog(true, onClose);
   const toast = useToast();
   const { call, pending } = useWorkCall();
   const [who, setWho] = useState("");
   return (
-    <dialog ref={ref} {...props} aria-labelledby="share-task-title" className="ars-dialog w-[calc(100%-2rem)] max-w-lg rounded-xl border border-line bg-raised p-0 text-ink shadow-overlay" data-testid="share-dialog">
-      <header className="flex items-center gap-2 border-b border-line px-5 py-4">
-        <h2 id="share-task-title" className="min-w-0 flex-1 truncate text-section">
-          Share {title}
-        </h2>
-        <button type="button" aria-label="Close" onClick={onClose} className="icon-btn -mr-2">
-          <X aria-hidden="true" className="h-5 w-5" />
+    // v1.89.0 (D-423, UIQA-CON-18): the shared Dialog.
+    <Dialog
+      open
+      onClose={onClose}
+      title={`Share ${title}`}
+      size="md"
+      flush
+      testId="share-dialog"
+      footer={
+        <button type="button" className="btn-secondary btn-compact inline-flex items-center gap-1" onClick={() => copy(`/users/tasks/${taskId}`, toast, "Task")}>
+          <Link2 aria-hidden="true" className="h-4 w-4" /> Copy task link
         </button>
-      </header>
+      }
+    >
       {canAdd && (
         <section className="space-y-2 border-b border-line px-6 py-4">
           <h3 className="font-semibold">Add collaborators</h3>
@@ -308,11 +305,6 @@ function TaskShareDialog({ taskId, title, followers, people, visibility, canAdd,
           ))}
         </ul>
       </section>
-      <footer className="flex justify-end border-t border-line px-6 py-3">
-        <button type="button" className="btn-secondary btn-compact inline-flex items-center gap-1" onClick={() => copy(`/users/tasks/${taskId}`, toast, "Task")}>
-          <Link2 aria-hidden="true" className="h-4 w-4" /> Copy task link
-        </button>
-      </footer>
-    </dialog>
+    </Dialog>
   );
 }

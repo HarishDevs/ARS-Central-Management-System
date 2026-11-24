@@ -43,13 +43,18 @@ export default async function UserDetailPage({ params, searchParams }: { params:
 
   return (
     <>
-      <Breadcrumbs items={[{ href: "/admin", label: "Admin" }, { href: "/admin/users", label: "Users & roles" }, { label: user.name }]} />
+      <Breadcrumbs
+        items={[{ href: "/admin", label: "Admin" }, { href: "/admin/users", label: "Users & roles" }, { label: user.name }]}
+        // v1.89.0 (NAV-03, D-419): back to the list with the search and sort it was left with;
+        // D-423 (UIQA-CON-11): on the breadcrumb's line, as on every detail page.
+        back={
+          <OriginLink href="/admin/users" className="link text-label" testId="all-link">
+            ← All users
+          </OriginLink>
+        }
+      />
       <PageHeader title={user.name} meta={`${user.loginId} · ${user.email}`}>
         {canTryAs(actor, target).ok && <TryAsButton userId={user.id} />}
-        {/* v1.89.0 (NAV-03, D-419): back to the list with the search and sort it was left with. */}
-        <OriginLink href="/admin/users" className="link text-label" testId="all-link">
-          ← All users
-        </OriginLink>
       </PageHeader>
       {created && (
         <p role="status" className="mb-4 rounded-md bg-success-50 px-3 py-2 text-label text-success-600">

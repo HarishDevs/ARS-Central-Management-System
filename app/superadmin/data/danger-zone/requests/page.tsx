@@ -59,11 +59,11 @@ export default async function SuperAdminRequestsPage({ searchParams }: { searchP
   const rowOf = (item: (typeof items)[number]) => (
     <tr key={item.id}>
       {!deleted && (
-        <td className="w-10">
+        <td className="w-10" data-card-lead="">
           <RequestRowCheckbox requestId={item.id} requestNo={item.requestNo} />
         </td>
       )}
-      <td>
+      <td data-card-title="">
         {deleted ? (
           <span className="font-mono text-label">{item.requestNo}</span>
         ) : (
@@ -75,18 +75,18 @@ export default async function SuperAdminRequestsPage({ searchParams }: { searchP
           <SafeText text={item.title} />
         </p>
       </td>
-      <td>
+      <td data-label="Raised by">
         {item.requesterName}
         {item.departmentName && <p className="text-caption text-ink-muted">{item.departmentName}</p>}
       </td>
-      <td>{item.workflowName}</td>
-      <td>
+      <td data-label="Approval type">{item.workflowName}</td>
+      <td data-label="Status">
         <RequestStatusPill status={item.status} validUntil={item.validUntil} />
       </td>
-      <td>
+      <td data-label="Priority">
         <PriorityPill priority={priority[item.id]} />
       </td>
-      <td className="whitespace-nowrap text-label text-ink-muted">
+      <td data-label={deleted ? "Deleted" : "Raised"} className="whitespace-nowrap text-label text-ink-muted">
         {deleted && item.deletedAt ? (
           <>
             {formatIndiaTime(item.deletedAt)}
@@ -96,7 +96,7 @@ export default async function SuperAdminRequestsPage({ searchParams }: { searchP
           formatIndiaTime(item.submittedAt)
         )}
       </td>
-      <td className="text-right">
+      <td data-label={deleted ? "Reason" : undefined} className="text-right">
         {deleted ? <span className="text-label">{item.deleteReason}</span> : <DeleteRequestButton requestId={item.id} requestNo={item.requestNo} />}
       </td>
     </tr>
@@ -154,8 +154,8 @@ export default async function SuperAdminRequestsPage({ searchParams }: { searchP
       {!deleted && (result.items.length > 0 || Boolean(q)) && <BulkDeleteRequests />}
       {result.items.length > 0 && (
         <FoldScope enabled={Boolean(group)}>
-          <section className="card overflow-x-auto">
-            <table className="data-table">
+          <section className="card table-cards overflow-x-auto">
+            <table className="data-table max-md:p-3">
               <thead>
                 <tr>
                   {!deleted && (

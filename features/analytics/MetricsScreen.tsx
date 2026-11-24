@@ -36,8 +36,8 @@ export async function MetricsScreen({ base }: { base: AnalyticsBase }) {
           <strong>Periods:</strong> raised by the submission date, approved/rejected/withdrawn by the closing date, decisions by the decision date. The comparison is the equally long period just before.
         </p>
       </section>
-      <div className="card overflow-x-auto" tabIndex={0} role="region" aria-label="Metric dictionary (scrolls sideways)">
-        <table className="data-table">
+      <div className="card table-cards overflow-x-auto" tabIndex={0} role="region" aria-label="Metric dictionary (scrolls sideways)">
+        <table className="data-table max-md:p-3">
           <caption className="sr-only">Metric dictionary</caption>
           <thead>
             <tr>
@@ -55,14 +55,14 @@ export async function MetricsScreen({ base }: { base: AnalyticsBase }) {
                 <th scope="row" className="min-w-40 align-top font-semibold">
                   {metric.name}
                 </th>
-                <td className="min-w-64 align-top text-label">
+                <td data-label="Meaning and formula" className="min-w-64 align-top text-label">
                   {metric.meaning}
                   <span className="mt-1 block font-mono text-caption text-ink-muted">{metric.formula}</span>
                 </td>
-                <td className="min-w-48 align-top text-label">{metric.includes}</td>
-                <td className="min-w-48 align-top text-label">{metric.excludes}</td>
-                <td className="align-top text-label">{metric.timing === "Now" ? "Right now" : "In the period"}</td>
-                <td className="min-w-48 align-top text-label">
+                <td data-label="Included" className="min-w-48 align-top text-label">{metric.includes}</td>
+                <td data-label="Left out" className="min-w-48 align-top text-label">{metric.excludes}</td>
+                <td data-label="When" className="align-top text-label">{metric.timing === "Now" ? "Right now" : "In the period"}</td>
+                <td data-label="Board and reliability" className="min-w-48 align-top text-label">
                   {metric.board}
                   <span className={`mt-1 block font-semibold ${metric.reliability === "Unavailable" ? "text-danger-600" : metric.reliability === "Partial" ? "text-warning-600" : "text-success-600"}`}>{metric.reliability ?? "Reliable"}</span>
                   {metric.limits && <span className="mt-1 block text-caption text-ink-muted">{metric.limits}</span>}

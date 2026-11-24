@@ -48,7 +48,7 @@ export function SettingsConsole({ sections, children }: { sections: { id: string
           </label>
           <div className="relative mb-3">
             <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" />
-            <input id="settings-search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find a setting" className="field-input pl-9" />
+            <input id="settings-search" data-search-kind="finder" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find a setting" className="field-input pl-9" />
             {query && (
               <button type="button" aria-label="Clear search" onClick={() => setQuery("")} className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-ink-muted hover:bg-surface-muted">
                 <X aria-hidden="true" className="h-3.5 w-3.5" />

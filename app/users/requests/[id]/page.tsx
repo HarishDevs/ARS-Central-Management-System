@@ -198,27 +198,38 @@ export default async function RequestPage({
   return (
     <>
       {/* D-234 (Jakob): ← Back goes to the list the breadcrumb names. */}
-      <Breadcrumbs items={[{ href: "/users", label: "Home" }, way, { label: view.requestNo }]} />
+      {/* v1.89.0 (D-423, UIQA-CON-11 / CON-12): the way back on the breadcrumb's line; status and validity beside the title. */}
+      <Breadcrumbs
+        items={[{ href: "/users", label: "Home" }, way, { label: view.requestNo }]}
+        back={
+          returnTo ? (
+            <Link href={returnTo.href} className="link text-label" data-testid="return-to">
+              ← Back to {returnTo.label}
+            </Link>
+          ) : (
+            <OriginLink href={backTo.href} className="link text-label" testId="back-to-list" crossList label={backTo.label} prefix="← Back to " />
+          )
+        }
+      />
       <NavOwner href={backTo.href} />
       {/* v1.42.1 (owner's sketch): the title and number across the top; D-273: the approval journey below them, full width. */}
       <div className="mb-6 grid items-center gap-4" data-testid="request-top">
         <div className="min-w-0 [&>div]:mb-0">
-          <PageHeader title={view.title} badge={view.priority && !view.priority.hidden ? <RequestPriorityBadge priority={view.priority} /> : undefined} meta={`${view.requestNo} · ${view.workflowName} · raised by ${view.requesterName}${view.round > 1 ? ` · round ${view.round}` : ""}`}>
-            <div className="flex flex-wrap items-center gap-3">
-              <RequestStatusPill status={view.status} validUntil={view.validUntil} />
-              <ValidityBadge validUntil={view.validUntil} />
-              {/* #10: a plain download, not a page (no prefetch). */}
-              <a href={`/api/requests/${view.id}/summary.pdf`} className="link text-label" download>
-                Download PDF
-              </a>
-              {returnTo ? (
-                <Link href={returnTo.href} className="link text-label" data-testid="return-to">
-                  ← Back to {returnTo.label}
-                </Link>
-              ) : (
-                <OriginLink href={backTo.href} className="link text-label" testId="back-to-list" crossList label={backTo.label} prefix="← Back to " />
-              )}
-            </div>
+          <PageHeader
+            title={view.title}
+            badge={
+              <>
+                {view.priority && !view.priority.hidden && <RequestPriorityBadge priority={view.priority} />}
+                <RequestStatusPill status={view.status} validUntil={view.validUntil} />
+                <ValidityBadge validUntil={view.validUntil} />
+              </>
+            }
+            meta={`${view.requestNo} · ${view.workflowName} · raised by ${view.requesterName}${view.round > 1 ? ` · round ${view.round}` : ""}`}
+          >
+            {/* #10: a plain download, not a page (no prefetch). */}
+            <a href={`/api/requests/${view.id}/summary.pdf`} className="link text-label" download>
+              Download PDF
+            </a>
           </PageHeader>
         </div>
         {journey && (

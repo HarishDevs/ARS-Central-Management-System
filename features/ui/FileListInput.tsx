@@ -108,7 +108,7 @@ export function FileListInput({
         }}
       />
       <div
-        className={`rounded-xl border-2 border-dashed px-4 py-5 text-center transition-colors ${dragging ? "border-primary-600 bg-primary-50/60" : "border-line-strong bg-surface-muted/40 hover:border-primary-600/60"}`}
+        className={`rounded-card border-2 border-dashed px-4 py-5 text-center transition-colors ${dragging ? "border-primary-600 bg-primary-50/60" : "border-line-strong bg-surface-muted/40 hover:border-primary-600/60"}`}
         onDragOver={(event) => {
           if (full) return;
           event.preventDefault();

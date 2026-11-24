@@ -35,7 +35,10 @@ export default async function RuleEditorPage({ params, searchParams }: { params:
           Saved. The rule runs from the next job run (about every 5 minutes).
         </p>
       )}
+      {/* v1.89.0 (D-423): a single-column settings form keeps the form width (960), not the full page. */}
+      <div className="max-w-form">
       <NotificationRuleEditor id={id} initial={initial} formFields={{ APPROVAL: approvalFields, TASK: taskFields }} people={people.map((person) => ({ id: person.id, label: personLabel(person), detail: person.departmentName ?? undefined }))} />
+      </div>
     </>
   );
 }

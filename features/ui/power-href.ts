@@ -10,9 +10,11 @@ export function powerHref(
 ): string {
   const query = new URLSearchParams();
   for (const [key, value] of Object.entries({ ...params, ...change })) {
+    // page and open are dropped from the current address; a change that names one keeps
+    // it (v1.89.0, D-423: the Tickets and Meetings rows asked for ?open= and lost it,
+    // so a click on their rows did not open the record pane).
     if (
-      key === "page" ||
-      key === "open" ||
+      ((key === "page" || key === "open") && !(key in change)) ||
       value === null ||
       value === undefined ||
       value === ""

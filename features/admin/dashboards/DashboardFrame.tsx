@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { PendingLink } from "@/features/ui/PendingLink";
-import { PageHeader } from "@/features/shell/PageHeader";
+import { ListPage } from "@/features/ui/ListPage";
 import { Hint } from "@/features/ui/Hint";
 import { ListToolbar } from "@/features/ui/ListToolbar";
 import { CUSTOM_TYPE, filterQuery, financialYearStart, presets, type DashboardFilter } from "@/server/dashboards/filters";
@@ -58,12 +58,17 @@ export function DashboardFrame({
   const path = `/admin/insights/dashboards/${slug}`;
   const group = groups?.find((choice) => choice.key === keep.group)?.key ?? null;
   return (
-    <>
-      <PageHeader title={current.title} description={current.description}>
+    // v1.89.0 (D-423, UIQA-CON-01): the shared list page order (PageHeader, the
+    // dashboard tabs, the shared toolbar, the list); its tables are phone cards.
+    <ListPage
+      title={current.title}
+      description={current.description}
+      action={
         <a href={`/api/admin/dashboards/${slug}?${filterText}`} className="btn-secondary btn-compact" download>
           Download CSV
         </a>
-      </PageHeader>
+      }
+      tabs={
       <nav aria-label="Dashboards" className="mb-4 flex flex-wrap gap-2">
         {DASHBOARDS.map((item) => (
           <Link
@@ -78,7 +83,9 @@ export function DashboardFrame({
           </Link>
         ))}
       </nav>
-      {/* v1.51.1 (owner): toolbar filters instead of a filter form. */}
+      }
+      toolbar={
+      // v1.51.1 (owner): toolbar filters instead of a filter form.
       <ListToolbar
         id="dashboard-filters"
         path={`/admin/insights/dashboards/${slug}`}
@@ -131,6 +138,8 @@ export function DashboardFrame({
           </>
         }
       />
+      }
+    >
       <p className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-ink-muted">
         <span>Quick:</span>
         {/* Plain links with a pending spinner: the last click always wins (QA DEF-04). */}
@@ -143,7 +152,7 @@ export function DashboardFrame({
       </p>
       {userId !== undefined && query && <ListViews userId={userId} target={`list_admin_dash_${slug}`} path={path} query={query} />}
       {children}
-    </>
+    </ListPage>
   );
 }
 
@@ -248,14 +257,14 @@ export function DashboardTable({
   const renderRow = (rowIndex: number) => (
     <tr key={rowIndex}>
       {rows[rowIndex]!.map((cell, index) => (
-        <td key={index} className={head[index]?.numeric ? "text-right tabular-nums" : index === 0 ? "min-w-48" : undefined}>
+        <td key={index} data-label={index === 0 ? undefined : head[index]?.label} className={head[index]?.numeric ? "text-right tabular-nums" : index === 0 ? "min-w-48" : undefined}>
           {cell}
         </td>
       ))}
     </tr>
   );
   return (
-    <section className="card overflow-x-auto">
+    <section className="card table-cards overflow-x-auto">
       {title && <h2 className="border-b border-line px-5 py-4 font-semibold">{title}</h2>}
       {legend && rows.length > 0 && <OutcomeLegend />}
       {rows.length === 0 ? (

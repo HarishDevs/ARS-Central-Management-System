@@ -4,7 +4,7 @@ import { ArrowRight, CalendarClock, CheckCircle2, FileText, FolderKanban, Histor
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { SHORTCUTS, isTyping } from "@/features/shell/shortcuts";
-import { Hint } from "@/features/ui/Hint";
+import { Dialog } from "@/features/ui/Dialog";
 import { Avatar } from "@/features/ui/Avatar";
 import { openTaskHref } from "@/features/work/pane-open";
 import { openOverlay, type OverlayHandle } from "@/features/ui/overlay-stack";
@@ -90,9 +90,7 @@ export function CommandPalette({ pages, saved }: { pages: PaletteLink[]; saved?:
   const [filters, setFilters] = useState<Record<string, string>>({ type: "task", status: "open", assignee: "", createdBy: "", due: "", from: "", to: "", priority: "", kind: "", role: "any", overdue: "" });
   const [extra, setExtra] = useState<string[]>([]);
   const dialog = useRef<HTMLDialogElement>(null);
-  const helpDialog = useRef<HTMLDialogElement>(null);
   const paletteEntry = useRef<OverlayHandle | null>(null);
-  const helpEntry = useRef<OverlayHandle | null>(null);
   const input = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const pathname = usePathname();
@@ -155,18 +153,6 @@ export function CommandPalette({ pages, saved }: { pages: PaletteLink[]; saved?:
       paletteEntry.current = null;
     }
   }, [open]);
-  useEffect(() => {
-    const node = helpDialog.current;
-    if (!node) return;
-    if (help && !node.open) {
-      node.showModal();
-      helpEntry.current = openOverlay({ element: node, kind: "dialog", native: true, restoreFocus: false });
-    } else if (!help && node.open) void closeTopLayer(node);
-    if (!help) {
-      helpEntry.current?.release();
-      helpEntry.current = null;
-    }
-  }, [help]);
 
   // Debounced; the latest answer wins.
   useEffect(() => {
@@ -656,35 +642,31 @@ export function CommandPalette({ pages, saved }: { pages: PaletteLink[]; saved?:
           </div>
         )}
       </dialog>
-      <dialog
-        ref={helpDialog}
-        aria-labelledby={`${listId}-help`}
+      {/* v1.89.0 (D-423, UIQA-CON-18): the shortcuts list on the shared Dialog (title, ×, motion, focus back). */}
+      <Dialog
+        open={help}
         onClose={() => setHelp(false)}
-        onClick={(event) => event.target === helpDialog.current && setHelp(false)}
-        className="palette-dialog z-palette w-[calc(100%-2rem)] max-w-md rounded-xl border border-line bg-raised p-0 text-ink shadow-overlay backdrop:bg-overlay"
+        title="Keyboard shortcuts"
+        description="They never fire while you type in a field."
+        size="md"
+        testId="shortcuts-dialog"
+        footer={
+          <button type="button" className="btn-secondary btn-compact" onClick={() => setHelp(false)}>
+            Close
+          </button>
+        }
       >
-        {help && (
-          <div className="p-5">
-            <h2 id={`${listId}-help`} className="flex items-center gap-1.5 font-semibold">
-              Keyboard shortcuts
-              <Hint text="They never fire while you type in a field." align="start" />
-            </h2>
-            <dl className="mt-3 divide-y divide-line text-label">
-              {SHORTCUTS.map((item) => (
-                <div key={item.keys} className="flex items-center justify-between gap-4 py-2">
-                  <dt>
-                    <kbd className="rounded border border-line bg-surface-muted px-1.5 py-0.5 text-caption">{item.keys}</kbd>
-                  </dt>
-                  <dd className="text-right text-ink-muted">{item.what}</dd>
-                </div>
-              ))}
-            </dl>
-            <button type="button" className="btn-secondary btn-compact mt-4" onClick={() => setHelp(false)}>
-              Close
-            </button>
-          </div>
-        )}
-      </dialog>
+        <dl className="divide-y divide-line text-label">
+          {SHORTCUTS.map((item) => (
+            <div key={item.keys} className="flex items-center justify-between gap-4 py-2">
+              <dt>
+                <kbd className="rounded border border-line bg-surface-muted px-1.5 py-0.5 text-caption">{item.keys}</kbd>
+              </dt>
+              <dd className="text-right text-ink-muted">{item.what}</dd>
+            </div>
+          ))}
+        </dl>
+      </Dialog>
     </>
   );
 }

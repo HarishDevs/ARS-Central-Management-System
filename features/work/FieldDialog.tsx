@@ -479,7 +479,7 @@ function LibraryPanel({ projectId, inProject, onAdded }: { projectId: number; in
       <label className="flex items-center gap-2">
         <Search aria-hidden="true" className="h-4 w-4 text-ink-muted" />
         <span className="sr-only">Search the field library</span>
-        <input type="search" value={q} onChange={(event) => setQ(event.target.value)} placeholder="Search the field library" className="field-input field-compact" />
+        <input type="search" data-search-kind="finder" value={q} onChange={(event) => setQ(event.target.value)} placeholder="Search the field library" className="field-input field-compact" />
       </label>
       {items === null ? (
         <InlineLoading />

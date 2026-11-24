@@ -11,7 +11,7 @@ import { openCreateTask, useDeleteWithUndo, useWorkCall } from "@/features/work/
 import { Menu, type MenuItem } from "@/features/ui/Menu";
 import { runAutomationOnTaskAction } from "@/app/users/work/automation-actions";
 import { clampPaneWidth, PANE_DEFAULT, PANE_MAX, PANE_MIN } from "@/server/work/pm-rules";
-import { closeTopLayer } from "@/features/ui/top-layer";
+import { Dialog } from "@/features/ui/Dialog";
 
 // v1.62.0 (D-368, spec CMP-27 / PRJ views §13): the parts of the task pane
 // beside a project view: its resize handle (drag, or ← / → on the focused
@@ -160,10 +160,6 @@ export function PaneMoreMenu({ taskId, title, canDelete, closeHref, automations 
   const { call } = useWorkCall();
   const { remove, pending } = useDeleteWithUndo();
   const [confirming, setConfirming] = useState(false);
-  const dialog = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    if (confirming && dialog.current && !dialog.current.open) dialog.current.showModal();
-  }, [confirming]);
   const path = `/users/tasks/${taskId}`;
   const pane = () => document.querySelector<HTMLElement>("[data-task-pane]") ?? document.body;
   // Moves to a part of the pane (and opens it when folded), else says where it is.
@@ -221,35 +217,38 @@ export function PaneMoreMenu({ taskId, title, canDelete, closeHref, automations 
   return (
     <>
       <Menu label="More actions for this task" title="More actions" trigger={<MoreHorizontal aria-hidden="true" className="h-5 w-5" />} buttonClass="grid h-8 w-8 place-items-center rounded-md text-ink-muted hover:bg-surface-muted hover:text-ink" menuClass="w-60" items={items} testId="pane-more" />
-      {confirming && (
-        <dialog ref={dialog} onClose={() => setConfirming(false)} aria-labelledby="pane-delete-title" className="ars-dialog w-[calc(100%-2rem)] max-w-sm rounded-xl border border-line bg-raised p-0 text-ink shadow-overlay" data-testid="pane-delete-dialog">
-          <div className="space-y-3 p-5">
-            <h2 id="pane-delete-title" className="text-section">
-              Delete this task?
-            </h2>
-            <p className="text-label text-ink-muted">“{title}” and its subtasks go to Deleted. You can undo, or restore it for 30 days.</p>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                disabled={pending}
-                className="btn-danger btn-compact"
-                onClick={() =>
-                  void remove([taskId], `Deleted: ${title}`).then((result) => {
-                    if (dialog.current) void closeTopLayer(dialog.current);
-                    if (result?.ok) router.replace(closeHref, { scroll: false }); // v1.87.0: no history entry for a closed pane
-                  })
-                }
-                data-testid="pane-delete-confirm"
-              >
-                Yes, delete
-              </button>
-              <button type="button" className="btn-secondary btn-compact" onClick={() => dialog.current && void closeTopLayer(dialog.current)}>
-                Keep it
-              </button>
-            </div>
-          </div>
-        </dialog>
-      )}
+      {/* v1.89.0 (D-423, UIQA-CON-18): the shared Dialog (title, ×, footer, motion, focus back). */}
+      <Dialog
+        open={confirming}
+        onClose={() => setConfirming(false)}
+        title="Delete this task?"
+        description={<>“{title}” and its subtasks go to Deleted. You can undo, or restore it for 30 days.</>}
+        size="sm"
+        role="alertdialog"
+        locked={pending}
+        testId="pane-delete-dialog"
+        footer={
+          <>
+            <button type="button" className="btn-secondary btn-compact" disabled={pending} onClick={() => setConfirming(false)}>
+              Keep it
+            </button>
+            <button
+              type="button"
+              disabled={pending}
+              className="btn-danger btn-compact"
+              onClick={() =>
+                void remove([taskId], `Deleted: ${title}`).then((result) => {
+                  setConfirming(false);
+                  if (result?.ok) router.replace(closeHref, { scroll: false }); // v1.87.0: no history entry for a closed pane
+                })
+              }
+              data-testid="pane-delete-confirm"
+            >
+              Yes, delete
+            </button>
+          </>
+        }
+      />
     </>
   );
 }

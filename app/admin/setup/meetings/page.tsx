@@ -19,7 +19,8 @@ export default async function MeetingSettingsPage() {
   return (
     <>
       <PageHeader icon={CalendarCog} title="Meeting settings" description="Meeting types with their default points, and the Management group who see every meeting." />
-      <div className="space-y-6">
+      {/* v1.89.0 (D-423): a single-column settings form keeps the form width (960), not the full page. */}
+      <div className="max-w-form space-y-6">
         <section className="card px-5 py-4" aria-labelledby="management">
           <h2 id="management" className="mb-3 font-semibold">
             Management group (ED, MD)

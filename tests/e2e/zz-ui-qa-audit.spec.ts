@@ -172,19 +172,24 @@ async function measure(page: Page) {
     const toolbarKinds = [
       inMain('[data-testid="list-toolbar"]').length ? "ListToolbar" : null,
       inMain('[data-testid$="-toolbar"]:not([data-testid="list-toolbar"]), [role="toolbar"]:not([data-testid="list-toolbar"])').length ? "own toolbar" : null,
-      inMain('[data-testid*="power-search" i]').length ? "PowerSearch" : null,
-      inMain('input[type="search"], input[name="q"]').some((el) => !el.closest('[data-testid="list-toolbar"], [data-testid*="power-search" i], [role="dialog"], dialog')) ? "page search box" : null,
+      // v1.89.0 (D-423): PowerSearch inside the shared toolbar is that toolbar's filter (Admin -> Records);
+      // a search box that finds a page, setting, help topic or field (data-search-kind="finder") is not a list search.
+      inMain('[data-testid*="power-search" i]').some((el) => !el.closest('[data-testid="list-toolbar"]')) ? "PowerSearch" : null,
+      inMain('input[type="search"], input[name="q"]').some((el) => !el.closest('[data-testid="list-toolbar"], [data-testid*="power-search" i], [role="dialog"], dialog, [data-search-kind]') && !el.hasAttribute("data-search-kind")) ? "page search box" : null,
+      inMain('[data-search-kind="finder"]').length ? "finder" : null,
     ].filter(Boolean);
     const tables = inMain("table");
     const asTable = tables.filter((el) => getComputedStyle(el).display === "table");
-    const squeezed = asTable.filter((el) => {
+    // v1.89.0 (D-423): a true matrix (data-matrix) may scroll inside its own box by design; counted apart.
+    const matrix = asTable.filter((el) => el.hasAttribute("data-matrix")).length;
+    const squeezed = asTable.filter((el) => !el.hasAttribute("data-matrix")).filter((el) => {
       for (let node = el.parentElement; node && node !== main; node = node.parentElement) if (node.scrollWidth > node.clientWidth + 1 && getComputedStyle(node).overflowX !== "visible") return true;
       return false;
     }).length;
     return {
       toolbar: toolbarKinds.join(" + ") || null,
       listPage: inMain("[data-list-page]").length > 0,
-      tables: { total: tables.length, asTable: asTable.length, cards: tables.length - asTable.length, squeezed },
+      tables: { total: tables.length, asTable: asTable.length, cards: tables.length - asTable.length, squeezed, matrix },
       viewport: { w: vw, h: vh, dpr: window.devicePixelRatio },
       layoutAttr: document.querySelector("[data-layout]")?.getAttribute("data-layout") ?? null,
       view: document.querySelector("[data-view]")?.getAttribute("data-view") ?? null,

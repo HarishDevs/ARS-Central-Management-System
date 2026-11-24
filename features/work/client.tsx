@@ -10,7 +10,7 @@ import { useToast } from "@/features/ui/Toast";
 import type { ActionResult } from "@/lib/http/action-result";
 import { COPY_BLOCKED, copyText } from "@/features/ui/clipboard";
 import { useCelebrate, useCelebrationState } from "@/features/work/celebrate";
-import { closeTopLayer } from "@/features/ui/top-layer";
+import { Dialog } from "@/features/ui/Dialog";
 
 // D-215: small shared pieces of the Task & Project Management screens.
 
@@ -171,9 +171,11 @@ export function ProjectDot({ color, className = "h-2.5 w-2.5" }: { color: string
 }
 
 // The question itself, once per page (mounted in the users layout).
+// v1.89.0 (D-423, UIQA-CON-18): on the shared Dialog (title, ×, footer, motion, focus back).
 export function HolidayPrompt() {
   const [ask, setAsk] = useState<{ info: HolidayInfo; resolve: (choice: HolidayChoice | null) => void } | null>(null);
-  const dialog = useRef<HTMLDialogElement>(null);
+  // The question stays on screen while the dialog's closing animation plays.
+  const [shown, setShown] = useState<HolidayInfo | null>(null);
   useEffect(() => {
     const onAsk = (event: Event) => {
       event.preventDefault();
@@ -183,40 +185,44 @@ export function HolidayPrompt() {
     return () => window.removeEventListener(HOLIDAY_EVENT, onAsk);
   }, []);
   useEffect(() => {
-    if (ask && dialog.current && !dialog.current.open) dialog.current.showModal();
+    if (ask) setShown(ask.info);
   }, [ask]);
   const answer = (choice: HolidayChoice | null) => {
     ask?.resolve(choice);
     setAsk(null);
-    // v1.89.0 (D-420): closes with its exit animation in every browser (top-layer.ts).
-    if (dialog.current) void closeTopLayer(dialog.current);
   };
+  const info = ask?.info ?? shown;
   return (
-    <dialog ref={dialog} aria-labelledby="holiday-title" onCancel={() => answer(null)} className="ars-dialog w-[calc(100%-2rem)] max-w-md rounded-xl border border-line bg-raised p-0 text-ink shadow-overlay" data-testid="holiday-prompt">
-      {ask && (
-        <div className="space-y-3 p-5">
-          <h2 id="holiday-title" className="text-section">
-            {ask.info.away ? `${ask.info.day}: the person is out of office` : `${ask.info.day} is a holiday`}
-          </h2>
-          <p className="text-body">
-            {ask.info.name}. {ask.info.mode === "BLOCK" ? "Tasks can't be dated on holidays here; choose a working day." : ask.info.away ? "Keep the due date anyway, or move it to the day after they are back?" : `Keep the ${ask.info.field === "due" ? "due" : "start"} date anyway, or move it to a working day?`}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <button type="button" className="btn-primary btn-compact" onClick={() => answer({ moveTo: ask.info.suggestion })}>
-              Move to {ask.info.suggestion}
-            </button>
-            {ask.info.mode === "WARN" && (
-              <button type="button" className="btn-secondary btn-compact" onClick={() => answer({ holidayOk: true })}>
-                Keep {ask.info.day}
-              </button>
-            )}
+    <Dialog
+      open={Boolean(ask)}
+      onClose={() => answer(null)}
+      title={info ? (info.away ? `${info.day}: the person is out of office` : `${info.day} is a holiday`) : ""}
+      size="md"
+      testId="holiday-prompt"
+      footer={
+        info ? (
+          <>
             <button type="button" className="btn-secondary btn-compact" onClick={() => answer(null)}>
               Cancel
             </button>
-          </div>
-        </div>
+            {info.mode === "WARN" && (
+              <button type="button" className="btn-secondary btn-compact" onClick={() => answer({ holidayOk: true })}>
+                Keep {info.day}
+              </button>
+            )}
+            <button type="button" className="btn-primary btn-compact" onClick={() => answer({ moveTo: info.suggestion })}>
+              Move to {info.suggestion}
+            </button>
+          </>
+        ) : undefined
+      }
+    >
+      {info && (
+        <p className="text-body">
+          {info.name}. {info.mode === "BLOCK" ? "Tasks can't be dated on holidays here; choose a working day." : info.away ? "Keep the due date anyway, or move it to the day after they are back?" : `Keep the ${info.field === "due" ? "due" : "start"} date anyway, or move it to a working day?`}
+        </p>
       )}
-    </dialog>
+    </Dialog>
   );
 }
 

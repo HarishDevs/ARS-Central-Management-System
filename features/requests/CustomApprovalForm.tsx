@@ -301,7 +301,7 @@ export function CustomApprovalForm({
       {followUpOf && <input type="hidden" name="followUpOf" value={followUpOf} />}
 
       {/* The bar that stays put: the steps on the left, the actions on the right. */}
-      <div className="request-sticky sticky z-sticky -mx-1 rounded-xl border border-line bg-raised/95 px-2 py-2 shadow-card backdrop-blur" data-testid="request-bar">
+      <div className="request-sticky sticky z-sticky -mx-1 rounded-card border border-line bg-raised/95 px-2 py-2 shadow-card backdrop-blur" data-testid="request-bar">
         <div className="flex flex-wrap items-center gap-2">
           <nav aria-label="Steps" className="request-steps min-w-0 flex-1" data-testid="request-steps">
             <ol className="flex items-center gap-1">

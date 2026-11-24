@@ -7,9 +7,11 @@ import { USERS_ROUTE_PATTERNS } from "./users-routes";
 // address no page has to the real 404, before any layout runs, for everyone.
 const KNOWN = USERS_ROUTE_PATTERNS.map((pattern) => new RegExp(pattern));
 
-// Where the middleware rewrites an unknown /users address: no page has it, so
-// Next answers with the root not-found page and status 404.
-export const UNKNOWN_PAGE_REWRITE = "/__ars-unknown-page";
+// Where the middleware rewrites an unknown /users address. v1.89.0 (D-423,
+// UIQA-LAY-03): app/users/[...unknown] (status 404, the users not-found page
+// inside the shell, after the users layout's checks); it was the root 404
+// (no shell) before. The rewrite keeps the address the person typed.
+export const UNKNOWN_PAGE_REWRITE = "/users/__unknown-address";
 
 export function isUnknownUsersPath(pathname: string): boolean {
   if (!/^\/users(\/|$)/.test(pathname)) return false;

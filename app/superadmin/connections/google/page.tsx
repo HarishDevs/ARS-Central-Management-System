@@ -187,8 +187,8 @@ export default async function GoogleCalendarAdminPage({ searchParams }: { search
             <EmptyState title="Nobody has connected yet" body="Once the integration is enabled, people connect from Profile → Calendar." />
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-label" aria-label="Connected people">
+          <div className="table-cards overflow-x-auto">
+            <table className="w-full min-w-[760px] text-label max-md:p-3" aria-label="Connected people" data-cards>
               <thead className="text-left text-caption text-ink-muted">
                 <tr>
                   {connectionHead("Person", "con_person", { className: "px-4 py-2" })}
@@ -205,18 +205,18 @@ export default async function GoogleCalendarAdminPage({ searchParams }: { search
                     <td className="px-4 py-2">
                       {connection.userName} <span className="text-ink-muted">({connection.loginId})</span>
                     </td>
-                    <td className="px-4 py-2 break-all">
+                    <td data-label="Google account · calendar" className="px-4 py-2 break-all">
                       {connection.googleEmail ?? "Unknown"} · {connection.calendarName ?? "No calendar"}
                     </td>
-                    <td className="px-4 py-2">
+                    <td data-label="Status" className="px-4 py-2">
                       <Badge tone={CONNECTION_TONE[connection.status]}>{connection.status.replace("_", " ").toLowerCase()}</Badge>
                       {connection.lastError && <span className="mt-1 block text-caption text-danger-600">{connection.lastError}</span>}
                     </td>
-                    <td className="px-4 py-2">{when(connection.lastSyncAt)}</td>
-                    <td className="px-4 py-2 tabular-nums">
+                    <td data-label="Last sync" className="px-4 py-2">{when(connection.lastSyncAt)}</td>
+                    <td data-label="Waiting · conflicts" className="px-4 py-2 tabular-nums">
                       {connection.pendingJobs} · {connection.openConflicts}
                     </td>
-                    <td className="px-4 py-2">
+                    <td data-label="Actions" className="px-4 py-2">
                       <div className="flex flex-wrap gap-2">
                         {connection.status === "ACTIVE" && <CommandButton action={calendarCommandAction} fields={{ command: "resync", connectionId: connection.id }} label="Full resync" />}
                         {(connection.status === "ACTIVE" || connection.status === "NEEDS_REAUTH") && (
@@ -287,8 +287,8 @@ export default async function GoogleCalendarAdminPage({ searchParams }: { search
       </Card>
 
       <Card title="Recent sync log" className="mb-6" bodyClassName="p-0">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-label" aria-label="Recent syncs">
+        <div className="table-cards overflow-x-auto">
+          <table className="w-full min-w-[640px] text-label max-md:p-3" aria-label="Recent syncs" data-cards>
             <thead className="text-left text-caption text-ink-muted">
               <tr>
                 {syncHead("Queued", "sync_queued", { className: "px-4 py-2" })}
@@ -308,13 +308,13 @@ export default async function GoogleCalendarAdminPage({ searchParams }: { search
               )}
               {recent.map((job) => (
                 <tr key={job.id}>
-                  <td className="px-4 py-2 whitespace-nowrap">{when(job.createdAt)}</td>
-                  <td className="px-4 py-2">{job.userName}</td>
-                  <td className="px-4 py-2">
+                  <td data-label="Queued" className="px-4 py-2 whitespace-nowrap">{when(job.createdAt)}</td>
+                  <td data-card-title="" className="px-4 py-2">{job.userName}</td>
+                  <td data-label="Kind · reason" className="px-4 py-2">
                     {job.kind.replace("_", " ").toLowerCase()} · {job.reason.toLowerCase().replace(/_/g, " ")}
                   </td>
-                  <td className="px-4 py-2">{job.status.toLowerCase()}</td>
-                  <td className="px-4 py-2 text-caption text-ink-muted">
+                  <td data-label="Status" className="px-4 py-2">{job.status.toLowerCase()}</td>
+                  <td data-label="Result" className="px-4 py-2 text-caption text-ink-muted">
                     {job.result
                       ? Object.entries(job.result)
                           .filter(([, value]) => value)

@@ -64,6 +64,7 @@ export function SettingsSearch({ index, compact = false }: { index: readonly Set
         ref={input}
         id={id}
         type="search"
+        data-search-kind="finder"
         role="combobox"
         aria-expanded={open && results.length > 0}
         aria-controls={open && results.length > 0 ? `${id}-list` : undefined}

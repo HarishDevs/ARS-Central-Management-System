@@ -81,12 +81,18 @@ export default async function InformationPage({ params, searchParams }: { params
   return (
     <>
       {/* v1.89.0 (NAV-04, D-419): opened from Admin → Records, the way back is that list. */}
-      <Breadcrumbs items={[returnTo ? { href: returnTo.href, label: returnTo.label } : { href: viewer.recipient ? "/users/information" : "/users/information/sent", label: "Information" }, { label: item.infoNo }]} />
-      <PageHeader title={item.title} meta={`${item.infoNo} · ${item.typeName} (version ${versionNo}) · from ${item.createdByName}`}>
-        {returnTo && <ReturnToLink to={returnTo} />}
-        <Badge tone={INFO_STATE_TONE[state]}>{INFO_STATE_LABEL[state]}</Badge>
-        <TaskPriorityPill priority={item.priority} showNormal />
-      </PageHeader>
+      {/* v1.89.0 (D-423, UIQA-CON-11 / CON-12): the way back on the breadcrumb's line; the badges beside the title. */}
+      <Breadcrumbs items={[returnTo ? { href: returnTo.href, label: returnTo.label } : { href: viewer.recipient ? "/users/information" : "/users/information/sent", label: "Information" }, { label: item.infoNo }]} back={returnTo ? <ReturnToLink to={returnTo} /> : undefined} />
+      <PageHeader
+        title={item.title}
+        meta={`${item.infoNo} · ${item.typeName} (version ${versionNo}) · from ${item.createdByName}`}
+        badge={
+          <>
+            <Badge tone={INFO_STATE_TONE[state]}>{INFO_STATE_LABEL[state]}</Badge>
+            <TaskPriorityPill priority={item.priority} showNormal />
+          </>
+        }
+      />
       {query.published && (
         <p role="status" className="mb-4 rounded-md bg-success-50 px-3 py-2 text-label text-success-600">
           Published to {query.published} {query.published === "1" ? "person" : "people"}. They were told.

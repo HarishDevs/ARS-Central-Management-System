@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { PagedRows } from "@/features/ui/PagedRows";
-import { PageHeader, EmptyState } from "@/features/shell/PageHeader";
+import { EmptyState } from "@/features/shell/PageHeader";
 import { NoResults } from "@/features/ui/Display";
+import { ListPage } from "@/features/ui/ListPage";
 import { ListToolbar } from "@/features/ui/ListToolbar";
 import { PendingLink } from "@/features/ui/PendingLink";
 import { requireArea } from "@/server/authorization/guards";
@@ -74,8 +75,12 @@ export default async function LoginHistoryPage({ searchParams }: { searchParams:
   );
   return (
     <>
-      <PageHeader title="Sign-in history" description="Every sign-in attempt: who, how, from where, and why it failed. Newest first." />
       {/* v1.51.1 (owner): toolbar filters instead of a filter form. */}
+      {/* v1.89.0 (D-423, UIQA-CON-01): the shared list page (PageHeader, toolbar, list). */}
+      <ListPage
+        title="Sign-in history"
+        description="Every sign-in attempt: who, how, from where, and why it failed. Newest first."
+        toolbar={
       <ListToolbar
         id="login-filters"
         path={PATH}
@@ -97,6 +102,8 @@ export default async function LoginHistoryPage({ searchParams }: { searchParams:
           </div>
         }
       />
+        }
+      >
       <ListViews userId={user.id} target={TARGET} path={PATH} query={query} />
       {items.length === 0 ? (
         outcome ? (
@@ -155,6 +162,7 @@ export default async function LoginHistoryPage({ searchParams }: { searchParams:
           </div>
         )
       )}
+      </ListPage>
     </>
   );
 }

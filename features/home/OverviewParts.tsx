@@ -54,10 +54,12 @@ export function OverviewHeader({
   return (
     <>
       {greeting && <div className="mb-4">{greeting}</div>}
-      <header className="mb-5 flex flex-wrap items-start justify-between gap-4" data-tour={tour ? "page-header" : undefined} data-testid={testId}>
+      {/* v1.89.0 (D-423, UIQA-CON-15): the page header's spacing token (24; 16 on phones), as PageHeader;
+          the three overviews share this header, so they stay identical (D-406). */}
+      <header className="mb-section flex flex-wrap items-start justify-between gap-4" data-tour={tour ? "page-header" : undefined} data-testid={testId}>
         <div className="flex min-w-0 items-start gap-3">
           <div className="min-w-0">
-            <h1 className="text-page-title tracking-tight">{title}</h1>
+            <h1 className="min-w-0 text-page-title tracking-tight [overflow-wrap:anywhere]">{title}</h1>
             {role && (
               <p className="text-label text-ink-muted" data-testid="overview-role">
                 {role}

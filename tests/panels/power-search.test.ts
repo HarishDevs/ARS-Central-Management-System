@@ -19,5 +19,7 @@ describe("power search", () => {
   it("sets or removes one parameter, drops the page and the open pane, keeps the rest", () => {
     expect(powerHref("/admin/records/requests", { status: "APPROVED", page: "3", open: "9", sort: "title" }, { from: "2026-11-01" })).toBe("/admin/records/requests?status=APPROVED&sort=title&from=2026-11-01");
     expect(powerHref("/admin/records/requests", { status: "APPROVED" }, { status: null })).toBe("/admin/records/requests");
+    // v1.89.0 (D-423): a change that names open keeps it (the Tickets / Meetings rows open the pane).
+    expect(powerHref("/admin/records/tickets", { status: "open", page: "2", open: "4" }, { open: "7" })).toBe("/admin/records/tickets?status=open&open=7");
   });
 });

@@ -1,3 +1,4 @@
+import { Plus } from "lucide-react";
 import { Email } from "@/features/ui/SafeText";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -64,7 +65,7 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
         </Link>
         )}
         <Link href="/admin/users/new" className="btn-primary btn-compact">
-          Add user
+          <Plus aria-hidden="true" className="h-4 w-4" /> New user
         </Link>
       </PageHeader>
 

@@ -86,12 +86,19 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   return (
     <>
       {/* v1.89.0 (NAV-04, D-419): opened from Admin → Records, the way back is that list. */}
-      <Breadcrumbs items={[returnTo ? { href: returnTo.href, label: returnTo.label } : { href: "/users/tickets", label: "My tickets" }, { label: ticket.ticketNo }]} />
-      <PageHeader title={ticket.title} icon={Ticket} meta={`${ticket.ticketNo} · ${ticket.categoryName}`}>
-        {returnTo && <ReturnToLink to={returnTo} />}
-        <TicketPriorityBadge priority={ticket.priority} />
-        <TicketStatusBadge status={ticket.status} closeKind={ticket.closeKind} />
-      </PageHeader>
+      {/* v1.89.0 (D-423, UIQA-CON-11 / CON-12): the way back on the breadcrumb's line; the badges beside the title. */}
+      <Breadcrumbs items={[returnTo ? { href: returnTo.href, label: returnTo.label } : { href: "/users/tickets", label: "My tickets" }, { label: ticket.ticketNo }]} back={returnTo ? <ReturnToLink to={returnTo} /> : undefined} />
+      <PageHeader
+        title={ticket.title}
+        icon={Ticket}
+        meta={`${ticket.ticketNo} · ${ticket.categoryName}`}
+        badge={
+          <>
+            <TicketPriorityBadge priority={ticket.priority} />
+            <TicketStatusBadge status={ticket.status} closeKind={ticket.closeKind} />
+          </>
+        }
+      />
       {query.raised && (
         <p role="status" className="mb-4 rounded-md bg-success-50 px-3 py-2 text-label text-success-600">
           Ticket {ticket.ticketNo} raised. Its coordinators have been told.

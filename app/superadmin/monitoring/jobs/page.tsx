@@ -93,14 +93,14 @@ export default async function AutomationPage({ searchParams }: { searchParams: P
   const runHead = sortHeads(PATH, query, runSort);
   const runRow = (run: (typeof runs)[number]) => (
     <tr key={run.id}>
-      <td className="whitespace-nowrap">{formatIndiaTime(run.startedAt)}</td>
-      <td>{runName(run)}</td>
-      <td>{run.trigger === "MANUAL" ? "Run now" : "Scheduled"}</td>
-      <td className="text-label">
+      <td data-label="Started" className="whitespace-nowrap">{formatIndiaTime(run.startedAt)}</td>
+      <td data-card-title="">{runName(run)}</td>
+      <td data-label="How">{run.trigger === "MANUAL" ? "Run now" : "Scheduled"}</td>
+      <td data-label="Result" className="text-label">
         <Badge tone={run.status === "OK" ? "success" : run.status === "FAILED" ? "danger" : "neutral"}>{run.status === "OK" ? "OK" : run.status === "FAILED" ? "Failed" : "Running"}</Badge>
         <span className="mt-1 block text-caption text-ink-muted">{run.status === "FAILED" ? run.errorCode : describeCounts(run.counts)}</span>
       </td>
-      <td className="font-mono text-caption text-ink-muted">{run.runRef.slice(0, 12)}</td>
+      <td data-label="Reference" className="font-mono text-caption text-ink-muted">{run.runRef.slice(0, 12)}</td>
     </tr>
   );
 
@@ -125,11 +125,11 @@ export default async function AutomationPage({ searchParams }: { searchParams: P
         listLabel="Automations"
         list={
           <>
-      <section aria-labelledby="inventory" className="card mb-6 overflow-x-auto">
+      <section aria-labelledby="inventory" className="card table-cards mb-6 overflow-x-auto">
         <h2 id="inventory" className="border-b border-line px-5 py-3 font-semibold">
           Inventory
         </h2>
-        <table className="data-table">
+        <table className="data-table max-md:p-3">
           <thead>
             <tr>
               {inventoryHead("Automation", "inv_name")}
@@ -147,7 +147,7 @@ export default async function AutomationPage({ searchParams }: { searchParams: P
                   <span className="block text-caption text-ink-muted">{automation.what}</span>
                   <span className="block text-caption text-ink-muted">{automation.trigger}</span>
                 </td>
-                <td className="whitespace-nowrap">
+                <td data-label="Status" className="whitespace-nowrap">
                   <Badge tone={HEALTH[health].tone}>{HEALTH[health].label}</Badge>
                   {summary && summary.runs24h > 0 && (
                     <span className="mt-1 block text-caption text-ink-muted">
@@ -155,7 +155,7 @@ export default async function AutomationPage({ searchParams }: { searchParams: P
                     </span>
                   )}
                 </td>
-                <td className="min-w-48 text-label">
+                <td data-label="Last run" className="min-w-48 text-label">
                   {summary?.lastRun ? (
                     <>
                       {formatIndiaTime(summary.lastRun.startedAt)}
@@ -169,11 +169,11 @@ export default async function AutomationPage({ searchParams }: { searchParams: P
                     History
                   </Link>
                 </td>
-                <td className="min-w-56 text-caption">
+                <td data-label="Retries and safety" className="min-w-56 text-caption">
                   <span className="block">{automation.retry}</span>
                   <span className="block text-ink-muted">{automation.idempotency}</span>
                 </td>
-                <td className="min-w-56 space-y-2 text-caption">
+                <td data-label="If it fails" className="min-w-56 space-y-2 text-caption">
                   <span className="block">{automation.onFailure}</span>
                   <span className="block text-ink-muted">Recover: {automation.recovery}</span>
                   <span className="block text-ink-muted">Owner: {automation.owner}</span>
@@ -185,14 +185,14 @@ export default async function AutomationPage({ searchParams }: { searchParams: P
         </table>
       </section>
 
-      <section aria-labelledby="unsent" className="card mb-6 overflow-x-auto">
+      <section aria-labelledby="unsent" className="card table-cards mb-6 overflow-x-auto">
         <h2 id="unsent" className="border-b border-line px-5 py-3 font-semibold">
           Messages not sent ({unsent.length})
         </h2>
         {unsent.length === 0 ? (
           <p className="px-5 py-4 text-label text-ink-muted">Every queued message has been sent.</p>
         ) : (
-          <table className="data-table">
+          <table className="data-table max-md:p-3">
             <thead>
               <tr>
                 {unsentHead("Message", "out_message")}
@@ -208,7 +208,7 @@ export default async function AutomationPage({ searchParams }: { searchParams: P
               {unsentRows.map((row) => (
                 <tr key={row.id}>
                   <td className="font-mono text-caption">{row.eventType}</td>
-                  <td>
+                  <td data-label="Request">
                     {row.requestId && row.requestNo ? (
                       <Link href={`/users/requests/${row.requestId}`} className="link">
                         {row.requestNo}
@@ -217,8 +217,8 @@ export default async function AutomationPage({ searchParams }: { searchParams: P
                       "—"
                     )}
                   </td>
-                  <td className="whitespace-nowrap">{formatIndiaTime(row.createdAt)}</td>
-                  <td>
+                  <td data-label="Queued" className="whitespace-nowrap">{formatIndiaTime(row.createdAt)}</td>
+                  <td data-label="Tries">
                     {row.gaveUp ? <Badge tone="danger">{row.attempts} · gave up</Badge> : row.attempts}
                     {/* D-243 (audit DB-014): a send that started but wasn't recorded may have gone out; check before resending. */}
                     {row.unconfirmed && (
@@ -241,7 +241,7 @@ export default async function AutomationPage({ searchParams }: { searchParams: P
         }
         logLabel="Run log"
         log={
-      <section aria-labelledby="runs-title" id="runs" className="card overflow-x-auto">
+      <section aria-labelledby="runs-title" id="runs" className="card table-cards overflow-x-auto">
         <h2 className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-5 py-3 font-semibold">
           <span id="runs-title">Recent runs{job ? `: ${nameOf.get(job)}` : ""}</span>
           {job && (
@@ -260,7 +260,7 @@ export default async function AutomationPage({ searchParams }: { searchParams: P
               <ListToolbar id="automation-runs" path={PATH} label="Recent runs" keep={{}} filterCount={0} clearHref={null} group={groupMenu(PATH, query, group, RUN_GROUPS, RUN_GROUP_LABEL)} />
             </div>
             <FoldScope enabled={Boolean(group)}>
-              <table className="data-table">
+              <table className="data-table max-md:p-3">
                 <thead>
                   <tr>
                     {runHead("Started", "run_started")}

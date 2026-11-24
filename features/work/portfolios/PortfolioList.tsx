@@ -177,8 +177,9 @@ export function PortfolioList({
           Nothing in this portfolio yet.{canEdit ? " Use Add work to add a project or a portfolio." : ""}
         </p>
       ) : (
+        <div className="table-cards">
         <div className="card overflow-x-auto">
-          <table className="w-full min-w-[56rem] text-left text-label" data-testid="portfolio-grid">
+          <table className="w-full min-w-[56rem] text-left text-label" data-testid="portfolio-grid" data-cards>
             <caption className="sr-only">Projects and portfolios in this portfolio</caption>
             <thead className="border-b border-line text-caption text-ink-muted">
               <tr>
@@ -248,6 +249,7 @@ export function PortfolioList({
               )}
             </tbody>
           </table>
+        </div>
         </div>
       )}
     </section>
@@ -337,26 +339,26 @@ function Line({ row, fields, canEdit, portfolioId, people, duration }: { row: Vi
           {row.archived && <span className="rounded bg-surface-muted px-1.5 text-caption text-ink-muted">Archived</span>}
         </span>
       </th>
-      <td className="px-3 py-2">
+      <td data-label="Status" className="px-3 py-2">
         <StatusPill status={row.status} />
       </td>
-      <td className="px-3 py-2">
+      <td data-label="Task progress" className="px-3 py-2">
         <ProgressMeter percent={progress.percent} text={progress.text} />
       </td>
       {duration === undefined ? (
-        <td className="whitespace-nowrap px-3 py-2">{dayWords(row.dueOn)}</td>
+        <td data-label="Due date" className="whitespace-nowrap px-3 py-2">{dayWords(row.dueOn)}</td>
       ) : (
         <>
-          <td className="whitespace-nowrap px-3 py-2" data-testid="row-dates">
+          <td data-label="Dates" className="whitespace-nowrap px-3 py-2" data-testid="row-dates">
             {row.startOn || row.dueOn ? `${row.startOn ? `From ${dayWords(row.startOn)} ` : ""}${row.dueOn ? `To ${dayWords(row.dueOn)}` : ""}`.trim() : "—"}
           </td>
-          <td className="whitespace-nowrap px-3 py-2 text-ink-muted" data-testid="row-duration">
+          <td data-label="Duration" className="whitespace-nowrap px-3 py-2 text-ink-muted" data-testid="row-duration">
             {duration ?? "—"}
           </td>
         </>
       )}
-      <td className="whitespace-nowrap px-3 py-2">{row.ownerName}</td>
-      <td className="px-3 py-2">
+      <td data-label="Owner" className="whitespace-nowrap px-3 py-2">{row.ownerName}</td>
+      <td data-label="Priority" className="px-3 py-2">
         {canEdit ? (
           <>
             <label className="sr-only" htmlFor={`prio-${row.itemId}`}>
@@ -376,7 +378,7 @@ function Line({ row, fields, canEdit, portfolioId, people, duration }: { row: Vi
         )}
       </td>
       {fields.map((field) => (
-        <td key={field.id} className="px-3 py-2">
+        <td key={field.id} data-label={field.name} className="px-3 py-2">
           {canEdit ? <ValueEditor key={`${field.id}:${row.values[field.id] ?? ""}`} field={field} value={row.values[field.id] ?? ""} rowName={row.name} people={people} save={(value) => void call(() => portfolioValueAction(portfolioId, row.itemId, field.id, value), { success: false })} /> : <ValueText field={field} value={row.values[field.id] ?? ""} people={people} />}
         </td>
       ))}

@@ -77,7 +77,7 @@ export default async function AdminHome({ searchParams }: { searchParams: Promis
             </label>
             <div className="relative flex-1">
               <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" />
-              <input id="admin-record-search" type="search" name="q" defaultValue={q} maxLength={100} placeholder="Number, title or person" className="field-input pl-9" />
+              <input id="admin-record-search" data-search-kind="finder" type="search" name="q" defaultValue={q} maxLength={100} placeholder="Number, title or person" className="field-input pl-9" />
             </div>
             <button type="submit" className="btn-primary">
               Search

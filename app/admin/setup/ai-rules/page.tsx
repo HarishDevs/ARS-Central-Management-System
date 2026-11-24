@@ -19,7 +19,10 @@ export default async function AiRulesPage() {
         title="AI rules"
         description="Teach Pico Bot your company's terms and where things are kept, e.g. 'Dealers are Salesforce Accounts with Type = Dealer; customers are Accounts with Type = Customer'. Every AI provider follows these rules with every question. They can't override Pico Bot's safety rules (read-only, people's permissions, no invented figures)."
       />
+      {/* v1.89.0 (D-423): a single-column settings form keeps the form width (960), not the full page. */}
+      <div className="max-w-form">
       <RulesEditor rules={rules.map((rule) => ({ scope: rule.scope, content: rule.content, updatedBy: rule.updatedBy, updatedAt: rule.updatedAt ? rule.updatedAt.toISOString() : null }))} maxChars={MAX_RULES_CHARS} />
+      </div>
     </>
   );
 }

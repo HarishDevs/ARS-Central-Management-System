@@ -44,7 +44,9 @@ import { powerHref } from "@/features/ui/power-href";
 import { useOverlay } from "@/features/ui/overlay-stack";
 import { navigateSurely } from "@/features/ui/sure-nav";
 
-export function PowerSearch({ base, fields, params, label = "Filters" }: { base: string; fields: PowerField[]; params: Record<string, string | undefined>; label?: string }) {
+// v1.89.0 (D-423, UIQA-CON-01): `inToolbar` = the shared ListToolbar's lead (Admin -> Records): the chips and
+// Add filter sit on the toolbar row, as the Filter panel's advanced mode; no margin of its own.
+export function PowerSearch({ base, fields, params, label = "Filters", inToolbar = false }: { base: string; fields: PowerField[]; params: Record<string, string | undefined>; label?: string; inToolbar?: boolean }) {
   const router = useRouter();
   const id = useId();
   const [open, setOpen] = useState(false);
@@ -87,7 +89,7 @@ export function PowerSearch({ base, fields, params, label = "Filters" }: { base:
   };
 
   return (
-    <div className="relative mb-3" data-testid="power-search">
+    <div className={`relative ${inToolbar ? "min-w-0" : "mb-3"}`} data-testid="power-search">
       <div role="group" aria-label={label} className="flex flex-wrap items-center gap-2">
         <SlidersHorizontal aria-hidden="true" className="h-4 w-4 text-ink-faint" />
         {chips.length === 0 && <span className="text-label text-ink-muted">No filters</span>}

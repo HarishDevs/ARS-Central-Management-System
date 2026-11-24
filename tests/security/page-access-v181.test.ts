@@ -58,7 +58,8 @@ describe("isOpenAddress (V181-A7)", () => {
     const root = path.resolve(__dirname, "../..");
     const walk = (dir: string): string[] =>
       // v1.83.0 (D-410): a parallel-route slot (@pane) is no address of its own; it is drawn beside the page asked for.
-      fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => (entry.isDirectory() ? (entry.name.startsWith("@") ? [] : walk(path.join(dir, entry.name))) : entry.name === "page.tsx" ? [dir] : []));
+      // v1.89.0 (D-423, UIQA-LAY-03): [...unknown] answers an address no page has (the area's 404); it is no page address.
+      fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => (entry.isDirectory() ? (entry.name.startsWith("@") || entry.name === "[...unknown]" ? [] : walk(path.join(dir, entry.name))) : entry.name === "page.tsx" ? [dir] : []));
     const addresses = ["users", "admin"].flatMap((area) =>
       walk(path.join(root, "app", area)).map((dir) =>
         `/${path.relative(path.join(root, "app"), dir).split(path.sep).filter((part) => !/^\(.*\)$/.test(part)).map((part) => (/^\[.*\]$/.test(part) ? "1" : part)).join("/")}`,

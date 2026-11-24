@@ -214,7 +214,7 @@ export function MyTasks({
             <section
               key={section.id}
               aria-label={section.name}
-              className={`kanban-col flex w-board-col shrink-0 flex-col rounded-xl border border-t-4 border-line bg-surface-muted ${columnAccent(index)}`}
+              className={`kanban-col flex w-board-col shrink-0 flex-col rounded-card border border-t-4 border-line bg-surface-muted ${columnAccent(index)}`}
               onDragOver={(event) => event.preventDefault()}
               onDrop={(event) => {
                 event.preventDefault();

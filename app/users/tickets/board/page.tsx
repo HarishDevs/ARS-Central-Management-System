@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
+import { RecordNo } from "@/features/ui/RecordNo";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Columns3 } from "lucide-react";
-import { PageHeader } from "@/features/shell/PageHeader";
+import { ListPage } from "@/features/ui/ListPage";
+import { ListToolbar } from "@/features/ui/ListToolbar";
 import { EmptyState } from "@/features/ui/Display";
 import { FoldScope, FoldTbody } from "@/features/ui/GroupFold";
 import { SortTh } from "@/features/ui/SortTh";
@@ -103,6 +104,18 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
     const text = params.toString();
     return `/users/tickets/board${text ? `?${text}` : ""}`;
   };
+  // Filter's Clear all: the board without Category / Only overdue (the status chip, search and sort stay).
+  const clearFiltersHref = (() => {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (statusFilter) params.set("status", statusFilter);
+    if (sort.sortBy) {
+      params.set("sortBy", sort.sortBy);
+      params.set("dir", sort.dir);
+    }
+    const text = params.toString();
+    return `${BOARD_PATH}${text ? `?${text}` : ""}`;
+  })();
   const shown = STATUSES.filter((item) => !statusFilter || item.status === statusFilter);
   // The address without the sort (each column title adds its own), and the whole
   // address for "Save this view".
@@ -111,60 +124,67 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
 
   return (
     <>
-      <PageHeader
+      {/* v1.89.0 (D-423, UIQA-CON-01): the shared list page and toolbar: the status chips lead
+          the row, Category and Only overdue are in Filter, Search is the toolbar's (same address
+          parameters: category, overdue, q, status, sortBy, dir). */}
+      <ListPage
         title="Coordinator board"
-        icon={Columns3}
         description={isAdmin ? "Where every ticket is now, by status." : "Where the tickets of the forms you coordinate are now, by status."}
-      />
-      <form method="get" className="card mb-4 flex flex-wrap items-end gap-3 px-4 py-3" aria-label="Filter the board">
-        <div>
-          <label htmlFor="board-category" className="field-label">
-            Category
-          </label>
-          <select id="board-category" name="category" defaultValue={categoryId ?? ""} className="field-input field-compact py-0">
-            <option value="">All categories</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="min-w-48 flex-1">
-          <label htmlFor="board-q" className="field-label">
-            Search
-          </label>
-          <input id="board-q" name="q" defaultValue={q} maxLength={100} placeholder="Ticket number or subject" className="field-input field-compact" />
-        </div>
-        <label className="flex min-h-9 items-center gap-2 text-label">
-          <input type="checkbox" name="overdue" value="1" defaultChecked={overdueOnly} /> Only overdue
-        </label>
-        {statusFilter && <input type="hidden" name="status" value={statusFilter} />}
-        {sort.sortBy && <input type="hidden" name="sortBy" value={sort.sortBy} />}
-        {sort.sortBy && <input type="hidden" name="dir" value={sort.dir} />}
-        <button type="submit" className="btn-secondary btn-compact">
-          Apply
-        </button>
+        toolbar={
+          <ListToolbar
+            id="board"
+            path={BOARD_PATH}
+            label="Filter the board"
+            keep={{ status: statusFilter ?? undefined, sortBy: sort.sortBy ?? undefined, dir: sort.sortBy ? sort.dir : undefined }}
+            search={{ name: "q", value: q, placeholder: "Ticket number or subject" }}
+            filterCount={(categoryId ? 1 : 0) + (overdueOnly ? 1 : 0)}
+            clearHref={categoryId || overdueOnly ? clearFiltersHref : null}
+            filters={
+              <>
+                <div>
+                  <label htmlFor="board-category" className="field-label">
+                    Category
+                  </label>
+                  <select id="board-category" name="category" defaultValue={categoryId ?? ""} className="field-input field-compact">
+                    <option value="">All categories</option>
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <label className="flex min-h-9 items-center gap-2 self-end text-label">
+                  <input type="checkbox" name="overdue" value="1" defaultChecked={overdueOnly} /> Only overdue
+                </label>
+              </>
+            }
+            lead={
+              <nav aria-label="Status" className="flex flex-wrap gap-2" data-testid="board-status-chips">
+                <Link href={hrefWith(null)} aria-current={!statusFilter ? "page" : undefined} className={chip(!statusFilter)}>
+                  All ({items.length})
+                </Link>
+                {STATUSES.map(({ status }) => (
+                  <Link key={status} href={hrefWith(status)} aria-current={statusFilter === status ? "page" : undefined} className={chip(statusFilter === status)}>
+                    {TICKET_STATUS_LABEL[status]} ({(byStatus.get(status) ?? []).length})
+                  </Link>
+                ))}
+              </nav>
+            }
+          />
+        }
+      >
+      <p className="mb-3 text-label text-ink-muted" data-testid="board-summary">
+        {items.filter((item) => item.status !== "CLOSED").length} open · <span className={overdueCount ? "font-semibold text-danger-600" : ""}>{overdueCount} overdue</span>
         {(filtered || statusFilter || sort.sortBy) && (
-          <Link href="/users/tickets/board" className="link text-label">
-            Clear
-          </Link>
+          <>
+            {" · "}
+            <Link href="/users/tickets/board" className="link">
+              Clear all
+            </Link>
+          </>
         )}
-        <p className="ml-auto text-label text-ink-muted" data-testid="board-summary">
-          {items.filter((item) => item.status !== "CLOSED").length} open · <span className={overdueCount ? "font-semibold text-danger-600" : ""}>{overdueCount} overdue</span>
-        </p>
-      </form>
-
-      <nav aria-label="Status" className="mb-3 flex flex-wrap gap-2" data-testid="board-status-chips">
-        <Link href={hrefWith(null)} aria-current={!statusFilter ? "page" : undefined} className={chip(!statusFilter)}>
-          All ({items.length})
-        </Link>
-        {STATUSES.map(({ status }) => (
-          <Link key={status} href={hrefWith(status)} aria-current={statusFilter === status ? "page" : undefined} className={chip(statusFilter === status)}>
-            {TICKET_STATUS_LABEL[status]} ({(byStatus.get(status) ?? []).length})
-          </Link>
-        ))}
-      </nav>
+      </p>
 
       {/* v1.58.0 (D-354): saved views (private): category, search, overdue, status, sort. */}
       <ListViews userId={user.id} target={VIEW_TARGET} path={BOARD_PATH} query={viewQuery} />
@@ -175,7 +195,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
         // always grouped by status, so it gets Expand all / Collapse all too. It starts OPEN (not
         // folded like a chosen Group by): its purpose is to see at a glance where every ticket is.
         <FoldScope defaultOpen testId="board-fold-all">
-          <div className="card overflow-x-auto">
+          <div className="card table-cards overflow-x-auto">
             <table className="data-table" data-testid="ticket-board">
               <caption className="sr-only">Tickets by status</caption>
               <thead>
@@ -203,12 +223,10 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
                         const overdue = isOverdue(item, now);
                         return (
                           <tr key={item.id} data-testid="board-card">
-                            <td className="whitespace-nowrap font-mono text-label">
-                              <Link href={`/users/tickets/${item.id}`} className="link">
-                                {item.ticketNo}
-                              </Link>
+                            <td data-label="Ticket" className="whitespace-nowrap">
+                              <RecordNo no={item.ticketNo} href={`/users/tickets/${item.id}`} />
                             </td>
-                            <td>
+                            <td data-card-title="">
                               <Link href={`/users/tickets/${item.id}`} className="link font-medium">
                                 {item.title}
                               </Link>
@@ -216,22 +234,22 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
                                 {item.categoryName} · {item.typeName}
                               </p>
                             </td>
-                            <td className="text-label">{item.requesterName}</td>
-                            <td className="text-label">{item.departmentName ?? "—"}</td>
-                            <td>
+                            <td data-label="Requestor" className="text-label">{item.requesterName}</td>
+                            <td data-label="Department" className="text-label">{item.departmentName ?? "—"}</td>
+                            <td data-label="Priority">
                               <TicketPriorityBadge priority={item.priority} />
                             </td>
-                            <td className="text-label">
+                            <td data-label="Assigned to" className="text-label">
                               {item.assigneeName ?? <span className="text-ink-muted">Not assigned</span>}
                               {item.taskNo && <span className="block font-mono text-caption text-ink-muted">{item.taskNo}</span>}
                             </td>
-                            <td className="whitespace-nowrap text-label">{status === "CLOSED" ? `${item.closeKind === "AUTO" ? "Auto closed" : "Closed"} ${dayText(item.statusSince)}` : ago(item.statusSince, now)}</td>
-                            <td className={`whitespace-nowrap text-label ${overdue ? "font-semibold text-danger-600" : ""}`}>
+                            <td data-label="In this status" className="whitespace-nowrap text-label">{status === "CLOSED" ? `${item.closeKind === "AUTO" ? "Auto closed" : "Closed"} ${dayText(item.statusSince)}` : ago(item.statusSince, now)}</td>
+                            <td data-label="Target date" className={`whitespace-nowrap text-label ${overdue ? "font-semibold text-danger-600" : ""}`}>
                               {item.dueAt ? dayText(item.dueAt) : "—"}
                               {overdue && <span className="block text-caption">Overdue</span>}
                             </td>
-                            <td className="whitespace-nowrap text-label">{item.requiredOn ? isoDayText(item.requiredOn) : "—"}</td>
-                            <td className="text-caption text-ink-muted">
+                            <td data-label="Needed by" className="whitespace-nowrap text-label">{item.requiredOn ? isoDayText(item.requiredOn) : "—"}</td>
+                            <td data-label="Notes" className="text-caption text-ink-muted">
                               {status === "AWAITING_CONFIRMATION" && item.confirmDueOn && <span className="block">Auto-closes after {isoDayText(item.confirmDueOn)}</span>}
                               {item.reopenCount > 0 && <span className="block text-danger-600">Reopened {item.reopenCount}×</span>}
                             </td>
@@ -246,6 +264,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
           </div>
         </FoldScope>
       )}
+      </ListPage>
     </>
   );
 }

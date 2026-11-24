@@ -3,6 +3,7 @@ import { DEFAULT_MODULES } from "@/server/modules/modules";
 import { DEFAULT_CHAT_MODES } from "@/server/ai/chat-access";
 import { OriginLink } from "@/features/ui/OriginLink";
 import { PageHeader } from "@/features/shell/PageHeader";
+import { Breadcrumbs } from "@/features/ui/Display";
 import { UserForm } from "@/features/admin/UserForm";
 import { loadUserFormOptions } from "@/features/admin/user-options";
 import { requireArea } from "@/server/authorization/guards";
@@ -15,12 +16,17 @@ export default async function NewUserPage() {
   const options = await loadUserFormOptions();
   return (
     <>
-      <PageHeader title="Add user" description="Password users then get a set-password link by email from their user page.">
-        {/* v1.89.0 (NAV-03, D-419): back to the list with the search and sort it was left with. */}
-        <OriginLink href="/admin/users" className="link text-label" testId="all-link">
-          ← All users
-        </OriginLink>
-      </PageHeader>
+      <Breadcrumbs
+        items={[{ href: "/admin", label: "Admin" }, { href: "/admin/users", label: "Users & roles" }, { label: "Add user" }]}
+        // v1.89.0 (NAV-03, D-419): back to the list with the search and sort it was left with;
+        // D-423 (UIQA-CON-11): on the breadcrumb's line, as on every detail page.
+        back={
+          <OriginLink href="/admin/users" className="link text-label" testId="all-link">
+            ← All users
+          </OriginLink>
+        }
+      />
+      <PageHeader title="Add user" description="Password users then get a set-password link by email from their user page." />
       <div className="max-w-3xl">
         <UserForm
           mode="create"

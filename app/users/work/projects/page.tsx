@@ -1,3 +1,4 @@
+import { Plus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -49,7 +50,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
         description="Projects group tasks in sections, with list, board, calendar and timeline views, members and status updates."
         action={
           <Link href="/users/work/projects/new" className="btn-primary btn-compact inline-flex items-center gap-1" data-testid="create-project">
-            + Create project
+            <Plus aria-hidden="true" className="h-4 w-4" /> New project
           </Link>
         }
         toolbar={
@@ -117,7 +118,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
             ) : (
               <EmptyState
                 title="No projects yet"
-                body="Use Create project: you'll be its owner and can add people or a whole department."
+                body="Use New project: you'll be its owner and can add people or a whole department."
                 // v1.72.1 (D-395, QA F-15): the main action inside the empty state too.
                 action={
                   <Link href="/users/work/projects/new" className="btn-secondary btn-compact">

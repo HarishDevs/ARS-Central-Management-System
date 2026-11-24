@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Ticket } from "lucide-react";
-import { PageHeader } from "@/features/shell/PageHeader";
+import { Plus } from "lucide-react";
+import { ListPage } from "@/features/ui/ListPage";
 import { EmptyState } from "@/features/ui/Display";
 import { TICKET_GROUP_LABEL, TICKET_GROUPS, TicketTable } from "@/features/tickets/TicketParts";
 import { ListToolbar } from "@/features/ui/ListToolbar";
@@ -43,11 +43,16 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
   };
   return (
     <>
-      <PageHeader title="My tickets" icon={Ticket} description="Tickets you raised, and tickets assigned to you (work on them in your Tasks).">
-        <Link href="/users/tickets/new" className="btn-primary btn-compact">
-          Raise a ticket
-        </Link>
-      </PageHeader>
+      {/* v1.89.0 (D-423, UIQA-CON-01): the shared list page (PageHeader, tabs, toolbar, list). */}
+      <ListPage
+        title="My tickets"
+        description="Tickets you raised, and tickets assigned to you (work on them in your Tasks)."
+        action={
+          <Link href="/users/tickets/new" className="btn-primary btn-compact">
+            <Plus aria-hidden="true" className="h-4 w-4" /> New ticket
+          </Link>
+        }
+        tabs={
       <nav aria-label="Which tickets" className="mb-3 flex flex-wrap gap-x-1 border-b border-line">
         {(Object.keys(VIEWS) as (keyof typeof VIEWS)[]).map((key) => (
           <Link key={key} href={href({ view: key, page: 1 })} aria-current={view === key ? "page" : undefined} className={`-mb-px border-b-2 px-3 py-2 text-label ${view === key ? "border-primary-600 font-semibold text-primary-700" : "border-transparent text-ink-muted hover:text-ink"}`}>
@@ -55,6 +60,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
           </Link>
         ))}
       </nav>
+        }
+        toolbar={
       <ListToolbar
         id="ticket-list"
         path="/users/tickets"
@@ -82,6 +89,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
           choices: TICKET_GROUPS.map((value) => ({ label: TICKET_GROUP_LABEL[value], href: href({ group: value, page: 1 }), active: group === value })),
         }}
       />
+        }
+      >
       {/* v1.58.0 (D-354): saved views (private) of this list: tab, status, search, group, sort. */}
       <ListViews userId={user.id} target="list_my_tickets" path="/users/tickets" query={{ view, state, ...(group ? { group } : {}), ...(q ? { q } : {}), ...sortKeep }} />
       {items.length === 0 ? (
@@ -109,6 +118,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
           {page < pages ? <Link href={href({ page: page + 1 })} className="link">Next →</Link> : <span />}
         </nav>
       )}
+      </ListPage>
     </>
   );
 }

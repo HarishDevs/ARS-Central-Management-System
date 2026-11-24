@@ -72,7 +72,7 @@ export default async function RaisersDashboardPage({ searchParams }: { searchPar
           { label: "Raises the most", value: top ? top.name : "—", note: top ? `${top.raised} · ${top.department}` : undefined },
         ]}
       />
-      <section className="card overflow-x-auto">
+      <section className="card table-cards overflow-x-auto">
         {rows.length === 0 ? (
           <p className="px-5 py-4 text-label text-ink-muted">No requests in this period.</p>
         ) : (
@@ -102,30 +102,30 @@ export default async function RaisersDashboardPage({ searchParams }: { searchPar
                       <th scope="rowgroup" className="min-w-48 px-4 py-2 text-left !text-label !font-semibold !normal-case !tracking-normal !text-ink">
                         {department} <span className="font-normal text-ink-muted">· {people.length === 1 ? "1 person" : `${people.length} people`}</span>
                       </th>
-                      <td className="text-right font-semibold tabular-nums">{total(people, "raised")}</td>
-                      <td>
+                      <td data-label="Raised" className="text-right font-semibold tabular-nums">{total(people, "raised")}</td>
+                      <td data-label="Outcome">
                         <OutcomeBar approved={total(people, "approved")} rejected={total(people, "rejected")} open={total(people, "open")} withdrawn={total(people, "withdrawn")} />
                       </td>
-                      <td className="text-right tabular-nums">{total(people, "approved")}</td>
-                      <td className="text-right tabular-nums">{total(people, "rejected")}</td>
-                      <td className="text-right tabular-nums">{total(people, "open")}</td>
-                      <td className="text-right tabular-nums">{rateText(total(people, "approved"), total(people, "rejected"))}</td>
-                      <td />
-                      <td />
+                      <td data-label="Approved" className="text-right tabular-nums">{total(people, "approved")}</td>
+                      <td data-label="Rejected" className="text-right tabular-nums">{total(people, "rejected")}</td>
+                      <td data-label="Open" className="text-right tabular-nums">{total(people, "open")}</td>
+                      <td data-label="Approval rate" className="text-right tabular-nums">{rateText(total(people, "approved"), total(people, "rejected"))}</td>
+                      <td data-label="Avg to close" />
+                      <td data-label="Last raised" />
                     </tr>
                     {people.map((row) => (
                       <tr key={row.requesterId}>
-                        <td className="pl-8">{row.name}</td>
-                        <td className="text-right tabular-nums">{row.raised}</td>
-                        <td>
+                        <td data-card-title="" className="pl-8">{row.name}</td>
+                        <td data-label="Raised" className="text-right tabular-nums">{row.raised}</td>
+                        <td data-label="Outcome">
                           <OutcomeBar approved={row.approved} rejected={row.rejected} open={row.open} withdrawn={row.withdrawn} />
                         </td>
-                        <td className="text-right tabular-nums">{row.approved}</td>
-                        <td className="text-right tabular-nums">{row.rejected}</td>
-                        <td className="text-right tabular-nums">{row.open}</td>
-                        <td className="text-right tabular-nums">{rateText(row.approved, row.rejected)}</td>
-                        <td className="text-right tabular-nums">{hoursText(row.avgCloseHours)}</td>
-                        <td className="whitespace-nowrap text-label text-ink-muted">{row.lastRaisedAt ? formatIndiaTime(row.lastRaisedAt) : "—"}</td>
+                        <td data-label="Approved" className="text-right tabular-nums">{row.approved}</td>
+                        <td data-label="Rejected" className="text-right tabular-nums">{row.rejected}</td>
+                        <td data-label="Open" className="text-right tabular-nums">{row.open}</td>
+                        <td data-label="Approval rate" className="text-right tabular-nums">{rateText(row.approved, row.rejected)}</td>
+                        <td data-label="Avg to close" className="text-right tabular-nums">{hoursText(row.avgCloseHours)}</td>
+                        <td data-label="Last raised" className="whitespace-nowrap text-label text-ink-muted">{row.lastRaisedAt ? formatIndiaTime(row.lastRaisedAt) : "—"}</td>
                       </tr>
                     ))}
                   </Fragment>

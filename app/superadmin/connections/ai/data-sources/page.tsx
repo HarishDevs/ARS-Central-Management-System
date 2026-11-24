@@ -77,8 +77,8 @@ export default async function AiDataSourcesPage({ searchParams }: { searchParams
       <PageHeader title="AI data sources" description="Where the AI's data comes from, whether it is connected, and how fresh it is. Read-only access only." />
       <ListViews userId={user.id} target={TARGET} path={PATH} query={query} />
       <div className="space-y-6">
-        <div className="card overflow-x-auto">
-          <table className="data-table" data-testid="ai-sources">
+        <div className="card table-cards overflow-x-auto">
+          <table className="data-table max-md:p-3" data-testid="ai-sources">
             <caption className="sr-only">Data sources</caption>
             <thead>
               <tr>
@@ -93,23 +93,23 @@ export default async function AiDataSourcesPage({ searchParams }: { searchParams
               {sources.map((source) => (
                 <tr key={source.key}>
                   <td className="font-medium">{source.name}</td>
-                  <td className="text-label">{source.what}</td>
-                  <td>
+                  <td data-label="What it provides" className="text-label">{source.what}</td>
+                  <td data-label="Status">
                     <Badge tone={status[source.key]!.tone}>{status[source.key]!.text}</Badge>
                   </td>
-                  <td className="text-label text-ink-muted">{status[source.key]!.last}</td>
-                  <td className="text-label text-ink-muted">{needs(source)}</td>
+                  <td data-label="Last successful sync" className="text-label text-ink-muted">{status[source.key]!.last}</td>
+                  <td data-label="Needed before connecting" className="text-label text-ink-muted">{needs(source)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
         {sfRuns.length > 0 && (
-          <section className="card overflow-x-auto" aria-labelledby="sf-runs">
+          <section className="card table-cards overflow-x-auto" aria-labelledby="sf-runs">
             <h2 id="sf-runs" className="px-5 pt-4 font-semibold">
               Salesforce objects
             </h2>
-            <table className="data-table" data-testid="ai-sf-runs">
+            <table className="data-table max-md:p-3" data-testid="ai-sf-runs">
               <thead>
                 <tr>
                   {runHead("Object", "object")}
@@ -122,9 +122,9 @@ export default async function AiDataSourcesPage({ searchParams }: { searchParams
                 {runs.map((run) => (
                   <tr key={run.dataset}>
                     <td className="font-medium">{run.dataset}</td>
-                    <td>{recordsOf(run.dataset)}</td>
-                    <td className="text-label text-ink-muted">{formatIndiaTime(run.startedAt)}</td>
-                    <td className="text-label">{run.status === "SUCCEEDED" ? `Succeeded (${run.rowsFetched} changed)` : run.status === "RUNNING" ? "Running" : `Failed: ${run.error ?? "unknown"} (the last good copy is kept)`}</td>
+                    <td data-label="Records copied">{recordsOf(run.dataset)}</td>
+                    <td data-label="Last run" className="text-label text-ink-muted">{formatIndiaTime(run.startedAt)}</td>
+                    <td data-label="Result" className="text-label">{run.status === "SUCCEEDED" ? `Succeeded (${run.rowsFetched} changed)` : run.status === "RUNNING" ? "Running" : `Failed: ${run.error ?? "unknown"} (the last good copy is kept)`}</td>
                   </tr>
                 ))}
               </tbody>

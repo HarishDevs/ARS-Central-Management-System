@@ -47,7 +47,7 @@ export function ChatList({ chats }: { chats: ChatSummary[] }) {
     <div className="space-y-1.5 py-1" data-testid="nav-chats">
       <div className="relative">
         <Search aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-faint" />
-        <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} aria-label="Search chats" placeholder="Search chats" className="field-input field-compact pl-8 pr-2 text-label" />
+        <input type="search" data-search-kind="finder" value={query} onChange={(event) => setQuery(event.target.value)} aria-label="Search chats" placeholder="Search chats" className="field-input field-compact pl-8 pr-2 text-label" />
       </div>
       {problem && (
         <p role="alert" className="px-2 text-caption text-danger-600">

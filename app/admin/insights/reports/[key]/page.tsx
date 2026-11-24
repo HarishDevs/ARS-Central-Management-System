@@ -5,8 +5,8 @@ import { notFound, redirect } from "next/navigation";
 import { Download } from "lucide-react";
 import { requireArea } from "@/server/authorization/guards";
 import { canUseReports } from "@/server/settings/features";
-import { PageHeader } from "@/features/shell/PageHeader";
 import { Breadcrumbs } from "@/features/ui/Display";
+import { ListPage } from "@/features/ui/ListPage";
 import { ListToolbar } from "@/features/ui/ListToolbar";
 import { BackgroundExportForm, SavedViews, SaveViewForm, ScheduleForm } from "@/features/analytics/ReportForms";
 import { listActiveUserOptions } from "@/lib/db/repositories/admin-users.repository";
@@ -73,7 +73,12 @@ export default async function ReportPage({ params, searchParams }: { params: Pro
   return (
     <>
       <Breadcrumbs items={[{ href: "/admin", label: "Overview" }, { href: "/admin/insights/reports", label: "Reports" }, { label: report.name }]} />
-      <PageHeader title={report.name} description={report.description} meta={`${scope.label}${report.usesPeriod ? ` · ${filter.period.label} (${filter.period.from} to ${filter.period.to})` : " · right now"}`}>
+      <ListPage
+        title={report.name}
+        description={report.description}
+        meta={`${scope.label}${report.usesPeriod ? ` · ${filter.period.label} (${filter.period.from} to ${filter.period.to})` : " · right now"}`}
+        action={
+          <>
         {!exporting ? (
           <p className="text-caption text-ink-muted">Downloads are limited to people with the Can export permission.</p>
         ) : (
@@ -86,8 +91,10 @@ export default async function ReportPage({ params, searchParams }: { params: Pro
           ))}
         </div>
         )}
-      </PageHeader>
-
+          </>
+        }
+        toolbar={
+          <>
       {/* v1.51.1 (owner): toolbar filters instead of a filter form. */}
       <ListToolbar
         id="report-filters"
@@ -172,7 +179,9 @@ export default async function ReportPage({ params, searchParams }: { params: Pro
           </>
         }
       />
-
+          </>
+        }
+      >
       <div className="mb-4 flex flex-wrap items-start gap-6">
         <SavedViews views={views.map((view) => ({ id: view.id, name: view.name, href: `/admin/insights/reports/${key}?${new URLSearchParams(view.query).toString()}`, mine: view.mine, shared: view.shared, isDefault: view.isDefault, ownerName: view.ownerName }))} />
         <SaveViewForm target={key} query={effective} />
@@ -190,7 +199,7 @@ export default async function ReportPage({ params, searchParams }: { params: Pro
                 {row.map((cell, cellIndex) => {
                   const column = result.columns[cellIndex]!;
                   return (
-                    <td key={column.key} className={column.kind === "text" || column.kind === "datetime" ? "" : "text-right tabular-nums"}>
+                    <td key={column.key} data-label={cellIndex === 0 ? undefined : column.label} className={column.kind === "text" || column.kind === "datetime" ? "" : "text-right tabular-nums"}>
                       {show(cell, column)}
                     </td>
                   );
@@ -211,6 +220,7 @@ export default async function ReportPage({ params, searchParams }: { params: Pro
         {result.rows.length > PREVIEW ? `Showing the first ${PREVIEW} of ${result.rows.length} rows; downloads include all of them. ` : `${result.rows.length} row${result.rows.length === 1 ? "" : "s"}. `}
         {result.truncated ? "Downloads stop at 5,000 rows: narrow the filters for the rest. " : ""}As of {formatIndiaTime(new Date())}.
       </p>
+      </ListPage>
     </>
   );
 }

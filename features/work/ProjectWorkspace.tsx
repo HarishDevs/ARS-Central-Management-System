@@ -587,7 +587,7 @@ export function ProjectWorkspace({
               <section
                 key={boardCol.key}
                 aria-label={`${boardCol.name}, ${count} task${count === 1 ? "" : "s"}`}
-                className={`kanban-col flex w-board-col shrink-0 flex-col rounded-xl border border-t-4 border-line bg-surface-muted ${columnAccent(index)}`}
+                className={`kanban-col flex w-board-col shrink-0 flex-col rounded-card border border-t-4 border-line bg-surface-muted ${columnAccent(index)}`}
                 onDragOver={(event) => canMoveCards && event.preventDefault()}
                 onDrop={(event) => {
                   event.preventDefault();

@@ -1,7 +1,7 @@
 import { Download } from "lucide-react";
-import { PageHeader } from "@/features/shell/PageHeader";
 import { EmptyState, NoResults } from "@/features/ui/Display";
 import { ListToolbar } from "@/features/ui/ListToolbar";
+import { ListPage } from "@/features/ui/ListPage";
 import { personLabel } from "@/lib/people/label";
 import { requireArea } from "@/server/authorization/guards";
 import { canExport } from "@/server/settings/features";
@@ -9,7 +9,7 @@ import { listRecords, recordChoices, RECORDS_EXPORT_MAX, RECORDS_PAGE_SIZE } fro
 import { INFO_PRIORITIES, INFO_STATUSES, readRecordFilter, RECORD_GROUPS, recordQuery, REQUEST_STATUSES, TASK_PRIORITIES, TASK_STATUSES, type RecordFilter, type RecordKind } from "@/server/records/filters";
 import { ListViews } from "@/features/lists/ListViews";
 import { PowerSearch, type PowerField } from "@/features/ui/PowerSearch";
-import { RecordTable, type RecordTableRow } from "@/features/ui/RecordTable";
+import { DataTable, type Row as TableRow } from "@/features/ui/DataTable";
 import { RecordPane } from "@/features/ui/RecordPane";
 import { DetailsList } from "@/features/ui/DetailsList";
 import { RecordsTabs } from "@/features/admin/RecordsTabs";
@@ -82,12 +82,12 @@ export async function RecordsRegister({ kind, searchParams }: { kind: RecordKind
   const openHref = (id: number) => `${base}${current ? `${current}&` : "?"}open=${id}`;
   const openId = /^\d{1,10}$/.test(searchParams.open ?? "") ? Number(searchParams.open) : null;
   const openRow = openId === null ? null : (result.rows.find((row) => row.id === openId) ?? null);
-  const tableRow = (row: (typeof result.rows)[number]): RecordTableRow => ({
+  const tableRow = (row: (typeof result.rows)[number]): TableRow => ({
     id: row.id,
-    openHref: openHref(row.id),
+    href: openHref(row.id),
     fullHref: RECORD_HREF[kind](row.id),
     current: row.id === openId,
-    cells: columns.map((column) =>
+    cells: Object.fromEntries(columns.map((column) => [column.key,
       column.key === "overdue" && column.value(row) ? (
         <span key={column.key} className="font-medium text-danger-600">
           {column.value(row)}
@@ -96,30 +96,28 @@ export async function RecordsRegister({ kind, searchParams }: { kind: RecordKind
         <ChoicePill key={column.key} label={column.value(row)} color={column.color(row)} className="text-caption" />
       ) : (
         column.value(row)
-      ),
+      )]),
     ),
   });
 
   return (
-    <>
-      <PageHeader
-        title={RECORD_TITLE[kind]}
-        description={`Every ${RECORD_TITLE[kind].toLowerCase()} record in the app, whoever raised it. Add filters as chips, click a column title to sort, click a row to open it beside the table; the download has every matching row (up to ${RECORDS_EXPORT_MAX.toLocaleString("en-IN")}) and opens in Excel.`}
-        meta={`${result.total.toLocaleString("en-IN")} ${result.total === 1 ? "record" : "records"}${filtered ? " match the filters" : ""}`}
-      >
-        {mayExport && (
+    // v1.89.0 (D-423, UIQA-CON-01): the shared list page; the power search (chips, Add filter)
+    // leads the shared toolbar row (one toolbar: filters, Sort, Group), not a row of its own.
+    <ListPage
+      title={RECORD_TITLE[kind]}
+      description={`Every ${RECORD_TITLE[kind].toLowerCase()} record in the app, whoever raised it. Add filters as chips, click a column title to sort, click a row to open it beside the table; the download has every matching row (up to ${RECORDS_EXPORT_MAX.toLocaleString("en-IN")}) and opens in Excel.`}
+      meta={`${result.total.toLocaleString("en-IN")} ${result.total === 1 ? "record" : "records"}${filtered ? " match the filters" : ""}`}
+      action={
+        mayExport ? (
           <a href={`/api/admin/records/${kind}${recordQuery(filter, { page: null })}`} className="btn-secondary btn-compact" download>
             <Download aria-hidden="true" className="h-4 w-4" /> Download CSV
           </a>
-        )}
-      </PageHeader>
-
-      <RecordsTabs current={kind} user={user} />
-
-      <PowerSearch base={base} fields={fields} params={{ ...searchParams, sort: filter.sort !== "no" ? filter.sort : undefined, dir: filter.dir !== "desc" ? filter.dir : undefined, group: filter.group ?? undefined }} label="Filter records" />
-
-      {/* D-228: Sort and Group as every list (the filters are the chips above). */}
+        ) : undefined
+      }
+      tabs={<RecordsTabs current={kind} user={user} />}
+      toolbar={
       <ListToolbar
+        lead={<PowerSearch inToolbar base={base} fields={fields} params={{ ...searchParams, sort: filter.sort !== "no" ? filter.sort : undefined, dir: filter.dir !== "desc" ? filter.dir : undefined, group: filter.group ?? undefined }} label="Filter records" />}
         id="records-filters"
         path={base}
         label="Sort and group records"
@@ -143,6 +141,8 @@ export async function RecordsRegister({ kind, searchParams }: { kind: RecordKind
             .map((column) => ({ label: column.label, href: `${base}${recordQuery(filter, { sort: column.sort === "no" ? null : column.sort!, dir: null, page: null })}`, active: filter.sort === column.sort })),
         }}
       />
+      }
+    >
 
       <ListViews userId={user.id} target={`list_admin_records_${kind}`} path={base} query={searchParams} />
 
@@ -153,15 +153,16 @@ export async function RecordsRegister({ kind, searchParams }: { kind: RecordKind
           <EmptyState title="No records" body={`No ${RECORD_TITLE[kind].toLowerCase()} yet.`} />
         )
       ) : (
-        <RecordTable
+        <DataTable
+          look="records"
           caption={RECORD_TITLE[kind]}
-          columns={columns.map((column) => ({ key: column.key, label: column.label, wide: column.wide, sort: column.sort ? sortOf(filter, base, column.sort) : undefined }))}
+          storageKey={`admin-records-${kind}`}
+          empty={{ title: "No records" }}
+          columns={columns.map((column) => ({ key: column.key, header: column.label, wide: column.wide }))}
+          serverSort={{ sortBy: columns.find((column) => column.sort === filter.sort)?.key ?? null, dir: filter.dir, hrefs: Object.fromEntries(columns.filter((column) => column.sort).map((column) => [column.key, sortOf(filter, base, column.sort!).href])) }}
           rows={result.rows.map(tableRow)}
-          groups={groups ? groups.map((group) => ({ key: group.key, label: group.label, rows: (group.items as typeof result.rows).map(tableRow) })) : null}
-          firstRow={firstRow}
-          total={result.total}
-          prevHref={result.page > 1 ? `${base}${recordQuery(filter, { page: result.page - 1 })}` : null}
-          nextHref={result.page < result.pages ? `${base}${recordQuery(filter, { page: result.page + 1 })}` : null}
+          groups={groups ? groups.map((group) => ({ key: group.key, label: group.label, ids: (group.items as typeof result.rows).map((row) => row.id) })) : null}
+          pager={{ firstRow, total: result.total, prevHref: result.page > 1 ? `${base}${recordQuery(filter, { page: result.page - 1 })}` : null, nextHref: result.page < result.pages ? `${base}${recordQuery(filter, { page: result.page + 1 })}` : null }}
         />
       )}
 
@@ -174,7 +175,7 @@ export async function RecordsRegister({ kind, searchParams }: { kind: RecordKind
           )}
         </RecordPane>
       )}
-    </>
+    </ListPage>
   );
 }
 

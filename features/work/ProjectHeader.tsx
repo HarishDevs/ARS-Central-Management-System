@@ -16,7 +16,7 @@ import { CustomizeButton, type CustomizeCounts } from "@/features/work/Customize
 import type { ProjectRole } from "@/server/work/access";
 import { STATUS_KIND_LABEL, STATUS_KINDS, type ProjectStatusKind } from "@/server/work/access";
 import { COPY_BLOCKED, copyText } from "@/features/ui/clipboard";
-import { closeTopLayer } from "@/features/ui/top-layer";
+import { Dialog } from "@/features/ui/Dialog";
 
 // D-219 (screen catalog S-06): the project header: icon, name, the actions
 // menu, star, the "Set status" pill, then member avatars, Share and Customize.
@@ -121,10 +121,6 @@ export function ProjectHeader({
   const toast = useToast();
   const { call } = useWorkCall();
   const [saving, setSaving] = useState(false);
-  const dialog = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    if (saving && dialog.current && !dialog.current.open) dialog.current.showModal();
-  }, [saving]);
   const base = `/users/work/projects/${projectId}`;
   const copyLink = () => {
     const link = `${window.location.origin}${base}`;
@@ -257,20 +253,22 @@ export function ProjectHeader({
         <ProjectShareButton projectId={projectId} name={name} privacy={share.privacy} departmentId={share.departmentId} departments={share.departments} members={share.members} people={share.people} canShare={share.canShare} canManage={canManage} />
         {canEdit && customize && <CustomizeButton base={base} counts={customize.counts} fieldDialog={customize.fieldDialog} />}
       </div>
-      {saving && (
-        <dialog ref={dialog} onClose={() => setSaving(false)} aria-labelledby="save-template-title" className="ars-dialog w-[calc(100%-2rem)] max-w-md rounded-xl border border-line bg-raised p-0 text-ink shadow-overlay" data-testid="save-template-dialog">
-          <div className="space-y-3 p-5">
-            <h2 id="save-template-title" className="text-section">
-              Save {name} as a template
-            </h2>
-            <p className="text-label text-ink-muted">Its sections, tasks (with their dates relative to the start), fields and settings become a template the project&apos;s people can start new projects from.</p>
-            <SaveTemplateForm projectId={projectId} name={name} />
-            <button type="button" className="btn-secondary btn-compact" onClick={() => dialog.current && void closeTopLayer(dialog.current)}>
-              Cancel
-            </button>
-          </div>
-        </dialog>
-      )}
+      {/* v1.89.0 (D-423, UIQA-CON-18): the shared Dialog (title, ×, motion, focus back). */}
+      <Dialog
+        open={saving}
+        onClose={() => setSaving(false)}
+        title={`Save ${name} as a template`}
+        description="Its sections, tasks (with their dates relative to the start), fields and settings become a template the project's people can start new projects from."
+        size="md"
+        testId="save-template-dialog"
+        footer={
+          <button type="button" className="btn-secondary btn-compact" onClick={() => setSaving(false)}>
+            Cancel
+          </button>
+        }
+      >
+        {saving && <SaveTemplateForm projectId={projectId} name={name} />}
+      </Dialog>
     </header>
   );
 }

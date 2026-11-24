@@ -140,13 +140,19 @@ export default async function MeetingPage({ params, searchParams }: { params: Pr
   return (
     <>
       {/* v1.89.0 (NAV-04, D-419): opened from Admin → Records, the way back is that list. */}
-      <Breadcrumbs items={[returnTo ? { href: returnTo.href, label: returnTo.label } : { href: "/users/meetings", label: "Meetings" }, { label: meeting.meetingNo }]} />
-      <PageHeader title={meeting.title} meta={`${meeting.meetingNo} · ${meeting.typeName} · ${whenText(meeting.scheduledStart, meeting.scheduledEnd)}`}>
-        {returnTo && <ReturnToLink to={returnTo} />}
-        <MeetingStatusBadge status={meeting.status} />
-        {(meeting.status === "SCHEDULED" || meeting.status === "IN_PROGRESS") && <PointsBadge status={meeting.pointsStatus} />}
-        {meeting.confidentiality === "MANAGEMENT" && <Badge tone="warning">Management only</Badge>}
-      </PageHeader>
+      {/* v1.89.0 (D-423, UIQA-CON-11 / CON-12): the way back on the breadcrumb's line; the badges beside the title. */}
+      <Breadcrumbs items={[returnTo ? { href: returnTo.href, label: returnTo.label } : { href: "/users/meetings", label: "Meetings" }, { label: meeting.meetingNo }]} back={returnTo ? <ReturnToLink to={returnTo} /> : undefined} />
+      <PageHeader
+        title={meeting.title}
+        meta={`${meeting.meetingNo} · ${meeting.typeName} · ${whenText(meeting.scheduledStart, meeting.scheduledEnd)}`}
+        badge={
+          <>
+            <MeetingStatusBadge status={meeting.status} />
+            {(meeting.status === "SCHEDULED" || meeting.status === "IN_PROGRESS") && <PointsBadge status={meeting.pointsStatus} />}
+            {meeting.confidentiality === "MANAGEMENT" && <Badge tone="warning">Management only</Badge>}
+          </>
+        }
+      />
       {query.scheduled && (
         <p role="status" className="mb-4 rounded-md bg-success-50 px-3 py-2 text-label text-success-600">
           Meeting scheduled. Everyone on it was told.

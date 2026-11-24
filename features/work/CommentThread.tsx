@@ -204,7 +204,7 @@ export function PaneComposer({ taskId, people, canComment }: { taskId: number; p
   return (
     <form ref={formRef} onSubmit={onSubmit} aria-label="New comment" className="sticky bottom-0 z-[2] -mx-4 -mb-4 mt-4 border-t border-line bg-surface px-4 py-3 sm:-mx-5 sm:-mb-5" data-testid="pane-composer">
       <input type="hidden" name="taskId" value={taskId} />
-      <div className="rounded-xl border border-line bg-surface focus-within:border-primary-600 [&_[data-testid=rich-editor]]:border-0">
+      <div className="rounded-card border border-line bg-surface focus-within:border-primary-600 [&_[data-testid=rich-editor]]:border-0">
         <RichEditor key={key} name="body" id="comment-body" label="Add a comment" placeholder="Add a comment…" people={people} minHeight={44} />
         <div className="flex items-center gap-1 px-2 pb-2">
           <button

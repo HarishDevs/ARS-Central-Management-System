@@ -48,7 +48,7 @@ export function NewProjectWizard({
   const [sections, setSections] = useState(["To do", "In progress", "Done"]);
   const create = useActionForm(createProjectAction);
   const fromTemplate = useActionForm(fromTemplateAction);
-  const card = (on: boolean) => `rounded-xl border p-4 text-left transition ${on ? "border-primary-600 bg-primary-50 ring-1 ring-primary-600" : "border-line bg-surface hover:border-line-strong"}`;
+  const card = (on: boolean) => `rounded-card border p-4 text-left transition ${on ? "border-primary-600 bg-primary-50 ring-1 ring-primary-600" : "border-line bg-surface hover:border-line-strong"}`;
   const chosen = templates.find((item) => item.id === template);
 
   return (
@@ -314,7 +314,7 @@ export function NewProjectWizard({
 function Preview({ name, color, view, sections }: { name: string; color: string; view: string; sections: string[] }) {
   const named = sections.map((item) => item.trim()).filter(Boolean);
   return (
-    <aside aria-label="Preview" className="hidden h-fit rounded-xl border border-line bg-surface-muted p-4 lg:block">
+    <aside aria-label="Preview" className="hidden h-fit rounded-card border border-line bg-surface-muted p-4 lg:block">
       <p className="mb-3 flex items-center gap-2 font-semibold">
         <span aria-hidden="true" className="h-5 w-5 rounded" style={{ backgroundColor: COLOR_HEX[color] }} />
         <span className="truncate">{name || "Project name"}</span>

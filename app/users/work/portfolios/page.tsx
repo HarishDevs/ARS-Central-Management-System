@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Briefcase, LayoutGrid, List, Plus } from "lucide-react";
 import Link from "next/link";
-import { PageHeader } from "@/features/shell/PageHeader";
+import { ListPage } from "@/features/ui/ListPage";
+import { ListToolbar } from "@/features/ui/ListToolbar";
 import { Badge, EmptyState, NoResults } from "@/features/ui/Display";
 import { ProjectDot } from "@/features/work/client";
 import { PortfolioCardMenu, PortfolioCommandButton, PortfolioStar } from "@/features/work/portfolios/PortfolioParts";
@@ -45,34 +46,45 @@ export default async function PortfoliosPage({ searchParams }: { searchParams: P
     </Link>
   );
   return (
-    <>
-      <PageHeader title="Portfolios" icon={Briefcase} description="Portfolios group projects (and other portfolios) so you can follow their status, task progress and dates in one place. You only ever see the projects you already have access to.">
+    // v1.89.0 (D-423, UIQA-CON-01 / CON-07): the shared list page: PageHeader with "New portfolio",
+    // the view tabs and View as list / cards leading the shared toolbar, and its Search (an icon until
+    // used) instead of a page-made search box. Same addresses (?show, ?q, ?layout).
+    <ListPage
+      title="Portfolios"
+      description="Portfolios group projects (and other portfolios) so you can follow their status, task progress and dates in one place. You only ever see the projects you already have access to."
+      action={
         <Link href="/users/work/portfolios/new" className="btn-primary btn-compact inline-flex items-center gap-1" data-testid="create-portfolio">
-          + Create portfolio
+          <Plus aria-hidden="true" className="h-4 w-4" /> New portfolio
         </Link>
-      </PageHeader>
+      }
+      toolbar={
+        <ListToolbar
+          id="portfolio-list-toolbar"
+          path="/users/work/portfolios"
+          label="Find a portfolio"
+          keep={{ show: show !== "mine" ? show : undefined, layout: asList ? "list" : undefined }}
+          search={show !== "deleted" ? { name: "q", value: q, placeholder: "Find a portfolio…" } : undefined}
+          filterCount={0}
+          clearHref={null}
+          lead={
+            <>
+              <nav aria-label="Portfolio views" className="flex flex-wrap items-center gap-2">
+                {tab("mine", "My portfolios")}
+                {tab("all", "All I can see")}
+                {tab("archived", "Archived")}
+                {tab("deleted", "Deleted")}
+              </nav>
+              {show !== "deleted" && (
+                <Link href={layoutHref(!asList)} className="btn-secondary btn-compact inline-flex items-center gap-1" data-testid="portfolio-layout">
+                  {asList ? <LayoutGrid aria-hidden="true" className="h-4 w-4" /> : <List aria-hidden="true" className="h-4 w-4" />} {asList ? "View as cards" : "View as list"}
+                </Link>
+              )}
+            </>
+          }
+        />
+      }
+    >
       <section aria-label="Portfolio list" className="space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
-          {tab("mine", "My portfolios")}
-          {tab("all", "All I can see")}
-          {tab("archived", "Archived")}
-          {tab("deleted", "Deleted")}
-          {show !== "deleted" && (
-            <form className="ml-auto" action="/users/work/portfolios">
-              {show !== "mine" && <input type="hidden" name="show" value={show} />}
-              {asList && <input type="hidden" name="layout" value="list" />}
-              <label htmlFor="portfolio-q" className="sr-only">
-                Find a portfolio
-              </label>
-              <input id="portfolio-q" name="q" defaultValue={q} placeholder="Find a portfolio…" className="field-input field-compact w-56 max-w-full text-label" />
-            </form>
-          )}
-          {show !== "deleted" && (
-            <Link href={layoutHref(!asList)} className="btn-secondary btn-compact inline-flex items-center gap-1" data-testid="portfolio-layout">
-              {asList ? <LayoutGrid aria-hidden="true" className="h-4 w-4" /> : <List aria-hidden="true" className="h-4 w-4" />} {asList ? "View as cards" : "View as list"}
-            </Link>
-          )}
-        </div>
         {show === "deleted" ? (
           deleted.length === 0 ? (
             <EmptyState title="No deleted portfolios" body={`Portfolios you delete stay here for 30 days${purging ? ", then they are removed for good" : ""}. Their projects are never touched.`} />
@@ -95,10 +107,10 @@ export default async function PortfoliosPage({ searchParams }: { searchParams: P
           ) : (
             <EmptyState
               title={show === "mine" ? "You're not in any portfolio yet" : "No portfolios here"}
-              body="Use Create portfolio to group the projects you follow. You'll be its owner and can add people."
+              body="Use New portfolio to group the projects you follow. You'll be its owner and can add people."
               action={
                 <Link href="/users/work/portfolios/new" className="btn-primary btn-compact">
-                  Create portfolio
+                  New portfolio
                 </Link>
               }
             />
@@ -106,7 +118,7 @@ export default async function PortfoliosPage({ searchParams }: { searchParams: P
         ) : !asList ? (
           <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" data-testid="portfolio-list" data-layout="cards" aria-label="Portfolios">
             <li>
-              <Link href="/users/work/portfolios/new" className="card-link flex h-full min-h-[8.5rem] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-line-strong px-4 py-5 text-label text-ink-muted hover:text-ink" data-testid="new-portfolio-tile">
+              <Link href="/users/work/portfolios/new" className="card-link flex h-full min-h-[8.5rem] flex-col items-center justify-center gap-2 rounded-card border border-dashed border-line-strong px-4 py-5 text-label text-ink-muted hover:text-ink" data-testid="new-portfolio-tile">
                 <Plus aria-hidden="true" className="h-6 w-6" /> New portfolio
               </Link>
             </li>
@@ -153,6 +165,6 @@ export default async function PortfoliosPage({ searchParams }: { searchParams: P
           </ul>
         )}
       </section>
-    </>
+    </ListPage>
   );
 }

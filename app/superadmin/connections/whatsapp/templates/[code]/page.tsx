@@ -48,13 +48,16 @@ export default async function TemplatePage({ params, searchParams }: { params: P
 
   return (
     <>
-      <Breadcrumbs items={[{ href: "/superadmin", label: "Super Admin" }, { href: "/superadmin/connections/whatsapp/templates", label: "WhatsApp templates" }, { label: templateLabel(entry.eventType) }]} />
-      <PageHeader title={templateLabel(entry.eventType)} description={`${entry.purpose} Sent to: ${entry.sentTo}. App event ${entry.eventType}. Matching email subject: “${entry.emailSubject}”.`}>
-        {/* v1.89.0 (NAV-03, D-419): back to the list with the search and sort it was left with. */}
-        <OriginLink href="/superadmin/connections/whatsapp/templates" className="link text-label" testId="all-link">
-          ← All templates
-        </OriginLink>
-      </PageHeader>
+      <Breadcrumbs
+        items={[{ href: "/superadmin", label: "Super Admin" }, { href: "/superadmin/connections/whatsapp/templates", label: "WhatsApp templates" }, { label: templateLabel(entry.eventType) }]}
+        // v1.89.0 (NAV-03, D-419; D-423 CON-11): back to the list as it was left, on the breadcrumb's line.
+        back={
+          <OriginLink href="/superadmin/connections/whatsapp/templates" className="link text-label" testId="all-link">
+            ← All templates
+          </OriginLink>
+        }
+      />
+      <PageHeader title={templateLabel(entry.eventType)} description={`${entry.purpose} Sent to: ${entry.sentTo}. App event ${entry.eventType}. Matching email subject: “${entry.emailSubject}”.`} />
 
       <div className="mb-6 grid gap-4 lg:grid-cols-3">
         <section className="card space-y-2 px-5 py-4">

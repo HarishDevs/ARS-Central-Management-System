@@ -170,8 +170,10 @@ export async function middleware(request: NextRequest) {
   requestHeaders.set("Content-Security-Policy", csp);
   requestHeaders.set(REQUEST_ID_HEADER, requestId);
   // v1.85.1 (D-413): an address under /users that no page has gets the real
-  // 404 (root not-found page, status 404) before any layout runs. The @pane
-  // catch-all slot (D-410) would otherwise make it a route of the users layout.
+  // 404. v1.89.0 (D-423, UIQA-LAY-03): it is sent to app/users/[...unknown]
+  // (named, so the @pane catch-all slot of D-410 can't take it), which answers
+  // 404 with the users area's not-found page inside the shell, after the
+  // layout's usual checks (the same as app/admin and app/superadmin).
   const response = isUnknownUsersPath(pathname)
     ? NextResponse.rewrite(new URL(UNKNOWN_PAGE_REWRITE, request.url), { request: { headers: requestHeaders } })
     : NextResponse.next({ request: { headers: requestHeaders } });

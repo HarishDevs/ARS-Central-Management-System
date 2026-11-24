@@ -24,7 +24,8 @@ export default async function GroupsPage() {
         </Link>
         )}
       </PageHeader>
-      <section className="card divide-y divide-line">
+      {/* v1.89.0 (D-423): a single-column settings form keeps the form width (960), not the full page. */}
+      <section className="card max-w-form divide-y divide-line">
         {groups.map((group) => (
           <GroupEditor key={group.id} group={group} people={options} />
         ))}

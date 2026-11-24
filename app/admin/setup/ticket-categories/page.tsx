@@ -20,6 +20,8 @@ export default async function Page() {
   return (
     <>
       <PageHeader title="Ticket categories" description="Each category numbers its own tickets (e.g. IT-SW-2026-00001) and has its own dashboard. Its request types are the ticket forms that choose it, in Ticket forms." />
+      {/* v1.89.0 (D-423): a single-column settings form keeps the form width (960), not the full page. */}
+      <div className="max-w-form">
       <section className="card mb-6 space-y-5 px-5 py-4" aria-label="Categories">
         {categories.map((category) => (
           <TicketCategoryForm key={category.id} category={category} />
@@ -47,6 +49,7 @@ export default async function Page() {
         </h2>
         <TicketCategoryForm />
       </section>
+      </div>
     </>
   );
 }

@@ -169,8 +169,10 @@ test("the coordinator board shows where the ticket is now", async ({ page, conte
   for (const status of ["NEW", "REOPENED", "ASSIGNED", "IN_PROGRESS", "AWAITING_CONFIRMATION", "CLOSED"]) await expect(page.getByTestId(`board-column-${status}`)).toBeVisible();
   // The journey's ticket was confirmed and closed: it sits in Closed.
   await expect(page.getByTestId("board-column-CLOSED")).toContainText(subject);
+  // v1.89.0 (D-423): the board's search is the shared toolbar's (an icon until used; Enter applies it).
+  await page.getByTestId("list-toolbar").getByRole("button", { name: "Search" }).click();
   await page.locator("#board-q").fill(subject);
-  await page.getByRole("button", { name: "Apply" }).click();
+  await page.locator("#board-q").press("Enter");
   await expect(page.getByTestId("board-card")).toHaveCount(1);
   await page.screenshot({ path: "test-results/v1560-coordinator-board.png", fullPage: true });
 });

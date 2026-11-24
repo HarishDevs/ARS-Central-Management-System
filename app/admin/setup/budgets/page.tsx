@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireArea } from "@/server/authorization/guards";
-import { PageHeader } from "@/features/shell/PageHeader";
 import { BudgetForm } from "@/features/admin/BudgetForm";
 import { Badge } from "@/features/ui/Display";
 import { listBudgets } from "@/lib/db/repositories/budgets.repository";
 import { budgetPosition, financialYear, fyLabel } from "@/server/workflows/type-settings";
 import { formatPaise } from "@/server/forms/dynamic";
 import { formatIndiaTime } from "@/server/notifications/security-messages";
+import { ListPage } from "@/features/ui/ListPage";
 import { ListToolbar } from "@/features/ui/ListToolbar";
 import { ListViews } from "@/features/lists/ListViews";
 import { FoldScope } from "@/features/ui/GroupFold";
@@ -48,7 +48,10 @@ export default async function BudgetsPage({ searchParams }: { searchParams: Prom
   const groups = group ? groupRows(rows, (row) => budgetBucket(row.position.state)) : null;
   return (
     <>
-      <PageHeader title="Budgets" description={`Department budgets for ${fyLabel(fy)} (April to March, India time). Approval types with the budget check switched on warn requesters and approvers.`}>
+      <ListPage
+        title="Budgets"
+        description={`Department budgets for ${fyLabel(fy)} (April to March, India time). Approval types with the budget check switched on warn requesters and approvers.`}
+        action={
         <nav aria-label="Financial year" className="flex flex-wrap gap-2 text-label">
           {[current - 1, current, current + 1].map((year) => (
             <Link key={year} href={groupHref(PATH, { ...query, fy: String(year) }, group)} aria-current={year === fy ? "page" : undefined} className={year === fy ? "btn-primary btn-compact" : "btn-secondary btn-compact"}>
@@ -56,8 +59,9 @@ export default async function BudgetsPage({ searchParams }: { searchParams: Prom
             </Link>
           ))}
         </nav>
-      </PageHeader>
-      <ListToolbar id="budgets-view" path={PATH} label="Budgets view" keep={{}} filterCount={0} clearHref={null} group={groupMenu(PATH, query, GROUPS, group)} />
+        }
+        toolbar={<ListToolbar id="budgets-view" path={PATH} label="Budgets view" keep={{}} filterCount={0} clearHref={null} group={groupMenu(PATH, query, GROUPS, group)} />}
+      >
       <ListViews userId={user.id} target="list_admin_budgets" path={PATH} query={query} />
       <FoldScope enabled={Boolean(group)}>
       <div className="card overflow-x-auto">
@@ -88,12 +92,12 @@ export default async function BudgetsPage({ searchParams }: { searchParams: Prom
                     {row.departmentName}
                     <span className="block text-caption text-ink-muted">{row.updatedAt ? `Updated ${formatIndiaTime(row.updatedAt)} by ${row.updatedByName ?? "IT"}` : "No budget loaded"}</span>
                   </td>
-                  <td className="text-right tabular-nums">
+                  <td data-label="Committed" className="text-right tabular-nums">
                     {formatPaise(row.committedPaise)}
                     <span className="block text-caption text-ink-muted">{row.requests} request(s)</span>
                   </td>
-                  <td className="text-right tabular-nums">{row.budgetPaise === null ? <span className="text-ink-faint">—</span> : formatPaise(row.budgetPaise - row.committedPaise)}</td>
-                  <td>
+                  <td data-label="Available" className="text-right tabular-nums">{row.budgetPaise === null ? <span className="text-ink-faint">—</span> : formatPaise(row.budgetPaise - row.committedPaise)}</td>
+                  <td data-label="Status">
                     {position.state === "NO_BUDGET" ? (
                       <Badge tone="neutral">No budget loaded</Badge>
                     ) : position.state === "OVER" ? (
@@ -104,7 +108,7 @@ export default async function BudgetsPage({ searchParams }: { searchParams: Prom
                       <Badge tone="success">{position.usedPercent ?? 0}% used</Badge>
                     )}
                   </td>
-                  <td>
+                  <td data-label="Budget (₹) · warn at %">
                     <BudgetForm departmentId={row.departmentId} departmentName={row.departmentName} fy={fy} amountRupees={row.budgetPaise === null ? "" : String(row.budgetPaise / 100)} warnPercent={row.warnPercent} />
                   </td>
                 </tr>
@@ -123,6 +127,7 @@ export default async function BudgetsPage({ searchParams }: { searchParams: Prom
         </table>
       </div>
       </FoldScope>
+      </ListPage>
     </>
   );
 }

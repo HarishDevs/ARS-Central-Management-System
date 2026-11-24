@@ -1,4 +1,5 @@
 import { Avatar } from "@/features/ui/Avatar";
+import { RecordNo } from "@/features/ui/RecordNo";
 import { groupOrder, NO_VALUE, type ListGroupData } from "@/server/requests/list-groups";
 import Link from "next/link";
 import { Fragment } from "react";
@@ -601,7 +602,7 @@ export function RequestListScreen({
                       <SafeText text={item.title} />
                     </p>
                     <p className="text-caption text-ink-muted">
-                      {item.requestNo} · {item.workflowName}
+                      <RecordNo no={item.requestNo} /> · {item.workflowName}
                       {showRaiser ? ` · from ${item.requesterName}` : ""}
                     </p>
                     <div className="mt-1 flex flex-wrap items-center gap-2 text-caption">
@@ -651,7 +652,7 @@ export function RequestListScreen({
                               <SafeText text={item.title} />
                             </Link>
                             <span className="block text-caption text-ink-muted">
-                              {item.requestNo} · {item.workflowName}
+                              <RecordNo no={item.requestNo} /> · {item.workflowName}
                               {item.files ? ` · ${item.files} file${item.files === 1 ? "" : "s"}` : ""}
                               {item.amended ? " · amended" : ""}
                             </span>

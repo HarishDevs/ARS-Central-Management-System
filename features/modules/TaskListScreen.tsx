@@ -1,5 +1,6 @@
 import { requireFeature } from "@/server/settings/feature-guard";
-import { ListChecks } from "lucide-react";
+import { RecordNo } from "@/features/ui/RecordNo";
+import { ListChecks, Plus } from "lucide-react";
 import Link from "next/link";
 import { requireArea } from "@/server/authorization/guards";
 import { EmptyState, PageHeader } from "@/features/shell/PageHeader";
@@ -134,7 +135,7 @@ export async function TaskListScreen({ base, query }: { base: TaskBase; query: R
     <>
       <PageHeader title={TITLE[base]} description={DESCRIPTION[base]} icon={ListChecks}>
         <Link href="/users/tasks/new" className="btn-primary btn-compact">
-          New task
+          <Plus aria-hidden="true" className="h-4 w-4" /> New task
         </Link>
       </PageHeader>
       {base === "TEAM" && !manages ? (
@@ -316,7 +317,9 @@ export async function TaskListScreen({ base, query }: { base: TaskBase; query: R
                           <Link href={`/users/tasks/${task.id}`} className="link font-medium">
                             {task.title}
                           </Link>
-                          <p className="font-mono text-caption text-ink-muted">{task.taskNo}</p>
+                          <p>
+                            <RecordNo no={task.taskNo} />
+                          </p>
                         </td>
                         <td className="text-label" data-label={columnLabel.type}>{task.typeName}</td>
                         <td className="text-label" data-label={columnLabel.person}>{base === "MINE" ? task.createdByName : task.assigneeName}</td>

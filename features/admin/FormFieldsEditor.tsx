@@ -314,7 +314,7 @@ export function FormFieldsEditor({
           <label className="relative">
             <span className="sr-only">Find a field</span>
             <Search aria-hidden="true" className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint" />
-            <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find a field" className="field-input field-compact w-40 pl-8 text-label" />
+            <input type="search" data-search-kind="finder" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find a field" className="field-input field-compact w-40 pl-8 text-label" />
           </label>
           <button type="button" className="tb-btn" onClick={undo} disabled={!past.current.length} aria-label="Undo" title="Undo (Ctrl+Z)">
             <Undo2 aria-hidden="true" className="h-4 w-4" />

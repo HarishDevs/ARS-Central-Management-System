@@ -69,7 +69,7 @@ export default async function RetentionPage({ searchParams }: { searchParams: Pr
           <Hint text="A held request can't be deleted (not even by the Super Admin), and housekeeping keeps its related records. Release a hold when the matter closes." align="start" />
         </div>
         {holds.length > 0 && (
-          <div className="mb-4 overflow-x-auto">
+          <div className="table-cards mb-4 overflow-x-auto">
             <table className="data-table">
               <caption className="sr-only">Legal holds</caption>
               <thead>
@@ -88,19 +88,19 @@ export default async function RetentionPage({ searchParams }: { searchParams: Pr
                       <span className="font-semibold">{hold.reference}</span>
                       <span className="block text-caption text-ink-muted">{hold.reason}</span>
                     </td>
-                    <td className="text-label">
+                    <td data-label="Covers" className="text-label">
                       {hold.scopeType === "REQUEST" ? "Request " : hold.scopeType === "REQUESTER" ? "Everything raised by " : "Every request of "}
                       {hold.scopeLabel}
                       <span className="block text-caption text-ink-muted">
                         {hold.covered} request{hold.covered === 1 ? "" : "s"}
                       </span>
                     </td>
-                    <td className="text-label">{hold.ownerName}</td>
-                    <td className="text-label">
+                    <td data-label="Owner" className="text-label">{hold.ownerName}</td>
+                    <td data-label="Placed" className="text-label">
                       {formatIndiaTime(hold.createdAt)}
                       <span className="block text-caption text-ink-muted">by {hold.createdByName}</span>
                     </td>
-                    <td className="min-w-56">
+                    <td data-label="Status" className="min-w-56">
                       {hold.releasedAt ? (
                         <span className="text-label">
                           <Badge tone="neutral">Released</Badge> {formatIndiaTime(hold.releasedAt)}
@@ -135,7 +135,7 @@ export default async function RetentionPage({ searchParams }: { searchParams: Pr
             Set durations
           </Link>
         </div>
-        <div className="overflow-x-auto">
+        <div className="table-cards overflow-x-auto">
           <table className="data-table">
             <caption className="sr-only">Retention dry run</caption>
             <thead>
@@ -151,10 +151,10 @@ export default async function RetentionPage({ searchParams }: { searchParams: Pr
               {dryRun.map((row) => (
                 <tr key={row.key}>
                   <td className="text-label">{row.label}</td>
-                  <td className="text-label">{row.duration ? `${row.duration} ${row.unit}` : <Badge tone="neutral">Not set: kept for ever</Badge>}</td>
-                  <td className="text-right tabular-nums">{row.duration ? row.eligible.toLocaleString("en-IN") : "—"}</td>
-                  <td className="text-right tabular-nums">{row.duration ? row.held.toLocaleString("en-IN") : "—"}</td>
-                  <td className="text-label">{row.oldest ? formatIndiaTime(row.oldest) : "—"}</td>
+                  <td data-label="Kept for" className="text-label">{row.duration ? `${row.duration} ${row.unit}` : <Badge tone="neutral">Not set: kept for ever</Badge>}</td>
+                  <td data-label="Past the date" className="text-right tabular-nums">{row.duration ? row.eligible.toLocaleString("en-IN") : "—"}</td>
+                  <td data-label="Kept by a hold" className="text-right tabular-nums">{row.duration ? row.held.toLocaleString("en-IN") : "—"}</td>
+                  <td data-label="Oldest" className="text-label">{row.oldest ? formatIndiaTime(row.oldest) : "—"}</td>
                 </tr>
               ))}
             </PagedRows>

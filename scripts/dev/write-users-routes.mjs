@@ -28,6 +28,9 @@ export function usersRoutePatterns(root = ROOT) {
       if (!entry.isDirectory()) continue;
       // @slots, _private folders and (.)intercepting routes have no address of their own.
       if (/^[@_]/.test(entry.name) || /^\(\.+\)/.test(entry.name)) continue;
+      // v1.89.0 (D-423, UIQA-LAY-03): app/users/[...unknown] answers an address no page has
+      // (the area's 404 inside the shell); it is not a page address itself.
+      if (dir === path.join(root, "app", "users") && entry.name === "[...unknown]") continue;
       const part = piece(entry.name);
       walk(path.join(dir, entry.name), part === null ? prefix : prefix + part);
     }

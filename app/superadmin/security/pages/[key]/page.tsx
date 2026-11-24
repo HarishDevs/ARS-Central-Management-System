@@ -30,13 +30,16 @@ export default async function PageRulesPage({ params }: { params: Promise<{ key:
   const byPerson = mine.filter((rule) => rule.scope === "USER");
   return (
     <>
-      <Breadcrumbs items={[{ href: "/superadmin", label: "Super Admin" }, { href: "/superadmin/security/pages", label: "Page access" }, { label: page.label }]} />
-      <PageHeader title={page.label} description={`${page.what} A person's rule beats their department's, which beats the rule for everyone. No rule = Full.`}>
-        {/* v1.89.0 (NAV-03, D-419): back to the list with the search and sort it was left with. */}
-        <OriginLink href="/superadmin/security/pages" className="link text-label" testId="all-link">
-          ← All pages
-        </OriginLink>
-      </PageHeader>
+      <Breadcrumbs
+        items={[{ href: "/superadmin", label: "Super Admin" }, { href: "/superadmin/security/pages", label: "Page access" }, { label: page.label }]}
+        // v1.89.0 (NAV-03, D-419; D-423 CON-11): back to the list as it was left, on the breadcrumb's line.
+        back={
+          <OriginLink href="/superadmin/security/pages" className="link text-label" testId="all-link">
+            ← All pages
+          </OriginLink>
+        }
+      />
+      <PageHeader title={page.label} description={`${page.what} A person's rule beats their department's, which beats the rule for everyone. No rule = Full.`} />
       <section className="card mb-6 px-5 py-4" aria-labelledby="everyone">
         <h2 id="everyone" className="mb-2 flex items-center gap-1.5 font-semibold">
           For everyone

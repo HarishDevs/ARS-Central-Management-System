@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { RecordNo } from "@/features/ui/RecordNo";
 import Link from "next/link";
-import { CalendarClock } from "lucide-react";
+import { Plus } from "lucide-react";
 import { requireArea } from "@/server/authorization/guards";
-import { EmptyState, PageHeader } from "@/features/shell/PageHeader";
+import { EmptyState } from "@/features/shell/PageHeader";
+import { ListPage } from "@/features/ui/ListPage";
 import { NoResults, Pagination } from "@/features/ui/Display";
 import { ListToolbar } from "@/features/ui/ListToolbar";
 import { TaskPriorityPill } from "@/features/ui/ChoicePill";
@@ -90,12 +92,20 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
   const filtered = Boolean(q || typeId || status);
   return (
     <>
-      <PageHeader icon={CalendarClock} title="Meetings" description="Schedule meetings, approve points and MOM, and follow up the action items.">
-        <Link href="/users/meetings/new" className="btn-primary btn-compact">
-          Schedule a meeting
-        </Link>
-      </PageHeader>
+      {/* v1.89.0 (D-423, UIQA-CON-01): the shared list page (PageHeader, sections, toolbar, list). */}
+      <ListPage
+        title="Meetings"
+        description="Schedule meetings, approve points and MOM, and follow up the action items."
+        action={
+          <Link href="/users/meetings/new" className="btn-primary btn-compact">
+            <Plus aria-hidden="true" className="h-4 w-4" /> New meeting
+          </Link>
+        }
+        tabs={
       <MeetingSections current="/users/meetings" />
+        }
+        toolbar={
+        <>
       {/* v1.51.1 (owner): toolbar filters only (Filter, Search icon). */}
       <ListToolbar
         id="meeting-filters"
@@ -157,6 +167,9 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
           </>
         }
       />
+        </>
+        }
+      >
       {/* v1.58.0 (D-354, owner): save tab, filters, search, group and sort as a named view (only mine). */}
       <ListViews userId={user.id} target="list_meetings" path="/users/meetings" query={{ ...Object.fromEntries(new URLSearchParams(href({ page: 1 }).split("?")[1] ?? "").entries()), tab }} />
       {list.rows.length === 0 ? (
@@ -194,10 +207,8 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
             {(group ? groupRows(list.rows, (row) => meetingBucket(row, group)) : [{ key: "all", label: "", items: list.rows }]).map((section) => {
               const rows = section.items.map((row) => (
                 <tr key={row.id}>
-                  <td data-label={MEETING_SORT_LABEL.no} className="whitespace-nowrap font-mono text-label">
-                    <Link href={`/users/meetings/${row.id}`} className="link">
-                      {row.meetingNo}
-                    </Link>
+                  <td data-label={MEETING_SORT_LABEL.no} className="whitespace-nowrap">
+                    <RecordNo no={row.meetingNo} href={`/users/meetings/${row.id}`} />
                   </td>
                   <td data-card-title>
                     <Link href={`/users/meetings/${row.id}`} className="link font-medium">
@@ -250,6 +261,7 @@ export default async function MeetingsPage({ searchParams }: { searchParams: Pro
           <Pagination page={page} pages={pages} hrefFor={(next) => href({ page: next })} />
         </div>
       )}
+      </ListPage>
     </>
   );
 }

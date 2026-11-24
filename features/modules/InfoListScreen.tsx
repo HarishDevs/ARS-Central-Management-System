@@ -1,6 +1,7 @@
 import { requireFeature } from "@/server/settings/feature-guard";
+import { RecordNo } from "@/features/ui/RecordNo";
 import { TaskPriorityPill } from "@/features/ui/ChoicePill";
-import { Megaphone } from "lucide-react";
+import { Megaphone, Plus } from "lucide-react";
 import Link from "next/link";
 import { requireArea } from "@/server/authorization/guards";
 import { EmptyState, PageHeader } from "@/features/shell/PageHeader";
@@ -147,7 +148,7 @@ export async function InfoListScreen({ base, query }: { base: InfoBase; query: R
         }
       >
         <Link href="/users/information/new" className="btn-primary btn-compact">
-          New information
+          <Plus aria-hidden="true" className="h-4 w-4" /> New information
         </Link>
       </PageHeader>
       <nav aria-label="Quick filters" className="mb-3 flex flex-wrap gap-x-1 border-b border-line">
@@ -278,7 +279,9 @@ export async function InfoListScreen({ base, query }: { base: InfoBase; query: R
                         {unread && <span role="img" aria-label="Unread" className="mr-1.5 inline-block h-2 w-2 rounded-full bg-primary-600 align-middle" />}
                         {item.title}
                       </Link>
-                      <p className="font-mono text-caption text-ink-muted">{item.infoNo}</p>
+                      <p>
+                        <RecordNo no={item.infoNo} />
+                      </p>
                     </td>
                     <td className="text-label">{item.typeName}</td>
                     <td className="text-label">{base === "INBOX" ? item.createdByName : item.status === "DRAFT" ? "—" : item.recipients}</td>

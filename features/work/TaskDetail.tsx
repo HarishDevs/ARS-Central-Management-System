@@ -259,6 +259,8 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
           ...chain.map((item) => ({ href: `/users/tasks/${item.id}`, label: item.title })),
           { label: task.taskNo },
         ]}
+        // v1.89.0 (D-423, UIQA-CON-11): the way back on the breadcrumb's line, as on every detail page.
+        back={returnTo ? <ReturnToLink to={returnTo} /> : undefined}
       />}
       {popup?.side ? (
         // v1.62.0 (D-368, spec PRJ views §13.1): the pane's action bar, then the task's name.
@@ -303,20 +305,27 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
       ) : (
       <>
       {view.pmOn && <VisibilityBanner text={visibilityText(links)} />}
-      <PageHeader title={task.title} meta={`${task.taskNo} · ${task.typeName} (version ${versionNo})`}>
-        {returnTo && <ReturnToLink to={returnTo} />}
+      <PageHeader
+        title={task.title}
+        meta={`${task.taskNo} · ${task.typeName} (version ${versionNo})`}
+        // v1.89.0 (D-423, UIQA-CON-12): the badges beside the title, as on every detail page; actions on the right.
+        badge={
+          <>
+            <Badge tone={STATUS_TONE[task.status]}>{TASK_STATUS_LABEL[task.status]}</Badge>
+            <TaskPriorityPill priority={task.priority} showNormal />
+            {late && <Badge tone="danger">Overdue</Badge>}
+            {task.isMilestone && <Badge tone="primary">Milestone</Badge>}
+            {/* D-222: the two kinds of task. */}
+            <Badge tone={panel.adhoc ? "neutral" : "info"}>{panel.adhoc ? "Ad hoc" : panel.recurrence ? `Periodic: ${recurrenceLabel(panel.recurrence)}` : "Periodic"}</Badge>
+            {task.deletedAt && <Badge tone="danger">Deleted</Badge>}
+          </>
+        }
+      >
         <TaskShareButton taskId={task.id} title={task.title} followers={panel.followers} people={panel.people} visibility={visibilityText(links)} canAdd={rights.comment} />
         {/* D-219: complete or reopen in one click, as in Asana (types that need a note or file say so). */}
         {((actions.has("COMPLETE") && settings.completion === "NONE") || actions.has("REOPEN") || task.status === "COMPLETED") && (
           <TaskCompleteButton taskId={task.id} done={task.status === "COMPLETED"} disabled={!(actions.has("COMPLETE") || actions.has("REOPEN"))} title={task.title} />
         )}
-        <Badge tone={STATUS_TONE[task.status]}>{TASK_STATUS_LABEL[task.status]}</Badge>
-        <TaskPriorityPill priority={task.priority} showNormal />
-        {late && <Badge tone="danger">Overdue</Badge>}
-        {task.isMilestone && <Badge tone="primary">Milestone</Badge>}
-        {/* D-222: the two kinds of task. */}
-        <Badge tone={panel.adhoc ? "neutral" : "info"}>{panel.adhoc ? "Ad hoc" : panel.recurrence ? `Periodic: ${recurrenceLabel(panel.recurrence)}` : "Periodic"}</Badge>
-        {task.deletedAt && <Badge tone="danger">Deleted</Badge>}
       </PageHeader>
       </>
       )}

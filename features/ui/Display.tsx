@@ -126,9 +126,23 @@ export function NoResults({ query, clearSearchHref, resetHref, hint, what = "res
   );
 }
 
-export function Breadcrumbs({ items }: { items: { href?: string; label: string }[] }) {
+// v1.89.0 (D-423, UIQA-CON-11): `back` = the detail page's one "← Back to …" link
+// (ReturnToLink / OriginLink, D-419), on the breadcrumb's line at the right, the
+// same place on every detail page (it was among the header's actions on some).
+export function Breadcrumbs({ items, back }: { items: { href?: string; label: string }[]; back?: React.ReactNode }) {
+  if (back)
+    return (
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-label" data-testid="detail-nav">
+        <Crumbs items={items} className="min-w-0" />
+        {back}
+      </div>
+    );
+  return <Crumbs items={items} className="mb-3 text-label" />;
+}
+
+function Crumbs({ items, className }: { items: { href?: string; label: string }[]; className: string }) {
   return (
-    <nav aria-label="Breadcrumb" className="mb-3 text-label">
+    <nav aria-label="Breadcrumb" className={className}>
       <ol className="flex flex-wrap items-center gap-1 text-ink-muted">
         {items.map((item, index) => (
           <li key={`${item.label}-${index}`} className="flex items-center gap-1">

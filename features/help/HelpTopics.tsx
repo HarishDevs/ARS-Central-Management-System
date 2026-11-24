@@ -27,7 +27,7 @@ export function HelpTopics({ topics }: { topics: HelpTopic[] }) {
         <label htmlFor="help-search" className="field-label">
           Search help
         </label>
-        <input id="help-search" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="e.g. on hold, delegate, draft" className="field-input" />
+        <input id="help-search" data-search-kind="finder" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="e.g. on hold, delegate, draft" className="field-input" />
       </div>
       {shown.length === 0 && <p className="text-label text-ink-muted">Nothing matches. Try another word, or ask IT.</p>}
       {groups.map((group) => (

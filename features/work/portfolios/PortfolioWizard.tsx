@@ -161,7 +161,7 @@ export function PortfolioWizard({
             <legend className="field-label">Opens on</legend>
             <div className="grid gap-2 sm:grid-cols-4">
               {TABS.map((item) => (
-                <label key={item.key} className={`flex cursor-pointer flex-col gap-1 rounded-xl border p-3 text-label ${tab === item.key ? "border-primary-600 bg-primary-50 ring-1 ring-primary-600" : "border-line bg-surface hover:border-line-strong"}`}>
+                <label key={item.key} className={`flex cursor-pointer flex-col gap-1 rounded-card border p-3 text-label ${tab === item.key ? "border-primary-600 bg-primary-50 ring-1 ring-primary-600" : "border-line bg-surface hover:border-line-strong"}`}>
                   <input type="radio" name="tab" value={item.key} checked={tab === item.key} onChange={() => setTab(item.key)} className="sr-only" />
                   <item.icon aria-hidden="true" className="h-4 w-4" />
                   <span className="font-medium">{item.label}</span>
