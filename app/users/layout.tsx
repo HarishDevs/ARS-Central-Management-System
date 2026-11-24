@@ -16,7 +16,10 @@ import { ProjectsAccess } from "@/features/work/projects-access";
 import { CelebrationProvider } from "@/features/work/celebrate";
 import { getUserSetting } from "@/lib/db/repositories/user-settings.repository";
 import { loadSetting } from "@/server/work/holiday-store";
-import { CELEBRATION_SETTING, parseCelebration, parsePmExtras, PM_EXTRAS_KEY } from "@/server/work/pm-rules";
+import { CELEBRATION_SETTING, clampPaneWidth, PANE_MODE_SETTING, PANE_SETTING, parseCelebration, parsePaneMode, parsePmExtras, PM_EXTRAS_KEY } from "@/server/work/pm-rules";
+import { headers } from "next/headers";
+import { NEXT_HEADER } from "@/lib/security/path-signature";
+import { PaneReserve } from "@/features/work/PaneReserve";
 
 export const dynamic = "force-dynamic";
 
@@ -46,8 +49,16 @@ export default async function UsersLayout({ children, pane }: { children: React.
   const celebration = pmOn
     ? (parseCelebration(await getUserSetting(user.id, CELEBRATION_SETTING).catch(() => null)) ?? parsePmExtras(await loadSetting(PM_EXTRAS_KEY).catch(() => null)).celebrations)
     : "OFF";
+  // v1.89.0 (D-424, PERF-02): a page loaded with ?task= on a computer reserves the side
+  // pane's room before the screen is drawn (PaneReserve); the pane itself follows.
+  const asked = (await headers()).get(NEXT_HEADER) ?? "";
+  const paneAsked = creator !== null && /[?&]task=\d{1,10}(&|$)/.test(asked) && !(await isMobileLayout());
+  const reserve = paneAsked
+    ? await Promise.all([getUserSetting(user.id, PANE_MODE_SETTING).catch(() => null), getUserSetting(user.id, PANE_SETTING).catch(() => null)]).then(([mode, width]) => (parsePaneMode(mode) === "SIDE" ? clampPaneWidth(width) : null))
+    : null;
   return (
     <AppShell area="users" user={user} nav={await usersNav(user)}>
+      {reserve !== null && <PaneReserve width={reserve} />}
       <CelebrationProvider enabled={pmOn} choice={celebration}>
       <ProjectsAccess on={projectsOn}>
         {children}

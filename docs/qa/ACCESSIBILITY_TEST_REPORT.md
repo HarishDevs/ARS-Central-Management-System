@@ -69,4 +69,4 @@
 - **Not verified:** how a screen reader actually voices the pages (reading order, verbosity, the names of icon-only controls in context), VoiceOver rotor / NVDA elements lists, speech for the toasts while a dialog is open (the toasts move into the open dialog: D-394), mobile screen readers, Windows high-contrast mode. Recommended for stage 4 sign-off with a real NVDA + Firefox and VoiceOver + Safari run on the 6 representative pages, both themes.
 
 ### Dark theme
-axe was run on the sweep routes in dark at 1440 and 390 in Chromium for the first time (results in UI_REFACTORING_LOG stage 3d).
+axe was run on every sweep route in dark at 1440 and 390 in Chromium for the first time: **0 violations** (354 visits). Light: Chromium 1,783 visits, Firefox 531, WebKit 531: **0 violations** (axe at 1440 and 390). The sweep also found the Task Summary layout shift (PERF-02) in dark, fixed.

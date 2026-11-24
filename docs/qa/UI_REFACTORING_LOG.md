@@ -195,6 +195,7 @@ Firefox (1440 / 768 / 390, 531 visits, in role chunks): conformance 0, overflow 
 | 3 | ERR-02 + devices hang | Safari detection in the effect; no push-subscription lookup before permission "granted". | `AppDevicesPanel.tsx`, `pwa/browser.ts` |
 | 4 | meta-refresh | Dashboards hub: `next.config` redirect (307). | `next.config.ts` |
 | 5 | Page transitions | None between users / admin / superadmin (the whole shell changes), and none in WebKit (Safari, iOS browsers): Playwright's WebKit renderer crashed during view transitions to request / task pages (also on the 3c build). | `motion-rules.ts`, `PageTransitions.tsx` |
+| 5b | PERF-02 (reproduced in the dark sweep) | The side pane's room is reserved before the screen is drawn on a load with `?task=` (`PaneReserve`); task details stream behind the pane frame. CLS 0.2-0.44 → 0-0.002. | `app/users/layout.tsx`, `PaneReserve.tsx`, `TaskPane.tsx`, `my-tasks/page.tsx` |
 | 6 | FORM-01 / FORM-02 | Create task says what is missing; the delegate picker is tied to its error. | `TaskCreator.tsx`, `DelegationForms.tsx` |
 | 7 | RESP-06 | Clear strip + scroll padding for the Pico Bot launcher on phone lists. | `globals.css` |
 | 8 | ListPage everywhere | The 28 ListToolbar pages are inside `ListPage` (`header` slot); the Admin home's Attention section stays a section. | 21 files |
@@ -215,3 +216,36 @@ Firefox (1440 / 768 / 390, 531 visits, in role chunks): conformance 0, overflow 
 | v190 "assignee hears through the bell" | Test (outdated) | Since D-410 the bell opens a task in the pane (`?task=`). | Asserts the pane (address, title), then continues on the full page. |
 
 WebKit: **NAV-02 S12a** (the ~21 s): the test ended the session before WebKit had hydrated (Playwright's WebKit on Windows hydrates 5-7 s after load), so only the pane's 20 s live refresh noticed; for people the check runs at once when they come back to the tab and every 60 s, which is enough for an ended session (any action also goes to the signed-out page). The test now waits for `data-session-watch`; the 20 s limit is unchanged. **NAV-03** (flake): the list link was clicked before PlaceMemory's Suspense boundary hydrated; `settle` waits for `data-place-memory`. **OVL-01**: same hydration timing.
+
+### Measured (UIQA sweep; before = the stage 3c sweep)
+
+| Measure | Before (3c) | After (3d) |
+|---|---|---|
+| Chromium visits (9 viewports + rail sample) | 1,783 | 1,783 |
+| Shell token mismatches / page overflow / outside | 0 / 0 / 0 | **0 / 0 / 0** |
+| axe (wcag2a / aa / 21aa / 22aa) Chromium 1440 + 390 | 1 node (A11Y-04) | **0** |
+| Console errors / failed requests / status ≥ 400 / visit errors (Chromium) | 0 / 0 / 0 / 0 | **0 / 0 / 0 / 0** |
+| Visits with CLS > 0.05 (Chromium light) | 0 | **0** |
+| Firefox 1440 / 768 / 390 (531 visits): axe / console / failed / status / CLS / overflow | 1 / 1 visit (RSC prefetch noise) / 0 / 0 / 0 / 0 | **0 / 0 / 0 / 0 / 0 / 0** |
+| WebKit 1440 / 768 / 390 (531 visits): measured / axe / console / CLS | 531 / 2 (A11Y-04, meta-refresh) / 6 visits (5 prefetch noise + #418 on /users/security 390) / 0 | **531 / 0 / 0 / 0** (no hang; the devices page measured at all 3 widths) |
+| **Dark theme**, Chromium 1440 + 390 (354 visits, first time) | not run | axe **0**, console 0, failed 0, overflow 0; CLS: 1 visit (Task Summary `?task=` at 1440, 0.44) → **PERF-02 reproduced and fixed**; re-run after the fix: **0** |
+| ListToolbar pages inside `ListPage` (1440) | 20 (28 without the wrapper) | **47** (1 without: the Admin home's Attention section, a dashboard section) |
+| Toolbar kinds at 1440 | ListToolbar 43, ListToolbar + finder 5, finder 15, own toolbar 21, own toolbar + finder 2 | ListToolbar 51, ListToolbar + finder 6, finder 15, own toolbar 29, own toolbar + finder 2 (the probe counts kinds per visit; the wrapped analytics / dashboards pages now report their toolbar from inside the ListPage) |
+| Phone pages with a squeezed table | 0 | **0** |
+
+The Chromium light sweep ran on the build before the PERF-02 fix (the fix touched only pages loaded with `?task=`; re-measured with the probe: 0-0.002 in 6 / 6 loads, and the dark user sweep re-run after it: CLS 0). "Harness noise" excluded nowhere this time: no console line at all in any browser.
+
+### Tests
+- Unit: 222 files / 2,050 (new `motion-fill-v189` 3, motion-review +2).
+- e2e `v1890-accessibility` (11): Chromium 11/11, Firefox 11/11, WebKit 11/11.
+- Full Chromium suite in suite order (111 files, 10 chunks, one database): 491 passed, 3 skipped, 1 failed (v190: a regex in my own updated assertion), 4 not run after it in that serial file; after the fix v190 6/6 three times in a row. **The 6 pre-existing failures pass** (session9, v139, v1720, v1722, v1750, v190), and v190's last two tests, hidden behind its earlier failure since D-410 / D-421, pass too.
+- Firefox, motion / nav / ui / accessibility sets (v1860, v1890-accessibility, -motion, -navigation, -ui-components, -ui-modules, -ui-shell): 58 / 58.
+- WebKit, the same sets: all pass after the fixes above (NAV-02 S12a 20 s limit unchanged; NAV-03, NAV-04, NAV-05, NAV-08, the frame-time test).
+- Typecheck, `npm run lint`, `npm run build`: clean.
+
+### For batch 5 (content) and stage 4
+
+1. **One date / time formatter** (`lib/format/date.ts`: date, date-time, range, relative + its title) replacing the ad-hoc `toLocale*` / `Intl.DateTimeFormat` calls (224 in 127 files at v1.88.0), module by module behind unit tests (CON-08). Relative text ("2 min ago", "Yesterday", "Today") rendered on the client only or with `suppressHydrationWarning` on that one node, so server and browser can never disagree (ERR-01: no #418 reproduced in stage 3d, but the risk stays wherever "now" or the browser's time zone shapes server-rendered text). Fixed formats: India time, 12 h, "24 Nov 2026" / "24 Nov 2026, 11:48 pm"; Admin Records' 24 h times and the meetings list's weekday form aligned to it.
+2. **Native date inputs → DateRangePicker:** Analytics period, dashboards, Task / Information filters, calendar entry, delegation From / To (Out of office), the reminder and retention dates. The picker's popover already uses the shared surface; its phone sheet stays a sheet.
+3. **Wording pass:** form titles ("Schedule a meeting", "Raise a ticket", "Add user") and the sidebar / + Create labels against the "New …" list actions; one verb set for record numbers and empty states; the new Create task messages ("Enter a task name." …) follow the same tone.
+4. **Stage 4 (sign-off) carry-overs from 3d:** a real Safari (macOS and iOS) check of view transitions (left out in WebKit by D-424; turn them back on there only if Safari does not crash), the devices page and the service-worker navigation; a real NVDA + Firefox and VoiceOver + Safari pass on the 6 representative pages in both themes (ACCESSIBILITY_TEST_REPORT §5 lists what scripts could not verify).

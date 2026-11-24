@@ -1953,6 +1953,8 @@ body:has([data-testid="m-comment-dock"][data-open="1"]) .picbot-launcher {
 /* v1.83.0 (D-410): the pane is drawn by the shell on every screen; while it
    is open on the side, the screen (#main) makes room for it. */
 @media (min-width: 1024px) {
+  /* v1.89.0 (D-424, PERF-02): also while the page loads with ?task= (PaneReserve). */
+  html:has([data-pane-reserve]) #main,
   html:has([data-pane-mode="side"]) #main {
     padding-right: calc(var(--pane-w) + 0.75rem);
   }

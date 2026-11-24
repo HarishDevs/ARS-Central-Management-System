@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { Suspense } from "react";
+import { PageSkeleton } from "@/features/ui/Skeleton";
 import { ExternalLink, X } from "lucide-react";
 import { CopyLinkButton } from "@/features/work/client";
 import { TaskDetail } from "@/features/work/TaskDetail";
@@ -35,7 +37,13 @@ export async function TaskPane({ taskId, user, closeHref, mode, width }: { taskI
         <div tabIndex={-1} data-pane-focus className="relative h-full w-full max-w-6xl overflow-y-auto overscroll-contain bg-page shadow-2xl focus:outline-none sm:h-auto sm:max-h-full sm:rounded-xl lg:h-full lg:max-h-none lg:max-w-none lg:rounded-none lg:border-l lg:border-line lg:shadow-overlay" data-testid="task-pane-body">
           <PaneResizer initial={width} />
           <div className="p-4 sm:p-5">
-            <TaskDetail taskId={taskId} user={user} query={{}} popup={{ closeHref, side: true }} />
+            {/* v1.89.0 (D-424, PERF-02): the pane's frame (and the room the screen makes for it)
+                is sent at once; the task's details follow. Before, the frame came with the
+                details, after the screen had been drawn full width: its header wrapped and the
+                list jumped 44 px (CLS 0.2-0.44 at 1440). */}
+            <Suspense fallback={<PageSkeleton kind="detail" label="Loading the task…" />}>
+              <TaskDetail taskId={taskId} user={user} query={{}} popup={{ closeHref, side: true }} />
+            </Suspense>
           </div>
         </div>
       </div>

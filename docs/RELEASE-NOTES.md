@@ -61,6 +61,7 @@ One release in stages (owner): navigation fixes, then the motion and transition 
 - **One popover look:** menus, the bell, and the date and people pickers share the same corners, border, shadow and short unfold; a people picker returns you to its button after Esc or a choice.
 - **Screen readers:** the corner messages are always announced; every list page has the same structure (title, tabs, toolbar, list).
 - **Phones:** the last row of a list scrolls clear of Pico Bot's button.
+- **Task Summary opened with a task beside it** no longer jumps while it loads.
 - **Moving between the app, Admin and Super Admin** changes the page without the fade (the whole frame changes there). **Safari and iPhone / iPad browsers** change pages without the fade for now: it crashed the page in the Safari test browser.
 - **Fixed:** the Profile → App & devices page could hang Safari-type browsers in testing (it no longer looks up a notification subscription before notifications are allowed) and showed a hydration error there; the Dashboards hub opens Utilisation with a proper redirect (no page refresh tag).
 - **Owner steps:** none.

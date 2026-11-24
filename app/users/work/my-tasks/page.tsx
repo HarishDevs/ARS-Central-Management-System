@@ -247,10 +247,13 @@ export default async function MyTasksPage({
         </Link>
         {/* v1.73.0 (D-396, spec S-04): the title's ▾ menu holds the page's actions (the morning email, Table with filters, the calendar feed, Print). */}
         <MyTasksTitle title={readOnly ? `${ownerName}'s Task Summary` : "Task Summary"} readOnly={readOnly} digestOn={!digestOff} feed={feed !== undefined} csvHref={!taskView ? undefined : activeTab ? `/api/work/my-tasks/export?tab=${encodeURIComponent(activeTab.key)}` : "/api/work/my-tasks/export"} />
+        {/* v1.89.0 (D-424, PERF-02): the note takes the room left on the title's line and wraps
+            inside it, so opening a task beside the list (the list narrows by the pane) keeps the
+            actions on the same line: no 44 px jump of the cards and the grid (CLS 0.44 at 1440). */}
         {readOnly ? (
-          <span className="text-caption text-ink-muted">{settings.range === "all" ? "Their open tasks" : "Their tasks overdue, due today and due in the next 7 days"}, as far as you may see them.</span>
+          <span className="min-w-[12rem] flex-1 text-caption text-ink-muted">{settings.range === "all" ? "Their open tasks" : "Their tasks overdue, due today and due in the next 7 days"}, as far as you may see them.</span>
         ) : (
-          <span className="text-caption text-ink-muted">
+          <span className="min-w-[12rem] flex-1 text-caption text-ink-muted">
             {settings.range === "all" && pmOn ? "Every open task given to you, and what you completed today." : "Your tasks overdue, due today and due in the next 7 days, and what you completed today."} Everything else is on{" "}
             <Link href="/users/tasks" className="link">
               Assigned to me

@@ -171,6 +171,26 @@ for (const theme of ["light", "dark"] as const) {
   });
 }
 
+test("PERF-02: Task Summary loaded with a task open does not jump (the pane's room is reserved first)", async ({ page, context }) => {
+  await as(context, "E2E_STAFF");
+  await page.setViewportSize({ width: 1440, height: 900 });
+  for (let run = 0; run < 3; run += 1) {
+    await page.goto(`/users/work/my-tasks?task=${taskId}`);
+    await settle(page);
+    const shift = await page.evaluate(
+      () =>
+        new Promise<number>((resolve) => {
+          let total = 0;
+          new PerformanceObserver((list) => {
+            for (const entry of list.getEntries() as (PerformanceEntry & { value: number; hadRecentInput: boolean })[]) if (!entry.hadRecentInput) total += entry.value;
+          }).observe({ type: "layout-shift", buffered: true });
+          setTimeout(() => resolve(total), 150);
+        }),
+    );
+    expect(shift).toBeLessThan(0.05);
+  }
+});
+
 test("no React #418 on the devices and security pages (computer and phone), ERR-01 / ERR-02", async ({ page, context }) => {
   const errors = watchErrors(page);
   for (const phone of [false, true]) {
