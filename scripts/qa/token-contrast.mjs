@@ -25,9 +25,9 @@ export const ratio = (a, b) => {
 const TEXT = ["text-primary", "text-secondary", "text-placeholder", "primary-600", "primary-700", "success-600", "warning-600", "error-600", "info-600"];
 const SURFACES = ["surface-white", "surface-muted", "surface-page", "surface-raised", "row-active"];
 const pairs = [];
-// Status colours are checked on the plain surfaces (on the selected row they
-// sit in their own -50 pills; unchanged since v1.61.0).
-for (const text of TEXT) for (const surface of SURFACES) if (!(text.endsWith("-600") && !text.startsWith("primary") && surface === "row-active")) pairs.push([text, surface, 4.5]);
+// v1.89.0 (D-424, A11Y-04): status text is checked on the open / selected row
+// too (the Task Summary due date sits on row-active as plain text, not in a pill).
+for (const text of TEXT) for (const surface of SURFACES) pairs.push([text, surface, 4.5]);
 for (const surface of ["surface-white", "surface-muted", "surface-page"]) pairs.push(["border-input", surface, 3]);
 pairs.push(["text-on-solid", "primary-solid", 4.5], ["text-primary", "primary-50", 4.5], ["primary-700", "primary-50", 4.5], ["text-secondary", "primary-50", 4.5]);
 

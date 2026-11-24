@@ -15,6 +15,7 @@ import { applyDefaultListView } from "@/server/lists/views";
 import { parseColumnSort, sortRows } from "@/server/lists/sorting";
 import { groupRows, pickGroup } from "@/server/lists/group-rows";
 import { DELIVERY_COLUMNS, DELIVERY_GROUP_LABEL, DELIVERY_GROUPS, deliveryBucket, type DeliveryColumn } from "@/server/lists/superadmin-lists";
+import { ListPage } from "@/features/ui/ListPage";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
 export const metadata: Metadata = { title: "Message deliveries" };
@@ -89,8 +90,11 @@ export default async function DeliveriesPage({ searchParams }: { searchParams: P
     </tr>
   );
   return (
-    <>
-      <PageHeader title="Message deliveries" description="How many email and WhatsApp messages went out, by channel, provider and status, and the latest 200 of them for the filters chosen. Failed sends are retried automatically every few minutes by the job runner. SKIPPED with TEMPLATE_NOT_CONFIGURED means the WhatsApp template for that event isn't set up yet." />
+    <ListPage
+      header={
+          <PageHeader title="Message deliveries" description="How many email and WhatsApp messages went out, by channel, provider and status, and the latest 200 of them for the filters chosen. Failed sends are retried automatically every few minutes by the job runner. SKIPPED with TEMPLATE_NOT_CONFIGURED means the WhatsApp template for that event isn't set up yet." />
+      }
+    >
       <RunnerStatus heartbeat={heartbeat} />
       <DeliveryDashboard summary={summary} filter={filter} path={PATH} keep={{ group: group ?? undefined, sortBy: sort.sortBy ?? undefined, dir: sort.sortBy ? sort.dir : undefined }} />
       {/* v1.58.0 (D-354, owner): Group by and saved views for the list below (the filters are the dashboard's). */}
@@ -130,7 +134,7 @@ export default async function DeliveriesPage({ searchParams }: { searchParams: P
           </div>
         </FoldScope>
       )}
-    </>
+    </ListPage>
   );
 }
 

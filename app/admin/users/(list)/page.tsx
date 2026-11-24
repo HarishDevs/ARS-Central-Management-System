@@ -22,6 +22,7 @@ import { nextDir, parseColumnSort, sortHref } from "@/server/lists/sorting";
 import { groupRows, departmentBucket, pickGroup } from "@/server/lists/group-rows";
 import { groupMenu, keepListState, USER_GROUPS, USER_SORT_COLUMNS, type UserGroup } from "@/server/admin/lists";
 import { accessLabel } from "@/features/ui/labels";
+import { ListPage } from "@/features/ui/ListPage";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
 export const metadata: Metadata = { title: "Users & roles" };
@@ -56,19 +57,21 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
     : null;
 
   return (
-    <>
-      <PageHeader title="Users & roles" description="Only people added here can sign in. People are made inactive, never deleted, so their history stays.">
-        {/* v1.84.0 (D-411): Import data is the Super Admin's alone now. */}
-        {actor.roles.includes("SUPER_ADMIN") && (
-        <Link href="/superadmin/data/import?kind=users" className="btn-secondary btn-compact">
-          Import
-        </Link>
-        )}
-        <Link href="/admin/users/new" className="btn-primary btn-compact">
-          <Plus aria-hidden="true" className="h-4 w-4" /> New user
-        </Link>
-      </PageHeader>
-
+    <ListPage
+      header={
+          <PageHeader title="Users & roles" description="Only people added here can sign in. People are made inactive, never deleted, so their history stays.">
+            {/* v1.84.0 (D-411): Import data is the Super Admin's alone now. */}
+            {actor.roles.includes("SUPER_ADMIN") && (
+            <Link href="/superadmin/data/import?kind=users" className="btn-secondary btn-compact">
+              Import
+            </Link>
+            )}
+            <Link href="/admin/users/new" className="btn-primary btn-compact">
+              <Plus aria-hidden="true" className="h-4 w-4" /> New user
+            </Link>
+          </PageHeader>
+      }
+    >
       {/* v1.51.1 (owner): the toolbar filters only (Filter, Search icon), like the task lists. */}
       <ListToolbar
         id="users-filters"
@@ -209,6 +212,6 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
           )}
         </div>
       )}
-    </>
+    </ListPage>
   );
 }

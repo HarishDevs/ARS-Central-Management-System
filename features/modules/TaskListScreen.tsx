@@ -33,6 +33,7 @@ import { periodicDetails, visibleTaskClause } from "@/lib/db/repositories/work.r
 import { workViewer } from "@/server/work/task-access";
 import { parseRecurrence, recurrenceLabel } from "@/server/work/more-rules";
 import { StopRepeatButton } from "@/features/work/MoreParts";
+import { ListPage } from "@/features/ui/ListPage";
 
 // v1.9.0 (D-143): My tasks / Assigned by me / Team tasks. Filters live in
 // the address (GET form), so a list can be bookmarked and shared.
@@ -132,12 +133,15 @@ export async function TaskListScreen({ base, query }: { base: TaskBase; query: R
   };
 
   return (
-    <>
-      <PageHeader title={TITLE[base]} description={DESCRIPTION[base]} icon={ListChecks}>
-        <Link href="/users/tasks/new" className="btn-primary btn-compact">
-          <Plus aria-hidden="true" className="h-4 w-4" /> New task
-        </Link>
-      </PageHeader>
+    <ListPage
+      header={
+          <PageHeader title={TITLE[base]} description={DESCRIPTION[base]} icon={ListChecks}>
+            <Link href="/users/tasks/new" className="btn-primary btn-compact">
+              <Plus aria-hidden="true" className="h-4 w-4" /> New task
+            </Link>
+          </PageHeader>
+      }
+    >
       {base === "TEAM" && !manages ? (
         <EmptyState title="Nobody reports to you" body="Team tasks shows the tasks of people whose reporting manager you are." />
       ) : (
@@ -387,6 +391,6 @@ export async function TaskListScreen({ base, query }: { base: TaskBase; query: R
           )}
         </>
       )}
-    </>
+    </ListPage>
   );
 }

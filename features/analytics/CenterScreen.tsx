@@ -34,6 +34,7 @@ import {
   taskTrend,
   type EmployeeSort,
 } from "@/lib/db/repositories/analytics-center.repository";
+import { ListPage } from "@/features/ui/ListPage";
 
 // v1.12.0 (D-156): the Analytics Center's boards other than Approval
 // analytics (which keeps its own screen). Everything is aggregated on the
@@ -144,12 +145,15 @@ export async function CenterScreen({ base, board, boards, soon = [], modules, qu
   const exportHref = (kind: string) => `/api/analytics/export?${new URLSearchParams(Object.entries({ ...carry, kind, base: base === "/admin/insights/analytics" ? "admin" : "users", q: query.q, sort: query.sort }).filter((entry): entry is [string, string] => Boolean(entry[1]))).toString()}`;
 
   return (
-    <>
-      <PageHeader title="Analytics" icon={BarChart3} description={meta.what} meta={`${scope.label} · ${period.label}: ${day(period.from)} – ${day(period.to)}, compared with ${day(previous.from)} – ${day(previous.to)}. India time (UTC+5:30).`}>
-        <Link href={`${base}/metrics`} className="link text-label">
-          How these are worked out
-        </Link>
-      </PageHeader>
+    <ListPage
+      header={
+          <PageHeader title="Analytics" icon={BarChart3} description={meta.what} meta={`${scope.label} · ${period.label}: ${day(period.from)} – ${day(period.to)}, compared with ${day(previous.from)} – ${day(previous.to)}. India time (UTC+5:30).`}>
+            <Link href={`${base}/metrics`} className="link text-label">
+              How these are worked out
+            </Link>
+          </PageHeader>
+      }
+    >
       <PhoneFold mobile={await isMobileLayout()} summary={`${scope.label} · ${period.label}`}>
       <BoardPicker base={base} board={board} boards={boards} soon={soon} query={query} scopes={scopes} scope={scope} />
 
@@ -251,7 +255,7 @@ export async function CenterScreen({ base, board, boards, soon = [], modules, qu
         As of {formatIndiaTime(now)}.
         <Hint text="Figures are worked out when the page opens. Period figures use each record's own date (raised, created, completed, decided, published or acknowledged); “now” figures ignore the period." align="start" />
       </p>
-    </>
+    </ListPage>
   );
 }
 

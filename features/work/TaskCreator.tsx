@@ -231,9 +231,17 @@ function CreateTaskDialog({
     }
   };
 
+  // v1.89.0 (D-424, FORM-01): Create stays enabled; a missing name, person or
+  // due date is said under the form (the name field is aria-invalid and
+  // focused) instead of a disabled button with no reason.
+  const [tried, setTried] = useState(false);
+  const missing = [!title.trim() ? "Enter a task name." : "", assignees.length === 0 ? "Choose who the task is for." : "", !due ? "Choose a due date." : ""].filter(Boolean);
   const submit = async (another = false) => {
     if (!title.trim() || assignees.length === 0 || !due) {
-      if (!due) openDue();
+      setTried(true);
+      if (!title.trim()) name.current?.focus();
+      else if (assignees.length === 0) setPicking("assignee");
+      else if (!due) openDue();
       return;
     }
     const body = description;
@@ -300,7 +308,7 @@ function CreateTaskDialog({
   };
   const chip = "inline-flex items-center gap-1 rounded-full border border-line px-2 py-0.5 text-label hover:border-line-strong";
   const tool = (on = false) => `grid h-8 w-8 place-items-center rounded hover:bg-surface-muted ${on ? "bg-primary-50 text-primary-700" : "text-ink-muted hover:text-ink"}`;
-  const popover = "pop-in absolute bottom-full z-popover mb-2 rounded-lg border border-line bg-raised p-2 shadow-overlay";
+  const popover = "pop-in popover-surface absolute bottom-full z-popover mb-2 p-2";
   return (
     <section
       role="dialog"
@@ -355,13 +363,20 @@ function CreateTaskDialog({
               <input
                 ref={name}
                 id="create-title"
-                required
+                aria-required="true"
                 maxLength={200}
                 placeholder="Task name"
                 value={title}
+                aria-invalid={tried && !title.trim() ? true : undefined}
+                aria-describedby={tried && missing.length ? "create-missing" : undefined}
                 onChange={(event) => setTitle(event.target.value)}
                 className="w-full bg-transparent text-section font-semibold placeholder:text-ink-faint focus:outline-none lg:rounded-md lg:border lg:border-line lg:px-3 lg:py-2 lg:text-body lg:focus:border-primary-600"
               />
+              {tried && missing.length > 0 && (
+                <p id="create-missing" role="alert" data-testid="create-missing" className="text-label text-danger-600">
+                  {missing.join(" ")}
+                </p>
+              )}
               <div className="flex flex-wrap items-center gap-2 text-label">
                 <span className="text-ink-muted">For</span>
                 {/* D-224 (owner): a task is for myself (the default) or for others. */}
@@ -731,8 +746,8 @@ function CreateTaskDialog({
               <span className="inline-flex">
                 <button
                   type="submit"
-                  disabled={pending || !title.trim() || assignees.length === 0 || !due}
-                  title={assignees.length === 0 ? "Choose who the task is for" : !due ? "Choose a due date" : undefined}
+                  disabled={pending}
+                  aria-describedby={tried && missing.length ? "create-missing" : undefined}
                   className="btn-primary btn-compact rounded-r-none"
                 >
                   {parentId !== null ? "Create subtask" : "Create task"}
@@ -745,8 +760,8 @@ function CreateTaskDialog({
                   testId="create-split"
                   trigger={<ChevronDown aria-hidden="true" className="h-4 w-4" />}
                   items={[
-                    { label: parentId !== null ? "Create subtask" : "Create task", shortcut: "Ctrl+Enter", disabled: pending || !title.trim() || assignees.length === 0 || !due, onSelect: () => void submit() },
-                    { label: "Create and add another", hint: "The window stays open for the next one", disabled: pending || !title.trim() || assignees.length === 0 || !due, onSelect: () => void submit(true), testId: "create-another" },
+                    { label: parentId !== null ? "Create subtask" : "Create task", shortcut: "Ctrl+Enter", disabled: pending, onSelect: () => void submit() },
+                    { label: "Create and add another", hint: "The window stays open for the next one", disabled: pending, onSelect: () => void submit(true), testId: "create-another" },
                   ]}
                 />
               </span>

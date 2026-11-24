@@ -21,6 +21,7 @@ import { personLabel } from "@/lib/people/label";
 import { nextDir } from "@/server/lists/sorting";
 import { QUEUE_GROUP_LABEL, QUEUE_GROUPS, QUEUE_SORT_COLUMNS, QUEUE_SHOW_LABEL, QUEUE_SHOWS, QUEUE_SIZES, QUEUE_SORT_LABEL, QUEUE_SORTS, parseQueueFilter, queueFiltered, queueHref, type QueueFilter } from "@/server/approvals/queue-filters";
 import type { QueueItem } from "@/lib/db/repositories/approvals.repository";
+import { ListPage } from "@/features/ui/ListPage";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
 export const metadata: Metadata = { title: "Waiting for me" };
@@ -114,8 +115,11 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
       })()
     : undefined;
   return (
-    <>
-      <PageHeader title="Waiting for me" icon={Hourglass} description="Every request that needs your decision, and work given to you. Keys: J/K to move, Enter to open, ? for all shortcuts." />
+    <ListPage
+      header={
+          <PageHeader title="Waiting for me" icon={Hourglass} description="Every request that needs your decision, and work given to you. Keys: J/K to move, Enter to open, ? for all shortcuts." />
+      }
+    >
       {everything > 0 && (
         <ListToolbar
           id="queue-filters"
@@ -327,6 +331,6 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
           ) : null}
         </nav>
       )}
-    </>
+    </ListPage>
   );
 }

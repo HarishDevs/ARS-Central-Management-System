@@ -11,6 +11,7 @@ import { baseTotal, listChoices, listRequests, tabCounts } from "@/lib/db/reposi
 // v1.58.0 (D-354, owner: saved views are "Only mine"): only the person's own views show and set the default.
 import { applyDefaultListView, myListViews } from "@/server/lists/views";
 import { parseListFilters } from "@/server/requests/list-filters";
+import { ListPage } from "@/features/ui/ListPage";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
 export const metadata: Metadata = { title: "My pending requests" };
@@ -37,13 +38,16 @@ export default async function MyRequestsPage({ searchParams }: { searchParams: P
   ]);
   const extras = await listExtras(VIEW_TARGET.MINE, columnsFor("MINE"), user.id, result.items, user.roles);
   return (
-    <>
-      <PageHeader title="My pending requests" meta="Track and manage your approval requests in one place." description="Everything you've raised, with where it is now." icon={ClipboardList}>
-        {/* D-206 (owner): New request opens the page where people choose their own approvers. */}
-        <Link href="/users/custom" className="btn-primary inline-flex items-center gap-1.5">
-          <Plus className="h-4 w-4" aria-hidden="true" /> New request
-        </Link>
-      </PageHeader>
+    <ListPage
+      header={
+          <PageHeader title="My pending requests" meta="Track and manage your approval requests in one place." description="Everything you've raised, with where it is now." icon={ClipboardList}>
+            {/* D-206 (owner): New request opens the page where people choose their own approvers. */}
+            <Link href="/users/custom" className="btn-primary inline-flex items-center gap-1.5">
+              <Plus className="h-4 w-4" aria-hidden="true" /> New request
+            </Link>
+          </PageHeader>
+      }
+    >
       <OwnershipTabs current="mine" mine={mineTotal} shared={sharedTotal} />
       <RequestListScreen
         base="MINE"
@@ -60,6 +64,6 @@ export default async function MyRequestsPage({ searchParams }: { searchParams: P
         groupData={extras.groupData}
         columns={extras.columns}
       />
-    </>
+    </ListPage>
   );
 }

@@ -45,7 +45,23 @@ type Place = React.CSSProperties;
 function fixedOrigin(element: HTMLElement): { left: number; top: number; bottom: number } {
   for (let node = element.parentElement; node && node !== document.body; node = node.parentElement) {
     const style = getComputedStyle(node);
-    if (style.transform !== "none" || style.filter !== "none" || style.perspective !== "none" || /paint|layout|strict|content/.test(style.contain) || /transform|filter/.test(style.willChange)) {
+    // v1.89.0 (D-424): also the single transform properties (translate / scale / rotate, used by
+    // the motion system), container queries (layout containment) and backdrop filters: each makes
+    // the ancestor the containing block. Missing them put the task pane's ⋯ menu 841 px to the
+    // right of its button (off screen; e2e v1720).
+    const extra = style as CSSStyleDeclaration & { translate?: string; scale?: string; rotate?: string; containerType?: string; backdropFilter?: string };
+    if (
+      style.transform !== "none" ||
+      style.filter !== "none" ||
+      style.perspective !== "none" ||
+      /paint|layout|strict|content/.test(style.contain) ||
+      /transform|filter|translate|scale|rotate|perspective/.test(style.willChange) ||
+      (extra.translate ?? "none") !== "none" ||
+      (extra.scale ?? "none") !== "none" ||
+      (extra.rotate ?? "none") !== "none" ||
+      (extra.containerType ?? "normal") !== "normal" ||
+      (extra.backdropFilter ?? "none") !== "none"
+    ) {
       const rect = node.getBoundingClientRect();
       return { left: rect.left, top: rect.top, bottom: rect.bottom };
     }
@@ -80,11 +96,19 @@ function usePlace(open: boolean, anchor: React.RefObject<HTMLElement | null>, pa
       setPlace({ position: "fixed", left: left - origin.left, maxHeight: Math.max(140, (up ? above : below) - 4), zIndex: "var(--z-popover)", ...(up ? { bottom: origin.bottom - box.top + 4 } : { top: box.bottom + 4 - origin.top }) });
     };
     measure();
+    // v1.89.0 (D-424): measured again when a window or pane around the button
+    // finishes moving. Opened while the task pane was still sliding in, the
+    // menu was placed from the pane's transform (fixedOrigin) and stayed there
+    // once the transform ended: 280 px past the right edge (e2e v1720).
     window.addEventListener("resize", measure);
     window.addEventListener("scroll", measure, true);
+    window.addEventListener("animationend", measure, true);
+    window.addEventListener("transitionend", measure, true);
     return () => {
       window.removeEventListener("resize", measure);
       window.removeEventListener("scroll", measure, true);
+      window.removeEventListener("animationend", measure, true);
+      window.removeEventListener("transitionend", measure, true);
     };
   }, [open, anchor, panel, align, side]);
   return place;
@@ -201,7 +225,7 @@ export function Menu({
 
 // One look for every menu and popover panel (QA visual G6): raised surface,
 // overlay shadow, the popover layer.
-export const MENU_PANEL = "menu-pop rounded-lg border border-line bg-raised p-1 text-ink shadow-overlay";
+export const MENU_PANEL = "menu-pop popover-surface p-1";
 
 function MenuList({ id, label, items, style, className, onClose, onBack, ref, bare = false }: { id?: string; label: string; items: MenuItem[]; style: Place; className: string; onClose: (refocus: boolean) => void; ref: React.RefObject<HTMLDivElement | null>; onBack?: () => void; bare?: boolean }) {
   const [sub, setSub] = useState<number | null>(null);

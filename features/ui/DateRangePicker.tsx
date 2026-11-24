@@ -657,7 +657,7 @@ export function DateRangePicker({
             className={
               phone
                 ? "mob-sheet fixed inset-x-0 bottom-0 z-popover max-h-[90dvh] overflow-y-auto rounded-t-2xl border-t border-line bg-raised pb-[env(safe-area-inset-bottom)] text-ink shadow-overlay"
-                : "pop-in fixed z-popover w-[19.5rem] rounded-lg border border-line bg-raised text-ink shadow-overlay"
+                : "pop-in popover-surface fixed z-popover w-[19.5rem]"
             }
             style={phone ? undefined : { left: 0, top: 0 }}
             data-testid={testId ? `${testId}-panel` : "date-picker-panel"}

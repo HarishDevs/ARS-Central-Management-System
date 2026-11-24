@@ -14,6 +14,7 @@ import { applyDefaultListView } from "@/server/lists/views";
 import { parseColumnSort, sortRows } from "@/server/lists/sorting";
 import { departmentBucket, groupRows, pickGroup } from "@/server/lists/group-rows";
 import { groupMenu, oldestBucket } from "@/server/admin/lists";
+import { ListPage } from "@/features/ui/ListPage";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
 export const metadata: Metadata = { title: "Workload" };
@@ -60,12 +61,15 @@ export default async function WorkloadPage({ searchParams }: { searchParams: Pro
   ];
   const right = "text-right";
   return (
-    <>
-      <PageHeader title="Workload" description="Approvals and work tasks waiting on each person right now, how long they have waited, and what is overdue. Ages count calendar time. To move someone's approvals, open their name and use Hand over pending approvals; it suggests the people with the fewest waiting.">
-        <Link href="/admin/insights/workload/reassign" className="btn-secondary btn-compact">
-          Move pending tasks
-        </Link>
-      </PageHeader>
+    <ListPage
+      header={
+          <PageHeader title="Workload" description="Approvals and work tasks waiting on each person right now, how long they have waited, and what is overdue. Ages count calendar time. To move someone's approvals, open their name and use Hand over pending approvals; it suggests the people with the fewest waiting.">
+            <Link href="/admin/insights/workload/reassign" className="btn-secondary btn-compact">
+              Move pending tasks
+            </Link>
+          </PageHeader>
+      }
+    >
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {tiles.map((tile) => (
           <div key={tile.label} className="card p-5">
@@ -129,6 +133,6 @@ export default async function WorkloadPage({ searchParams }: { searchParams: Pro
           </FoldScope>
         )}
       </section>
-    </>
+    </ListPage>
   );
 }

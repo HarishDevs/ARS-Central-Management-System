@@ -28,6 +28,14 @@ const nextConfig: NextConfig = {
     serverActions: { bodySizeLimit: "102mb" },
     middlewareClientMaxBodySize: "102mb",
   },
+  // v1.89.0 (D-424): the Dashboards hub opens Utilisation. A server redirect
+  // (307, query kept) instead of the page's redirect(), which ran after the
+  // segment's loading boundary had streamed and so reached the browser as a
+  // <meta http-equiv="refresh"> (axe meta-refresh in WebKit). The page's own
+  // redirect stays as the fallback; Utilisation checks the area itself.
+  async redirects() {
+    return [{ source: "/admin/insights/dashboards", destination: "/admin/insights/dashboards/utilisation", permanent: false }];
+  },
   async headers() {
     return [
       {

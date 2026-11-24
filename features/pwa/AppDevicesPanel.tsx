@@ -58,6 +58,10 @@ export function AppDevicesPanel({ devices, pushOn }: { devices: DeviceRow[]; pus
   const promptReady = useSyncExternalStore(subscribeInstall, canPromptInstall, () => false);
   const [standalone, setStandalone] = useState(false);
   const [where, setWhere] = useState<"ios" | "android" | "desktop">("desktop");
+  // v1.89.0 (D-424, ERR-02): read in the effect like the rest. isDesktopSafari()
+  // during the first render gave Safari the Mac steps while the server had
+  // rendered the general list: React #418 (hydration mismatch) in WebKit.
+  const [macSafari, setMacSafari] = useState(false);
   const [permission, setPermission] = useState<string>("default");
   const [support, setSupport] = useState<string>("supported");
   const [hereHash, setHereHash] = useState<string | null>(null);
@@ -67,6 +71,7 @@ export function AppDevicesPanel({ devices, pushOn }: { devices: DeviceRow[]; pus
   const refreshLocal = async () => {
     setStandalone(isStandalone());
     setWhere(platform());
+    setMacSafari(isDesktopSafari());
     setPermission(notificationPermission());
     setSupport(pushSupport());
     const endpoint = await currentEndpoint().catch(() => null);
@@ -133,7 +138,7 @@ export function AppDevicesPanel({ devices, pushOn }: { devices: DeviceRow[]; pus
               </button>
             ) : where === "ios" ? (
               <InstallSteps mode="ios" />
-            ) : isDesktopSafari() ? (
+            ) : macSafari ? (
               <InstallSteps mode="mac-safari" />
             ) : (
               <div className="mt-2 text-label text-ink-muted" data-testid="manual-install">

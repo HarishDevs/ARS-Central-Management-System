@@ -30,6 +30,7 @@ import { openedPlainly } from "@/server/lists/views";
 import { SavedViews, SaveViewForm } from "@/features/analytics/ReportForms";
 import { readFilter, SLA_FILTER_LABEL, STATUS_FILTER_LABEL, withParams } from "@/server/analytics/query";
 import { guardAnalyticsRate } from "@/server/analytics/rate";
+import { ListPage } from "@/features/ui/ListPage";
 // v1.7.1: the same screens in My approvals (/users/analytics) and in the
 // Admin space (/admin/insights/analytics), so opening Analytics never changes space.
 export type AnalyticsBase = "/users/analytics" | "/admin/insights/analytics";
@@ -124,12 +125,15 @@ export async function AnalyticsScreen({ searchParams, base }: { searchParams: Re
   const historyLabels = history.points.map((point) => bucketLabel(point.key, history.grain));
 
   return (
-    <>
-      <PageHeader title="Analytics" icon={BarChart3} meta={`${scope.label} · ${period.label}: ${day(period.from)} – ${day(period.to)} (India time), compared with ${day(previous.from)} – ${day(previous.to)}`}>
-        <Link href={`${base}/metrics`} className="link text-label">
-          How these are worked out
-        </Link>
-      </PageHeader>
+    <ListPage
+      header={
+          <PageHeader title="Analytics" icon={BarChart3} meta={`${scope.label} · ${period.label}: ${day(period.from)} – ${day(period.to)} (India time), compared with ${day(previous.from)} – ${day(previous.to)}`}>
+            <Link href={`${base}/metrics`} className="link text-label">
+              How these are worked out
+            </Link>
+          </PageHeader>
+      }
+    >
       <PhoneFold mobile={await isMobileLayout()} summary={`${scope.label} · ${period.label}`}>
       <BoardPicker base={base} board="approvals" boards={boards} soon={soon} query={{ ...query, period: period.key }} scopes={scopes} scope={scope} />
 
@@ -490,6 +494,6 @@ export async function AnalyticsScreen({ searchParams, base }: { searchParams: Re
         </Link>
         <Hint text="Live figures; deleted requests are never counted." align="start" />
       </p>
-    </>
+    </ListPage>
   );
 }

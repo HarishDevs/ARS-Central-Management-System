@@ -25,6 +25,7 @@ type FollowGroup = (typeof FOLLOW_GROUPS)[number];
 const FOLLOW_GROUP_LABEL: Record<FollowGroup, string> = { dept: "Department (responsible)", responsible: "Responsible", meeting: "Meeting", status: "Status", due: "Due date" };
 const STATE_ORDER: Record<string, number> = { OVERDUE: 0, OPEN: 1, DONE_UNCONFIRMED: 2, NO_TASK: 3, CONFIRMED: 4, CANCELLED: 5 };
 import { isAdminActor } from "@/server/modules/tasks";
+import { ListPage } from "@/features/ui/ListPage";
 
 // v1.58.0 (D-354, owner: "sorting in all the tables asc to desc or vice versa in
 // all columns"): the rows are all loaded, so they sort on the page. The
@@ -97,8 +98,11 @@ export default async function FollowUpsPage({ searchParams }: { searchParams: Pr
     : shown;
   const counts = Object.fromEntries((["OPEN", "OVERDUE", "DONE_UNCONFIRMED", "CONFIRMED"] as FollowUpState[]).map((state) => [state, withState.filter((item) => item.state === state).length]));
   return (
-    <>
-      <PageHeader icon={ListChecks} title="Meeting follow-ups" description="Every action item and open point from approved MOMs, until it is confirmed done or closed." />
+    <ListPage
+      header={
+          <PageHeader icon={ListChecks} title="Meeting follow-ups" description="Every action item and open point from approved MOMs, until it is confirmed done or closed." />
+      }
+    >
       <MeetingSections current="/users/meetings/follow-ups" />
       <dl className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {(["OPEN", "OVERDUE", "DONE_UNCONFIRMED", "CONFIRMED"] as FollowUpState[]).map((state) => (
@@ -233,6 +237,6 @@ export default async function FollowUpsPage({ searchParams }: { searchParams: Pr
         )}
         <LatestNote shown={openPoints.length} limit={pointLimit} step={300} max={1500} path="/users/meetings/follow-ups" query={query} what="open points" param="points" />
       </section>
-    </>
+    </ListPage>
   );
 }

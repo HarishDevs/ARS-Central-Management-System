@@ -64,6 +64,13 @@ export function PersonSelect({
   const box = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   const search = useRef<HTMLInputElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  // v1.89.0 (D-424): Escape closes the list and gives focus back to the button
+  // (the search box it was in goes away with the list).
+  const closeToButton = () => {
+    setOpen(false);
+    trigger.current?.focus();
+  };
   const fit = useFitPanel(open, box, panel);
   // Floating: placed on the screen beside the button, following it on scroll.
   const [spot, setSpot] = useState<DOMRect | null>(null);
@@ -102,6 +109,7 @@ export function PersonSelect({
     if (value === undefined) setOwn(next);
     onChange?.(next);
     setOpen(false);
+    trigger.current?.focus(); // v1.89.0 (D-424): focus back on the button once chosen
     setQuery("");
   };
 
@@ -117,7 +125,7 @@ export function PersonSelect({
 
   // Closes on a click outside and on Escape.
   // v1.87.0 (D-417): through the overlay stack (top overlay only).
-  useOverlay(open, box, { kind: "popover", restoreFocus: false, onOutside: () => setOpen(false), onEscape: () => setOpen(false) });
+  useOverlay(open, box, { kind: "popover", restoreFocus: false, onOutside: () => setOpen(false), onEscape: closeToButton });
   useEffect(() => {
     if (open) {
       setActive(0);
@@ -129,6 +137,7 @@ export function PersonSelect({
     <div ref={box} className={`relative ${className}`} data-testid={testId}>
       {name !== undefined && <input type="hidden" name={name} value={chosen ?? ""} required={required} />}
       <button
+        ref={trigger}
         type="button"
         id={buttonId}
         disabled={disabled}
@@ -155,7 +164,7 @@ export function PersonSelect({
       {open && (
         <div
           ref={panel}
-          className={`pop-in z-popover rounded-lg border border-line bg-raised shadow-overlay ${floating ? "" : `absolute w-full min-w-[16rem] ${fit.up ? "bottom-full mb-1" : "top-full mt-1"} ${fit.right ? "right-0" : "left-0"}`}`}
+          className={`pop-in popover-surface z-popover ${floating ? "" : `absolute w-full min-w-[16rem] ${fit.up ? "bottom-full mb-1" : "top-full mt-1"} ${fit.right ? "right-0" : "left-0"}`}`}
           style={{ maxHeight: fit.maxHeight, ...place }}
           data-testid={testId ? `${testId}-panel` : undefined}
         >
@@ -180,7 +189,7 @@ export function PersonSelect({
                   if (rows[active] !== undefined) choose(rows[active] ?? null);
                 } else if (event.key === "Escape") {
                   event.preventDefault();
-                  setOpen(false);
+                  closeToButton();
                 }
               }}
               placeholder="Type a name, code or department"

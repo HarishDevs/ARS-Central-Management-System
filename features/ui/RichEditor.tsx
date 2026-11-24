@@ -558,7 +558,7 @@ export function RichEditor({
           </>
         )}
         {emoji && (
-          <div className="pop-in absolute bottom-full left-1 z-popover mb-1 grid w-64 grid-cols-10 gap-0.5 rounded-md border border-line bg-raised p-1.5 shadow-overlay" role="dialog" aria-label="Emoji">
+          <div className="pop-in popover-surface absolute bottom-full left-1 z-popover mb-1 grid w-64 grid-cols-10 gap-0.5 p-1.5" role="dialog" aria-label="Emoji">
             {EMOJI.map((item) => (
               <button
                 key={item}

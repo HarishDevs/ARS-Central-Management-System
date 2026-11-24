@@ -92,7 +92,11 @@ export function SessionWatch({ build }: { build: string }) {
     window.addEventListener(SESSION_ENDED_EVENT, onEnded);
     document.addEventListener("visibilitychange", check);
     const timer = setInterval(check, CHECK_EVERY_MS);
+    // v1.89.0 (D-424): says the check is listening (the page has hydrated). Tests wait for it
+    // before ending a session; Playwright's WebKit on Windows hydrates 5 s after load.
+    document.documentElement.setAttribute("data-session-watch", "");
     return () => {
+      document.documentElement.removeAttribute("data-session-watch");
       for (const name of ACTIVITY_EVENTS) window.removeEventListener(name, onActivity);
       window.removeEventListener(SESSION_ENDED_EVENT, onEnded);
       document.removeEventListener("visibilitychange", check);

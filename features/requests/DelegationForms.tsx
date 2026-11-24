@@ -15,7 +15,16 @@ export function DelegationForm({ people, today, earliest, userId }: { people: { 
         <label htmlFor="d-delegate" className="field-label">
           Who approves while you&apos;re away
         </label>
-        <PersonSelect id="d-delegate" name="delegateId" options={people} emptyLabel="Choose a person…" />
+        {/* v1.89.0 (D-424, FORM-02): the error is tied to the picker (marked, and read with it through aria-describedby;
+            aria-invalid is not allowed on the picker's button role, ARIA 1.2). */}
+        <PersonSelect
+          id="d-delegate"
+          name="delegateId"
+          options={people}
+          emptyLabel="Choose a person…"
+          ariaInvalid={Boolean(result && !result.ok && result.fieldErrors?.delegateId)}
+          ariaDescribedBy={result && !result.ok && result.fieldErrors?.delegateId ? "delegateId-error" : undefined}
+        />
         <FieldError result={result} name="delegateId" />
       </div>
       <div>

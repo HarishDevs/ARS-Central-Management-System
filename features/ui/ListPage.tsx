@@ -10,20 +10,26 @@ import { PageHeader } from "@/features/shell/PageHeader";
 // (one card per row, the column name before each value: `data-label` on the
 // cells), the way Approvals and Information already look on phones
 // (`.table-cards` in styles/globals.css). Desktop tables are unchanged.
+// v1.89.0 (D-424, batch 4): every list page is inside ListPage. A page whose
+// header is richer than title / description / meta / action (a badge, a
+// header shared with other screens) passes its own PageHeader as `header`;
+// the order stays header → tabs → toolbar → list either way.
 export function ListPage({
   title,
   description,
   meta,
   action,
+  header,
   tabs,
   toolbar,
   testId,
   children,
 }: {
-  title: string;
+  title?: string;
   description?: string;
   meta?: string;
   action?: React.ReactNode;
+  header?: React.ReactNode;
   tabs?: React.ReactNode;
   toolbar?: React.ReactNode;
   testId?: string;
@@ -31,9 +37,12 @@ export function ListPage({
 }) {
   return (
     <div data-list-page data-testid={testId}>
-      <PageHeader title={title} description={description} meta={meta}>
-        {action}
-      </PageHeader>
+      {header ??
+        (title !== undefined && (
+          <PageHeader title={title} description={description} meta={meta}>
+            {action}
+          </PageHeader>
+        ))}
       {tabs}
       {toolbar}
       <div className="table-cards">{children}</div>

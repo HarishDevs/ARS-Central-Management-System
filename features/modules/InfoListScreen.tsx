@@ -28,6 +28,7 @@ import { personLabel } from "@/lib/people/label";
 import { NoResults } from "@/features/ui/Display";
 import { isMobileLayout } from "@/server/ui/layout-mode";
 import { MobileInfoList, type MobileInfoRow } from "@/features/mobile/MobileInfoList";
+import { ListPage } from "@/features/ui/ListPage";
 
 // D-226: the sorts offered in the toolbar.
 const INFO_SORTS = ["newest", "oldest", "expiry"] as const;
@@ -137,20 +138,23 @@ export async function InfoListScreen({ base, query }: { base: InfoBase; query: R
     );
   }
   return (
-    <>
-      <PageHeader
-        icon={Megaphone}
-        title={TITLE[base]}
-        description={
-          base === "INBOX"
-            ? "Information sent to you. Opening one marks it read; acknowledging is a separate button."
-            : "Information you wrote: drafts, published, withdrawn and archived, with who read and acknowledged it."
-        }
-      >
-        <Link href="/users/information/new" className="btn-primary btn-compact">
-          <Plus aria-hidden="true" className="h-4 w-4" /> New information
-        </Link>
-      </PageHeader>
+    <ListPage
+      header={
+          <PageHeader
+            icon={Megaphone}
+            title={TITLE[base]}
+            description={
+              base === "INBOX"
+                ? "Information sent to you. Opening one marks it read; acknowledging is a separate button."
+                : "Information you wrote: drafts, published, withdrawn and archived, with who read and acknowledged it."
+            }
+          >
+            <Link href="/users/information/new" className="btn-primary btn-compact">
+              <Plus aria-hidden="true" className="h-4 w-4" /> New information
+            </Link>
+          </PageHeader>
+      }
+    >
       <nav aria-label="Quick filters" className="mb-3 flex flex-wrap gap-x-1 border-b border-line">
         {counts.map(([tab, count]) => (
           <Link
@@ -342,6 +346,6 @@ export async function InfoListScreen({ base, query }: { base: InfoBase; query: R
           )}
         </nav>
       )}
-    </>
+    </ListPage>
   );
 }

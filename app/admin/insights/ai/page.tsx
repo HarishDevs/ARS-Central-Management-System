@@ -20,6 +20,7 @@ import { applyDefaultListView } from "@/server/lists/views";
 import { parseColumnSort, sortRows } from "@/server/lists/sorting";
 import { departmentBucket, groupRows, pickGroup } from "@/server/lists/group-rows";
 import { groupMenu, keepListState } from "@/server/admin/lists";
+import { ListPage } from "@/features/ui/ListPage";
 
 // v1.58.0 (D-354, owner): both tables sort on every column, both ways
 // ("p_" Providers, "u_" Top users; one table at a time); Group by Department
@@ -104,13 +105,15 @@ export default async function AiAnalyticsPage({ searchParams }: { searchParams: 
   const hours = Array.from({ length: 24 }, (_, hour) => String(hour).padStart(2, "0"));
 
   return (
-    <>
-      <PageHeader
-        title="AI analytics"
-        description="How Pico Bot is used: adoption, questions, answers, speed, tokens and cost, by chat, provider, department and person. Changes compare with the period just before. Cost is an estimate from the prices entered in AI providers."
-        meta={`${period.label}: ${period.from} to ${period.to} · compared with ${before.from} to ${before.to}`}
-      />
-
+    <ListPage
+      header={
+          <PageHeader
+            title="AI analytics"
+            description="How Pico Bot is used: adoption, questions, answers, speed, tokens and cost, by chat, provider, department and person. Changes compare with the period just before. Cost is an estimate from the prices entered in AI providers."
+            meta={`${period.label}: ${period.from} to ${period.to} · compared with ${before.from} to ${before.to}`}
+          />
+      }
+    >
       {/* v1.51.1 (owner): toolbar filters instead of a filter form. */}
       <ListToolbar
         id="ai-analytics-period"
@@ -302,7 +305,7 @@ export default async function AiAnalyticsPage({ searchParams }: { searchParams: 
           </section>
         </div>
       </div>
-    </>
+    </ListPage>
   );
 }
 

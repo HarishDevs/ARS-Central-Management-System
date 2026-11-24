@@ -17,6 +17,7 @@ import { applyDefaultListView } from "@/server/lists/views";
 import { groupRows } from "@/server/lists/group-rows";
 import { listHref } from "@/server/lists/superadmin-lists";
 import { applySentBack, daysWaiting, filterCount, parseSentBackFilter, sentBackBucket, sentBackChoices, SENT_BACK_GROUP_LABEL, SENT_BACK_GROUPS, SENT_BACK_PAGE_SIZE, type SentBackRow } from "@/server/lists/sent-back";
+import { ListPage } from "@/features/ui/ListPage";
 
 // WEB-05: a plain, non-confidential browser title.
 export const metadata: Metadata = { title: "Sent back for changes" };
@@ -90,11 +91,14 @@ export default async function SentBackPage({ searchParams }: { searchParams: Pro
     );
   };
   return (
-    <>
-      <PageHeader
-        title="Sent back for changes"
-        description="Requests you sent back, now with the requester. Open one to review it; when they resubmit, it is back in Waiting for me for your approval."
-      />
+    <ListPage
+      header={
+          <PageHeader
+            title="Sent back for changes"
+            description="Requests you sent back, now with the requester. Open one to review it; when they resubmit, it is back in Waiting for me for your approval."
+          />
+      }
+    >
       <ListToolbar
         id="sent-back-filters"
         path={PATH}
@@ -180,6 +184,6 @@ export default async function SentBackPage({ searchParams }: { searchParams: Pro
           )}
         </nav>
       )}
-    </>
+    </ListPage>
   );
 }

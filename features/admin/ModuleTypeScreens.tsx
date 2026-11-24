@@ -26,6 +26,7 @@ import { applyDefaultListView } from "@/server/lists/views";
 import { parseColumnSort, sortRows } from "@/server/lists/sorting";
 import { groupRows, pickGroup } from "@/server/lists/group-rows";
 import { groupMenu } from "@/server/admin/lists";
+import { ListPage } from "@/features/ui/ListPage";
 
 // v1.58.0 (D-354, owner): the types list: every column sorts both ways, Group
 // by Status, Live version or Draft (folded at first), saved views
@@ -68,17 +69,20 @@ export async function ModuleTypesListScreen({ module, searchParams = {} }: { mod
     ? groupRows(types, (type): [string, number] => (group === "status" ? (type.active ? ["Active", 0] : ["Retired", 1]) : group === "live" ? (type.liveVersion ? ["Live", 0] : ["Not published", 1]) : type.hasDraft ? ["Has a draft", 0] : ["No draft", 1]))
     : null;
   return (
-    <>
-      <PageHeader
-        title={PLURAL[module]}
-        description={
-          module === "TASK"
-            ? "The kinds of task people can create: the form, who may create them, whom they can be assigned to and how they are completed."
-            : module === "TICKET"
-              ? "The forms people raise tickets with (one per request type): the form, its category, its coordinators (any one of them assigns the ticket) and who may raise it."
-              : "The kinds of information people can send: the form, who may send them, to whom, acknowledgement and expiry."
-        }
-      />
+    <ListPage
+      header={
+          <PageHeader
+            title={PLURAL[module]}
+            description={
+              module === "TASK"
+                ? "The kinds of task people can create: the form, who may create them, whom they can be assigned to and how they are completed."
+                : module === "TICKET"
+                  ? "The forms people raise tickets with (one per request type): the form, its category, its coordinators (any one of them assigns the ticket) and who may raise it."
+                  : "The kinds of information people can send: the form, who may send them, to whom, acknowledgement and expiry."
+            }
+          />
+      }
+    >
       <section className="mb-8" aria-labelledby="new-type">
         <h2 id="new-type" className="mb-2 font-semibold">
           New {MODULE_LABEL[module].toLowerCase()} type
@@ -135,7 +139,7 @@ export async function ModuleTypesListScreen({ module, searchParams = {} }: { mod
         </div>
         </FoldScope>
       )}
-    </>
+    </ListPage>
   );
 }
 

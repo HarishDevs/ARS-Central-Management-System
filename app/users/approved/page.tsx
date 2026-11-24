@@ -9,6 +9,7 @@ import { listChoices, listRequests, tabCounts } from "@/lib/db/repositories/requ
 // v1.58.0 (D-354, owner: saved views are "Only mine"): only the person's own views show and set the default.
 import { myListViews, openedPlainly } from "@/server/lists/views";
 import { parseListFilters } from "@/server/requests/list-filters";
+import { ListPage } from "@/features/ui/ListPage";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
 export const metadata: Metadata = { title: "My approved requests" };
@@ -28,8 +29,11 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
   const [result, counts, choices] = await Promise.all([listRequests("APPROVED_MINE", user.id, filters), tabCounts("APPROVED_MINE", user.id, filters), listChoices("APPROVED_MINE", user.id)]);
   const extras = await listExtras(VIEW_TARGET.APPROVED_MINE, columnsFor("APPROVED_MINE"), user.id, result.items, user.roles);
   return (
-    <>
-      <PageHeader title="My approved requests" description="Requests you raised that were fully approved: when, by whom, and whether the approval is still valid." icon={BadgeCheck} />
+    <ListPage
+      header={
+          <PageHeader title="My approved requests" description="Requests you raised that were fully approved: when, by whom, and whether the approval is still valid." icon={BadgeCheck} />
+      }
+    >
       <RequestListScreen
         base="APPROVED_MINE"
         path="/users/approved"
@@ -45,6 +49,6 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
         groupData={extras.groupData}
         columns={extras.columns}
       />
-    </>
+    </ListPage>
   );
 }

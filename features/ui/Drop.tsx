@@ -73,7 +73,7 @@ export function Drop({ label, icon, buttonClass, panelClass = "left-0 w-56", tes
       </summary>
       <div
         ref={panel}
-        className={`absolute z-popover overflow-y-auto rounded-lg border border-line bg-raised p-3 text-ink shadow-overlay ${floating ? "" : fit.up ? "bottom-full mb-1" : "mt-1"} ${panelClass}`}
+        className={`popover-surface absolute z-popover overflow-y-auto p-3 ${floating ? "" : fit.up ? "bottom-full mb-1" : "mt-1"} ${panelClass}`}
         style={{ maxHeight: fit.maxHeight, ...edge }}
         data-floating={floating || undefined}
       >

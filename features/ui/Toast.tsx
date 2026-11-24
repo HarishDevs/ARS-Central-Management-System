@@ -51,13 +51,16 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const assertive = items.filter((item) => item.tone === "error");
   const host = useTopModal();
   const region = (
-    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-toast flex flex-col items-center gap-2 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:bottom-auto sm:left-auto sm:right-0 sm:top-[calc(var(--header-h)+0.5rem)] sm:items-end max-md:mb-16" data-testid="toast-region">
-      <div role="status" aria-live="polite" className="contents">
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-toast flex flex-col items-center p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:bottom-auto sm:left-auto sm:right-0 sm:top-[calc(var(--header-h)+0.5rem)] sm:items-end max-md:mb-16" data-testid="toast-region">
+      {/* v1.89.0 (D-424): the two live regions are real boxes (they were display: contents,
+          which some screen readers, older Safari among them, drop from the accessibility tree
+          together with the role). Same column, same 8 px gap between toasts. */}
+      <div role="status" aria-live="polite" className="flex flex-col items-center gap-2 sm:items-end">
         {polite.map((item) => (
           <ToastCard key={item.id} item={item} onDismiss={dismiss} />
         ))}
       </div>
-      <div role="alert" aria-live="assertive" className="contents">
+      <div role="alert" aria-live="assertive" className="flex flex-col items-center gap-2 sm:items-end [div:not(:empty)+&:not(:empty)]:mt-2">
         {assertive.map((item) => (
           <ToastCard key={item.id} item={item} onDismiss={dismiss} />
         ))}

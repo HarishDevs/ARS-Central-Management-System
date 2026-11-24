@@ -31,10 +31,10 @@
   --color-surface-raised: #ffffff;
   --color-overlay: rgba(14, 27, 44, 0.45);
   --color-success-50: #dcfce7;
-  --color-success-600: #15803d;
+  --color-success-600: #137333; /* v1.89.0 (D-424, A11Y-04): 5.03:1 on row-active, 5.95:1 on white (was #15803d, 4.24:1 on row-active) */
   --color-success-solid: #15803d;
   --color-warning-50: #ffedd5;
-  --color-warning-600: #c2410c;
+  --color-warning-600: #b93c0b; /* v1.89.0 (D-424): 4.78:1 on row-active, 5.65:1 on white (was #c2410c, 4.38:1) */
   --color-warning-solid: #c2410c;
   /* v1.74.0 (D-398): the Gantt's critical path (bars with white text 5:1; lines on the surface 5:1). */
   --color-critical-solid: #a16207;
@@ -790,7 +790,7 @@ body {
   }
 }
 @media (prefers-reduced-motion: no-preference) {
-  .toast-in { animation: toast-in var(--motion-standard) var(--ease-enter) both; }
+  .toast-in { animation: toast-in var(--motion-standard) var(--ease-enter) backwards; }
   .toast-out { animation: toast-out var(--motion-fast) var(--ease-exit) both; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -846,7 +846,7 @@ html,
 @keyframes auth-leave {
   to { opacity: 0; transform: translateY(-10px); }
 }
-.auth-enter { animation: auth-enter var(--motion-emphasis) var(--ease-enter) both; }
+.auth-enter { animation: auth-enter var(--motion-emphasis) var(--ease-enter) backwards; }
 .auth-leave { animation: auth-leave var(--motion-standard) var(--ease-exit) forwards; }
 @media (prefers-reduced-motion: reduce) {
   .auth-enter,
@@ -1269,6 +1269,19 @@ main table {
 body[data-decision-bar] [data-layout="mobile"] .mob-main {
   padding-bottom: calc(10rem + env(safe-area-inset-bottom));
 }
+/* v1.89.0 (D-424, RESP-06): Pico Bot's launcher floats over the right of the
+   list while it scrolls. The page keeps a clear strip under its last row for
+   it (tab bar 5rem + launcher 3.5rem + 1rem), so every row and link can be
+   scrolled out from under it, and keyboard focus is scrolled clear of it
+   (WCAG 2.4.11). The launcher itself is unchanged and always shown. */
+body:not([data-decision-bar]):has(.picbot-launcher) [data-layout="mobile"] .mob-main {
+  padding-bottom: calc(9.5rem + env(safe-area-inset-bottom));
+}
+@media (max-width: 767px) {
+  html:has(.picbot-launcher) {
+    scroll-padding-bottom: calc(9.5rem + env(safe-area-inset-bottom));
+  }
+}
 /* Pico Bot's launcher clears the tab bar, and moves above the Tasks "+" and
    the decision bar when they are on screen. */
 [data-layout="mobile"] .picbot-launcher {
@@ -1390,7 +1403,7 @@ body:has([data-testid="nav-skeleton"]) .mob-decision-bar {
    caret of a collapsible group turns when it is closed. */
 @keyframes mob-sheet-in { from { transform: translateY(100%); } to { transform: translateY(0); } }
 @keyframes mob-fade-in { from { opacity: 0; } to { opacity: 1; } }
-.mob-sheet { animation: mob-sheet-in var(--motion-drawer) var(--ease-enter) both; }
+.mob-sheet { animation: mob-sheet-in var(--motion-drawer) var(--ease-enter) backwards; }
 body:has([data-testid="m-sheet"]) .picbot-launcher { display: none; }
 /* v1.46.0: the task's comment box rests on the tab bar; the page keeps room
    for it and Pico Bot moves above it. */
@@ -1443,7 +1456,7 @@ body:has([data-testid="m-comment-dock"][data-open="1"]) .picbot-launcher {
 @keyframes picbot-shrink { from { transform: scale(1); opacity: 1; } to { transform: scale(0.06); opacity: 0; } }
 .picbot-panel { transform-origin: 100% 100%; }
 /* v1.89.0 (D-420): a drawer's timing (smooth in, fast out; enter / exit easing). PicBot.tsx waits MOTION_DURATION for the exit. */
-.picbot-in { animation: picbot-grow var(--motion-drawer) var(--ease-enter) both; }
+.picbot-in { animation: picbot-grow var(--motion-drawer) var(--ease-enter) backwards; }
 .picbot-out { animation: picbot-shrink var(--motion-dialog-out) var(--ease-exit) both; pointer-events: none; }
 @media (prefers-reduced-motion: reduce) {
   .picbot-in, .picbot-out { animation: none; }
@@ -2082,7 +2095,7 @@ details[open] > summary svg.lucide-chevron-right:not([class*="rotate"]) {
 @media (prefers-reduced-motion: no-preference) {
   [data-revealed] > tr:not(:first-child),
   [data-revealed] > ul > li {
-    animation: fold-reveal var(--motion-menu) var(--ease-enter) both;
+    animation: fold-reveal var(--motion-menu) var(--ease-enter) backwards;
   }
 }
 
@@ -2139,7 +2152,7 @@ html[data-nav-pending] main :is(table, [data-dim-on-nav]) {
    tracks run across their row; "Reduce motion" applies the app's reduced
    motion rule to the playground only. */
 .motion-lab { --lab-run: min(16rem, 40vw); }
-.lab-page-in { animation: page-in var(--motion-page) var(--ease-enter) both; }
+.lab-page-in { animation: page-in var(--motion-page) var(--ease-enter) backwards; }
 .motion-lab[data-reduce-motion] *,
 .motion-lab[data-reduce-motion] *::before,
 .motion-lab[data-reduce-motion] *::after {
@@ -2155,7 +2168,7 @@ html[data-nav-pending] main :is(table, [data-dim-on-nav]) {
    opacity only; NavigationProgress sets data-nav-reveal for that moment). */
 @media (prefers-reduced-motion: no-preference) {
   html[data-nav-reveal] main#main {
-    animation: motion-fade var(--motion-fast) var(--ease-enter) both;
+    animation: motion-fade var(--motion-fast) var(--ease-enter) backwards;
   }
 }
 
@@ -2256,6 +2269,15 @@ html[data-vt="title"] main#main [data-tour="page-header"] h1 {
    from the one scale at the top (--motion-*, --ease-*, --motion-distance-*)
    and is switched off under reduced motion (end of this block). */
 
+/* v1.89.0 (D-424): every ENTRY animation fills `backwards`, never `both`.
+   Each enter keyframe ends at the element's own resting value, so it looks
+   the same; but `both` kept the last frame applied after the motion ended
+   (translate: 0px, transform: translateY(0), scale: 1), and any transform
+   left on an element makes it the containing block of everything
+   position: fixed inside it. The task pane's ⋯ menu was placed 841 px off
+   screen and the Create task window's phone date sheet sat 17 px above the
+   bottom (e2e v1720, v1750). Exits keep `both` (they hold their last frame
+   until the element is removed). tests/ui/motion-fill-v189.test.ts guards it. */
 /* Shared utility classes: enter motions for anything that appears. */
 @keyframes motion-fade {
   from { opacity: 0; }
@@ -2287,13 +2309,13 @@ html[data-vt="title"] main#main [data-tour="page-header"] h1 {
 @keyframes motion-sheet-out {
   to { opacity: 0.4; translate: 0 100%; }
 }
-.motion-fade-in { animation: motion-fade var(--motion-fast) var(--ease-enter) both; }
-.motion-slide-up { animation: motion-slide-up var(--motion-standard) var(--ease-enter) both; }
-.motion-slide-down { animation: motion-slide-down var(--motion-fast) var(--ease-enter) both; }
-.motion-scale-in { animation: motion-scale var(--motion-dialog-in) var(--ease-enter) both; }
-.motion-expand { animation: motion-expand var(--motion-standard) var(--ease-standard) both; }
+.motion-fade-in { animation: motion-fade var(--motion-fast) var(--ease-enter) backwards; }
+.motion-slide-up { animation: motion-slide-up var(--motion-standard) var(--ease-enter) backwards; }
+.motion-slide-down { animation: motion-slide-down var(--motion-fast) var(--ease-enter) backwards; }
+.motion-scale-in { animation: motion-scale var(--motion-dialog-in) var(--ease-enter) backwards; }
+.motion-expand { animation: motion-expand var(--motion-standard) var(--ease-standard) backwards; }
 /* Stagger: children enter one after another (30 ms apart, the first 8 only). */
-.motion-stagger > * { animation: motion-slide-up var(--motion-standard) var(--ease-enter) both; }
+.motion-stagger > * { animation: motion-slide-up var(--motion-standard) var(--ease-enter) backwards; }
 .motion-stagger > :nth-child(2) { animation-delay: calc(var(--motion-stagger-step) * 1); }
 .motion-stagger > :nth-child(3) { animation-delay: calc(var(--motion-stagger-step) * 2); }
 .motion-stagger > :nth-child(4) { animation-delay: calc(var(--motion-stagger-step) * 3); }
@@ -2307,17 +2329,17 @@ html[data-vt="title"] main#main [data-tour="page-header"] h1 {
    150 ms (pane-close.ts waits for it). The dimmed page fades with them. */
 [data-task-pane] > [data-pane-focus],
 [data-record-pane] > [data-pane-panel] {
-  animation: motion-scale var(--motion-dialog-in) var(--ease-enter) both;
+  animation: motion-scale var(--motion-dialog-in) var(--ease-enter) backwards;
 }
 @media (min-width: 1024px) {
   [data-task-pane][data-pane-mode="side"] > [data-pane-focus],
   [data-record-pane][data-pane-mode="side"] > [data-pane-panel] {
-    animation: motion-slide-left var(--motion-drawer) var(--ease-enter) both;
+    animation: motion-slide-left var(--motion-drawer) var(--ease-enter) backwards;
   }
 }
 [data-task-pane] > a[data-pane-close],
 [data-record-pane] > a[data-pane-close] {
-  animation: motion-fade var(--motion-drawer) var(--ease-linear) both;
+  animation: motion-fade var(--motion-drawer) var(--ease-linear) backwards;
 }
 [data-task-pane][data-closing] > [data-pane-focus],
 [data-record-pane][data-closing] > [data-pane-panel] {
@@ -2343,34 +2365,50 @@ html[data-vt="title"] main#main [data-tour="page-header"] h1 {
   color: var(--color-surface);
   padding: 0.5rem 0.75rem;
   font-size: calc(13px * var(--text-scale, 1));
-  animation: motion-slide-up var(--motion-fast) var(--ease-enter) both;
+  animation: motion-slide-up var(--motion-fast) var(--ease-enter) backwards;
 }
 
 /* Floating parts: the bell, the date and people pickers, Drop panels, the
    filter panel and the command palette open with the menu's unfold (fade and
    a 4 px drop); BottomSheet slides away on close (data-closing). */
-.pop-in { animation: menu-in var(--motion-fast) var(--ease-enter) both; }
+.pop-in { animation: menu-in var(--motion-fast) var(--ease-enter) backwards; }
+/* v1.89.0 (D-424, batch 4): one popover surface for menus, the bell panel and
+   the pickers (people, person, dates, field editors): radius --radius-popover,
+   the line border, the raised surface, the overlay shadow. Padding stays with
+   each popover (a menu's rows, a picker's search box); motion is pop-in /
+   menu-pop (menu-in, --motion-menu, enter easing); Escape, outside click and
+   focus return come from the overlay stack (features/ui/overlay-stack.ts). */
+.popover-surface {
+  border-radius: var(--radius-popover);
+  border: 1px solid var(--color-border-default);
+  background-color: var(--color-surface-raised);
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-overlay);
+}
+[data-view="classic"] .popover-surface {
+  border-radius: 2px;
+}
 /* v1.89.0 (D-420): a side panel that is not a <dialog> (Customise): in from the right like a drawer. */
-.drawer-in { animation: motion-slide-left var(--motion-drawer) var(--ease-enter) both; }
+.drawer-in { animation: motion-slide-left var(--motion-drawer) var(--ease-enter) backwards; }
 .mob-sheet[data-closing] { animation: motion-sheet-out var(--motion-fast) var(--ease-exit) both; }
 .mob-sheet-backdrop[data-closing] { animation: motion-fade-out var(--motion-fast) var(--ease-exit) both; }
-dialog.palette-dialog[open] { animation: motion-slide-down var(--motion-fast) var(--ease-enter) both; }
-dialog.palette-dialog[open]::backdrop { animation: motion-fade var(--motion-fast) var(--ease-standard) both; }
+dialog.palette-dialog[open] { animation: motion-slide-down var(--motion-fast) var(--ease-enter) backwards; }
+dialog.palette-dialog[open]::backdrop { animation: motion-fade var(--motion-fast) var(--ease-standard) backwards; }
 dialog.palette-dialog[data-closing] { animation: motion-fade-out var(--motion-fast) var(--ease-exit) both; }
 
 /* The bulk-selection bar rises into place; a figure that changed since the
    last refresh gets a short emphasis (only that figure). */
-.bulk-bar-in { animation: motion-slide-up var(--motion-standard) var(--ease-enter) both; }
+.bulk-bar-in { animation: motion-slide-up var(--motion-standard) var(--ease-enter) backwards; }
 @keyframes value-changed {
   0% { opacity: 0.4; translate: 0 var(--motion-distance-2); }
   100% { opacity: 1; translate: 0 0; }
 }
-[data-value-changed] { animation: value-changed var(--motion-emphasis) var(--ease-standard) both; }
+[data-value-changed] { animation: value-changed var(--motion-emphasis) var(--ease-standard) backwards; }
 
 /* Tooltips (Hint ⓘ): shown on hover or keyboard focus as before (display),
    now fading in after a short delay; hidden at once. */
 .tip-host:is(:hover, :focus-visible)::after {
-  animation: motion-fade var(--motion-fast) var(--ease-enter) var(--motion-delay-tooltip) both;
+  animation: motion-fade var(--motion-fast) var(--ease-enter) var(--motion-delay-tooltip) backwards;
 }
 .rail-tooltip {
   pointer-events: none;
@@ -2386,7 +2424,7 @@ dialog.palette-dialog[data-closing] { animation: motion-fade-out var(--motion-fa
   font-size: calc(12px * var(--text-scale, 1));
   line-height: 1.3;
   box-shadow: var(--shadow-overlay);
-  animation: motion-fade var(--motion-fast) var(--ease-enter) both;
+  animation: motion-fade var(--motion-fast) var(--ease-enter) backwards;
 }
 
 /* Sidebar: the labels of the open sidebar fade and slide in when it opens;
@@ -2394,10 +2432,10 @@ dialog.palette-dialog[data-closing] { animation: motion-fade-out var(--motion-fa
    the new page (SideNav, transform only); a group opens with the expand. */
 [data-testid="sidebar"][data-just-toggled] nav[aria-label] a > span,
 [data-testid="sidebar"][data-just-toggled] [data-testid^="nav-group-"] > button > span {
-  animation: motion-slide-left var(--motion-standard) var(--ease-enter) both;
+  animation: motion-slide-left var(--motion-standard) var(--ease-enter) backwards;
 }
 [data-testid="sidebar-rail"][data-just-toggled] > * {
-  animation: motion-fade var(--motion-standard) var(--ease-enter) both;
+  animation: motion-fade var(--motion-standard) var(--ease-enter) backwards;
 }
 .nav-indicator {
   pointer-events: none;
@@ -2412,7 +2450,7 @@ dialog.palette-dialog[data-closing] { animation: motion-fade-out var(--motion-fa
 .nav-indicator[data-hidden] { opacity: 0; }
 .nav-indicator[data-instant] { transition: none; }
 [data-nav-group-body][data-revealed] > li {
-  animation: motion-expand var(--motion-standard) var(--ease-standard) both;
+  animation: motion-expand var(--motion-standard) var(--ease-standard) backwards;
 }
 
 /* v1.87.0 (D-417): reduced motion. Nothing moves; what must still be seen

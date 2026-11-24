@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireArea } from "@/server/authorization/guards";
 import { ListPage } from "@/features/ui/ListPage";
+import { PageHeader } from "@/features/shell/PageHeader";
 import { Breadcrumbs } from "@/features/ui/Display";
 import { RequestStatusPill } from "@/features/requests/StatusPill";
 import { resolveScope } from "@/server/analytics/scope";
@@ -79,17 +80,18 @@ export async function AnalyticsListScreen({ searchParams, base }: { searchParams
   const periodBound = ["raised", "approved", "rejected", "withdrawn", "sent_back"].includes(kind);
 
   return (
-    <>
-      <Breadcrumbs items={[{ href: base === "/admin/insights/analytics" ? "/admin" : "/users", label: base === "/admin/insights/analytics" ? "Admin" : "Home" }, { href: back, label: "Analytics" }, { label: DRILL_LABEL[kind] }]} />
-      <ListPage
-        title={DRILL_LABEL[kind]}
-        meta={`${scope.label}${periodBound ? ` · ${period.label} (${period.from} to ${period.to})` : " · right now"}${conditions.length ? ` · ${conditions.join(" · ")}` : ""}`}
-        action={
+    <ListPage
+      header={
+        <>
+          <Breadcrumbs items={[{ href: base === "/admin/insights/analytics" ? "/admin" : "/users", label: base === "/admin/insights/analytics" ? "Admin" : "Home" }, { href: back, label: "Analytics" }, { label: DRILL_LABEL[kind] }]} />
+          <PageHeader title={DRILL_LABEL[kind]} meta={`${scope.label}${periodBound ? ` · ${period.label} (${period.from} to ${period.to})` : " · right now"}${conditions.length ? ` · ${conditions.join(" · ")}` : ""}`}>
           <Link href={back} className="link text-label">
             ← Back to Analytics
           </Link>
-        }
-      >
+          </PageHeader>
+        </>
+      }
+    >
       <p className="mb-2 text-caption text-ink-muted" role="status">
         {rows.length === 0 ? "No requests match." : `${rows.length.toLocaleString("en-IN")} request${rows.length === 1 ? "" : "s"}${truncated ? " (the first 500; narrow the filters to see the rest)" : ""}.`}
         {kind === "sent_back" ? " The number on Analytics counts send-backs; a request sent back twice is listed once." : ""}
@@ -130,7 +132,6 @@ export async function AnalyticsListScreen({ searchParams, base }: { searchParams
           </table>
         </div>
       )}
-      </ListPage>
-    </>
+    </ListPage>
   );
 }

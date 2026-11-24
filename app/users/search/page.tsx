@@ -23,6 +23,7 @@ import { isHiddenHref, navAccess } from "@/server/authorization/page-access";
 import { featureOn } from "@/server/settings/features";
 import { MobileSearch } from "@/features/mobile/MobileSearch";
 import { openedPlainly } from "@/server/lists/views";
+import { ListPage } from "@/features/ui/ListPage";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
 export const metadata: Metadata = { title: "Search" };
@@ -58,12 +59,15 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
   const query = searchQuery({ ...filters, page: 1 });
 
   return (
-    <>
-      <PageHeader
-        title="Search"
-        icon={Search}
-        description={isAdmin ? "Every request (you're IT). Search by number, title or who raised it." : "Every request you raised, approve or covered for. Search by number, title or who raised it."}
-      />
+    <ListPage
+      header={
+          <PageHeader
+            title="Search"
+            icon={Search}
+            description={isAdmin ? "Every request (you're IT). Search by number, title or who raised it." : "Every request you raised, approve or covered for. Search by number, title or who raised it."}
+          />
+      }
+    >
       {/* v1.51.1 (owner): the toolbar filters only; searching starts from the bar at the top (Ctrl K). */}
       <ListToolbar
         id="request-search"
@@ -215,6 +219,6 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
         />
         {!plain && <SaveViewForm query={query} />}
       </section>
-    </>
+    </ListPage>
   );
 }

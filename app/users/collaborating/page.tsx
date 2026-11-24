@@ -10,6 +10,7 @@ import { baseTotal, listChoices, listRequests, tabCounts } from "@/lib/db/reposi
 // v1.58.0 (D-354, owner: saved views are "Only mine"): only the person's own views show and set the default.
 import { myListViews, openedPlainly } from "@/server/lists/views";
 import { parseListFilters } from "@/server/requests/list-filters";
+import { ListPage } from "@/features/ui/ListPage";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
 export const metadata: Metadata = { title: "Collaborating" };
@@ -30,8 +31,11 @@ export default async function CollaboratingPage({ searchParams }: { searchParams
   const [result, counts, choices, mineTotal, sharedTotal] = await Promise.all([listRequests("COLLAB", user.id, filters), tabCounts("COLLAB", user.id, filters), listChoices("COLLAB", user.id), baseTotal("MINE", user.id), baseTotal("COLLAB", user.id)]);
   const extras = await listExtras(VIEW_TARGET.COLLAB, columnsFor("COLLAB"), user.id, result.items, user.roles);
   return (
-    <>
-      <PageHeader title="Collaborating" meta="Requests shared with you: follow them, comment and add files." description="Requests other people added you to follow. You can see them, comment and add files; you don't approve them." icon={UsersRound} />
+    <ListPage
+      header={
+          <PageHeader title="Collaborating" meta="Requests shared with you: follow them, comment and add files." description="Requests other people added you to follow. You can see them, comment and add files; you don't approve them." icon={UsersRound} />
+      }
+    >
       <OwnershipTabs current="shared" mine={mineTotal} shared={sharedTotal} />
       <RequestListScreen
         base="COLLAB"
@@ -48,6 +52,6 @@ export default async function CollaboratingPage({ searchParams }: { searchParams
         groupData={extras.groupData}
         columns={extras.columns}
       />
-    </>
+    </ListPage>
   );
 }

@@ -26,7 +26,7 @@ export function TryAsButton({ userId }: { userId: number }) {
       </form>
       {result && !result.ok && <ResultMessage result={result} />}
       {url && (
-        <div className="pop-in absolute right-0 z-popover mt-2 w-[min(26rem,90vw)] space-y-2 rounded-lg border border-line bg-raised p-3 text-label shadow-overlay" role="dialog" aria-label="Try as link">
+        <div className="pop-in popover-surface absolute right-0 z-popover mt-2 w-[min(26rem,90vw)] space-y-2 p-3 text-label" role="dialog" aria-label="Try as link">
           <div className="flex items-center gap-1.5">
             <p className="font-medium">Open this link in a private window</p>
             <Hint text="Ctrl + Shift + N (Chrome, Edge) or Ctrl + Shift + P (Firefox), then paste. It works once, within 5 minutes." align="end" />

@@ -22,6 +22,7 @@ import { applyDefaultListView } from "@/server/lists/views";
 import { parseColumnSort } from "@/server/lists/sorting";
 import { groupRows, pickGroup } from "@/server/lists/group-rows";
 import { REQUEST_COLUMNS, REQUEST_GROUP_LABEL, REQUEST_GROUPS, listHref, requestBucket } from "@/server/lists/superadmin-lists";
+import { ListPage } from "@/features/ui/ListPage";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
 export const metadata: Metadata = { title: "Delete requests" };
@@ -105,10 +106,15 @@ export default async function SuperAdminRequestsPage({ searchParams }: { searchP
     `rounded-md px-3 py-1.5 text-label ${active ? "bg-primary-50 font-semibold text-primary-700" : "text-ink-muted hover:bg-surface-muted"}`;
 
   return (
-    <>
-      {/* v1.84.0 (D-411): reached from Data → Danger zone. */}
-      <BackLink fallback="/superadmin/data/danger-zone" label="Danger zone" />
-      <PageHeader title="Delete requests" description="Every request raised in the app. Delete removes a request from every screen, queue and dashboard; the record stays in the audit log." />
+    <ListPage
+      header={
+        <>
+          {/* v1.84.0 (D-411): reached from Data → Danger zone. */}
+          <BackLink fallback="/superadmin/data/danger-zone" label="Danger zone" />
+          <PageHeader title="Delete requests" description="Every request raised in the app. Delete removes a request from every screen, queue and dashboard; the record stays in the audit log." />
+        </>
+      }
+    >
       <nav aria-label="Requests" className="mb-4 flex gap-2">
         <Link href={link({ tab: "" })} className={tabClass(!deleted)} aria-current={!deleted ? "page" : undefined}>
           All requests
@@ -205,6 +211,6 @@ export default async function SuperAdminRequestsPage({ searchParams }: { searchP
           ) : null}
         </nav>
       )}
-    </>
+    </ListPage>
   );
 }
