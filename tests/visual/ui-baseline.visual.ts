@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
-import { IDS_FILE, VIEWPORTS, loadIds, setUpRecords, signIn, webkitHttpsShim, type Ids, type RoleKey, type Viewport } from "../e2e/ui-qa-shared";
+import { IDS_FILE, VIEWPORTS, loadIds, setUpRecords, signIn, sql, webkitHttpsShim, type Ids, type RoleKey, type Viewport } from "../e2e/ui-qa-shared";
 
 // v1.89.0 stage 4 (D-426): visual regression baselines (docs/qa/VISUAL_REGRESSION_REPORT.md).
 // Key screens of every module and role, the overlays, phone cards, empty and not-found
@@ -100,6 +100,8 @@ const shots: Shot[] = [
     name: "overlay/date-picker",
     viewports: PAIR,
     open: async (page) => {
+      // New ticket starts with the choice of form: the set-up's form, then its Required date.
+      await page.getByRole("link", { name: /UIQA form vr/ }).click();
       await page.locator("#ticket-required").click();
       await expect(page.locator("[data-date-picker-open]")).toBeVisible();
     },
@@ -156,6 +158,9 @@ test("set up: fixed-title records (once per database)", async ({ page, context }
   test.setTimeout(400_000);
   if (fs.existsSync(IDS_FILE)) test.skip(true, "ids.json exists (VISUAL_SETUP=1 makes a fresh database)");
   await setUpRecords(page, context, STAMP);
+  // The 60 bulk tasks share a due second per day offset, so lists sorted by due date put them in
+  // any order (seen at 390 on Task Summary and the calendar's list). One second apart, by number.
+  await sql("UPDATE tasks SET due_at = DATE_ADD(due_at, INTERVAL CAST(SUBSTRING(title, 11, 2) AS UNSIGNED) SECOND) WHERE title LIKE 'UIQA bulk __ vr'");
 });
 
 for (const shot of shots) {
