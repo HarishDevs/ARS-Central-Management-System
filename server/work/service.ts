@@ -47,6 +47,7 @@ import { featureOn } from "@/server/settings/features";
 import { shiftDependents, type ShiftOutcome } from "@/server/work/schedule-service";
 import { notifyProjectOffTrack } from "@/server/work/portfolios";
 import { isDay } from "@/server/work/working-days";
+import { formatDate, formatPeriod } from "@/lib/format/date";
 
 // D-215: Task & Project Management. Each operation checks the person's
 // rights on the server (access.ts through task-access.ts), runs in one
@@ -996,8 +997,8 @@ export async function moveTasksOutOfAway(userId: number, startsOn: string, endsO
       const dueAt = new Date(fresh.dueAt.getTime() + shiftMs);
       if (!(await updateTask(fresh.id, fresh.rowVersion, { due_at: dueAt }, connection))) continue;
       moved += 1;
-      await appendTaskEvent(fresh.id, { actorId, type: "EDIT", from: fresh.status, to: fresh.status, body: `Due date moved from ${from} to ${target}: out of office ${startsOn} to ${endsOn}`, payload: { dueChanged: true } }, connection);
-      if (fresh.assignedBy && fresh.assignedBy !== userId) messages.push(taskMessages.updated(info({ ...fresh, dueAt }), fresh.assignedBy, `due date moved from ${from} to ${target}: the assignee is out of office ${startsOn} to ${endsOn}`));
+      await appendTaskEvent(fresh.id, { actorId, type: "EDIT", from: fresh.status, to: fresh.status, body: `Due date moved from ${formatDate(from)} to ${formatDate(target)}: out of office ${formatPeriod(startsOn, endsOn)}`, payload: { dueChanged: true } }, connection);
+      if (fresh.assignedBy && fresh.assignedBy !== userId) messages.push(taskMessages.updated(info({ ...fresh, dueAt }), fresh.assignedBy, `due date moved from ${formatDate(from)} to ${formatDate(target)}: the assignee is out of office ${formatPeriod(startsOn, endsOn)}`));
     }
     await recordAudit({ actorUserId: actorId, action: "TASKS_MOVED_OUT_OF_OFFICE", entityType: "USER", entityId: userId, metadata: { startsOn, endsOn, to: target, tasks: moved } }, connection);
     return insertOutbox(null, messages, connection);

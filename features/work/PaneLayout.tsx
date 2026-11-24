@@ -1,6 +1,6 @@
 "use client";
 
-import { indiaClock, indiaDay } from "@/lib/format/date";
+import { formatClock, indiaClock, indiaDay } from "@/lib/format/date";
 import { CalendarDays, GitBranch, Lock, Globe2, UserRound } from "lucide-react";
 import { useState } from "react";
 import { privacyAction, taskFieldsAction } from "@/app/users/work/actions";
@@ -85,7 +85,7 @@ export function TaskDatesPicker({ data, compact = false }: { data: PanelData; co
           <span className="truncate" data-testid="task-dates-text">
             {text || "No due date"}
           </span>
-          {dueDay && dueTime !== "23:59" && <span className="text-caption text-ink-muted">{dueTime}</span>}
+          {dueDay && dueTime !== "23:59" && <span className="text-caption text-ink-muted">{formatClock(dueTime)}</span>}
         </>
       }
       triggerLabel={`Dates: ${data.startsOn && !data.isMilestone ? `start ${data.startsOn}, ` : ""}due ${dueDay || "none"}${may ? ". Change" : ""}`}

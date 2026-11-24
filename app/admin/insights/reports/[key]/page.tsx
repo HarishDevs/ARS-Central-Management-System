@@ -21,6 +21,7 @@ import { personLabel } from "@/lib/people/label";
 import { SortHead } from "@/features/admin/SortHead";
 import { parseColumnSort, sortRows } from "@/server/lists/sorting";
 import { DateRangeField } from "@/features/ui/DateRangeField";
+import { formatPeriod } from "@/lib/format/date";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
 export const metadata: Metadata = { title: "Report" };
@@ -77,7 +78,7 @@ export default async function ReportPage({ params, searchParams }: { params: Pro
       <ListPage
         title={report.name}
         description={report.description}
-        meta={`${scope.label}${report.usesPeriod ? ` · ${filter.period.label} (${filter.period.from} to ${filter.period.to})` : " · right now"}`}
+        meta={`${scope.label}${report.usesPeriod ? ` · ${filter.period.label} (${formatPeriod(filter.period.from, filter.period.to)})` : " · right now"}`}
         action={
           <>
         {!exporting ? (

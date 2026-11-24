@@ -6,6 +6,7 @@ import { createAlertAction, createScheduleAction, defaultViewAction, deleteViewA
 import { PeoplePicker, type PersonOption } from "@/features/ui/PeoplePicker";
 import { FieldError, ResultMessage, SubmitButton, useActionForm } from "@/features/ui/form";
 import { Hint } from "@/features/ui/Hint";
+import { formatClock } from "@/lib/format/date";
 
 // Saved views, schedules and alerts (Addendum A, D-123).
 const hidden = (query: Record<string, string>) => Object.entries(query).map(([key, value]) => <input key={key} type="hidden" name={`q_${key}`} value={value} />);
@@ -162,7 +163,7 @@ export function ScheduleForm({ reportKey, query, people = [], existing }: { repo
           <select id={`${prefix}hour`} name="hour" defaultValue={String(existing?.hourIst ?? 8)} className="field-input field-compact w-28">
             {Array.from({ length: 24 }, (_, hour) => (
               <option key={hour} value={hour}>
-                {String(hour).padStart(2, "0")}:00
+                {formatClock(`${String(hour).padStart(2, "0")}:00`)}
               </option>
             ))}
           </select>
@@ -285,7 +286,7 @@ export function AlertForm({ scopes, metrics }: { scopes: { kind: string; label: 
           <option value="">—</option>
           {Array.from({ length: 24 }, (_, hour) => (
             <option key={hour} value={hour}>
-              {String(hour).padStart(2, "0")}:00
+              {formatClock(`${String(hour).padStart(2, "0")}:00`)}
             </option>
           ))}
         </select>
@@ -294,7 +295,7 @@ export function AlertForm({ scopes, metrics }: { scopes: { kind: string; label: 
           <option value="">—</option>
           {Array.from({ length: 24 }, (_, hour) => (
             <option key={hour} value={hour}>
-              {String(hour).padStart(2, "0")}:00
+              {formatClock(`${String(hour).padStart(2, "0")}:00`)}
             </option>
           ))}
         </select>

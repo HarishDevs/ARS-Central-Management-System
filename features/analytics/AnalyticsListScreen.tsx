@@ -18,6 +18,7 @@ import type { AnalyticsBase } from "@/features/analytics/AnalyticsScreen";
 import type { InstanceStatus } from "@/server/engine/types";
 import { SortTh } from "@/features/ui/SortTh";
 import { nextDir, parseColumnSort, sortHref, sortRows } from "@/server/lists/sorting";
+import { formatPeriod } from "@/lib/format/date";
 
 // v1.58.0 (D-351, owner): every column of the drill-down list sorts both ways (on the rows shown, at most 500).
 const DRILL_SORTS = ["request", "type", "raiser", "status", "raised", "closed"] as const;
@@ -84,7 +85,7 @@ export async function AnalyticsListScreen({ searchParams, base }: { searchParams
       header={
         <>
           <Breadcrumbs items={[{ href: base === "/admin/insights/analytics" ? "/admin" : "/users", label: base === "/admin/insights/analytics" ? "Admin" : "Home" }, { href: back, label: "Analytics" }, { label: DRILL_LABEL[kind] }]} />
-          <PageHeader title={DRILL_LABEL[kind]} meta={`${scope.label}${periodBound ? ` · ${period.label} (${period.from} to ${period.to})` : " · right now"}${conditions.length ? ` · ${conditions.join(" · ")}` : ""}`}>
+          <PageHeader title={DRILL_LABEL[kind]} meta={`${scope.label}${periodBound ? ` · ${period.label} (${formatPeriod(period.from, period.to)})` : " · right now"}${conditions.length ? ` · ${conditions.join(" · ")}` : ""}`}>
           <Link href={back} className="link text-label">
             ← Back to Analytics
           </Link>

@@ -1,4 +1,4 @@
-import { formatDate, formatMonth } from "@/lib/format/date";
+import { formatDate, formatMonth, formatPeriod } from "@/lib/format/date";
 // Reporting periods in India time (D-122). Pure. A request belongs to a
 // period by the India date it was raised; decisions by the India date they
 // were made. Every period has an equally long previous period to compare.
@@ -82,7 +82,7 @@ export function resolvePeriod(input: { key?: string; from?: string; to?: string 
       if (to < from) to = from;
       // At most two years in one view.
       if (daysBetween(from, to) > 731) to = addDays(from, 730);
-      return { key, label: `${from} to ${to}`, from, to };
+      return { key, label: formatPeriod(from, to), from, to }; // D-425: "1 Dec to 12 Dec 2026"
     }
     default:
       return { key: "30d", label: PERIOD_LABEL["30d"], from: addDays(today, -29), to: today };

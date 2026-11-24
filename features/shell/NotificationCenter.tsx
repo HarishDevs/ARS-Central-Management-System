@@ -153,7 +153,7 @@ export function NotificationCenter({ groups, channels, digest, dnd }: { groups: 
               <option value="keep">{dnd.pausedText ? "Keep the pause" : "Don't pause"}</option>
               <option value="1h">Pause for 1 hour</option>
               <option value="3h">Pause for 3 hours</option>
-              <option value="tomorrow">Pause until tomorrow 9:00</option>
+              <option value="tomorrow">Pause until 9:00 am tomorrow</option>
               <option value="week">Pause for a week</option>
               {dnd.pausedText && <option value="resume">Resume notifications now</option>}
             </select>

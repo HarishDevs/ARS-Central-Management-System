@@ -22,6 +22,7 @@ import { departmentBucket, groupRows, pickGroup } from "@/server/lists/group-row
 import { groupMenu, keepListState } from "@/server/admin/lists";
 import { ListPage } from "@/features/ui/ListPage";
 import { DateRangeField } from "@/features/ui/DateRangeField";
+import { formatPeriod } from "@/lib/format/date";
 
 // v1.58.0 (D-354, owner): both tables sort on every column, both ways
 // ("p_" Providers, "u_" Top users; one table at a time); Group by Department
@@ -111,7 +112,7 @@ export default async function AiAnalyticsPage({ searchParams }: { searchParams: 
           <PageHeader
             title="AI analytics"
             description="How Pico Bot is used: adoption, questions, answers, speed, tokens and cost, by chat, provider, department and person. Changes compare with the period just before. Cost is an estimate from the prices entered in AI providers."
-            meta={`${period.label}: ${period.from} to ${period.to} · compared with ${before.from} to ${before.to}`}
+            meta={`${period.label}: ${formatPeriod(period.from, period.to)} · compared with ${formatPeriod(before.from, before.to)}`}
           />
       }
     >

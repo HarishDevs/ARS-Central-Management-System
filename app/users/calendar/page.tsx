@@ -1,4 +1,4 @@
-import { formatDate } from "@/lib/format/date";
+import { formatClock, formatDate } from "@/lib/format/date";
 import type { Metadata } from "next";
 import { CalendarDays, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { TaskCheck } from "@/features/work/client";
@@ -13,6 +13,9 @@ import { indiaToday, KIND_LABEL, KINDS, parseView, periodTitle, viewHref, type C
 import { availability } from "@/server/calendar/service";
 import { connectionByUser } from "@/lib/db/repositories/gcal.repository";
 import { formatIndiaTime } from "@/server/notifications/security-messages";
+
+// v1.89.0 (D-425): an entry's stored HH:MM read as the app's 12 h time ("9:30 am").
+const clock = (time: string) => formatClock(time) || time;
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
 export const metadata: Metadata = { title: "Calendar" };
@@ -248,11 +251,11 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
           {entries.map((entry) => (
             <li key={entry.key} className={`flex flex-wrap items-center gap-x-4 gap-y-1 border-l-4 px-4 py-3 ${KIND_ACCENT[entry.kind]}`}>
               <span className="w-28 shrink-0 text-label font-semibold">
-                {state.view === "day" ? (entry.time ? `${entry.time}${entry.endTime ? `–${entry.endTime}` : ""}` : "All day") : dayLabel(entry.day)}
+                {state.view === "day" ? (entry.time ? `${clock(entry.time)}${entry.endTime ? ` – ${clock(entry.endTime)}` : ""}` : "All day") : dayLabel(entry.day)}
                 {state.view !== "day" && entry.time && (
                   <span className="block text-caption font-normal text-ink-muted">
-                    {entry.time}
-                    {entry.endTime ? `–${entry.endTime}` : ""}
+                    {clock(entry.time)}
+                    {entry.endTime ? ` – ${clock(entry.endTime)}` : ""}
                   </span>
                 )}
               </span>
@@ -291,7 +294,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
 function Chip({ entry }: { entry: CalendarEntry }) {
   return (
     <Link href={entry.href} className={`block truncate rounded border-l-[3px] px-1.5 py-0.5 hover:underline ${KIND_STYLE[entry.kind]} ${KIND_ACCENT[entry.kind]}`} title={`${KIND_LABEL[entry.kind]}: ${entry.ref ? `${entry.ref} · ` : ""}${entry.title}`}>
-      {entry.time && <span className="tabular-nums">{entry.time} </span>}
+      {entry.time && <span className="tabular-nums">{clock(entry.time)} </span>}
       {entry.ref ?? entry.title}
       {entry.source === "GOOGLE" && <span className="sr-only"> (from Google Calendar)</span>}
     </Link>
