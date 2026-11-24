@@ -125,3 +125,59 @@ Firefox spot check (1440 / 768 / 390, 531 visits): conformance 0, overflow 0, ou
 5. CON-07 "New …" wording, CON-09 radius, CON-10 RecordNo, CON-11 / CON-12 detail header slots (badge, back), CON-15 Home overview header.
 6. LAY-03 unknown area addresses inside the shell (routing, with the navigation owner: D-413).
 7. Form width for the settings forms (Admin set-up) where they are single-column.
+
+## Stage 3c: batch 3 (module pages), D-423
+
+**Decision (owner: "go ahead with my recommendations"):** the stage 3b handover list and the defect report's batch 3, as one sweep. Classic unchanged. No element hidden, no feature removed, no business logic changed. Rows per defect: [BUG_FIX_LOG.md](BUG_FIX_LOG.md) stage 3c.
+
+### What changed
+
+| # | Item | Change | Where |
+|---|---|---|---|
+| 1 | Shared toolbar (CON-01) | `ListPage` + `ListToolbar`: Portfolios (own search box gone; tabs and View as list / cards lead the row), every Admin → Records tab (PowerSearch `inToolbar` leads the row, Sort / Group beside it; Tickets / Meetings gained Sort), the coordinator board (status chips lead; Category / Only overdue in Filter; search in the toolbar), My tickets, Meetings, the audit log (download dates on DateRangePicker), sign-in history, Insights dashboards (`DashboardFrame`), reports, analytics list, budgets. Finder boxes marked `data-search-kind="finder"`. | `PowerSearch.tsx`, `RecordsRegister.tsx`, `TicketMeetingRecords.tsx`, 9 pages, Insights screens |
+| 2 | Phone cards (RESP-01 rest) | `.table-cards` + `data-label` on the 27 squeezed tables: `(summary)`, `MetricsScreen`, `DashboardFrame`, raisers, reports `[key]`, workload, budgets, `ModuleTypeScreens` (type lists and versions), AI data sources, Google, WhatsApp templates, `BackupCentre`, danger-zone requests, retention, jobs, page access, `PortfolioList`, the coordinator board. No table needed `data-matrix`. A card that also holds its heading keeps its frame on phones. | 18 files, `globals.css` |
+| 3 | One table (TBL-01) | RecordTable merged into DataTable (`look="records"`, `pager`, row `href` / `fullHref` / `current`, column `wide`); RecordTable deleted. `powerHref` keeps a requested `open` / `page` (Tickets / Meetings rows did not open the pane). | `DataTable.tsx`, `power-href.ts` |
+| 4 | Dialogs (CON-18 rest) | Holiday prompt, pane Delete this task?, Save as template, Share project, Share task, Keyboard shortcuts on `Dialog` (`flush` body for sections). The palette stays its own surface. | 6 files |
+| 5 | Consistency | CON-07 "New …" + icon (7 lists); CON-09 `rounded-card` on 10 bordered boxes; CON-10 `RecordNo` (6 lists); CON-11 `Breadcrumbs back=` (8 detail pages); CON-12 PageHeader `badge` (5 detail pages); CON-15 overview header `mb-section`. | see BUG_FIX_LOG |
+| 6 | LAY-03 | `app/{users,admin,superadmin}/[...rest]` (requireArea, notFound → in-shell StatePage, 404, no metadata). Page views of unknown /users and /admin addresses rewritten to `/<area>/__unknown-address` (signed as the page, open address) so restricted people get the 404 too; POST / actions to unknown /users keep the root 404; role checks and real pages' rules unchanged. Admin route list generated. | 3 pages, `middleware.ts`, `lib/routing/*`, `scripts/dev/write-users-routes.mjs`, `server/authorization/pages.ts` |
+| 7 | Form width | `max-w-form` on Meeting settings, Ticket categories, Approver groups, AI rules, a reminder rule. | 5 pages |
+| 8 | Sweep tooling | Probe: PowerSearch inside the toolbar = the toolbar's filter; `data-search-kind` boxes = "finder"; `data-matrix` tables counted apart; analyzer `listPages`, `phoneMatrix`. | `zz-ui-qa-audit.spec.ts`, `ui-qa-analyze.mjs` |
+
+### Measured (UIQA sweep, Chromium, 9 viewports + rail sample, 1,783 visits; before = the stage 3b sweep)
+
+| Measure | Before (3b) | After (3c) |
+|---|---|---|
+| Shell token mismatches / page overflow / outside | 0 / 0 / 0 | **0 / 0 / 0** |
+| Console errors / failed requests / status ≥ 400 | 0 / 0 / 0 | **0 / 0 / 0** |
+| Visits with CLS > 0.05 | 0 | **0** |
+| Phone pages with a squeezed table (360 / 390 / 430) | 81 visits (27 pages at 390) | **0** (no `data-matrix` table either) |
+| Toolbar kinds at 1440 (`summary.toolbars`) | 7: ListToolbar 43, page search box 17, ListToolbar + page search box 6, ListToolbar + PowerSearch 4, PowerSearch 2, own toolbar 29, own toolbar + page search box 2 | **5:** ListToolbar 43, ListToolbar + finder 5, finder 15, own toolbar 21, own toolbar + finder 2. **Page-made list search boxes: 0** (17 + 6 + 2 pages counted before; with the 3c probe those that remain are finders: Search settings, help search, Find a field, the Admin home record search). **PowerSearch outside the toolbar: 0** (6 pages before). "Own toolbar" = rich-text and task-pane toolbars, TaskGrid (not lists). |
+| ListToolbar pages inside `ListPage` (1440) | 1 (Projects) | **20**; 28 ListToolbar pages keep the same order without the wrapper (Requests, Tasks, Information, Admin users, …: batch 4) |
+| Off-token control heights | 51 | **42** (30 = the request decision grid at 40 on a computer, 12 = the phone decision bar at 48: both by design) |
+| axe (1440 + 390) | 1 node (A11Y-04) | **1 node**, the same A11Y-04 contrast on the active Task Summary row (4.23:1; batch 4) |
+
+Firefox (1440 / 768 / 390, 531 visits, in role chunks): conformance 0, overflow 0, outside 0, failed requests 0, status ≥ 400: 0, CLS 0; axe = the same A11Y-04 node; console: one visit (`/admin/insights/dashboards` at 390) logged "Failed to fetch RSC payload … falling back to browser navigation" for three prefetches the next visit cancelled (navigation noise of the harness, as the aborted prefetches noted in stage 3a). WebKit (1440 / 768 / 390, 531 visits, in role chunks; **all 531 measured this time**, the `/users/profile/devices` hang of stage 3b did not recur and that page logged no #418): conformance 0, overflow 0, outside 0, failed 0, status 0, CLS 0; axe = A11Y-04 and `meta-refresh` on `/admin/insights/dashboards` (Next's `#__next-page-redirect` while that page's `redirect()` to Utilisation streams behind its loading boundary; unchanged code, WebKit measured mid-redirect: batch 4); console: the same cancelled-prefetch noise on 5 visits ("access control checks" = the WebKit https shim) and one React #418 on `/users/security` at 390 (hydration text, the ERR-01 / ERR-02 family: batch 4 / 5).
+
+### Tests
+
+- Unit: `tests/ui/ui-modules-v189.test.ts` (14) + `power-search` (+1 case), `page-access-v181` (the catch-all is no page address); total 221 files / 2,045 tests.
+- e2e `tests/e2e/v1890-ui-modules.spec.ts` (4): Chromium 4/4, Firefox 4/4 (in the 48 below), WebKit 4/4 on the second run (the first WebKit run lost the page during the breadcrumb step: harness).
+- Full existing suite in Chromium, one run in suite order on one database (545 tests): 451 passed, 9 failed, 25 did not run (serial blocks after a failure), 60 skipped. **v172-lists passed (all three, "Waiting for me has more filters" included).** The 9: v1510-meetings (my own updated link name also matched the empty state's "Schedule a new meeting": `exact: true`, then passed), v1730-layout-parity and v1870-navigation-continuity (passed when re-run: order-dependent data), and 6 that fail the same way on the stage 3b build (checked on a build of `5c45777`): session9 (the Admin sidebar's groups start folded since D-411; the test expects a link inside one), v139-draft-task (the Create task window measured 3.8 px off centre mid-animation), v1720-layout-parity (pane ⋯ menu "in viewport" ratio 0), v1722-visual (axe light: the task pane step), v1750-date-picker (phone sheet 341 wide mid-animation), v190 (a task link opens the pane `?task=` where the test expects the full page). Not caused by this batch; batch 4.
+- Firefox (motion / nav / ui sets: v1890-ui-modules, -ui-components, -ui-shell, -navigation, -motion, v1860-header-consistency): 48 / 48.
+- WebKit (the same sets): first run 29 passed, 3 failed (v1890-ui-modules "Settings forms …", v1860 H-02, v1890-navigation NAV-02 S12a); on re-run v1890-ui-modules and v1860 passed; NAV-03 failed once and passed once (flaky); **NAV-02 S12a fails 3 / 3 on this build and 3 / 3 on the stage 3b build** when run alone (the redirect to /signed-out comes about 21 s after the session ends, the test waits 20 s; it passed once on 3b only when run after another test): WebKit harness timing, not this batch.
+- Typecheck, `npm run lint`, `npm run build`: clean.
+
+### For batch 4 (accessibility, motion, layout shift)
+
+1. A11Y-04: the overdue / due text (`#15803d` on `--color-row-active`, 4.23:1) in the active Task Summary row; check every status text token on `row-active` with `scripts/qa/token-contrast.mjs`.
+2. ERR-02 family: React #418 on `/users/security` at 390 (WebKit) and earlier on `/users/profile/devices`; relative / capability text rendered on the server and again on the client. The devices-page WebKit hang (stage 3b) did not recur in this sweep; keep it on the list until it passes twice.
+3. WebKit `meta-refresh` (axe) on `/admin/insights/dashboards`: redirect before the loading boundary streams (a `redirect` in middleware or the hub link straight to Utilisation).
+4. The 6 pre-existing e2e failures above (mostly measurements taken while a window still animates: wait for `animationend` / `getAnimations()`), session9's folded group, v190's pane-vs-full-page expectation; NAV-02 S12a timing in WebKit.
+5. OVL-01 (WebKit pane Escape), RESP-06 (Pico Bot launcher over rows, suspected), FORM-01 / FORM-02.
+6. `ListPage` wrapper for the 28 ListToolbar pages that have the same order without it (Requests, Tasks, Information, Admin users, deliveries, AI history, workload, the analytics screens, …); `Popover` variants for the bell and pickers.
+
+### For batch 5 (content)
+
+1. One date / time / range / relative formatter (`lib/format/date.ts`) replacing the ad-hoc `toLocale*` / `Intl.DateTimeFormat` calls (224 in 127 files at v1.88.0; e.g. the board's `dayText`, Records' 24 h times, the meetings list) behind tests, module by module (CON-08, ERR-01 if time text).
+2. Native date inputs → DateRangePicker (Analytics period, dashboards, Task / Information filters, calendar entry, delegation, …; the audit log's moved in this batch).
+3. Wording: form titles "Schedule a meeting" / "Raise a ticket" / "Add user" and the sidebar / + Create labels against the "New …" list actions; one verb set for record numbers and empty states.

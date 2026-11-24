@@ -24,6 +24,21 @@ Defect IDs refer to [UI_UX_DEFECT_REPORT.md](UI_UX_DEFECT_REPORT.md).
 | Overlays (CON-18) | Shared dialog title / × / padding; radius tokens. | The raw `<dialog>`s → `Dialog` (motion / close path), Popover variants. |
 
 
+## Status after v1.89.0 stage 3c (D-423, batch 3: module pages)
+
+| Area (§3 ID) | Now | Left |
+|---|---|---|
+| List toolbar (CON-01) | Every list page uses the shared `ListToolbar`: Portfolios, the coordinator board and every Admin → Records tab moved onto it (Records' PowerSearch chips lead the toolbar row; Tickets / Meetings gained Sort); the audit log's download dates are one DateRangePicker. `ListPage` wraps Projects, Portfolios, My tickets, Meetings, every Records tab, the board, the audit log, sign-in history, Insights dashboards / reports / analytics list, budgets. Search boxes that find a page or setting (Search settings, help, Find a field, Admin home record search) are finders, not list searches. | `ListPage` wrapper for the other ListToolbar pages (same order already; batch 4). |
+| Primary action wording (CON-07) | "New …" + the + icon on every list (New ticket, meeting, project, portfolio, user, task, information). | Form titles ("Schedule a meeting", "Raise a ticket", "Add user"), sidebar and + Create labels: batch 5 wording pass. |
+| Box radius (CON-09) | Bordered boxes on the card radius (12); 16 only for dialogs, panes in dialog mode and the palette. | — |
+| Record numbers (CON-10) | One `RecordNo`. | — |
+| Back link (CON-11) / badges (CON-12) | One "← Back to …" place (right end of the breadcrumb line); badges beside the title in every detail page. | — |
+| Home overview header (CON-15) | `mb-section` like PageHeader; the three overviews share the header (identical). | — |
+| Phone lists (CON-14) | Cards for every list, Insights, set-up and Super Admin data tables included. | — |
+| Overlays (CON-18) | Every window on `Dialog` (the command palette stays its own surface). | Popover variants (bell, pickers): batch 4. |
+| Unknown addresses | The area's "This page isn't available" inside the shell (LAY-03). | — |
+| Settings forms | Single-column Admin settings at the form width (960). | — |
+
 ## 1. Verdict
 
 **The shell is one product:**
