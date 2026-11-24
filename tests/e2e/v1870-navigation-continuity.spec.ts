@@ -207,7 +207,8 @@ test("user on My Tasks: fold, scroll, pane, comment, close (no history entry), f
   await pane.getByRole("textbox", { name: /Add a comment/ }).first().click();
   await page.keyboard.type("Pane comment kept");
   await pane.getByTestId("pane-send").click();
-  await expect(pane.getByText("Pane comment kept")).toBeVisible();
+  // v1.89.0 (D-425): the comment, in Comments (the hidden All activity tab lists it too once the pane refreshes; also on the stage 3d build).
+  await expect(pane.getByTestId("comment").getByText("Pane comment kept")).toBeVisible();
   // × closes without adding a history entry, the list where it was.
   await pane.getByTestId("close-pane").click();
   await page.waitForURL((url) => !url.searchParams.has("task"));
