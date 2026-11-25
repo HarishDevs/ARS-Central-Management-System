@@ -87,6 +87,13 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 - [x] UI-B5T (24 Nov 2026) unit date (16) + content-v189 (7); e2e v1890-content (Chromium, Firefox, WebKit); full Chromium suite; v1890-* in Firefox and WebKit; integration suite; UIQA sweep; docs/qa; general pages
 - [ ] UI-B5x the 26 native date inputs inside record forms (meeting, task, information, ticket, dynamic fields, palette filters, admin editors): stage 4 or later
 - [ ] v1.89.0 stage 4: visual baselines and sign-off; then version bump, release-notes heading, merge to main and tag
+- [ ] S4-1 stage 4 (D-426) remaining fixes: the 26 record-form date inputs (+ any found by a wider scan) → DateField; lint ars-ui/date-input; e2e helpers
+- [ ] S4-2 v162 "Mark complete … reactions" root cause; integration v1100 G-3 root cause (fix app or test; quarantine only with a reason)
+- [ ] S4-3 visual baselines (playwright.visual.config.ts, VISUAL=1, tests/visual): key screens per module / role, overlays, phone cards, empty / 404, dark sample; 1440 / 1024 / 390, shell at 9; two clean compare runs; size reported
+- [ ] S4-4 sign-off regression: full e2e in Chromium, Firefox, WebKit (separate DBs / ports); unit, integration, typecheck, lint, build; every failure classified
+- [ ] S4-5 UIQA sign-off sweep: Chromium 9 viewports + rail, Firefox / WebKit 1440 / 768 / 390, dark 1440 / 390; all counters 0
+- [ ] S4-6 docs/qa finals (VISUAL_REGRESSION_REPORT, NAVIGATION_TEST_REPORT, RESPONSIVE_TEST_REPORT, ACCESSIBILITY_TEST_REPORT, QA_TEST_CASES, BUG_FIX_LOG, UI_REFACTORING_LOG, GLOBAL_LAYOUT_ARCHITECTURE, RESPONSIVE_STANDARD, GLOBAL_COMPONENT_INVENTORY, MODULE_UI_CONSISTENCY_REPORT, FINAL_GLOBAL_UI_AUDIT, FINAL_MOTION_*, FINAL_QA_SIGNOFF); general pages; release notes whole-release summary
+- [ ] RELEASE v1.89.0 (owner): version bump, release-notes date, merge release-189 to main, tag, deploy
 
 - **Before (23 Nov 2026):** **v1.88.0** (D-418): simple formulas from the owner's FORMULA_FIELDS brief: functions (ADD, SUBTRACT, MULTIPLY, DIVIDE, DATEADD, DATESUBTRACT, ROLLUP, DAYS, WORKDAYS, IF, ROUND, MIN, MAX, ABS, COALESCE), task dates and Today as inputs (Today worked out on reading, never stored), number/date types, the limits (10 inputs, 2 layers, 500 characters, no loops), ready-made TAT / Delay / NFD Delay / Delay Days, Functions help cards, live check and preview in the formula editor. **Owner:** publish (no migration). **Next:** the Users screen redesign (AD-8); the pre-existing v1850 power-search test (Q-follow-up).
 - [x] FX-1 (23 Nov 2026) v1.88.0 language: functions (case-insensitive), built-in dates {start} {due} {created} {completed} {today}, comparisons for IF, typed check (number/date), errors per type and argument count; v1.64 formulas unchanged

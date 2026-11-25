@@ -1,7 +1,17 @@
 # Release notes
 
 ## v1.89.0 (in progress)
-One release in stages (owner): navigation fixes, then the motion and transition system, UI unification, visual baselines and sign-off. No migration so far.
+One release in stages (owner): navigation fixes, then the motion and transition system, UI unification, visual baselines and sign-off. **No migration, no new data, no new setting to change.**
+
+**The release in short (for the owner):**
+- **Getting around** (stage 1): signing in again brings back the same view; links to pages you can't open land on your Home; ← Back and breadcrumbs return to the list you came from as you left it; Back with an unsent comment asks first.
+- **Motion** (stage 2): pages change with a short fade; one set of timings for menus, windows and panels; nothing moves with Reduce motion; Analytics and Task Summary no longer jump while loading.
+- **One look for every screen** (stages 3a-3c): the same frame (top bar, sidebar, page spacing) in the app, Admin and Super Admin; one size for buttons and fields; every list with the same toolbar and as cards on a phone; every record page laid out the same way; wider pages on large screens; tablets start with the sidebar folded.
+- **Accessibility** (stage 3d): readable status colours, forms that say what is missing, menus and pickers that stay where you clicked, one popover look, screen-reader announcements.
+- **Dates** (stages 3e and 4): one way of writing dates and times (India time, 12-hour); one date picker for every date field in the app.
+- **Fixed in the last stage:** after an action in the task side panel (Mark complete, Undo, a reaction) the panel showed the old state and its buttons stayed greyed out until it was closed.
+- **Quality:** the release was checked in Chrome, Firefox and Safari's engine (WebKit) on Windows, at nine screen sizes, light and dark; 155 reference screenshots now guard the layout. Not checked: real Safari on a Mac / iPhone, real screen readers, a slow network (see `docs/qa/FINAL_QA_SIGNOFF.md`).
+- **Owner steps:** none for the app. Page transitions: only if **Super Admin → Settings → Features → Page transitions** was ever saved as Off (stage 2).
 
 **Stage 1: navigation fixes** (D-419, from the navigation audit of v1.88.0, `docs/qa/NAVIGATION-AUDIT.md`):
 - **Signing in again returns you to the same view:** the same page with the task or record you had open beside it, and the same view, filters and sort (it kept only the page before).
@@ -73,6 +83,13 @@ One release in stages (owner): navigation fixes, then the motion and transition 
 - **Filter chips** read "Raised 1 Nov to 10 Nov 2026" instead of "2026-11-01 to 2026-11-10".
 - **Names match:** the pages that create a meeting, a ticket or a user are titled **New meeting**, **New ticket** and **New user**, like the buttons that open them; the sidebar and search say the same. The buttons that save them keep their words (Schedule meeting, Raise ticket, Create user). Help, the tour and the guide call your task list **Task Summary**, as the sidebar does.
 - **Downloads are unchanged:** report files keep their date format, so anything that reads them keeps working. The Admin → Records download shows the same 12-hour times as the screen.
+- **Owner steps:** none.
+
+**Stage 4: the last date fields, reference screenshots and the final checks** (D-426; record in `docs/qa/FINAL_QA_SIGNOFF.md`, `UI_REFACTORING_LOG.md`, `BUG_FIX_LOG.md`, `VISUAL_REGRESSION_REPORT.md`):
+- **One date picker everywhere:** the remaining date fields now open the same date button and calendar as the rest of the app: a meeting's date, **Points due by**, **MOM due by**, **Record as held**, action and open-point dates; a task's due date and **Start on**; an information item's **Takes effect** / **Expires on**; a ticket's **Required date** and **Target date**; date fields in request, task and ticket forms; a request task's due date; Admin holidays, department holidays, a workflow's task due date and date rules; project and portfolio date fields, field and chart filters, Power search dates and the form designer's default date; the search window's **Between** dates (one From – To picker). Pick a day or type it (dd-mm-yyyy or yyyy-mm-dd); where a time belongs to the date, a time box sits beside the button and is filled in when you pick the day (5:00 pm for a due time, changeable). An empty required date says **Choose a date.** What is saved is unchanged.
+- **Fixed:** after an action in the task side panel (Mark complete and its Undo, adding or removing a reaction) the panel could keep showing the old state with its buttons greyed out; it now refreshes as before. Undo after Mark complete shows the task open straight away.
+- **Fixed:** on Task Summary the **Show** label beside the range was squeezed to two lines.
+- **Reference screenshots:** 155 screenshots of the key screens (every area and role, the task panel, the search window, Create task, the date picker, phone cards, empty and not-found pages, a dark sample; the main pages at all nine screen sizes) are stored with the code; a later change that moves the layout shows up as a difference (`docs/qa/VISUAL_REGRESSION_REPORT.md`).
 - **Owner steps:** none.
 
 ## v1.88.0 (23 Nov 2026): simple formulas

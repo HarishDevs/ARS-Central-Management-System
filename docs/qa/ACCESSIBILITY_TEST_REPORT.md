@@ -70,3 +70,18 @@
 
 ### Dark theme
 axe was run on every sweep route in dark at 1440 and 390 in Chromium for the first time: **0 violations** (354 visits). Light: Chromium 1,783 visits, Firefox 531, WebKit 531: **0 violations** (axe at 1440 and 390). The sweep also found the Task Summary layout shift (PERF-02) in dark, fixed.
+
+## 6. Stage 4 results (v1.89.0 sign-off, D-426, 25 Nov 2026)
+
+### Fixed
+| Item | Result |
+|---|---|
+| Date fields (32) | Every date field is the shared picker: a real `<button>` named by its `<label>` and its value ("Due: Tuesday 1 December 2026, 5:00 pm. Change"), the dialog with a labelled month grid (`role=grid`, arrows / Page Up / Page Down / Home / End / Enter), focus back on the button on close, a bottom sheet with `aria-modal` on phones. A required empty date says "Choose a date." under the button (`role=alert`), the button is described by it and takes focus (3.3.1, 3.3.3). The hidden value input is `aria-hidden` and out of the Tab order. The time beside it is a native time box with its own label ("Due time"). |
+| Profile photo buttons (axe `target-size`, Firefox) | With a photo, **Upload new photo** and **Remove photo** were 20 px tall 8 px apart: both are now at least 24 px (2.5.8). Found by the Firefox run of e2e v160-ui RA-03 (Chromium's geometry passed the spacing exception). |
+| Task pane after an action | The pane refreshes again after Mark complete / Undo / a reaction (stage 4 v162 root cause): its buttons no longer stay disabled, so keyboard users can continue in the pane (2.1.1 in practice). |
+
+### Measured
+See [FINAL_QA_SIGNOFF.md](FINAL_QA_SIGNOFF.md) §3 for the sweep: axe (wcag2a / aa / 21aa / 22aa) at 1440 and 390 in Chromium (light and dark) and at 1440 / 768 / 390 in Firefox and WebKit. The e2e accessibility specs (`v1890-accessibility` 11 tests, `v160-ui` RA-03 on 31 pages in light and dark, `v1722-visual` axe, the crawl's axe on every route) ran in all three browsers in the full suites.
+
+### Still not verified (unchanged from §5)
+Real NVDA + Firefox, JAWS, VoiceOver + Safari (macOS, iOS) and TalkBack passes; reading order and verbosity as heard; the toasts' speech while a dialog is open. Scripts cannot replace them; the owner's UAT should include one pass per screen reader on the 6 representative pages in both themes.

@@ -299,3 +299,26 @@ Harness notes: the UI QA config's default output folder is `test-results/`, whic
 4. **Known flaky / pre-existing (reproduced on the stage 3d build):** e2e `v162-pm-part2` "Mark complete … reactions" (an action's refresh can land after the next click); integration `v1100` G-3 (page-rule cache). Decide fix or quarantine in stage 4.
 5. Carry-overs from stage 3d: real Safari (macOS / iOS) for view transitions, the devices page and the service worker; NVDA + Firefox and VoiceOver + Safari on the 6 representative pages in both themes.
 6. Then: version bump to 1.89.0, release-notes heading with the date, merge to main and tag (owner's one release).
+
+## Stage 4: remaining fixes, visual baselines, full regression and sign-off, D-426
+
+**Decision (owner: "don't wait for confirmation, use my recommendations"):** the stage 3e handover's stage 4 list. Rows per defect: [BUG_FIX_LOG.md](BUG_FIX_LOG.md) stage 4; the summary of the whole release: [FINAL_QA_SIGNOFF.md](FINAL_QA_SIGNOFF.md).
+
+### What changed
+
+| # | Item | Change | Where |
+|---|---|---|---|
+| 1 | The last native date inputs | `DateField` (`features/ui/DateField.tsx`): the shared picker in single mode for one day, or a day and a time (a time box beside the button). Same names and values as the native inputs (`yyyy-mm-dd`, `yyyy-mm-ddTHH:MM`), `required` (own message, focus on the button, the browser's bubble suppressed), `min`, reset, an `input` event for unsaved-change guards; `id` on the button so the existing `<label htmlFor>` names it. **26** fields from the 3e list (meetings 7, tasks 3, information 3, form-builder DATE / DATETIME 2, tickets 2, palette 4 → two From – To pickers, Admin holiday / department holiday / workflow work due / rule value 4, request task 1) and **6** found by a wider scan whose type was an expression (project and portfolio field cells, field filters, chart filters, Power search value, form designer default). | 19 files |
+| 2 | Lint | `ars-ui/date-input`: no `date` / `datetime-local` / `month` / `week` input in app / features / components, literal or inside an expression. | `eslint-ui-rules.mjs`, `eslint.config.mjs` |
+| 3 | e2e v162 root cause | The Suspense boundary D-424 put around the side pane's details stopped refreshes after a pane action from committing (stale pane, busy buttons): removed; `PaneReserve` keeps PERF-02. Undo after Mark complete sets the button itself. | `TaskPane.tsx`, `client.tsx` |
+| 4 | Integration v1100 G-3 | Test used a page key removed in D-411: now `admin.users`, with a guard that the key exists. | `tests/integration/v1100.int.test.ts` |
+| 5 | Visual baselines | `playwright.visual.config.ts`, `tests/visual/ui-baseline.visual.ts` (+ `global-setup.ts`), Chromium baselines in `tests/visual/__screenshots__/chromium`; `VISUAL=1` only. | VISUAL_REGRESSION_REPORT |
+| 6 | Found by the baselines / the sign-off run | Task Summary "Show" label squeezed (P4); Profile photo buttons under 24 px with a photo (axe target-size in Firefox, P3). | `MyTasks.tsx`, `ProfileForms.tsx` |
+| 7 | Test races (no assertion loosened) | v131 (reload before the save), v138 (two Undo buttons), v1523 (fixed 400 ms waits), CON-18 (measured mid scale-in), v1552 (12 h calendar text). | `tests/e2e` |
+| 8 | Harness | One build, a server per browser on its own database, ports, upload folder and `UIQA_OUT` (`audit/ui-qa/r189-run/s4/`, git-ignored); `E2E_UPLOAD_DIR`, `UIQA_OUT` read by the configs and the analyser. | `playwright.config.ts`, `ui-qa-shared.ts`, `ui-qa-analyze.mjs` |
+
+### Harness notes (for the next run)
+
+- **Parallel browsers:** three full suites at once on this machine (plus a visual run) made Firefox stall closing pages (`Tearing down "context" exceeded`, 1-2 min per test) and WebKit miss its 5-7 s hydration more often. The sign-off runs: Chromium alone first, then WebKit and Firefox side by side (two browsers), each on its own server and database; the visual runs with at most one suite beside them.
+- **Kill a stopped run completely:** the chunk loop (`e2e.sh`) survives a stopped parent and keeps the mock port (`EADDRINUSE` on 418x for the next run); stop the loop's process tree and free the port.
+- **Reference build:** `../s4-ref3e` (a temporary worktree of `8b6c705`, own build, port 3284, database `ars_approvals_test_r189ref`) answered "the same on the stage 3e build?" for every WebKit and Firefox failure; removed at the end.
