@@ -5,7 +5,8 @@ import Link from "next/link";
 import { Hourglass, X } from "lucide-react";
 import { requireArea } from "@/server/authorization/guards";
 import { PageHeader } from "@/features/shell/PageHeader";
-import { QueueTable } from "@/features/requests/lists";
+import { QueueTable, queueSelectable } from "@/features/requests/lists";
+import { QueueBulkBar } from "@/features/requests/QueueBulkApprove";
 import { parseColumns, QUEUE_COLUMNS } from "@/server/requests/list-columns";
 import { getUserSetting } from "@/lib/db/repositories/user-settings.repository";
 import { priorityRecord } from "@/server/approvals/priority-lookup";
@@ -304,11 +305,13 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
         </p>
       )}
       {/* v1.54.7 (owner: "drop this in the waiting for me"): the Approve several at once panel is removed; each approval is opened and decided on its own. */}
+      {/* v1.90.0 (D-429, owner: "in the table itself I want select and bulk approval option"): tick rows, then Approve (approve only, at most 50, each through the engine on its own). */}
+      {queue.length > 0 && <QueueBulkBar selectable={queue.filter(queueSelectable).length} />}
       {filtered && queue.length === 0 ? (
         <NoResults what="items waiting" query={filter.q} clearSearchHref={without({ q: "" })} resetHref="/users/queue" />
       ) : (
         <QueueKeyboard>
-          <QueueTable items={queue} priority={priority} order={queueOrder} formDue={formDue} groups={groups} sort={{ sortBy: columnSort.sortBy, dir: columnSort.dir, hrefs: sortHrefs, leadKey: "title" }} editable />
+          <QueueTable items={queue} priority={priority} order={queueOrder} formDue={formDue} groups={groups} sort={{ sortBy: columnSort.sortBy, dir: columnSort.dir, hrefs: sortHrefs, leadKey: "title" }} editable selectable />
         </QueueKeyboard>
       )}
 

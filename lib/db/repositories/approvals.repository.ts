@@ -538,6 +538,7 @@ export interface QueueItem {
   onHold: boolean; // the request is on hold (can't be bulk-approved)
   typeName?: string; // the approval type (Waiting for me, v1.6.0)
   requesterDepartment?: string | null; // v1.57.4 (D-343): Group by Department
+  stateVersion?: number; // v1.90.0 (D-429): the request as the page saw it (bulk Approve refuses a changed one)
 }
 
 // My pending approvals, plus those of anyone who named me as their
@@ -608,9 +609,9 @@ export async function listPendingTasksFor(
 ): Promise<QueueItem[]> {
   const extra = filter ? queueFilterSql(filter, userId) : { where: "", params: [], orderBy: "t.created_at, t.id" };
   const [rows] = await db.query<
-    (RowDataPacket & { request_id: number; request_no: string; title: string; requester_name: string; task_key: string; node_label: string; task_type: string; request_status: string; created_at: Date; due_at: Date | null; overdue: number; approver_id: number; approver_name: string; type_name: string; requester_department: string | null })[]
+    (RowDataPacket & { request_id: number; request_no: string; title: string; requester_name: string; task_key: string; node_label: string; task_type: string; request_status: string; created_at: Date; due_at: Date | null; overdue: number; approver_id: number; approver_name: string; type_name: string; requester_department: string | null; state_version: number })[]
   >(
-    `SELECT t.request_id, r.request_no, r.title, u.name AS requester_name, t.task_key, t.node_label, t.task_type, r.status AS request_status, t.created_at, t.due_at,
+    `SELECT t.request_id, r.request_no, r.state_version, r.title, u.name AS requester_name, t.task_key, t.node_label, t.task_type, r.status AS request_status, t.created_at, t.due_at,
             (t.due_at IS NOT NULL AND t.due_at < CURRENT_TIMESTAMP) AS overdue, t.approver_id, a.name AS approver_name, w.name AS type_name,
             (SELECT dq.name FROM departments dq WHERE dq.id = u.department_id) AS requester_department
      ${PENDING_FOR}${extra.where}
@@ -632,6 +633,7 @@ export async function listPendingTasksFor(
     onHold: row.request_status === "ON_HOLD",
     requesterDepartment: row.requester_department ?? null,
     typeName: row.type_name,
+    stateVersion: Number(row.state_version),
   }));
 }
 

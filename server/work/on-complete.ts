@@ -9,7 +9,7 @@ import { withTransaction } from "@/lib/db/transaction";
 import { recordAudit } from "@/lib/db/repositories/audit.repository";
 import { insertOutbox } from "@/lib/db/repositories/outbox.repository";
 import { nextRequestNumber } from "@/lib/db/repositories/approvals.repository";
-import { appendTaskEvent, findTask, insertTask, type TaskRecord } from "@/lib/db/repositories/tasks.repository";
+import { appendTaskEvent, findTask, insertTask, updateTask, type TaskRecord } from "@/lib/db/repositories/tasks.repository";
 import * as repo from "@/lib/db/repositories/work.repository";
 import { deliverOutbox } from "@/server/approvals/service";
 import { taskMessages } from "@/server/modules/messages";
@@ -17,7 +17,7 @@ import { OPEN_STATUSES } from "@/server/modules/task-rules";
 import { indiaDate } from "@/server/workflows/calendar";
 import { nearestWorkingDay } from "@/server/work/holidays";
 import { departmentOf, holidayContext, loadSetting } from "@/server/work/holiday-store";
-import { daysBetween, nextOccurrence, parseRecurrence, parseRecurrenceSettings, RECURRENCE_SETTINGS_KEY } from "@/server/work/more-rules";
+import { daysBetween, nextOccurrence, parseRecurrence, parseRecurrenceSettings, RECURRENCE_SETTINGS_KEY, ruleToGiveBack, undoNextDecision } from "@/server/work/more-rules";
 import { positionBetween } from "@/server/work/rules";
 import { logError } from "@/lib/logging/logger";
 import type { NotifyInput } from "@/server/notifications/notify";
@@ -65,6 +65,8 @@ async function tellUnblocked(taskId: number): Promise<void> {
 
 // The next task of a series. The rule moves to the new task (the completed
 // one keeps none), so reopening and completing again never makes two.
+// v1.90.0 (D-428): Undo (reopen) gives the rule back when the next task is
+// still untouched (undoNextOccurrence), so completing again makes it again.
 export async function createNextOccurrence(taskId: number, actor: { id: number; name: string }): Promise<number | null> {
   const settings = parseRecurrenceSettings(await loadSetting(RECURRENCE_SETTINGS_KEY));
   if (!settings.enabled) return null;
@@ -90,7 +92,8 @@ export async function createNextOccurrence(taskId: number, actor: { id: number; 
     const created = (await findTask(newId, connection))!;
     // v1.76.0 (D-401, BR-MYT-023): the next one stays in the person's own section.
     await repo.copyPlacement(task.id, newId, created.assigneeId, connection);
-    await appendTaskEvent(task.id, { actorId: actor.id, type: "RECURRED", body: `Next: ${created.taskNo}, due ${next}`, payload: { nextId: newId } }, connection);
+    // v1.90.0 (D-428): the rule as it was, so an Undo can give it back unchanged.
+    await appendTaskEvent(task.id, { actorId: actor.id, type: "RECURRED", body: `Next: ${created.taskNo}, due ${next}`, payload: { nextId: newId, rule: rule } }, connection);
     await recordAudit({ actorUserId: actor.id, action: "TASK_RECURRED", entityType: "TASK", entityId: newId, metadata: { from: task.id, due: next } }, connection);
     const messages = created.assigneeId !== actor.id ? [taskMessages.assigned(info(created), created.assigneeId, `${actor.name} (repeating task)`)] : [];
     return { newId, outbox: await insertOutbox(null, messages, connection) };
@@ -98,6 +101,62 @@ export async function createNextOccurrence(taskId: number, actor: { id: number; 
   if (!outcome) return null;
   if (outcome.outbox.length) await afterResponse("next occurrence messages", () => deliverOutbox(outcome.outbox));
   return outcome.newId;
+}
+
+// v1.90.0 (D-428, owner: "after completing a task, if we click on Undo and
+// then complete the same task again, the task for the next day is not being
+// created"). Root cause: completing moves the repeat rule to the new task, and
+// reopening left the reopened task with no rule, so completing it again made
+// nothing (and the first next task stayed, beside the reopened one).
+// Now reopening a completed task of a series removes the next task its
+// completion made, and gives the rule back, when that next task is untouched:
+// still open, not deleted, and nobody has worked on it or its subtasks (no
+// comment, edit, field change, file, time, timer, completed subtask; only its
+// creation and project placement in its history). Then completing again makes
+// the next task again, once. A next task someone has touched is kept, the
+// reopened task stays without the rule, and completing it again makes no
+// second one: never a duplicate, never none. Runs inside the reopen's
+// transaction. Returns what happened, for the history and the message.
+export type UndoNextOutcome = { removed: { id: number; taskNo: string } } | { kept: { id: number; taskNo: string } } | null;
+const UNTOUCHED_EVENTS = ["CREATED", "ADDED_TO_PROJECT"];
+export async function undoNextOccurrence(task: Pick<TaskRecord, "id" | "taskNo">, actorId: number, connection: Queryable): Promise<UndoNextOutcome> {
+  const [own] = await connection.query<RowDataPacket[]>("SELECT recurrence_json, series_id FROM tasks WHERE id = ?", [task.id]);
+  if (!own[0] || own[0].recurrence_json !== null || own[0].series_id === null) return null;
+  const [events] = await connection.query<RowDataPacket[]>("SELECT payload_json FROM task_events WHERE task_id = ? AND event_type = 'RECURRED' ORDER BY id DESC LIMIT 1", [task.id]);
+  if (!events[0]) return null;
+  const payload = (typeof events[0].payload_json === "string" ? JSON.parse(events[0].payload_json) : events[0].payload_json) as { nextId?: unknown; rule?: unknown } | null;
+  const nextId = Number(payload?.nextId);
+  if (!Number.isInteger(nextId) || nextId <= 0) return null;
+  const next = await findTask(nextId, connection, true);
+  if (!next || next.deletedAt) return null;
+  const [nextRule] = await connection.query<RowDataPacket[]>("SELECT recurrence_json, series_id FROM tasks WHERE id = ?", [nextId]);
+  const kept = { kept: { id: next.id, taskNo: next.taskNo } } as const;
+  const tree = [nextId, ...(await repo.descendants(nextId, connection)).map((item) => item.id)];
+  const [touchedRows] = await connection.query<RowDataPacket[]>(
+    `SELECT
+       (SELECT COUNT(*) FROM task_events WHERE task_id IN (?) AND event_type NOT IN (?)) +
+       (SELECT COUNT(*) FROM task_comments WHERE task_id IN (?)) +
+       (SELECT COUNT(*) FROM task_time_entries WHERE task_id IN (?)) +
+       (SELECT COUNT(*) FROM task_field_timer_runs WHERE task_id IN (?)) +
+       (SELECT COUNT(*) FROM record_files WHERE entity_type = 'TASK' AND entity_id IN (?)) +
+       (SELECT COUNT(*) FROM tasks WHERE id IN (?) AND id <> ? AND (status <> 'OPEN' OR deleted_at IS NOT NULL)) AS n`,
+    [tree, UNTOUCHED_EVENTS, tree, tree, tree, tree, tree, nextId],
+  );
+  // Only the series' newest task carries the rule; another task's rule isn't ours to take.
+  const decision = undoNextDecision({ nextOpen: next.status === "OPEN", nextCarriesRule: Boolean(nextRule[0]?.recurrence_json), sameSeries: Number(nextRule[0]?.series_id) === Number(own[0].series_id), touches: Number(touchedRows[0]?.n ?? 0) });
+  const rule = decision === "REMOVE" ? ruleToGiveBack(payload?.rule, nextRule[0]?.recurrence_json) : null;
+  if (!rule) return kept;
+  const now = new Date();
+  for (const id of tree) {
+    const item = await findTask(id, connection, true);
+    if (!item || item.deletedAt) continue;
+    await repo.setTaskWorkFields(id, { deleted_at: now, deleted_by: actorId }, connection);
+    await updateTask(id, item.rowVersion, { status: "CANCELLED", cancelled_by: actorId, cancelled_at: now, recurrence_json: null }, connection);
+    await appendTaskEvent(id, { actorId, type: "DELETED", from: item.status, to: "CANCELLED", body: id === nextId ? `Removed by Undo on ${task.taskNo}: the repeat goes back to it` : null, payload: { status: item.status, undoneRecurrence: task.id } }, connection);
+  }
+  await connection.query("UPDATE tasks SET recurrence_json = ? WHERE id = ?", [JSON.stringify(rule), task.id]);
+  await recordAudit({ actorUserId: actorId, action: "TASK_RECURRENCE_UNDONE", entityType: "TASK", entityId: task.id, metadata: { removed: nextId, taskNo: next.taskNo } }, connection);
+  return { removed: { id: next.id, taskNo: next.taskNo } };
 }
 
 // A fresh, open copy of a task and its subtasks: title, description,

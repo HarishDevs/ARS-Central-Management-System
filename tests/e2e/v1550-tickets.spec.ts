@@ -61,7 +61,8 @@ test("IT sets up a ticket form: the shared Form Builder, its category and its co
   await expect(page.getByText(/Draft saved. It passes every check/)).toBeVisible();
   await page.getByRole("button", { name: "Publish version 1" }).click();
   await page.getByRole("alertdialog").getByRole("button", { name: "Publish version 1" }).click();
-  await expect(page.getByText(/Version 1 is live/)).toBeVisible();
+  // v1.90.0 (test race, KNOWN-FAILURES KF-11): the page header (v1.89 meta) also says "Version 1 is live." once the page refreshes; check the publish message itself.
+  await expect(page.getByText(/Version 1 is live. New records use it/)).toBeVisible();
 });
 
 test("the requester raises a ticket: own details filled in, a number by its category", async ({ page, context }) => {

@@ -13,6 +13,8 @@ import { analyseFormula, BUILTIN_LABEL, BUILTINS, FORMULA_FUNCTIONS, FORMULA_MAX
 // list with a help card for each (click to insert), ready-made formulas (the
 // owner's Asana fields), live checking with the same rules as the server and
 // a preview on a task of the project. The server checks everything again.
+// v1.90.0 (D-430): TODAY() and NOW() are in the Functions list; Insert puts
+// them in with the cursor after the brackets.
 export const FORMULA_SOURCES: readonly FieldType[] = ["NUMBER", "DATE", "FORMULA", "TIMER"];
 export type FormulaCheck = { ok: true; expr: string; type: FxType } | { ok: false; message: string } | null;
 
@@ -230,8 +232,8 @@ export function FormulaEditor({ projectId, fields, editingId, formula, setFormul
         {check && !check.ok
           ? check.message
           : check?.ok
-            ? `Looks right: the result is ${check.type === "date" ? "a date" : "a number"}. ${formula.length}/${FORMULA_MAX_LENGTH} characters.`
-            : "Fields and task dates go in [brackets]; use numbers, + − × ÷, ( ) and the functions below. A date minus a date gives days. An empty input leaves the result empty (COALESCE gives a fallback)."}
+            ? `Looks right: the result is ${check.type === "date" ? "a date" : "a number"}${/\bnow\b/i.test(formula) ? " (NOW() includes the time, so days can have decimals)" : ""}. ${formula.length}/${FORMULA_MAX_LENGTH} characters.`
+            : "Fields and task dates go in [brackets]; use numbers, + − × ÷, ( ), TODAY() and NOW(), and the functions below. A date minus a date gives days. An empty input leaves the result empty (COALESCE gives a fallback)."}
       </p>
       {check?.ok && (
         <p className="rounded-md border border-line px-3 py-2 text-label" aria-live="polite" data-testid="formula-preview">
@@ -273,7 +275,7 @@ export function FormulaEditor({ projectId, fields, editingId, formula, setFormul
               <p className="text-caption text-ink-muted">
                 Example: <code className="font-mono">{fn.example}</code>
               </p>
-              <button type="button" className="btn-secondary btn-compact" onClick={() => insert(`${fn.name}()`, 1)}>
+              <button type="button" className="btn-secondary btn-compact" onClick={() => insert(`${fn.name}()`, fn.max > 0 ? 1 : 0)}>
                 Insert {fn.name}
               </button>
             </div>

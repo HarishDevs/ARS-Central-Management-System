@@ -1,0 +1,26 @@
+# Known failures registry
+
+Kept under the build execution policy ([docs/ops/BUILD-EXECUTION-POLICY.md](../ops/BUILD-EXECUTION-POLICY.md) §4, D-431). Before investigating a new failure, check it here. A row is added only with evidence; a row is closed (moved to "Closed") when the test passes on a later build for the stated reason. Never weaken a test to remove a row.
+
+Seeded on 25 Nov 2026 from [FINAL_QA_SIGNOFF.md](FINAL_QA_SIGNOFF.md) §4-5 (v1.89.0); first seen v1.89.0 unless stated.
+
+## Open
+
+| # | Test | Browser | Symptom | Classification | Evidence | First seen |
+|---|---|---|---|---|---|---|
+| KF-01 | v1125 stale-page banner; v128 sign-in loader; v133 table filters; v141 notifications; v150 draft; v1523 remark; v160-ui UI-02 theme; v160-workspace WS-02; v161 Save view; v1641 sticky heading; v167 workload | WebKit | First click / key after load reaches no listener (script runs 5-7 s after load) | Harness (Playwright WebKit on Windows) | Fail the same on the stage 3e build (`logs/ref-webkit-1.log`) | v1.89.0 |
+| KF-02 | v127 D-212, v131, v135, v144, v162 Board / celebrations, v1720 skeleton, v1722 G1, v1730-layout-parity Create menu, v180, v1800-motion focus, v1840 ×2, v1870-motion-perf record pane, v1870-navigation-continuity | WebKit | Different steps fail per run: clicks / navigations right after load ("interrupted by another navigation", click timeout, row not drawn) | Harness (timing) | 9 fail on the stage 3e build too (`logs/ref-webkit-2.log`); v1790 passes alone 4 / 4 twice | v1.89.0 |
+| KF-03 | v1730 crawl "to and fro" ×4; zz-site-audit | WebKit | Console: `Fetch API cannot load …?_rsc=…` / `Failed to fetch RSC payload … Load failed` | Harness (cancelled prefetch noise) | Pages land right; filtered as prefetch noise since stage 3c | v1.89.0 |
+| KF-04 | v1730 crawl "every route" light 1366, `/users/tasks/new` | WebKit | One axe colour-contrast inside the Create task window | Not reproducible (measured during the window's entrance) | 4 targeted WebKit axe runs: 0; sweep axe: 0 | v1.89.0 |
+| KF-05 | v1100-web WEB-01 | Firefox | Console: "A ServiceWorker intercepted the request and encountered an unexpected error" | Harness | Same on the stage 3e build (`logs/ref-firefox-1.log`) | v1.89.0 |
+| KF-06 | v1110, v131, v132, v135, v1780 R3 | Firefox | `NS_BINDING_ABORTED` on `page.goto` / `page.reload` while the app's own navigation is in flight | Harness (test fixes for v1110 / v131; others pass on re-run) | FINAL_QA_SIGNOFF §4 | v1.89.0 |
+| KF-07 | v1770 "Customise › Fields" | Firefox | `Browser.removeBrowserContext … _maybeDontRestoreTabs` | Harness (Playwright / Firefox protocol) | Not in the app | v1.89.0 |
+| KF-08 | v1890-ui-modules RESP-01 | Firefox | `NS_BINDING_ABORTED` once | Flaky (harness) | Passed in every other run | v1.89.0 |
+| KF-09 | v1780 "profile's Tasks card" (re-run only) | Chromium | New tasks sort below the card's first five on a database that already ran the suite | Re-run artefact (database state) | Passed in the full run | v1.89.0 |
+| KF-10 | Long server-streamed list pages (risk R1) | All, rare | React #418 (hydration) console error; page renders right | Known risk, low impact | 1 in 100 loads on the final build; 0 in UIQA sweeps | v1.89.0 |
+
+## Closed
+
+| # | Test | Browser | Symptom | Classification | Evidence | First seen | Closed |
+|---|---|---|---|---|---|---|---|
+| KF-11 | v1550-tickets "IT sets up a ticket form" (line 64) | Chromium | Strict-mode violation: `getByText(/Version 1 is live/)` matched the publish message and the page header's meta ("Ticket type … Version 1 is live.", added in v1.89.0 stage 3) once the page refreshed | Test bug (race on a text shown twice); not caused by v1.90 code (the page is unchanged) | Failed 3 / 3 runs on the v190 build (alone and after other specs); passed once on main e4d29ce (`.claude/worktrees/ref190`, alone): timing only | v1.89.0 | v1.90.0: the assertion targets the publish message ("Version 1 is live. New records use it"), same check, no loosening |

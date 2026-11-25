@@ -113,5 +113,5 @@ test("Help has a Formulas topic with the functions and the ready-made formulas",
   await page.locator("#help-search").fill("WORKDAYS");
   await expect(page.getByText("Formulas", { exact: true }).first()).toBeVisible();
   const text = (await page.locator("body").innerText()).replace(/\s+/g, " ");
-  for (const word of ["WORKDAYS(from, to)", "COALESCE(value, fallback)", "TAT = DAYS([Start date], [Due date])", "NFD Delay = DAYS([Today], [NFD])"]) expect(text).toContain(word);
+  for (const word of ["WORKDAYS(from, to)", "COALESCE(value, fallback)", "TAT = DAYS([Start date], [Due date])", "NFD Delay = DAYS(TODAY(), [NFD])"]) expect(text).toContain(word); // v1.90 (D-430): the preset uses TODAY()
 });

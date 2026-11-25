@@ -2869,7 +2869,7 @@ flowchart TD
   P -- Delay or NFD Delay --> N{Project has a date field Revised Target / NFD?}
   N -- yes --> T
   N -- no --> C[Choose a date field] --> T
-  P -- no --> S[Select field: project number, date, timer, formula fields + Start date, Due date, Created on, Completed on, Today]
+  P -- no --> S[Select field: project number, date, timer, formula fields + Start date, Due date, Created on, Completed on, Today, Now (v1.90)]
   S --> O{Input is a date?}
   O -- yes --> OM[Only minus enabled; DATEADD / DATESUBTRACT to move a date]
   O -- no --> OA[+ − × ÷ enabled]
@@ -2882,7 +2882,7 @@ flowchart TD
   V --> SV[Save: server checks again, also formulas that use this one] --> DB[(project_fields.config_json.formula: {f12} {due} {today} ...)]
   DB --> R[Any read: List, Board, pane, My Tasks, export, Dashboard, automation conditions]
   R --> CF[cellsFor: load referenced fields, task dates as India days, first-level subtasks and their values, Working calendar; Today = the India day now]
-  CF --> E[Evaluate per task: empty in = empty out unless COALESCE; errors as cell text]
+  CF --> E[Evaluate per task: empty in = empty out unless COALESCE; errors as cell text; TODAY() = Today, NOW() = India date-time now as a fractional day (v1.90, D-430)]
   E --> X[Cell: number formatted, or a date; nothing stored, no activity, no audit]
 ```
 
@@ -2930,3 +2930,49 @@ flowchart LR
 - One picker for every date in the app (record forms, form-builder fields, filters, the search window, Admin editors); From – To ranges use the same picker with two fields. Keyboard: arrows by a day, Page Up / Page Down by a month (Shift: a year), Home / End the week's ends, Enter picks. Below 768 px it is a bottom sheet.
 - A minimum date (a ticket's Required date and Target date: today) greys out earlier days; the server checks every rule again.
 
+## F-TICKET-DASHBOARD-COUNTS: Ticket dashboards, every status count (v1.90.0, D-427)
+```mermaid
+flowchart TD
+  A[Coordinator or IT opens Tickets → Ticket dashboards] --> G{IT, or coordinates / named for a category?}
+  G -- no --> NF[Not found]
+  G -- yes --> C[Categories the person may see]
+  C --> K[ticketCounts per category on the server, the viewer's scope D-338]
+  K --> CARD[Card: title link + N open · N to assign · N overdue]
+  CARD --> L[Every status in lifecycle order, zeros too: New, Assigned, In progress, Awaiting confirmation, Reopened, Closed + auto closed, Overdue]
+  L -- click a count --> D[Category dashboard ?status=X: tiles, filters and table filtered to X]
+```
+
+## F-RECURRING-UNDO: Complete, Undo, Complete on a repeating task (v1.90.0, D-428)
+```mermaid
+flowchart TD
+  C1[Complete a repeating task] --> N[createNextOccurrence: clone next task, rule moves to it, RECURRED event with nextId + the rule as it was]
+  N --> U[Undo in the toast or Reopen]
+  U --> R[actOnTask REOPEN, one transaction]
+  R --> Q{Task has no rule, is in a series, has a RECURRED event?}
+  Q -- no --> DONE[Reopened as before]
+  Q -- yes --> T{Next task open, not deleted, still carries the series rule, untouched: no events beyond CREATED / ADDED_TO_PROJECT, comments, time, timers, files, closed subtasks?}
+  T -- yes --> RM[Soft-delete next task and its subtasks, DELETED event, rule given back, audit TASK_RECURRENCE_UNDONE]
+  T -- no --> KEEP[Keep the next task; reopened task stays without the rule]
+  RM --> C2[Complete again → next day's task made once]
+  KEEP --> C3[Complete again → nothing new: no duplicate]
+```
+
+## F-BULK-APPROVE: Select and approve several on Waiting for me (v1.90.0, D-429)
+```mermaid
+flowchart TD
+  W[Waiting for me: approval rows and phone cards have a tick box; work steps and on-hold rows don't] --> S[Tick rows or Select all on this page / filter]
+  S --> B[Bar: N selected · Approve N · Clear; optional comment for every approval]
+  B -- over 50 --> LIM[Approve up to 50 at a time]
+  B --> CF[Confirm: Approve N requests? (own decision for each)]
+  CF -- Cancel --> B
+  CF -- Approve --> SA[bulkApproveAction: session, keys requestId:taskKey:stateVersion, ≤ 50, comment ≤ 2000]
+  SA --> E{Per item: still pending, an approval step, request in progress, not own request?}
+  E -- no --> SK[Skipped with reason]
+  E -- yes --> DT[decideTask: own transaction, request locked, state version = the page's? engine: approver or delegate, no self-approval, one vote per step]
+  DT -- changed since loaded --> SK
+  DT -- refused --> NA[Not approved with the engine's message]
+  DT -- ok --> AP[Approved: timeline, REQUEST_DECIDED audit, notifications as a single approval]
+  AP --> SUM[Summary: Approved N · Skipped M, reasons and links; batch audit APPROVALS_BULK_APPROVED; list refreshes]
+  SK --> SUM
+  NA --> SUM
+```

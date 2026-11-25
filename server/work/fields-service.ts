@@ -50,7 +50,7 @@ import {
   type StoredValue,
   type TaskDates,
 } from "@/server/work/custom-fields";
-import { analyseFormula, formulaFields, formulaFromText, parseFormula } from "@/server/work/formula";
+import { analyseFormula, formulaFields, formulaFromText, indiaMoment, parseFormula } from "@/server/work/formula";
 import { planningBasis } from "@/server/work/durations";
 import { indiaDay } from "@/server/work/rules";
 import { loadSetting } from "@/server/work/holiday-store";
@@ -576,6 +576,7 @@ async function taskDates(taskIds: readonly number[]): Promise<Map<number, DatedT
 async function formulaTasks(taskIds: readonly number[], needs: FormulaNeeds, viewer: WorkViewer, now: Date): Promise<Map<number, FormulaTask>> {
   const out = new Map<number, FormulaTask>();
   const today = indiaDay(now);
+  const moment = indiaMoment(now); // NOW() (v1.90, D-430)
   const own = needs.dates ? await taskDates(taskIds) : new Map<number, DatedTask>();
   const calendar = needs.workdays ? (await planningBasis()).calendar : undefined;
   // ROLLUP: the first-level subtasks the viewer can see, with their values and dates.
@@ -590,7 +591,7 @@ async function formulaTasks(taskIds: readonly number[], needs: FormulaNeeds, vie
     [subDates, subRows] = await Promise.all([taskDates(ids), fields.valueRows(ids)]);
   }
   for (const taskId of taskIds) {
-    const task: FormulaTask = { dates: { ...(own.get(taskId)?.dates ?? {}), today }, calendar };
+    const task: FormulaTask = { dates: { ...(own.get(taskId)?.dates ?? {}), today, now: moment }, calendar };
     if (needs.rollup) task.subtasks = (subtasksOf.get(taskId) ?? []).map((id) => ({ stored: subStored(id, subRows), dates: subDates.get(id)?.dates }));
     out.set(taskId, task);
   }

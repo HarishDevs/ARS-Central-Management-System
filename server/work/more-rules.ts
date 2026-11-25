@@ -25,6 +25,32 @@ export function parseRecurrence(raw: unknown): Recurrence | null {
   return rule.kind === "WEEKLY" ? { ...rule, weekdays: [...new Set(rule.weekdays)].sort() } : { ...rule, weekdays: [] };
 }
 
+// v1.90.0 (D-428): Undo (reopen) of a completed repeating task. The next task
+// its completion made is removed, and the rule goes back, only when that task
+// still carries the series' rule, is open, and nobody has touched it or its
+// subtasks; otherwise it is kept (and completing again makes no second one).
+export interface UndoNextFacts {
+  nextOpen: boolean;
+  nextCarriesRule: boolean;
+  sameSeries: boolean;
+  touches: number; // comments, edits, field changes, files, time, timers, subtasks closed or deleted
+}
+export function undoNextDecision(facts: UndoNextFacts): "REMOVE" | "KEEP" {
+  return facts.nextOpen && facts.nextCarriesRule && facts.sameSeries && facts.touches === 0 ? "REMOVE" : "KEEP";
+}
+// The rule given back: as it was before the completion (saved with the
+// RECURRED event since v1.90); for older events the next task's rule without
+// its planned day, so it plans again from the reopened task's own due day.
+export function ruleToGiveBack(saved: unknown, nextRule: unknown): Recurrence | null {
+  const before = parseRecurrence(saved ?? null);
+  if (before) return before;
+  const after = parseRecurrence(nextRule ?? null);
+  if (!after) return null;
+  const rest: Recurrence = { ...after };
+  delete rest.planned;
+  return rest;
+}
+
 // The next planned day of a series and what the rule remembers for the one after (QA-WF-04).
 export function nextOccurrence(rule: Recurrence, dueDay: string | null, doneDay: string): { planned: string; rule: Recurrence } {
   const base = rule.planned ?? dueDay;

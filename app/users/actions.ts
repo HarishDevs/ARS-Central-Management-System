@@ -22,6 +22,8 @@ import { isStorageError, reportStorageFailure, STORAGE_USER_MESSAGE } from "@/se
 import { deleteDraft } from "@/lib/db/repositories/drafts.repository";
 import { hitRateLimit } from "@/lib/db/repositories/jobs.repository";
 import type { ActionResult } from "@/lib/http/action-result";
+import { bulkApprove, BULK_COMMENT_MAX, BULK_MAX, type BulkOutcome } from "@/server/approvals/bulk";
+import { recordAudit } from "@/lib/db/repositories/audit.repository";
 
 // Server Actions for requests (F-14). Every one re-checks the session; the
 // service then enforces who may do what on the record (F-12, D-057).
@@ -367,6 +369,38 @@ export async function addFilesAction(_previous: ActionResult | null, formData: F
 
 // v1.54.7 (owner): bulk approval was removed from Waiting for me; its action is gone
 // (server/approvals/bulk.ts stays, unused by the app, covered by its test).
+// v1.90.0 (D-429, owner: "In Waiting for me page in the table itself I want
+// select and bulk approval option"): back, approve only. Items are
+// "<requestId>:<taskKey>:<stateVersion seen>"; each is approved on its own through the same engine
+// path as a single approval (bulkApprove → decideTask: lock, who may decide,
+// delegation, no self-approval, the step still pending, timeline, audit,
+// notifications). One optional comment goes on every approval. At most 50.
+export type BulkApproveResult = { ok: true; outcomes: BulkOutcome[] } | { ok: false; message: string };
+export async function bulkApproveAction(keys: string[], comment: string): Promise<BulkApproveResult> {
+  const me = await actor();
+  if (!me) return { ok: false, message: "Not found." };
+  if (!Array.isArray(keys) || keys.length === 0) return { ok: false, message: "Select the approvals to approve." };
+  const items = [...new Set(keys.filter((key): key is string => typeof key === "string"))].flatMap((key) => {
+    const match = /^(\d{1,10}):([A-Za-z0-9_.-]{1,40})(?::(\d{1,10}))?$/.exec(key);
+    return match ? [{ requestId: Number(match[1]), taskKey: match[2]!, ...(match[3] ? { seenVersion: Number(match[3]) } : {}) }] : [];
+  });
+  if (items.length === 0) return { ok: false, message: "Select the approvals to approve." };
+  if (items.length > BULK_MAX) return { ok: false, message: `Approve up to ${BULK_MAX} at a time.` };
+  const text = typeof comment === "string" ? comment.trim() : "";
+  if (text.length > BULK_COMMENT_MAX) return { ok: false, message: "Keep the comment under 2,000 characters." };
+  try {
+    const outcomes = await bulkApprove(items, me, text || undefined);
+    const approved = outcomes.filter((outcome) => outcome.result === "APPROVED").length;
+    // Each approval is audited like a single one (REQUEST_DECIDED); this row records the batch.
+    await recordAudit({ actorUserId: me.id, action: "APPROVALS_BULK_APPROVED", entityType: "USER", entityId: me.id, metadata: { asked: items.length, approved, notApproved: outcomes.length - approved, comment: Boolean(text) } });
+    revalidatePath("/users/queue");
+    revalidatePath("/users");
+    return { ok: true, outcomes };
+  } catch (error) {
+    logError("bulkApproveAction failed", error);
+    return { ok: false, message: "Something went wrong. Nothing more was approved; reload to see where things stand." };
+  }
+}
 
 // ---- v1.6.0 (EN-04, EN-05, EN-07) -------------------------------------------------
 const text = (value: FormDataEntryValue | null, max = 2000) => String(value ?? "").trim().slice(0, max + 1);

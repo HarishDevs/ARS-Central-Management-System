@@ -27,7 +27,7 @@ import { addFollower, clearPlacements } from "@/lib/db/repositories/work.reposit
 import { taskViewerFor, teamOf } from "@/server/work/task-access";
 import { checkHoliday, holidayMessage } from "@/server/work/holidays";
 import { departmentOf, holidayContext } from "@/server/work/holiday-store";
-import { afterTaskCompleted } from "@/server/work/on-complete";
+import { afterTaskCompleted, undoNextOccurrence } from "@/server/work/on-complete";
 import { indiaDate } from "@/server/workflows/calendar";
 import { syncTicketWithTask } from "@/server/tickets/sync";
 
@@ -385,6 +385,13 @@ export async function actOnTask(input: TaskActionInput, actor: TaskActor): Promi
       }
 
       if (Object.keys(changes).length && !(await updateTask(task.id, task.rowVersion, changes, connection))) return { error: "Someone changed this task while you were looking. Reload and try again." } as const;
+      // v1.90.0 (D-428): reopening (Undo) a completed repeating task takes back the
+      // untouched next task its completion made, so completing again makes it again.
+      if (input.action === "REOPEN") {
+        const undone = await undoNextOccurrence(task, actor.id, connection);
+        if (undone && "removed" in undone) payload = { ...(payload ?? {}), nextRemoved: undone.removed.taskNo };
+        else if (undone && "kept" in undone) payload = { ...(payload ?? {}), nextKept: undone.kept.taskNo };
+      }
       await appendTaskEvent(task.id, { actorId: actor.id, type: input.action, from: task.status, to: (changes.status as string | undefined) ?? task.status, body: reason || null, payload }, connection);
       await insertRecordFiles("TASK", task.id, input.files, actor.id, input.action === "COMPLETE" ? "EVIDENCE" : "GENERAL", connection);
       // v1.68.0 (D-380): files added: the automations' "attachment is added" trigger.

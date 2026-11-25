@@ -97,7 +97,7 @@ describe("functions (case-insensitive)", () => {
     expect(run("COALESCE(DAYS({start}, {due}), 0)")).toBe(0); // … or 0 with COALESCE
   });
   it("lists a help card for each function: description, signature, one example", () => {
-    expect(FORMULA_FUNCTIONS.map((item) => item.name)).toEqual(["ADD", "SUBTRACT", "MULTIPLY", "DIVIDE", "DATEADD", "DATESUBTRACT", "ROLLUP", "DAYS", "WORKDAYS", "IF", "ROUND", "MIN", "MAX", "ABS", "COALESCE"]);
+    expect(FORMULA_FUNCTIONS.map((item) => item.name)).toEqual(["ADD", "SUBTRACT", "MULTIPLY", "DIVIDE", "DATEADD", "DATESUBTRACT", "ROLLUP", "DAYS", "WORKDAYS", "IF", "ROUND", "MIN", "MAX", "ABS", "COALESCE", "TODAY", "NOW"]); // + TODAY, NOW in v1.90 (D-430)
     for (const item of FORMULA_FUNCTIONS) {
       expect(item.help.length).toBeGreaterThan(10);
       expect(item.signature.startsWith(`${item.name}(`)).toBe(true);
@@ -276,7 +276,7 @@ describe("presets", () => {
     expect(FORMULA_PRESETS.map((item) => [item.name, item.text])).toEqual([
       ["TAT", "DAYS([Start date], [Due date])"],
       ["Delay", "DAYS([Start date], [Revised Target])"],
-      ["NFD Delay", "DAYS([Today], [NFD])"],
+      ["NFD Delay", "DAYS(TODAY(), [NFD])"], // v1.90 (D-430): TODAY() is the same input as [Today]
       ["Delay Days", "DAYS([Due date], [Completed on]) - 1"],
     ]);
   });

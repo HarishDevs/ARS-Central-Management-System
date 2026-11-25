@@ -33,7 +33,8 @@ export interface HeaderSort {
 const ariaSort = (sort: HeaderSort | undefined, key: string) => (sort && sort.hrefs[key] ? (sort.sortBy === key ? (sort.dir === "asc" ? "ascending" : "descending") : "none") : undefined);
 
 // v1.59.0: `trailing` adds a last, fixed column (e.g. the row's Change details button), named for screen readers.
-export function ReorderHeader({ list, lead, columns, hidden = [], sort, trailing }: { list: string; lead: string; columns: HeaderColumn[]; hidden?: string[]; sort?: HeaderSort; trailing?: string }) {
+// v1.90.0 (D-429): `leading` adds a first, fixed column (Waiting for me's tick boxes), named for screen readers.
+export function ReorderHeader({ list, lead, columns, hidden = [], sort, trailing, leading }: { list: string; lead: string; columns: HeaderColumn[]; hidden?: string[]; sort?: HeaderSort; trailing?: string; leading?: string }) {
   const router = useRouter();
   // The order shown is the saved one: titles and cells move together once the
   // page has the new order (a short "Saving…" in between), never apart.
@@ -68,6 +69,11 @@ export function ReorderHeader({ list, lead, columns, hidden = [], sort, trailing
   };
   return (
     <tr data-testid={`reorder-${list}`} aria-busy={pending || undefined} className={pending ? "opacity-60" : undefined}>
+      {leading && (
+        <th scope="col" className="w-10">
+          <span className="sr-only">{leading}</span>
+        </th>
+      )}
       <th scope="col" aria-sort={sort?.leadKey ? ariaSort(sort, sort.leadKey) : undefined} data-sort-column={sort?.leadKey}>
         {sort?.leadKey && sort.hrefs[sort.leadKey] ? <SortLink label={lead} active={sort.sortBy === sort.leadKey} dir={sort.dir} href={sort.hrefs[sort.leadKey]!} /> : lead}
         {pending && <span className="ml-2 text-caption font-normal normal-case text-ink-muted">Saving…</span>}

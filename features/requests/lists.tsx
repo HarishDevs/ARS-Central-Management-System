@@ -15,6 +15,7 @@ import { SafeText } from "@/features/ui/SafeText";
 import { FoldListGroup, FoldScope, FoldTbody } from "@/features/ui/GroupFold";
 import { PriorityPill } from "@/features/ui/ChoicePill";
 import type { ShownPriority } from "@/server/approvals/priority";
+import { QueueRowSelect } from "@/features/requests/QueueBulkApprove";
 
 // v1.47.0: `priority` (the request's Priority field, by request id) adds a
 // Priority column; pages that don't pass it show the table as before.
@@ -36,7 +37,14 @@ const QUEUE_HEADER: Record<QueueColumn, HeaderColumn> = {
 // v1.59.0 (D-357, owner: "approver can change the approval details" "from the
 // table itself"): with `editable`, each approval row (not a work task, not on
 // hold) has a Change details button at the end.
-export function QueueTable({ items, priority, order: savedOrder, formDue = {}, groups, sort, editable = false }: { items: QueueItem[]; priority?: Record<number, ShownPriority>; order?: string[]; formDue?: Record<number, string>; groups?: { key: string; label: string; items: QueueItem[] }[]; sort?: HeaderSort; editable?: boolean }) {
+// v1.90.0 (D-429, owner: "select and bulk approval option"): with `selectable`,
+// each approval row (not a work task, not on hold) has a tick box first (and
+// each phone card one on its left) for Approve on the bulk bar.
+export const queueSelectable = (item: Pick<QueueItem, "work" | "onHold">) => !item.work && !item.onHold;
+export function QueueTable({ items, priority, order: savedOrder, formDue = {}, groups, sort, editable = false, selectable = false }: { items: QueueItem[]; priority?: Record<number, ShownPriority>; order?: string[]; formDue?: Record<number, string>; groups?: { key: string; label: string; items: QueueItem[] }[]; sort?: HeaderSort; editable?: boolean; selectable?: boolean }) {
+  // The request as this page shows it: bulk Approve refuses one that changed since (stale).
+  const selectKey = (item: QueueItem) => `${item.requestId}:${item.taskKey}${item.stateVersion !== undefined ? `:${item.stateVersion}` : ""}`;
+  const selectLabel = (item: QueueItem) => `Select ${item.requestNo} ${item.title}`;
   // v1.53.0: the request's own due date (its form's Due date field), India day.
   const todayDay = indiaDay(new Date());
   const dayText = (day: string) => formatDate(day);
@@ -104,11 +112,19 @@ export function QueueTable({ items, priority, order: savedOrder, formDue = {}, g
       <ul className="card divide-y divide-line sm:hidden">
         {(groups ?? [{ key: "all", label: "", items }]).map((group) => {
           const cards = group.items.map((item) => (
-          <li key={item.taskKey + item.requestId}>
+          <li key={item.taskKey + item.requestId} className={selectable ? "flex items-start" : undefined}>
+            {selectable &&
+              (queueSelectable(item) ? (
+                <label className="flex min-h-11 min-w-11 shrink-0 cursor-pointer items-start justify-center pt-3">
+                  <QueueRowSelect value={selectKey(item)} label={selectLabel(item)} card />
+                </label>
+              ) : (
+                <span aria-hidden="true" className="min-w-11 shrink-0" />
+              ))}
             <Link
               href={`/users/requests/${item.requestId}`}
               data-queue-link
-              className="block px-4 py-3 focus-visible:bg-surface-muted active:bg-surface-muted"
+              className={`block py-3 focus-visible:bg-surface-muted active:bg-surface-muted ${selectable ? "min-w-0 flex-1 pr-4" : "px-4"}`}
             >
               <p className="font-medium text-primary-700">
                 <SafeText text={item.title} />
@@ -162,9 +178,14 @@ export function QueueTable({ items, priority, order: savedOrder, formDue = {}, g
         <table className="data-table">
           <thead>
             {savedOrder ? (
-              <ReorderHeader list="queue" lead="Request" columns={order.map((column) => QUEUE_HEADER[column])} sort={sort} trailing={editable ? "Change details" : undefined} />
+              <ReorderHeader list="queue" lead="Request" columns={order.map((column) => QUEUE_HEADER[column])} sort={sort} trailing={editable ? "Change details" : undefined} leading={selectable ? "Select" : undefined} />
             ) : (
               <tr>
+                {selectable && (
+                  <th scope="col" className="w-10">
+                    <span className="sr-only">Select</span>
+                  </th>
+                )}
                 {sort?.hrefs.title ? <SortTh label="Request" column="title" sortBy={sort.sortBy} dir={sort.dir} href={sort.hrefs.title} /> : <th>Request</th>}
                 {order.map((column) =>
                   sort?.hrefs[column] ? (
@@ -184,6 +205,7 @@ export function QueueTable({ items, priority, order: savedOrder, formDue = {}, g
           {(groups ?? [{ key: "all", label: "", items }]).map((group) => {
             const rows = group.items.map((item) => (
               <tr key={item.taskKey + item.requestId}>
+                {selectable && <td className="w-10">{queueSelectable(item) ? <QueueRowSelect value={selectKey(item)} label={selectLabel(item)} /> : <span aria-hidden="true" className="inline-block h-4 w-4" />}</td>}
                 <td>
                   <Link
                     href={`/users/requests/${item.requestId}`}
@@ -204,7 +226,7 @@ export function QueueTable({ items, priority, order: savedOrder, formDue = {}, g
               </tr>
             ));
             return group.label ? (
-              <FoldTbody key={group.key} label={group.label} count={group.items.length} colSpan={order.length + 1 + (editable ? 1 : 0)}>
+              <FoldTbody key={group.key} label={group.label} count={group.items.length} colSpan={order.length + 1 + (editable ? 1 : 0) + (selectable ? 1 : 0)}>
                 {rows}
               </FoldTbody>
             ) : (

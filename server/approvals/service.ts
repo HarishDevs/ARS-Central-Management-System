@@ -707,9 +707,22 @@ async function afterChange(
 
 const context = (request: RequestRecord) => ({ requesterId: request.requesterId, formData: request.formData as EngineFormData, now: now() });
 
-export function decideTask(input: { requestId: number; taskKey: string; decision: Decision; comment?: string }, actor: Actor) {
-  return mutate(input.requestId, actor, (request, definition, directory) =>
-    decide(definition, request.state, { taskId: input.taskKey, actorId: actor.id, decision: input.decision, comment: input.comment }, context(request), directory),
+// v1.90.0 (D-429): `expectedStateVersion` (bulk Approve): the request as the
+// person's page showed it; checked under the request's lock, so a request that
+// changed since (another decision, changed details, a resubmission) is refused
+// as stale instead of being approved unseen.
+export function decideTask(input: { requestId: number; taskKey: string; decision: Decision; comment?: string; expectedStateVersion?: number }, actor: Actor) {
+  return mutate(
+    input.requestId,
+    actor,
+    (request, definition, directory) => decide(definition, request.state, { taskId: input.taskKey, actorId: actor.id, decision: input.decision, comment: input.comment }, context(request), directory),
+    input.expectedStateVersion === undefined
+      ? {}
+      : {
+          check: async (request) => {
+            if (request.stateVersion !== input.expectedStateVersion) throw new ServiceError("STALE", "Changed since you loaded the page: open it to review.");
+          },
+        },
   );
 }
 

@@ -15,19 +15,27 @@
 // limits (10 inputs, 2 layers of formulas, 500 characters, no loops) and
 // one-click presets. Saved v1.64 formulas read and work as before. Written
 // from the spec's behaviour; still no eval.
+//
+// v1.90.0 (D-430, owner: "Add TODAY() and NOW() in the formulas functions"):
+// TODAY() is today's India date (the same input as [Today]); NOW() is the
+// current India date-time ([Now]), a date whose day number carries the time
+// as a fraction, so date − NOW() gives days with decimals (ROUND helps) and a
+// date-time result shows as its date. Both read bare too (TODAY, now: any
+// case), are worked out when the value is read (never stored) and count as one
+// input each, like [Today]. An en or em dash (– —) reads as a minus sign.
 import { workingDaysBetween } from "@/server/work/working-days";
 import type { WorkCalendar } from "@/server/work/schedule";
 
 // ---- the language ---------------------------------------------------------------------------
-export const BUILTINS = ["start", "due", "created", "completed", "today"] as const;
+export const BUILTINS = ["start", "due", "created", "completed", "today", "now"] as const;
 export type Builtin = (typeof BUILTINS)[number];
-export const BUILTIN_LABEL: Record<Builtin, string> = { start: "Start date", due: "Due date", created: "Created on", completed: "Completed on", today: "Today" };
+export const BUILTIN_LABEL: Record<Builtin, string> = { start: "Start date", due: "Due date", created: "Created on", completed: "Completed on", today: "Today", now: "Now" };
 // Other ways people write the built-ins in brackets ([Start], [Due], ...).
-const BUILTIN_ALIASES: Record<string, Builtin> = { start: "start", "start date": "start", due: "due", "due date": "due", created: "created", "created on": "created", completed: "completed", "completed on": "completed", today: "today" };
+const BUILTIN_ALIASES: Record<string, Builtin> = { start: "start", "start date": "start", due: "due", "due date": "due", created: "created", "created on": "created", completed: "completed", "completed on": "completed", today: "today", now: "now" };
 
 export type FxType = "number" | "date";
 export type CompareOp = ">" | "<" | ">=" | "<=" | "=" | "<>";
-export type FunctionName = "ADD" | "SUBTRACT" | "MULTIPLY" | "DIVIDE" | "DATEADD" | "DATESUBTRACT" | "ROLLUP" | "DAYS" | "WORKDAYS" | "IF" | "ROUND" | "MIN" | "MAX" | "ABS" | "COALESCE" | "TODAY";
+export type FunctionName = "ADD" | "SUBTRACT" | "MULTIPLY" | "DIVIDE" | "DATEADD" | "DATESUBTRACT" | "ROLLUP" | "DAYS" | "WORKDAYS" | "IF" | "ROUND" | "MIN" | "MAX" | "ABS" | "COALESCE" | "TODAY" | "NOW";
 export type FormulaNode =
   | { kind: "num"; value: number }
   | { kind: "field"; id: number }
@@ -63,8 +71,12 @@ export const FORMULA_FUNCTIONS: readonly FunctionHelp[] = [
   { name: "MAX", min: 2, max: 10, signature: "MAX(value 1, value 2, …)", help: "The largest of the values (numbers, or dates: the latest).", example: "MAX([Actual], [Plan])", group: "Extra" },
   { name: "ABS", min: 1, max: 1, signature: "ABS(number)", help: "The number without its minus sign.", example: "ABS(DAYS([Today], [Due date]))", group: "Extra" },
   { name: "COALESCE", min: 2, max: 10, signature: "COALESCE(value, fallback)", help: "Uses the fallback when the value is empty (otherwise an empty input leaves the result empty).", example: "COALESCE([Hours], 0)", group: "Extra" },
+  { name: "TODAY", min: 0, max: 0, signature: "TODAY()", help: "Today's date (India time), worked out fresh each time the value is read. A date minus TODAY() gives whole days. TODAY also works without brackets and is the same as [Today].", example: "[NFD] − TODAY()", group: "Extra" },
+  { name: "NOW", min: 0, max: 0, signature: "NOW()", help: "The date and time now (India time). A date minus NOW() gives days with decimals (a date counts from midnight): use ROUND to tidy it, or TODAY() for whole days. A result that is a date and time shows as its date.", example: "ROUND([Due date] − NOW(), 1)", group: "Extra" },
 ];
-const FUNCTION_INFO = new Map<string, Pick<FunctionHelp, "min" | "max" | "signature">>([...FORMULA_FUNCTIONS.map((item) => [item.name, item] as const), ["TODAY", { min: 0, max: 0, signature: "TODAY()" }]]);
+const FUNCTION_INFO = new Map<string, Pick<FunctionHelp, "min" | "max" | "signature">>(FORMULA_FUNCTIONS.map((item) => [item.name, item] as const));
+// Functions that need no values and also read without brackets (TODAY, NOW).
+const BARE_FUNCTIONS: Record<string, Builtin> = { TODAY: "today", NOW: "now" };
 
 // Ready-made formulas (the owner's Asana fields). `needs`: a project date
 // field of that name (any case), or one the person picks.
@@ -78,7 +90,7 @@ export interface FormulaPreset {
 export const FORMULA_PRESETS: readonly FormulaPreset[] = [
   { key: "tat", name: "TAT", text: "DAYS([Start date], [Due date])", help: "Planned turnaround: days from the start date to the due date." },
   { key: "delay", name: "Delay", text: "DAYS([Start date], [Revised Target])", needs: "Revised Target", help: "Days from the start date to the revised target date." },
-  { key: "nfd", name: "NFD Delay", text: "DAYS([Today], [NFD])", needs: "NFD", help: "Days left until the NFD date; negative means overdue. Worked out fresh each day." },
+  { key: "nfd", name: "NFD Delay", text: "DAYS(TODAY(), [NFD])", needs: "NFD", help: "Days left until the NFD date; negative means overdue. Worked out fresh each day." },
   { key: "delay-days", name: "Delay Days", text: "DAYS([Due date], [Completed on]) - 1", help: "Days completed after the due date, less a one-day allowance." },
 ];
 // The preset's text with its needed field swapped for the one chosen.
@@ -118,7 +130,7 @@ function tokenize(text: string): Token[] | string {
     }
     if (ch === "{") {
       const field = /^\{f(\d{1,10})\}/.exec(rest);
-      const builtin = /^\{(start|due|created|completed|today)\}/.exec(rest);
+      const builtin = /^\{(start|due|created|completed|today|now)\}/.exec(rest);
       if (field) tokens.push({ type: "field", id: Number(field[1]) });
       else if (builtin) tokens.push({ type: "builtin", name: builtin[1] as Builtin });
       else return "A field in the formula isn't written correctly.";
@@ -146,7 +158,7 @@ function tokenize(text: string): Token[] | string {
       at += sign.length;
       continue;
     }
-    if (ch === "+" || ch === "-" || ch === "−") tokens.push({ type: "op", op: ch === "+" ? "+" : "-" });
+    if (ch === "+" || ch === "-" || ch === "−" || ch === "–" || ch === "—") tokens.push({ type: "op", op: ch === "+" ? "+" : "-" });
     else if (ch === "*" || ch === "×") tokens.push({ type: "op", op: "*" });
     else if (ch === "/" || ch === "÷") tokens.push({ type: "op", op: "/" });
     else if (ch === "(") tokens.push({ type: "lp" });
@@ -249,6 +261,8 @@ function parseUncached(text: string): { ok: true; node: FormulaNode } | { ok: fa
     const name = raw.toUpperCase();
     const info = FUNCTION_INFO.get(name);
     if (!info) return fail(`The formula can't use “${raw}”: there's no function with that name. See the Functions list.`);
+    // TODAY and NOW read without brackets too ("[NFD] − TODAY").
+    if (tokens[at]?.type !== "lp" && BARE_FUNCTIONS[name]) return count({ kind: "builtin", name: BARE_FUNCTIONS[name] } as const);
     if (tokens[at]?.type !== "lp") return fail(`Write ${name} with brackets: ${info.signature}.`);
     at += 1;
     return nest(() => {
@@ -267,7 +281,7 @@ function parseUncached(text: string): { ok: true; node: FormulaNode } | { ok: fa
         const want = info.min === info.max ? `${info.min} value${info.min === 1 ? "" : "s"}` : `${info.min} to ${info.max} values`;
         fail(`${name} takes ${want}: ${info.signature}.`);
       }
-      if (name === "TODAY") return count({ kind: "builtin", name: "today" } as const);
+      if (BARE_FUNCTIONS[name]) return count({ kind: "builtin", name: BARE_FUNCTIONS[name] } as const);
       return count({ kind: "call", fn: name as FunctionName, args });
     });
   };
@@ -315,6 +329,14 @@ export function formulaUses(node: FormulaNode, fn: FunctionName): boolean {
 // ---- days ------------------------------------------------------------------------------------
 // Dates are whole days since 1 Jan 1970 while a formula is worked out.
 export const dayNumber = (day: string) => Math.round(new Date(`${day}T00:00:00Z`).getTime() / 86_400_000);
+// v1.90.0 (D-430): an India date-time (YYYY-MM-DDTHH:MM:SS, as NOW() reads it)
+// as a day number with the time as a fraction; null when it doesn't read.
+export function momentNumber(moment: string): number | null {
+  const at = Date.parse(`${moment}Z`);
+  return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(moment) && Number.isFinite(at) ? at / 86_400_000 : null;
+}
+// The India date-time NOW() reads at `now`.
+export const indiaMoment = (now: Date): string => new Date(now.getTime() + 330 * 60_000).toISOString().slice(0, 19);
 // A day number back to YYYY-MM-DD; null when it is not a sensible date (years 1000 to 9999).
 export function dayOf(n: number): string | null {
   if (!Number.isInteger(n) || n < -354_285 || n > 2_932_896) return null;
@@ -346,8 +368,9 @@ function roundTo(n: number, places: number): number {
   return n < 0 ? -rounded : rounded;
 }
 function workdays(from: number, to: number, calendar: WorkCalendar): number | null {
-  const a = dayOf(from);
-  const b = dayOf(to);
+  // NOW() carries the time as a fraction: working days count whole days.
+  const a = dayOf(Math.floor(from));
+  const b = dayOf(Math.floor(to));
   if (!a || !b) return null;
   return a <= b ? workingDaysBetween(a, b, calendar) : -(workingDaysBetween(b, a, calendar) ?? 0);
 }
@@ -464,6 +487,8 @@ export function evaluateFormula(node: FormulaNode, source: FormulaEnv | ((id: nu
       }
       case "TODAY":
         return { ok: true, value: env.builtin?.("today") ?? null };
+      case "NOW":
+        return { ok: true, value: env.builtin?.("now") ?? null };
     }
   };
   return run(node);
@@ -667,6 +692,7 @@ export function analyseFormula(expr: string, fields: ReadonlyMap<number, FxField
           return all[0]!;
         }
         case "TODAY":
+        case "NOW":
           return "date";
       }
     };
@@ -712,7 +738,7 @@ export function formulaText(expr: string, names: ReadonlyMap<number, string>): s
     .replace(/\*/g, "×")
     .replace(/\//g, "÷")
     .replace(/\{f(\d{1,10})\}/g, (_, id: string) => `[${names.get(Number(id)) ?? "removed field"}]`)
-    .replace(/\{(start|due|created|completed|today)\}/g, (_, name: Builtin) => `[${BUILTIN_LABEL[name]}]`);
+    .replace(/\{(start|due|created|completed|today|now)\}/g, (_, name: Builtin) => `[${BUILTIN_LABEL[name]}]`);
 }
 
 // The formula as typed ([Field name] − [Due date] + 2) as stored ({f12} − {due} + 2).
@@ -730,6 +756,6 @@ export function formulaFromText(text: string, fields: readonly { id: number; nam
     missing ||= label.trim() || "(empty)";
     return "{f0}";
   });
-  if (missing) return { ok: false, message: `No number, date or timer field called “${missing}” here. Pick it from Select field, or use [Start date], [Due date], [Created on], [Completed on] or [Today].` };
+  if (missing) return { ok: false, message: `No number, date or timer field called “${missing}” here. Pick it from Select field, or use [Start date], [Due date], [Created on], [Completed on] [Today] or [Now] (or TODAY() and NOW()).` };
   return { ok: true, expr };
 }

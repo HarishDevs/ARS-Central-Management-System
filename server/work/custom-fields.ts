@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { formatClock, formatDate } from "@/lib/format/date";
 import { compareValues } from "@/server/lists/sorting";
-import { analyseFormula, dayNumber, dayOf, evaluateFormula, FORMULA_ERROR_TEXT, formulaFields, parseFormula, type Builtin, type FormulaAnalysis, type FormulaResult, type FxField } from "@/server/work/formula";
+import { analyseFormula, dayNumber, dayOf, evaluateFormula, momentNumber, FORMULA_ERROR_TEXT, formulaFields, parseFormula, type Builtin, type FormulaAnalysis, type FormulaResult, type FxField } from "@/server/work/formula";
 import type { WorkCalendar } from "@/server/work/schedule";
 
 // v1.64.0 (D-371, PM phase B part 1, spec PROJECTS_CUSTOMIZATION §8): custom
@@ -391,7 +391,7 @@ export function storedCell(field: FieldDef, stored: StoredValue | null, context:
 // operands. v1.88.0 (D-418): `task` adds the task's own dates (and Today),
 // its first-level subtasks for ROLLUP and the Working calendar for WORKDAYS;
 // a formula that gives a date shows as a date (Formatting is for numbers).
-export type TaskDates = Partial<Record<Builtin, string | null>>; // YYYY-MM-DD (India days)
+export type TaskDates = Partial<Record<Builtin, string | null>>; // YYYY-MM-DD (India days); `now` is YYYY-MM-DDTHH:MM:SS (India, v1.90)
 export interface FormulaTask {
   dates?: TaskDates;
   subtasks?: readonly { stored: ReadonlyMap<number, StoredValue | null>; dates?: TaskDates }[];
@@ -433,13 +433,14 @@ function fieldValueOn(fieldId: number, fields: ReadonlyMap<number, FieldDef>, st
           field: valueOf,
           builtin: (name) => {
             const day = task.dates?.[name];
-            return day ? dayNumber(day) : null;
+            if (!day) return null;
+            return name === "now" ? momentNumber(day) : dayNumber(day);
           },
           rollup: (target) => {
             if (nested) return { ok: false, error: "INVALID" };
             let sum: number | null = null;
             for (const sub of task.subtasks ?? []) {
-              const one = fieldValueOn(target, fields, sub.stored, { dates: { ...sub.dates, today: task.dates?.today ?? null }, calendar: task.calendar }, true);
+              const one = fieldValueOn(target, fields, sub.stored, { dates: { ...sub.dates, today: task.dates?.today ?? null, now: task.dates?.now ?? null }, calendar: task.calendar }, true);
               if (!one.ok) return one;
               if (one.value !== null) sum = (sum ?? 0) + one.value;
             }
@@ -460,7 +461,8 @@ export function formulaCell(field: FieldDef, fields: ReadonlyMap<number, FieldDe
   if (result.value === null) return EMPTY_CELL;
   const analysis = formulaAnalysis(field, fields);
   if (analysis.ok && analysis.type === "date") {
-    const day = dayOf(result.value);
+    // A date-time (NOW()) shows as its date (v1.90, D-430).
+    const day = dayOf(Math.floor(result.value));
     return day ? { text: dateText(day, null), sort: day, edit: "" } : { text: FORMULA_ERROR_TEXT.INVALID, sort: null, edit: "", error: "INVALID" };
   }
   return { text: formatNumber(result.value, field.config), sort: result.value, edit: "" };

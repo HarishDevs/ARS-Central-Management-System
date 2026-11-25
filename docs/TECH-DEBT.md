@@ -1,0 +1,20 @@
+# Technical debt register
+
+Kept under the engineering governance addendum ([docs/ops/ENGINEERING-GOVERNANCE.md](ops/ENGINEERING-GOVERNANCE.md) §12, D-432). Stable identifiers TD-001, TD-002, …; never renumber. A closed item stays with the release that closed it. Unrelated debt found during a task is recorded here, not fixed silently in that task.
+
+Seeded on 25 Nov 2026 (v1.90.0) from the v1.89.0 sign-off and the living files; each row points at its evidence.
+
+| ID | Area | Debt | Impact | Evidence | Status |
+|---|---|---|---|---|---|
+| TD-001 | Rendering | Intermittent React #418 (hydration) on long server-streamed list pages (the saved-views row streamed late inside the loading boundary) | Console error only; the page is right (1 in 100 loads on the v1.89.0 build) | [FINAL_QA_SIGNOFF.md](qa/FINAL_QA_SIGNOFF.md) §5 R1; KNOWN-FAILURES KF-10 | Open: reproduce with a development build of React; consider loading saved views with the page's data |
+| TD-002 | Browsers | View transitions stay off in WebKit / Safari (D-424); real Safari (macOS / iOS) never tested | Safari users get instant page changes; untested real-device behaviour | FINAL_QA_SIGNOFF §5 R2, §6 | Open: one UAT pass on an iPhone and a Mac, then decide |
+| TD-003 | Test harness | The Playwright WebKit and Firefox suites on Windows are not green as a whole (timing: script runs 5-7 s after load, `NS_BINDING_ABORTED`) | Releases gate on Chromium + the v1890-* sets only | FINAL_QA_SIGNOFF §4, §5 R4; KNOWN-FAILURES KF-01..KF-08 | Open |
+| TD-004 | Test harness | Visual baselines are Windows-rendered Chromium only | A CI image would need its own baselines | FINAL_QA_SIGNOFF §5 R3; VISUAL_REGRESSION_REPORT §6 | Open |
+| TD-005 | UI | Classic view keeps its own overrides (centred box, title bar, Tally overrides, 36 px field height) outside the v1.89 tokens (owner: keep for now, Q-UI-3) | Two looks to maintain | [UI_REFACTORING_LOG.md](qa/UI_REFACTORING_LOG.md) (Classic unchanged, D-421) | Open (owner decision) |
+| TD-006 | UI | Several table implementations remain: raw `.data-table`, `DataTable`, `ClientSortTable`, `TaskGrid`, `PagedRows` (RecordTable merged in D-423) | Sort / paging / density can drift between lists | [GLOBAL_COMPONENT_INVENTORY.md](qa/GLOBAL_COMPONENT_INVENTORY.md) §3, §6 D2 | Open |
+| TD-007 | UI | Drawer families are still three (Dialog drawer, TaskPane, RecordPane) | Different motion / radius per family | GLOBAL_COMPONENT_INVENTORY §4, §6 D4 | Open |
+| TD-008 | Tasks | Two selection mechanisms for bulk actions: `BulkSelect` (users, super-admin requests) and Waiting for me's `QueueBulkApprove` (needs table + phone-card twins and a request version per key) | Small duplication | `features/ui/BulkSelect.tsx`, `features/requests/QueueBulkApprove.tsx` (v1.90.0, D-429) | Open: fold into one selection hook when a third list needs it |
+| TD-009 | Approvals | No bulk Reject / Ask for changes on Waiting for me (owner asked for approve only) | Rejections stay one by one | D-429; RELEASE-NOTES v1.90.0 | Deferred (possible follow-up) |
+| TD-010 | Tasks | Undo of a completed repeating task removes the untouched next task by soft delete (it shows in Deleted for 30 days and could be restored as a one-off copy) | A restored copy would be a second open task of the series | `server/work/on-complete.ts` undoNextOccurrence (D-428) | Open: hide undo-removed tasks from Deleted, or purge them, if it confuses anyone |
+| TD-011 | Projects | Gantt / scheduling items deferred in PM phase B-E: baseline, colour by field, unscheduled tray, chain dependencies, auto-schedule, lag editing, per-project work days | Feature gaps vs Asana | DEVELOPMENT-MEMORY work log (PM-B deferred list); PM module plan (PM-E10 deferred) | Deferred |
+| TD-012 | Performance | Analytics day filters wrap columns in `INDIA_DATE()`, so date indexes can't be used (QA-DB-09, P3) | Scans at very large volume (50k+ requests); fine today | `qa/BUG_REGISTER.md` QA-DB-09; `qa/QA_MASTER_REPORT.md` (v1.43-v1.44 QA pass) | Deferred |

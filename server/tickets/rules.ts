@@ -22,6 +22,28 @@ export function statusText(status: TicketStatus, closeKind: string | null): stri
 }
 export const OPEN_STATUSES: readonly TicketStatus[] = ["NEW", "ASSIGNED", "IN_PROGRESS", "AWAITING_CONFIRMATION", "REOPENED"];
 
+// v1.90.0 (D-427, owner: "display all status count"): a Ticket dashboards
+// card lists every ticket status, zeros included, in the lifecycle's order
+// (tickets have one fixed lifecycle for every category, so it is the same
+// list for every set-up), each with the ?status= filter of the category's
+// dashboard; Closed notes how many closed on their own (?status=auto).
+export interface StatusCountRow {
+  status: TicketStatus;
+  label: string;
+  count: number;
+  filter: string; // the dashboard's ?status= value
+  note?: { text: string; filter: string };
+}
+export function statusCountRows(counts: Record<TicketStatus, number> & { AUTO: number }): StatusCountRow[] {
+  return TICKET_STATUSES.map((status) => ({
+    status,
+    label: TICKET_STATUS_LABEL[status],
+    count: counts[status],
+    filter: status,
+    ...(status === "CLOSED" && counts.AUTO ? { note: { text: `${counts.AUTO.toLocaleString("en-IN")} auto closed`, filter: "auto" } } : {}),
+  }));
+}
+
 // What people do on the ticket page. v1.59.3 (D-362, owner: "For Ticket
 // assignment i dont want task to be created instead i want an option to update
 // the task status in the ticket itself"): the assignee starts and resolves the
