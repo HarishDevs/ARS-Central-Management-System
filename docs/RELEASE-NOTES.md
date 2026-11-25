@@ -1,6 +1,6 @@
 # Release notes
 
-## v1.89.0 (in progress)
+## v1.89.0 (25 Nov 2026): navigation, motion and one look for every screen
 One release in stages (owner): navigation fixes, then the motion and transition system, UI unification, visual baselines and sign-off. **No migration, no new data, no new setting to change.**
 
 **The release in short (for the owner):**

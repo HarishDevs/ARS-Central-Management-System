@@ -853,6 +853,9 @@
 
 ## 5. Work log (newest first)
 
+### 25 Nov 2026 (v1.89.0 released)
+- Version 1.89.0, release notes dated, `release-189` (stages 1-4, D-419..D-426) fast-forwarded to main, tagged v1.89.0 and pushed. No migration, no new setting. Owner: Update Preview → Publish to Live; check Super Admin → Settings → Features → Page transitions only if it was ever saved Off. Follow-ups: real iPhone / Mac UAT, one screen-reader pass, R1 (intermittent #418 on long streamed lists). General pages: release notes dated; privacy (24 Nov, sidebar cookies), terms, guide, help, tour and checklist were handled in the stages (see their entries).
+
 ### 25 Nov 2026 (v1.89.0 stage 4, the last stage before the owner's release: remaining fixes, visual baselines, full cross-browser regression, sign-off, D-426)
 - Branch `release-189` only (no version bump, no tag, not on main: the owner's release). Details in D-426; rows in `docs/qa/BUG_FIX_LOG.md` stage 4; record in `UI_REFACTORING_LOG.md` stage 4; summary in `docs/qa/FINAL_QA_SIGNOFF.md`. No schema change, no migration, no dependency, no new setting.
 - Fixed: the last 26 native date inputs in record forms + 6 more found by a wider scan → `DateField` (lint `ars-ui/date-input`); **the task side pane stopped refreshing after an action** (v162's root cause: D-424's Suspense boundary; removed, PaneReserve keeps PERF-02) and Undo after Mark complete; Profile photo buttons ≥ 24 px (axe target-size, Firefox); Task Summary "Show" label (found by the visual baselines). Tests fixed without loosening: v1100 G-3 (stale page key from D-411), v1552, v131, v138, v1523, CON-18, v1722 G1, v1870-motion-perf (CDP heap Chromium only), the axe helpers' animation wait (5 s bound), zz-site-audit time budget.
