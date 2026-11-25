@@ -82,3 +82,18 @@ Reflow, zoom, resize and long-text probe results: §4.
 - The service worker and RSC prefetch errors that the shim causes are excluded.
 - Production runs on https, so this is not an app defect.
 
+
+## 6. Stage 4 sign-off (v1.89.0, D-426, 25 Nov 2026, final build)
+
+The standard: [RESPONSIVE_STANDARD.md](RESPONSIVE_STANDARD.md). The sweep (`zz-ui-qa-audit.spec.ts`) on a fresh database per browser:
+
+| Run | Visits | Page overflow | Outside the viewport | Shell token mismatches | Squeezed phone tables | CLS > 0.05 |
+|---|---|---|---|---|---|---|
+| Chromium, 9 viewports + folded sidebar (light) | 1,783 | 0 | 0 | 0 | 0 | 0 |
+| Chromium, dark, 1440 / 390 | 354 | 0 | 0 | 0 | 0 | 0 |
+| Firefox, 1440 / 768 / 390 | FF_VISITS | FF_OVERFLOW | FF_OUTSIDE | FF_CONF | FF_SQUEEZE | FF_CLS |
+| WebKit, 1440 / 768 / 390 | WK_VISITS | WK_OVERFLOW | WK_OUTSIDE | WK_CONF | WK_SQUEEZE | WK_CLS |
+
+Probes (Chromium; overlays, resize, pane, picker, upload, forms, offline, tables, keyboard, reflow, motion, sidebar, transitions, integration, states, long text, rapid clicks): **147 checks, 0 not OK.**
+
+New in stage 4: every date field opens the date picker as a bottom sheet below 768 px (visual baseline `overlay/390x844/date-picker`); the time box beside a date-time field is 128 px and the date button takes the rest of the row (it shortens its text with … when the row is narrow). The visual baselines fix the look of 47 screens at 1440 / 1024 / 390 and the shell pages at all nine viewports ([VISUAL_REGRESSION_REPORT.md](VISUAL_REGRESSION_REPORT.md)).

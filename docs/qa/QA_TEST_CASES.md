@@ -148,3 +148,31 @@ The expected values use the proposed standards (GLOBAL_DESIGN_SYSTEM.md, SCREEN_
 |---|---|---|---|---|
 | UIQA-TC-150 | Geometry at 1440 / 768 / 390 in Edge, Firefox, WebKit | The same values as Chromium (± 1 px) | S | Ran (Edge, WebKit: 0 differences); Firefox BLOCKED |
 | UIQA-TC-151 | Overlays, pane, picker, upload, resize in Edge, Firefox, WebKit | Same as Chromium | P (subset) | Ran (Edge, WebKit); Firefox BLOCKED |
+
+## Stage 4 sign-off result per case (v1.89.0, D-426, 25 Nov 2026)
+
+**Run on the final build** (unless a row says otherwise). **Pass** = the expected result held in every browser named; **Fail** = it did not (none at sign-off); **Not run** = not executed in stage 4 (reason given). Evidence: [FINAL_QA_SIGNOFF.md](FINAL_QA_SIGNOFF.md) (§2 tests, §3 sweep), the e2e spec named.
+
+| IDs | Result | Evidence |
+|---|---|---|
+| TC-001 … TC-013 (shell and layout) | **Pass** | Sweep: shell token mismatches 0, page overflow 0, outside 0 (Chromium 9 viewports + rail; Firefox / WebKit 1440 / 768 / 390); one h1 per page; breadcrumb / back on detail pages; e2e v1890-ui-shell (3 browsers) |
+| TC-020 … TC-028 (visual tokens) | **Pass** | Sweep type / control / radius measures on tokens; lint `control-size`, `spacing-scale`, `type-scale` clean; visual baselines (155, Chromium) |
+| TC-040 … TC-052 (interaction) | **Pass** | Probes (Chromium, sweep §3); e2e v1890-ui-components, v1760-pane-url, v1830-task-pane (Chromium, WebKit; Firefox re-run §4), v1750-date-picker, v1523, v1580-sorting (3 browsers) |
+| TC-053 (tabs, accordions, copy / download / print per module) | **Pass** (tabs, accordions, filters, pagination, downloads) / **Not run** (print) | e2e v161, v172, v1641, session11 CSV, v1810 downloads; print not automated |
+| TC-060 … TC-068 (forms) | **Pass** | Probes `forms`, `offline`; e2e v1890-accessibility (FORM-01 / 02), v139-draft-task |
+| TC-069 (dates: past, holiday, range order) | **Pass** | Stage 4: every date field on the shared picker (min dates greyed out, required "Choose a date."); e2e v1750-date-picker, v1890-content, v1510, v1550, v1552; unit date-field-v189; server rules unchanged (integration 654 / 654) |
+| TC-070 (the same checks on the other forms) | **Pass** | e2e v1510 (meeting), v1550 (ticket), approval-flow / v1500 (custom request), information (v1890-content), v1850 (admin user), v127 (rules), v138 (form designer) |
+| TC-080 … TC-083 (responsive) | **Pass** | Sweep at 9 viewports (Chromium) and 1440 / 768 / 390 (Firefox, WebKit): overflow 0, squeezed phone tables 0; touch sizes (RESP-05); RESPONSIVE_TEST_REPORT §6 |
+| TC-090 (axe) | **Pass** | Sweep axe 0 (Chromium 1440 / 390 light and dark; Firefox, WebKit 1440 / 390); e2e v160-ui RA-03, v1722 axe, v1890-accessibility in 3 browsers (WebKit / Firefox re-runs §4); the Profile target-size finding fixed |
+| TC-091 … TC-097 (keyboard, focus, reflow, zoom, reduced motion) | **Pass** | Probes `keyboard`, `reflow`, `motion`; e2e v1890-accessibility, v1800-motion (Chromium, Firefox; WebKit: same failure on the 3e build, §4) |
+| TC-098 (screen reader) | **Not run** | No NVDA / JAWS / VoiceOver / TalkBack available (ACCESSIBILITY_TEST_REPORT §5-6) |
+| TC-099 (manual contrast, both themes) | **Pass (scripted)** | `scripts/qa/token-contrast.mjs`, axe in light and dark; no manual pass |
+| TC-110 … TC-113 (motion) | **Pass** | e2e v1800-motion, v1870-motion-perf, v1890-motion (3 browsers; WebKit / Firefox notes §4); lint and the motion unit tests |
+| TC-120 … TC-123 (tables) | **Pass** | Probe `tables`; e2e v1580-sorting, v1592-tables, v172-lists |
+| TC-130 … TC-133 (states and edge cases) | **Pass** | Probes `states`, `longtext`; visual baselines (not found, empty states) |
+| TC-134 (date formats) | **Pass** | Stage 3e formatter; sweep format counts (§3); no native date input left (lint `date-input`) |
+| TC-135 (currency) | **Pass** | Sweep format counts |
+| TC-136 (console errors / failed requests) | **Pass in the sweep**; residual risk R1 | Sweep console / failed / status 0 (§3); React #418 seen 6 times in stage 4's long crawls under load (FINAL_QA_SIGNOFF R1) |
+| TC-137 (loading under throttling) | **Not run** | Not in scope of the automated runs |
+| TC-140, TC-141 (cross-module integration) | **Pass** | Probe `integration`; e2e v1721-nav, v1870-navigation-continuity, v121-records |
+| TC-150, TC-151 (browsers) | **Pass** (Firefox, WebKit 1440 / 768 / 390 geometry equal to Chromium; overlays, pane, picker in v1890-* sets) / Edge **not re-run** in stage 4 | Sweep §3; e2e v1890-* in all three browsers |

@@ -43,3 +43,17 @@ The test database `ars_approvals_test_r189` dropped, ports 3280 / 4181 free, the
 - **Inventory rows 15, 34, 35, 38** (drag-and-drop FLIP, preview content during the exit, new-comment entrance): deferred with reasons (TRANSITION_IMPLEMENTATION_REPORT; MOT-D1).
 - **UIQA-PERF-02** (Task Summary with a task, 0.36-0.38 in the audit): not reproduced on the test data (0 at every size); guarded by the e2e.
 - **Menus / dropdowns / bell exit animation**: decided against (focus returns at once; no duplicate items in the page).
+
+## Re-verified at the v1.89.0 sign-off (stage 4, D-426, 25 Nov 2026)
+
+Full e2e suites (FINAL_QA_SIGNOFF §2); the motion specs per browser (passed / failed):
+
+| Spec | Chromium | Firefox | WebKit |
+|---|---|---|---|
+| `v1800-motion` (12) | 12 / 0 | 12 / 0 | 2 / 1 (+9 not run behind it): "Escape gives focus back to its button": **fails the same on the stage 3e build** (WebKit does not focus a button on a mouse click) |
+| `v1870-motion-perf` (2) | 2 / 0 | 2 / 0 (after the CDP heap read was limited to Chromium) | task pane 50 cycles **pass on the re-run**; record pane 50 cycles timed out under the parallel run (480 s) |
+| `v1890-motion` (8) | 8 / 0 | 8 / 0 | 8 / 0 |
+| `v1800-cls` (1) | 1 / 0 | 1 / 0 | 1 / 0 |
+| `v1760-pane-url`, `v1830-task-pane` | 7 / 0 | 3 / 1 (v1830: a click before the page settled; the step passed on the 3e build) | 7 / 0 |
+
+Sweep: CLS > 0.05 on 0 visits in Chromium (light 1,783 and dark 354), Firefox and WebKit (FINAL_QA_SIGNOFF §3). The stage 4 change that touches motion: the task pane's details are sent with its frame again (no Suspense, D-426); PERF-02 stays fixed by `PaneReserve` (the v1890-accessibility PERF-02 guard passes in all three browsers). Open items unchanged: real Safari (MOT-D2), MOT-D1.

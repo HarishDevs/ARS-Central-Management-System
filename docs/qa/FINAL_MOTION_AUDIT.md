@@ -52,3 +52,7 @@
 1. Real Safari check of page transitions (MOT-D2).
 2. Deferred inventory rows 15, 34, 35, 38 (MOT-D1).
 3. WebKit test 7 (pane frame times) not verified because the WebKit harness was slow for every navigation at the end of the session.
+
+## Sign-off re-check (v1.89.0 stage 4, D-426, 25 Nov 2026)
+
+Every point above was re-checked by the final runs (FINAL_MOTION_QA_REPORT, last section): the motion specs pass in Chromium and Firefox and, in WebKit, `v1890-motion` 8 / 8 and `v1800-cls` 1 / 1 (the one WebKit failure in `v1800-motion` fails the same on the stage 3e build). No CLS above 0.05 in any browser's sweep. No motion decision changed in stage 4; the defects table above stands, with UIQA-PERF-02 now held by `PaneReserve` alone.
