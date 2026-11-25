@@ -91,8 +91,8 @@ The standard: [RESPONSIVE_STANDARD.md](RESPONSIVE_STANDARD.md). The sweep (`zz-u
 |---|---|---|---|---|---|---|
 | Chromium, 9 viewports + folded sidebar (light) | 1,783 | 0 | 0 | 0 | 0 | 0 |
 | Chromium, dark, 1440 / 390 | 354 | 0 | 0 | 0 | 0 | 0 |
-| Firefox, 1440 / 768 / 390 | FF_VISITS | FF_OVERFLOW | FF_OUTSIDE | FF_CONF | FF_SQUEEZE | FF_CLS |
-| WebKit, 1440 / 768 / 390 | WK_VISITS | WK_OVERFLOW | WK_OUTSIDE | WK_CONF | WK_SQUEEZE | WK_CLS |
+| Firefox, 1440 / 768 / 390 | 531 | 0 | 0 | 0 | 0 | 0 |
+| WebKit, 1440 / 768 / 390 | 531 | 0 | 0 | 0 | 0 | 0 |
 
 Probes (Chromium; overlays, resize, pane, picker, upload, forms, offline, tables, keyboard, reflow, motion, sidebar, transitions, integration, states, long text, rapid clicks): **147 checks, 0 not OK.**
 

@@ -219,6 +219,8 @@ Phase 3 fills this in: one row per ID with Fixed / Not fixed / Won't fix, the bu
 
 **v1.89.0 stage 3e (D-425, batch 5):** fixed CON-08 (one formatter in India time, lint, 24 native date inputs on the shared picker, filter chips) and ERR-01 (relative times after mount); wording: create pages titled New meeting / New ticket / New user like their list actions, sidebar and palette the same, Task Summary in the general pages. Found by the sweep: the last 24 h clocks and yyyy-mm-dd texts (fixed). Sweep: every counter 0 in Chromium, Firefox and WebKit. Rows in [BUG_FIX_LOG.md](BUG_FIX_LOG.md) stage 3e. Left: 26 native date inputs inside record forms (stage 4 list in UI_REFACTORING_LOG).
 
+**v1.89.0 stage 4 (D-426, sign-off):** the 26 record-form date inputs left by 3e and 6 more found by a wider scan are on the shared picker (CON-08 fully closed; lint `ars-ui/date-input`). Found and fixed by the sign-off runs: the task pane stopped refreshing after an action (P2, the v162 root cause), Profile photo buttons under 24 px (P3, axe target-size in Firefox), Task Summary "Show" label squeezed (P4, visual baselines). Final state of the register: 43 fixed, 1 closed (OVL-01, harness), 0 open: [FINAL_GLOBAL_UI_AUDIT.md](FINAL_GLOBAL_UI_AUDIT.md); measurements and every test failure's classification: [FINAL_QA_SIGNOFF.md](FINAL_QA_SIGNOFF.md).
+
 ## F. Blocked and not covered
 
 - **Firefox:** BLOCKED (BRW-01). Installed, but it does not start (SideBySide error). No Firefox geometry or probes.

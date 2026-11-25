@@ -322,3 +322,21 @@ Harness notes: the UI QA config's default output folder is `test-results/`, whic
 - **Parallel browsers:** three full suites at once on this machine (plus a visual run) made Firefox stall closing pages (`Tearing down "context" exceeded`, 1-2 min per test) and WebKit miss its 5-7 s hydration more often. The sign-off runs: Chromium alone first, then WebKit and Firefox side by side (two browsers), each on its own server and database; the visual runs with at most one suite beside them.
 - **Kill a stopped run completely:** the chunk loop (`e2e.sh`) survives a stopped parent and keeps the mock port (`EADDRINUSE` on 418x for the next run); stop the loop's process tree and free the port.
 - **Reference build:** `../s4-ref3e` (a temporary worktree of `8b6c705`, own build, port 3284, database `ars_approvals_test_r189ref`) answered "the same on the stage 3e build?" for every WebKit and Firefox failure; removed at the end.
+
+### Measured (UIQA sign-off sweep on the final build; before = the stage 3e sweep)
+
+| Measure | Before (3e) | Sign-off (4) |
+|---|---|---|
+| Chromium visits (9 viewports + rail) / measured | 1,783 / 1,783 | 1,783 / 1,783 |
+| Shell token mismatches / page overflow / outside | 0 / 0 / 0 | **0 / 0 / 0** |
+| axe Chromium 1440 + 390 (light; dark) | 0 | **0; 0** |
+| Console errors incl. #418 / failed / status ≥ 400 (Chromium light + dark) | 0 / 0 / 0 | **0 / 0 / 0** |
+| CLS > 0.05 (Chromium light + dark) | 0 | **0** |
+| Firefox 1440 / 768 / 390 (531): axe / console / failed / status / CLS / overflow / conformance | 0 each | **0 each** |
+| WebKit 1440 / 768 / 390 (531): the same | 0 each | **0 each** (records made with Chromium: see FINAL_QA_SIGNOFF §3) |
+| Squeezed phone tables | 0 | **0** |
+| Probes (Chromium) | not re-run in 3e | **147 / 147 OK** |
+| Native date inputs in app / features | 26 (+6 hidden as expressions) | **0** (lint `ars-ui/date-input`) |
+
+Tests, baselines and every failure's classification: [FINAL_QA_SIGNOFF.md](FINAL_QA_SIGNOFF.md). Handover: the owner's release (version bump, release-notes date, merge, tag); follow-ups R1 (intermittent #418 on long streamed lists), real Safari / iOS, screen readers.
+

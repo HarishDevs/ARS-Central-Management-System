@@ -53,7 +53,23 @@ Skipped: 56 in every browser are the gated UIQA / probe specs (`UIQA=1`) and 3-4
 
 ## 3. UIQA sign-off sweep (final build)
 
-SWEEP_TABLE
+Fresh database per browser (the set-up's records; in WebKit the records were made with Chromium against the WebKit setup's server and database, because the set-up's portfolio wizard missed WebKit's late hydration twice: a harness step, not a page that was measured). Every route of each role (161 page files, `routesFor`), axe at 1440 and 390.
+
+| Counter | Chromium 9 viewports + folded sidebar (light) | Chromium dark 1440 / 390 | Firefox 1440 / 768 / 390 | WebKit 1440 / 768 / 390 |
+|---|---|---|---|---|
+| Visits / measured | 1,783 / 1,783 | 354 / 354 | 531 / 531 | 531 / 531 |
+| axe violations (wcag2a / aa / 21aa / 22aa, nodes) | **0** | **0** | **0** | **0** |
+| Console errors (incl. React #418) | **0** (#418: 0) | **0** (0) | **0** (0) | **0** (0) |
+| Failed requests | **0** | **0** | **0** | **0** |
+| Status ≥ 400 | **0** | **0** | **0** | **0** |
+| Visits with CLS > 0.05 | **0** | **0** | **0** | **0** |
+| Page overflow / elements outside the viewport | **0 / 0** | **0 / 0** | **0 / 0** | **0 / 0** |
+| Shell token mismatches (conformance) | **0** | n/a (light run) | **0** | **0** |
+| Squeezed phone tables | **0** | 0 | **0** | **0** |
+
+Probes (Chromium: overlays, resize, pane, picker, upload, forms, offline, tables, keyboard, reflow, motion, sidebar, transitions, integration, states, long text, rapid clicks): **147 checks, 0 not OK.**
+
+Text formats (Chromium, light and dark): **yyyy-mm-dd: 0 routes.** "24 h time" matches on 7 routes, none a clock: "India time (UTC+5:30)" on the Analytics pages and in Help's durations, and the task page / pane (a duration or the zone; no 24 h clock is written by `lib/format/date.ts`).
 
 ## 4. Every failure and its classification
 
@@ -88,7 +104,7 @@ v1100 G-3 (stale page key), v1552 (12 h), v131 (reload raced the save), v138 (tw
 
 | # | Risk | Evidence | Recommendation |
 |---|---|---|---|
-| R1 | **Intermittent React #418 (hydration) on long server-streamed list pages**: seen 6 times in stage 4 (Admin task type, Super Admin audit log ×2, deliveries ×2, Task Summary on a phone), only after the full suites had filled the databases and mostly with other browsers running. | Caught once with the HTML: the server's text and the page's final text are identical; the only difference is where a late, outlined segment of the list (the saved-views row, `ListViews`) was streamed (`P:1` / `$RS`) inside the page's loading boundary. React recovers by drawing that part in the browser; nothing visible changes. 0 in 40 loads on the stage 3e build with its small database; 1 in 100 loads on the final build; not seen in the UIQA sweeps (SWEEP_418). | Low user impact (a console error, the page is right). Follow-up after release: reproduce with a development build of React to get the component, and consider loading the saved views with the page's other data. |
+| R1 | **Intermittent React #418 (hydration) on long server-streamed list pages**: seen 6 times in stage 4 (Admin task type, Super Admin audit log ×2, deliveries ×2, Task Summary on a phone), only after the full suites had filled the databases and mostly with other browsers running. | Caught once with the HTML: the server's text and the page's final text are identical; the only difference is where a late, outlined segment of the list (the saved-views row, `ListViews`) was streamed (`P:1` / `$RS`) inside the page's loading boundary. React recovers by drawing that part in the browser; nothing visible changes. 0 in 40 loads on the stage 3e build with its small database; 1 in 100 loads on the final build; not seen in the UIQA sweeps (0 console errors in 2,668+ visits across the browsers). | Low user impact (a console error, the page is right). Follow-up after release: reproduce with a development build of React to get the component, and consider loading the saved views with the page's other data. |
 | R2 | Real Safari (macOS / iOS) not tested: view transitions stay off in WebKit (D-424); the WebKit e2e suite has many harness failures. | §4 | Owner / IT: one UAT pass on an iPhone and a Mac before go-live. |
 | R3 | The visual baselines are Windows-rendered Chromium only. | VISUAL_REGRESSION_REPORT §6 | Regenerate on the CI image if CI runs them. |
 | R4 | The e2e WebKit and Firefox suites are not green as a whole on this harness (timing). | §4 | Do not gate releases on them; gate on Chromium + the v1890-* sets in all three. |
