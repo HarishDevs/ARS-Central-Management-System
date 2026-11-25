@@ -859,6 +859,9 @@
 
 ## 5. Work log (newest first)
 
+### 25 Nov 2026 (v1.90.0 released)
+- Release commit **4035dfdcb580a4b8329320944f23c48518354410** (`4035dfdc`), tagged **v1.90.0** (tag = that commit). Gates checked before pushing, chained: tag equals HEAD, start script intact, origin/main (e4d29ce) an ancestor (fast-forward). **Pushed and confirmed** with `git ls-remote`: `refs/heads/main` and `refs/tags/v1.90.0` both at 4035dfdc (repository now named HarishDevs/ARS-Central-Management-System on GitHub). This entry is the follow-up docs commit (governance §10.3); the tag stays on the release commit. No migration; owner steps in the release notes.
+
 ### 25 Nov 2026 (v1.90.0: the owner's four requests, D-427..D-430; build policy D-431; engineering governance D-432)
 - Worktree `.claude/worktrees/v190` (branch `v190` from main e4d29ce = v1.89.0); test DBs `ars_approvals_test_v190` (e2e), `ars_approvals_test_v190i` (integration, run apart from e2e), ports 3290 / 4191. Owner: "go ahead with my recommendations". **No migration, no new dependency, no new setting.**
 - **Change impact assessments (governance §10.1):**
