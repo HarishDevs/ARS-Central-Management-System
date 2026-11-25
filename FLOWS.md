@@ -2733,6 +2733,7 @@ flowchart LR
   B -->|More, Delete, confirm| DEL[Deleted, pane closes] --> U2[Undo restores it and its subtasks]
   SP --> R[Comment reaction: toggle one of six; deny when the task can't be seen]
 ```
+- v1.89.0 stage 4 (D-426): after every action in the pane (Mark complete, Undo, a reaction, a field) the pane refreshes from the server and shows the new state; Undo after Mark complete shows the task open at once. (The pane's details are sent with its frame; the screen's room for the pane is reserved before it is drawn, PaneReserve.)
 - Celebrations: the person's choice (Profile: Off / Occasional / Always), else the Admin default (Task settings, Occasional). Occasional is about one in four.
 - The visibility line says who can see the task (members of its projects, or its people and the managers above the assignee).
 
@@ -2915,3 +2916,17 @@ flowchart TD
 - **Back with an unsent comment beside a list:** PaneControl listens to `popstate` on window in the capture phase (before the App Router). Leaving the pane (`leavesPane`: its `?task=`/`?open=` changes) with a draft: the move is kept from the router, the address is put back (`history.go`, steps from the Navigation API where available, else 1) and **Discard draft?** opens. Keep editing: nothing changes. Discard: the same move again, now passed to the router.
 - **← Back (BackLink):** goes back in the browser only when the entry before this one is a page of this site (Navigation API), or, without that API, the tab's trail has an in-app previous address and the last move was forwards (`backStaysInApp`); otherwise its in-app link (Home, Danger zone).
 - **← All users / pages / templates:** OriginLink, so the list's search and sort come back.
+
+## F-DATE-FIELD: Choosing a date in any form (v1.89.0, D-425 / D-426)
+```mermaid
+flowchart LR
+  F[A date field in a form or filter] -->|click the date button, or its label| P[Date picker: the month grid, a field to type the day]
+  P -->|click a day, or type dd-mm-yyyy / yyyy-mm-dd and Enter| D[Day chosen, picker closes, focus back on the button]
+  P -->|Esc or a click outside| C[Closed, value unchanged]
+  D -->|field takes a time| T[Time box beside the button filled with a default, changeable]
+  D --> S[The form sends the same name and value as before: yyyy-mm-dd or yyyy-mm-ddTHH:MM]
+  F -->|required and empty, Submit| E["Choose a date." under the button, focus on it, nothing sent]
+```
+- One picker for every date in the app (record forms, form-builder fields, filters, the search window, Admin editors); From – To ranges use the same picker with two fields. Keyboard: arrows by a day, Page Up / Page Down by a month (Shift: a year), Home / End the week's ends, Enter picks. Below 768 px it is a bottom sheet.
+- A minimum date (a ticket's Required date and Target date: today) greys out earlier days; the server checks every rule again.
+

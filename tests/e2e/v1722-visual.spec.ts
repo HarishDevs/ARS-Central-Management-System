@@ -117,7 +117,8 @@ test("set up: a project with an open and a done task and the extra tabs; a reque
 
 test("G1: a toast raised inside an open modal dialog shows above it and can be dismissed", async ({ page, context }) => {
   await as(context, "E2E_REQ");
-  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  // v1.89.0 stage 4 (D-426): Chromium only knows these permissions (WebKit / Firefox throw); the toast shows either way (copied, or a copy error).
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]).catch(() => undefined);
   await page.goto(projectUrl);
   await page.getByTestId("share-project").click();
   const dialog = page.getByTestId("share-dialog");

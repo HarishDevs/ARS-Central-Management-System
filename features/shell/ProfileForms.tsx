@@ -35,7 +35,8 @@ export function PhotoForm({ name, src, approver }: { name: string; src: string |
         }}
       />
       <span className="flex flex-wrap items-center justify-center gap-x-2 text-label">
-        <button type="button" className="link inline-flex items-center gap-1" onClick={() => input.current?.click()} disabled={pending}>
+        {/* v1.89.0 stage 4 (D-426, axe target-size in Firefox): both photo buttons at least 24 px tall (WCAG 2.5.8). */}
+        <button type="button" className="link inline-flex min-h-6 items-center gap-1" onClick={() => input.current?.click()} disabled={pending}>
           <Camera aria-hidden="true" className="h-3.5 w-3.5" /> {src || preview ? "Upload new photo" : "Upload a photo"}
         </button>
         {src && !preview && (
@@ -45,7 +46,7 @@ export function PhotoForm({ name, src, approver }: { name: string; src: string |
             </span>
             <button
               type="button"
-              className="inline-flex items-center gap-1 font-semibold text-danger-600 hover:underline"
+              className="inline-flex min-h-6 items-center gap-1 font-semibold text-danger-600 hover:underline"
               disabled={removing}
               onClick={async () => {
                 setRemoving(true);

@@ -24,6 +24,14 @@ Defect IDs refer to [UI_UX_DEFECT_REPORT.md](UI_UX_DEFECT_REPORT.md).
 | Overlays (CON-18) | Shared dialog title / × / padding; radius tokens. | The raw `<dialog>`s → `Dialog` (motion / close path), Popover variants. |
 
 
+## Final status (v1.89.0 stages 3d, 3e and 4: D-424, D-425, D-426)
+
+Every "Left" item below is closed:
+- **Overlays (CON-18):** popovers (bell, pickers, field editors, emoji, Try as) on one `.popover-surface` (3d).
+- **Wording (CON-07):** form titles match their list actions (New meeting, New ticket, New user), the sidebar and palette say the same (3e).
+- **Dates (CON-08):** one formatter in India time (3e); **one date picker in every module** (3e: filters and periods; stage 4: the 32 fields left in meetings, tasks, information, tickets, form-builder fields, projects and portfolios, filters, the palette, Power search and Admin editors).
+- **Measured at sign-off:** the sweep's shell token mismatches, page overflow and elements outside the viewport are 0 in every module at every viewport (FINAL_QA_SIGNOFF); 155 Chromium baselines now fix the agreed look of each module's key screens (VISUAL_REGRESSION_REPORT).
+
 ## Status after v1.89.0 stage 3c (D-423, batch 3: module pages)
 
 | Area (§3 ID) | Now | Left |
