@@ -94,6 +94,8 @@ test("calendar: add a personal entry, see it by day, week and month, edit and de
   // It stays open after a choice (several kinds can be changed in a row).
   if ((await page.getByTestId("calendar-show").getAttribute("open")) === null) await page.getByTestId("calendar-show").locator("summary").click();
   await page.getByTestId("calendar-show").getByRole("link", { name: /^Personal/ }).click();
+  // v1.89.0 stage 4 (D-426): let that navigation land first (Firefox aborted the next goto: NS_BINDING_ABORTED).
+  await expect(page.locator("main")).toContainText("E2E site visit");
   await page.goto("/users/calendar?view=day&date=2031-05-14");
   await page.getByTestId("calendar-list").getByRole("link", { name: "E2E site visit" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "E2E site visit" })).toBeVisible();

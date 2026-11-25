@@ -44,8 +44,11 @@ test("a project field shows as a List column and takes a value; two tasks change
   const saved = page.waitForResponse((response) => response.request().method() === "POST" && response.url().includes("/users/work/projects/"));
   await page.getByLabel(`Plant of Reconcile bank ${stamp}`).selectOption("Raipur");
   await saved;
-  await page.reload();
-  await expect(page.getByLabel(`Plant of Reconcile bank ${stamp}`)).toHaveValue("Raipur");
+  // Firefox can abort a reload that meets the app's own refresh after the save (NS_BINDING_ABORTED): reload again then.
+  await expect(async () => {
+    await page.reload();
+    await expect(page.getByLabel(`Plant of Reconcile bank ${stamp}`)).toHaveValue("Raipur", { timeout: 5000 });
+  }).toPass({ timeout: 30_000 });
 
   // v1.54.2 (owner): no check boxes: Ctrl + click a task to select it, Shift + click for a range.
   const row = (name: string) => page.getByTestId("task-row").filter({ hasText: name }).first();

@@ -49,7 +49,7 @@ Skipped: 56 in every browser are the gated UIQA / probe specs (`UIQA=1`) and 3-4
 | WebKit: the 15 failing files not yet checked on the reference | 42 pass, 12 fail, 38 not run → classified in §4 |
 
 ### Visual baselines (Chromium, `VISUAL=1`)
-155 screenshots, 19.5 MB; two compare runs on fresh databases after the baselines: **155 / 155 identical, twice**; after the Profile fix the 2 Profile shots were updated and two further compare runs: VISUAL_FINAL. Details: [VISUAL_REGRESSION_REPORT.md](VISUAL_REGRESSION_REPORT.md).
+155 screenshots, 19.5 MB; two compare runs on fresh databases after the baselines: **155 / 155 identical, twice**; after the Profile fix the 2 Profile shots were updated and two further compare runs on the final build: **155 / 155 identical, twice** (`final4-compareA`, `final4-compareB`). Details: [VISUAL_REGRESSION_REPORT.md](VISUAL_REGRESSION_REPORT.md).
 
 ## 3. UIQA sign-off sweep (final build)
 

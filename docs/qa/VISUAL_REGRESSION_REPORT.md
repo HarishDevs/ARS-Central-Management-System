@@ -81,7 +81,7 @@ See the stage 4 section of [UI_REFACTORING_LOG.md](UI_REFACTORING_LOG.md) and [F
 | Baselines (Chromium) | **155 PNG** (47 screens: 43 at 1440 / 1024 / 390 or a subset of them, 4 shell pages at all 9 viewports) |
 | Size in the repository | **19.5 MB** (19,459,280 bytes): under the 40 MB budget, so nothing was cut |
 | Time per run | about 4 minutes (156 tests: the set-up and 155 shots) on the e2e production build |
-| Stability | After the final baselines (run `v2-create`), **two compare runs on fresh databases: 155 / 155 identical, twice** (`v2-compareA`, `v2-compareB`, 25 Nov 2026). |
+| Stability | After the final baselines (run `v2-create`), **two compare runs on fresh databases: 155 / 155 identical, twice** (`v2-compareA`, `v2-compareB`, 25 Nov 2026). After the Profile photo-button fix (the final build) the 2 Profile shots at 1024 / 390 changed by design and were updated; then **two more compare runs: 155 / 155 identical, twice** (`final4-compareA`, `final4-compareB`). |
 | Found while building them | (1) Task Summary's "Show" label squeezed to "Sho / w" at 1440 (fixed, BUG_FIX_LOG stage 4). (2) A determinism gap in the data, not the app: the 60 bulk tasks shared a due second per day, so a list sorted by due date could draw them in either order (first compare run: 2 diffs at 390, Task Summary and the calendar list). The set-up now puts them one second apart by number. (3) The search window has no phone shot: on a phone the users area's search is a page. |
 
 ## 6. Firefox and WebKit
