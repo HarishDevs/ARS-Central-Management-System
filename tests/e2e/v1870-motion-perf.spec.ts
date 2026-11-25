@@ -38,10 +38,15 @@ const PERF_INIT = () => {
 };
 
 async function sample(page: Page) {
-  const client = await page.context().newCDPSession(page);
-  await client.send("HeapProfiler.collectGarbage");
-  const heap = (await client.send("Runtime.getHeapUsage")) as { usedSize: number };
-  await client.detach();
+  // v1.89.0 stage 4 (D-426): the heap is read over CDP, which only Chromium has. In Firefox and
+  // WebKit the heap reads 0 (its check passes trivially); every other check runs in every browser.
+  let heap = { usedSize: 0 };
+  if (page.context().browser()?.browserType().name() === "chromium") {
+    const client = await page.context().newCDPSession(page);
+    await client.send("HeapProfiler.collectGarbage");
+    heap = (await client.send("Runtime.getHeapUsage")) as { usedSize: number };
+    await client.detach();
+  }
   return page.evaluate((used) => {
     const perf = (window as unknown as { __perf: { cls: number; longTasks: number; longest: number } }).__perf;
     return {

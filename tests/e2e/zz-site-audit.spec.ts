@@ -15,7 +15,9 @@ import { sessionCookie } from "./db";
 // then repeats the role's menu pages on a touch phone (375 px) and opens the
 // phone menu. Findings go to test-results/site-audit.json.
 test.describe.configure({ mode: "serial" });
-test.setTimeout(15 * 60_000);
+// v1.89.0 stage 4 (D-426): the walk follows every link the run has made; after the full suite in
+// three browsers it needs more than 15 minutes (a time budget only: the findings decide the result).
+test.setTimeout(40 * 60_000);
 
 const ROLES = [
   { login: "E2E_SUPER", start: ["/superadmin", "/admin", "/users"] },

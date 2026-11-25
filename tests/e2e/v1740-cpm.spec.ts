@@ -27,7 +27,7 @@ async function as(context: BrowserContext, loginId: string) {
 }
 async function axe(page: Page, include?: string) {
   await page.waitForLoadState("networkidle");
-  await page.waitForFunction(() => document.getAnimations().every((animation) => animation.playState !== "running" || animation.effect?.getComputedTiming().iterations === Infinity)); // v1.80.0 (D-407): menus and dialogs finish fading in first
+  await page.waitForFunction(() => document.getAnimations().every((animation) => animation.playState !== "running" || animation.effect?.getComputedTiming().iterations === Infinity), undefined, { timeout: 5000 }).catch(() => undefined); // v1.80.0 (D-407): menus and dialogs finish fading in first; v1.89.0 stage 4 (D-426): at most 5 s (Firefox can leave a colour transition at currentTime 0 after a theme switch; it never ends)
   let builder = new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]);
   if (include) builder = builder.include(include);
   const result = await builder.analyze();
