@@ -197,6 +197,7 @@ flowchart TD
   F -- Yes --> R
   F -- No --> W[Failed: retryable codes are tried again later]
 ```
+Checked 26 Nov 2026 (v1.92.1, D-442): the email library moved to nodemailer 10.6.1 (security fixes); this flow, the relay settings (GoDaddy relay, port 25, no SSL, no sign-in) and the error handling are unchanged.
 
 ## F-52c Email diagnostics (v1.54.14, D-323)
 1. Super Admin → Settings → Email diagnostics: enter a recipient and choose a route (local relay, GoDaddy relay, or don't send).

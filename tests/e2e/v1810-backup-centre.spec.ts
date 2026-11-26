@@ -17,7 +17,7 @@ async function as(context: BrowserContext, loginId: string) {
 async function axe(page: Page) {
   await page.waitForLoadState("networkidle");
   const result = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
-  return result.violations.filter((violation) => violation.impact === "serious" || violation.impact === "critical").map((violation) => `${violation.id}: ${violation.nodes.slice(0, 3).map((node) => node.target.join(" ")).join(" | ")}`);
+  return result.violations.filter((violation) => violation.impact === "serious" || violation.impact === "critical").map((violation) => `${violation.id}: ${violation.nodes.slice(0, 3).map((node) => `${node.target.join(" ")} [${(node.failureSummary ?? "").replace(/\s+/g, " ").trim()}${node.any.concat(node.all, node.none).flatMap((check) => check.relatedNodes ?? []).slice(0, 3).map((related) => ` ~ ${related.target.join(" ")}`).join("")}]`).join(" | ")}`); // v1.92.1 (TD-016): why, and what overlaps, so a CI-only failure can be read from the log
 }
 
 test("the centre is for the Super Admin only", async ({ page, context }) => {
