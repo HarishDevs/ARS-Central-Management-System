@@ -864,6 +864,9 @@
 
 ## 5. Work log (newest first)
 
+### 26 Nov 2026 (v1.91.2 released)
+- Release commit **51f79d69f3d391ad7dc6e230fc62b6930ee9dc50** (`51f79d69`), tagged **v1.91.2** (tag = that commit). Gates checked before pushing, chained: tag equals HEAD, start script intact, origin/main (4409f6be) an ancestor (fast-forward). **Pushed and confirmed** with `git ls-remote`: `refs/heads/main` and `refs/tags/v1.91.2` both at 51f79d69. This entry is the follow-up docs commit (governance §10.3); the tag stays on the release commit. No migration; owner steps in the release notes. Clean-up: test database `ars_approvals_test_v1912` dropped, the node_modules junction removed, no server left on 3298 / 4197; worktree `v1912` left for the owner.
+
 ### 26 Nov 2026 (v1.91.2: no header on Sent back for changes and Approved by me, D-436)
 - **Owner's request (26 Nov 2026):** "Delete the header for Sent back for changes and Approved by me as well." Standing "go ahead with my recommendations" → D-436. Worktree `.claude/worktrees/v1912` (branch `v1912` from origin/main 4409f6be = v1.91.1 + follow-up); test DB `ars_approvals_test_v1912`, ports 3298 / 4197.
 - **Change impact assessment (governance §6):** UI only, two pages. Files: `app/users/queue/sent-back/page.tsx` and `app/users/approved-by-me/page.tsx` (PageHeader replaced by `<h1 className="sr-only">` passed as ListPage's `header`, exactly as `app/users/queue/page.tsx` does since v1.91.1; unused PageHeader / CheckCheck imports removed). `ListPage` itself unchanged, so every other list page keeps its PageHeader. **No server, engine, authorisation, schema, migration, setting, dependency or API change**; lists, filters, sorting, grouping, saved views, rows, count and pager untouched. Risk: low (markup above the toolbar). Roles: approvers (both pages are approver pages); everyone else unaffected. Integration tests not run: no server code touched.
