@@ -34,7 +34,7 @@ const ariaSort = (sort: HeaderSort | undefined, key: string) => (sort && sort.hr
 
 // v1.59.0: `trailing` adds a last, fixed column (e.g. the row's Change details button), named for screen readers.
 // v1.90.0 (D-429): `leading` adds a first, fixed column (Waiting for me's tick boxes), named for screen readers.
-export function ReorderHeader({ list, lead, columns, hidden = [], sort, trailing, leading }: { list: string; lead: string; columns: HeaderColumn[]; hidden?: string[]; sort?: HeaderSort; trailing?: string; leading?: string }) {
+export function ReorderHeader({ list, lead, columns, hidden = [], sort, trailing, leading, leadingControl }: { list: string; lead: string; columns: HeaderColumn[]; hidden?: string[]; sort?: HeaderSort; trailing?: string; leading?: string; leadingControl?: React.ReactNode }) {
   const router = useRouter();
   // The order shown is the saved one: titles and cells move together once the
   // page has the new order (a short "Saving…" in between), never apart.
@@ -72,6 +72,8 @@ export function ReorderHeader({ list, lead, columns, hidden = [], sort, trailing
       {leading && (
         <th scope="col" className="w-10">
           <span className="sr-only">{leading}</span>
+          {/* v1.91.1 (D-435): Waiting for me's select-all sits in this cell. */}
+          {leadingControl}
         </th>
       )}
       <th scope="col" aria-sort={sort?.leadKey ? ariaSort(sort, sort.leadKey) : undefined} data-sort-column={sort?.leadKey}>

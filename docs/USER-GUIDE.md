@@ -395,7 +395,7 @@ While it's open: **Withdraw** on the request. The approvers are told.
 - New values start your level again (everyone at your level sees them); earlier approvals stand unless the values change the route. Changing only the levels to come restarts nothing. The requester and earlier approvers are told what changed and why; it shows in the request's history.
 - Only the approver the request waits on now (or their delegate) can change it, and not while it is on hold. New approvers must be able to approve, and can't be the requester or you.
 
-**Sent back for changes (v1.59.1):** requests you sent back have their own page, **My Approvals → Sent back for changes** (Waiting for me links to it with the count). Each stays there, with your reason and how long it has been with the requester, until the requester resubmits it; then it is back in Waiting for me for your approval. Search, filter, sort any column, group (groups start folded) and save views as on the other lists.
+**Sent back for changes (v1.59.1):** requests you sent back have their own page, **My Approvals → Sent back for changes** (since v1.91.1 Waiting for me no longer links to it; use the menu item). Each stays there, with your reason and how long it has been with the requester, until the requester resubmits it; then it is back in Waiting for me for your approval. Search, filter, sort any column, group (groups start folded) and save views as on the other lists.
 
 **Sorting, saved views and folded groups (v1.58.0):**
 - **Sort:** click any column title to sort A→Z (oldest, smallest first); click it again for Z→A. Empty values always go last. On long lists the whole list is sorted, not just the page you see.
@@ -476,7 +476,7 @@ If you get a *new sign-in* alert that wasn't you, use its **This wasn't me** lin
 ---
 
 ## 2. Approvers
-**Waiting for me** lists everything that needs you, oldest first, with due times (*Overdue* in red). Open a request, read it, then:
+**Waiting for me** lists everything that needs you, oldest first, with due times (*Overdue* in red). Since v1.91.1 (owner) the page has no title bar (the tab or sidebar item names it), each row shows the request's title only (its number is on the request page, and Search still finds a request by its number), and the select-and-approve bar, the count (*33 waiting · page 1 of 2*) and the **← Earlier / Later →** buttons are below the table. Open a request, read it, then:
 - **Approve.**
 - **Ask for changes:** say what to change.
 - **Put on hold:** the time on hold doesn't count against your response time.
@@ -499,7 +499,7 @@ After a decision, **Next waiting for you** opens the next one. Budget warnings s
 
 **Approve one at a time:** since v1.54.7 Waiting for me no longer has the "Approve several at once" panel. Open each approval, read it, and decide it on its own page.
 
-**Select and approve several (v1.90.0, owner's request):** on **Waiting for me**, tick the requests in the table (on a phone, the box at the left of each card), or **Select all** for the approvals on this page and filter. The bar shows **N selected**, **Approve N** and **Clear**, and an optional **comment for every approval**. Approve asks first (*Approve 7 requests?*), then approves each one on its own through the same checks as opening it and pressing Approve (still waiting for you, you are its approver or cover for them, never your own request), recorded in its history and the audit log, with the usual messages. A summary follows, e.g. **Approved 7 · Skipped 2**, listing each skipped request with its reason and a link. Work steps (To do) and requests on hold have no box. At most 50 at a time. There is no bulk Reject: open a request to reject it. Keyboard: Tab to a box and press Space.
+**Select and approve several (v1.90.0, owner's request):** on **Waiting for me**, tick the requests in the table (on a phone, the box at the left of each card), or **Select all** for the approvals on this page and filter (the box at the top of the tick column, or the one in the bar). Since v1.91.1 the bar is **below the table** (above the count and pages); once something is ticked it stays at the bottom of the screen while you scroll, so **Approve** is always in reach. The bar shows **N selected**, **Approve N** and **Clear**, and an optional **comment for every approval**. Approve asks first (*Approve 7 requests?*), then approves each one on its own through the same checks as opening it and pressing Approve (still waiting for you, you are its approver or cover for them, never your own request), recorded in its history and the audit log, with the usual messages. A summary follows, e.g. **Approved 7 · Skipped 2**, listing each skipped request with its reason and a link. Work steps (To do) and requests on hold have no box. At most 50 at a time. There is no bulk Reject: open a request to reject it. Keyboard: Tab to a box and press Space.
 
 **Heads of department:** if IT switches it on, a short email every Monday morning sums up your department's requests from the past week (raised, approved, rejected, still waiting, overdue).
 

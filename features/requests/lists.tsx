@@ -15,7 +15,7 @@ import { SafeText } from "@/features/ui/SafeText";
 import { FoldListGroup, FoldScope, FoldTbody } from "@/features/ui/GroupFold";
 import { PriorityPill } from "@/features/ui/ChoicePill";
 import type { ShownPriority } from "@/server/approvals/priority";
-import { QueueRowSelect } from "@/features/requests/QueueBulkApprove";
+import { QueueRowSelect, QueueSelectAll } from "@/features/requests/QueueBulkApprove";
 
 // v1.47.0: `priority` (the request's Priority field, by request id) adds a
 // Priority column; pages that don't pass it show the table as before.
@@ -41,7 +41,10 @@ const QUEUE_HEADER: Record<QueueColumn, HeaderColumn> = {
 // each approval row (not a work task, not on hold) has a tick box first (and
 // each phone card one on its left) for Approve on the bulk bar.
 export const queueSelectable = (item: Pick<QueueItem, "work" | "onHold">) => !item.work && !item.onHold;
-export function QueueTable({ items, priority, order: savedOrder, formDue = {}, groups, sort, editable = false, selectable = false }: { items: QueueItem[]; priority?: Record<number, ShownPriority>; order?: string[]; formDue?: Record<number, string>; groups?: { key: string; label: string; items: QueueItem[] }[]; sort?: HeaderSort; editable?: boolean; selectable?: boolean }) {
+export function QueueTable({ items, priority, order: savedOrder, formDue = {}, groups, sort, editable = false, selectable = false, titleOnly = false }: { items: QueueItem[]; priority?: Record<number, ShownPriority>; order?: string[]; formDue?: Record<number, string>; groups?: { key: string; label: string; items: QueueItem[] }[]; sort?: HeaderSort; editable?: boolean; selectable?: boolean; titleOnly?: boolean }) {
+  // v1.91.1 (D-435, owner: "the 1st line to be available and the 2nd line is not needed"): on
+  // Waiting for me the Request cell is the title only; the record number stays on the request
+  // page and search by number still works. Home keeps the second line (titleOnly is off there).
   // The request as this page shows it: bulk Approve refuses one that changed since (stale).
   const selectKey = (item: QueueItem) => `${item.requestId}:${item.taskKey}${item.stateVersion !== undefined ? `:${item.stateVersion}` : ""}`;
   const selectLabel = (item: QueueItem) => `Select ${item.requestNo} ${item.title}`;
@@ -134,9 +137,16 @@ export function QueueTable({ items, priority, order: savedOrder, formDue = {}, g
                   <PriorityPill priority={priority[item.requestId]} />
                 </p>
               )}
-              <p className="text-caption text-ink-muted">
-                {item.requestNo} · from {item.requesterName}
-                {item.typeName ? ` · ${item.typeName}` : ""}
+              {/* v1.91.1 (D-435): a phone card has no From column, so it keeps "from …"; the number and type go with the desktop line 2. */}
+              <p className="text-caption text-ink-muted" data-testid="queue-card-meta">
+                {titleOnly ? (
+                  <>from {item.requesterName}</>
+                ) : (
+                  <>
+                    {item.requestNo} · from {item.requesterName}
+                    {item.typeName ? ` · ${item.typeName}` : ""}
+                  </>
+                )}
               </p>
               <p className="mt-1 text-label">
                 {item.work && (
@@ -178,12 +188,14 @@ export function QueueTable({ items, priority, order: savedOrder, formDue = {}, g
         <table className="data-table">
           <thead>
             {savedOrder ? (
-              <ReorderHeader list="queue" lead="Request" columns={order.map((column) => QUEUE_HEADER[column])} sort={sort} trailing={editable ? "Change details" : undefined} leading={selectable ? "Select" : undefined} />
+              <ReorderHeader list="queue" lead="Request" columns={order.map((column) => QUEUE_HEADER[column])} sort={sort} trailing={editable ? "Change details" : undefined} leading={selectable ? "Select" : undefined} leadingControl={selectable && titleOnly ? <QueueSelectAll testId="queue-select-all-header" /> : undefined} />
             ) : (
               <tr>
                 {selectable && (
                   <th scope="col" className="w-10">
                     <span className="sr-only">Select</span>
+                    {/* v1.91.1 (D-435): select-all at the top of the tick column (the bar below the table has the same box, kept in step). */}
+                    {titleOnly && <QueueSelectAll testId="queue-select-all-header" />}
                   </th>
                 )}
                 {sort?.hrefs.title ? <SortTh label="Request" column="title" sortBy={sort.sortBy} dir={sort.dir} href={sort.hrefs.title} /> : <th>Request</th>}
@@ -214,10 +226,12 @@ export function QueueTable({ items, priority, order: savedOrder, formDue = {}, g
                   >
                     <SafeText text={item.title} />
                   </Link>
-                  <p className="text-caption text-ink-muted">
-                    {item.requestNo}
-                    {item.typeName ? ` · ${item.typeName}` : ""}
-                  </p>
+                  {!titleOnly && (
+                    <p className="text-caption text-ink-muted">
+                      {item.requestNo}
+                      {item.typeName ? ` · ${item.typeName}` : ""}
+                    </p>
+                  )}
                 </td>
                 {order.map((column) => (
                   <Fragment key={column}>{cellFor(item, column)}</Fragment>

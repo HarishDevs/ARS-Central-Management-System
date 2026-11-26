@@ -2489,3 +2489,25 @@ dialog.palette-dialog[data-closing] { animation: motion-fade-out var(--motion-fa
     animation: none !important;
   }
 }
+
+/* v1.91.1 (D-435): Waiting for me's select bar, below the table, sticks to the bottom of
+   the screen while rows are selected, so Approve is reachable without scrolling; at the end
+   of the list it rests in its own place under the table (it never covers the last row
+   there). It keeps clear of Pico Bot's launcher (right) and, on phones, of the tab bar. */
+.queue-bulk-sticky {
+  position: sticky;
+  bottom: 0.75rem;
+  z-index: var(--z-sticky);
+  box-shadow: var(--shadow-md, 0 4px 12px rgb(0 0 0 / 0.12));
+}
+html:has(.picbot-launcher) .queue-bulk-sticky {
+  margin-right: 5.5rem;
+}
+@media (max-width: 767px) {
+  .queue-bulk-sticky {
+    bottom: calc(5rem + 0.5rem + env(safe-area-inset-bottom));
+  }
+  html:has(.picbot-launcher) .queue-bulk-sticky {
+    margin-right: 4.75rem;
+  }
+}

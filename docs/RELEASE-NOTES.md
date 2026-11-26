@@ -1,5 +1,17 @@
 # Release notes
 
+## v1.91.1 (26 Nov 2026): a leaner Waiting for me
+The owner's request of 26 Nov 2026 (D-435): "In waiting for me I want the 1st line to be available and the 2nd line is not needed and remove the header, bring the pagination below the table and remove the link and text." **Waiting for me only; no migration, no new data collected, no new setting.**
+
+- **One line per request:** the Request column shows the request's title only; the grey line under it (record number · approval type) is gone. The number is still on the request page, and Search still finds a request by its number. On a phone each card shows the title and who raised it (a card has no From column).
+- **No title bar:** the "Waiting for me" heading is gone from this page; the tab (Classic view) or the sidebar item and breadcrumb (Compact view) say where you are. Screen readers still hear the page's title.
+- **Select bar, count and pages below the table** ("select also bring below the table"): under the table come the select-and-approve bar, then *33 waiting · page 1 of 2* on the left with **← Earlier / Later →** on the right. Above the table there is only the toolbar (Filter, Sort, Group, Options, Search), plus your filter chips and saved views when you have them.
+- **Select all at the top too:** the tick column's heading has a Select all box (the bar's box still works; they move together). Once you tick something, the bar (*N selected · Approve · Clear*) stays at the bottom of the screen while you scroll, clear of Pico Bot and the phone's tab bar, so Approve is always in reach; with nothing ticked it sits in its place under the table.
+- **No "Sent back for changes" link:** the line *Sent back for changes (26) → with the requester now; back here when they resubmit.* is removed. The page itself is unchanged: **My Approvals → Sent back for changes** in the sidebar (More on a phone; its own tab in the Classic view).
+- Nothing else changes: approving, how select and approve several works (only where its bar sits), filters, sorting, grouping, saved views and columns work as before; Home's Waiting for me box keeps the record number.
+
+**Owner steps:** publish as usual (GoDaddy: pull the tag and restart; no new dependencies, so no `npm install`). No migration runs (none added); no setting to change. After publishing: open **Waiting for me** (Classic and Compact) and check the rows, the count and pager under the table, and that **Sent back for changes** opens from the sidebar.
+
 ## v1.91.0 (26 Nov 2026): one Collaborating screen for every module, and Commenter access
 The owner's request of 26 Nov 2026 (D-433) and its two follow-ups (D-434). **No migration, no new data collected, no new setting.**
 

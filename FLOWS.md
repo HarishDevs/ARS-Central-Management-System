@@ -639,7 +639,7 @@ flowchart LR
   S --> T[Requester + earlier approvers told; history, audit]
   E --> T
   L --> T
-  Q[Approver asks for changes] --> B[Sent back for changes page (v1.59.1, D-359), linked from Waiting for me] --> U[Requester resubmits] --> A[Back in Waiting for me as an approval]
+  Q[Approver asks for changes] --> B[Sent back for changes page (v1.59.1, D-359; from the sidebar: My Approvals → Sent back for changes; the link on Waiting for me was removed in v1.91.1, D-435)] --> U[Requester resubmits] --> A[Back in Waiting for me as an approval]
 ```
 
 ## F-TICKET-STATUS Ticket status by department (v1.59.2, D-360)

@@ -96,11 +96,13 @@ export const TOUR_STEPS: readonly TourStep[] = [
       "Open a request and choose Approve, Reject, Ask for changes (back to the requester) or Put on hold (pauses the clock). Add a comment.",
       // v1.59.0/v1.59.1 (D-357, D-359): Change from the row; Sent back has its own page. (Bulk approval was removed in v1.54.7.)
       "Change on a row lets you correct the values or the levels after yours, with a reason; the requester and earlier approvers are told.",
-      "What you send back for changes is on Sent back for changes (linked here) until the requester resubmits it.",
+      // v1.91.1 (D-435): the link on Waiting for me is gone; Sent back for changes is its own menu item.
+      "What you send back for changes is on My Approvals → Sent back for changes until the requester resubmits it.",
       "A To do badge means a step to do rather than decide (for example raise a PO): open it and Mark as done.",
     ],
     path: "/users/queue",
-    target: HEADER,
+    // v1.91.1 (D-435): this page has no visible title bar; the step points at the list.
+    target: "[data-list-page]",
   },
   {
     id: "my-requests",

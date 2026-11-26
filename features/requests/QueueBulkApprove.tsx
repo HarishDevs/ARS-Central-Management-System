@@ -65,7 +65,8 @@ export function QueueRowSelect({ value, label, card = false }: { value: string; 
 }
 
 // "Select all on this page" (the rows shown, the current filter).
-export function QueueSelectAll({ label = "Select all approvals on this page" }: { label?: string }) {
+// v1.91.1 (D-435): a second one in the table's tick-column header; both follow the same boxes.
+export function QueueSelectAll({ label = "Select all approvals on this page", testId = "queue-select-all" }: { label?: string; testId?: string }) {
   const [state, setState] = useState<"none" | "some" | "all">("none");
   const [any, setAny] = useState(true);
   useEffect(() => {
@@ -88,7 +89,7 @@ export function QueueSelectAll({ label = "Select all approvals on this page" }: 
     <input
       type="checkbox"
       aria-label={label}
-      data-testid="queue-select-all"
+      data-testid={testId}
       className="h-4 w-4 cursor-pointer accent-[color:var(--color-primary-600)]"
       checked={state === "all"}
       ref={(element) => {
@@ -146,9 +147,12 @@ export function QueueBulkBar({ selectable }: { selectable: number }) {
   const plural = (n: number) => `${n.toLocaleString("en-IN")} request${n === 1 ? "" : "s"}`;
 
   return (
-    <form id={QUEUE_BULK_FORM} onSubmit={(event) => event.preventDefault()} aria-label="Approve the selected requests" className="mb-3 space-y-2" data-testid="queue-bulk">
+    // v1.91.1 (D-435, owner: "select also bring below the table"): the bar is below the table. The form
+    // is display:contents so the bar's sticky box is the list wrapper (the page), not the form: with
+    // rows selected it sticks to the bottom of the screen until its own place below the table.
+    <form id={QUEUE_BULK_FORM} onSubmit={(event) => event.preventDefault()} aria-label="Approve the selected requests" className="contents" data-testid="queue-bulk">
       {summary && (
-        <div role="status" className="rounded-md border border-line bg-surface px-4 py-3 text-label" data-testid="queue-bulk-summary">
+        <div role="status" className="mt-3 rounded-md border border-line bg-surface px-4 py-3 text-label" data-testid="queue-bulk-summary">
           <div className="flex items-start justify-between gap-3">
             <p className="font-semibold">
               Approved {summary.approved.length.toLocaleString("en-IN")} · Skipped {summary.notApproved.length.toLocaleString("en-IN")}
@@ -189,12 +193,12 @@ export function QueueBulkBar({ selectable }: { selectable: number }) {
         </div>
       )}
       {error && (
-        <p role="alert" className="rounded-md border border-danger-200 bg-danger-50 px-4 py-2 text-label text-danger-700">
+        <p role="alert" className="mt-3 rounded-md border border-danger-200 bg-danger-50 px-4 py-2 text-label text-danger-700">
           {error}
         </p>
       )}
       {selectable > 0 && (
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md border border-line bg-surface px-4 py-2" data-testid="queue-bulk-bar">
+        <div className={`mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md border border-line bg-surface px-4 py-2 ${count > 0 ? "queue-bulk-sticky" : ""}`} data-testid="queue-bulk-bar" data-sticky={count > 0 ? "1" : undefined}>
           <label className="flex min-h-9 items-center gap-2 text-label">
             <QueueSelectAll />
             <span aria-live="polite">{count > 0 ? `${count.toLocaleString("en-IN")} selected` : "Select approvals to approve several at once"}</span>
@@ -217,7 +221,7 @@ export function QueueBulkBar({ selectable }: { selectable: number }) {
         </div>
       )}
       {count > 0 && (
-        <div className="max-w-xl">
+        <div className="mt-2 max-w-xl">
           <label htmlFor={commentId} className="field-label">
             Comment for every approval (optional)
           </label>

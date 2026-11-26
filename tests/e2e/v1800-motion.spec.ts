@@ -68,7 +68,8 @@ test("Waiting for me: J / K move between rows (never while typing), Enter opens 
   await page.goto("/users/queue");
   const links = page.locator("main table a[data-queue-link]").filter({ hasText: stamp });
   await expect(links).toHaveCount(2);
-  await page.locator("main h1").click();
+  // v1.91.1 (D-435): the page's h1 is screen-reader only now; start with nothing focused instead of clicking it.
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   await page.keyboard.press("j");
   const first = await page.evaluate(() => document.activeElement?.getAttribute("href"));
   expect(first).toMatch(/^\/users\/requests\/\d+$/);

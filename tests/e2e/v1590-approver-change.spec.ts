@@ -43,16 +43,17 @@ test("the approver changes the amount and adds a level from the Waiting for me t
   await expect(page.locator("main")).toContainText("Finance");
 });
 
-test("sent back for changes: a link on Waiting for me, and its own page with every table feature (v1.59.1)", async ({ page, context }) => {
+test("sent back for changes: its own page (sidebar) with every table feature (v1.59.1; no link on Waiting for me since v1.91.1)", async ({ page, context }) => {
   await as(context, "E2E_MGR");
   await page.goto(requestPath);
   await page.getByLabel(/Comment/).fill("Attach the vendor quote");
   await page.getByRole("button", { name: "Ask for changes", exact: true }).click();
   await expect(page.locator("main")).toContainText(/Changes required|changes/i);
-  // No table on Waiting for me; a link to the page instead.
+  // No table on Waiting for me, and since v1.91.1 (D-435, owner) no link either: the sidebar item opens it.
   await page.goto("/users/queue");
   await expect(page.getByTestId("sent-back")).toHaveCount(0);
-  await page.getByTestId("sent-back-link").click();
+  await expect(page.getByTestId("sent-back-link")).toHaveCount(0);
+  await page.getByTestId("sidebar-scroll").getByRole("link", { name: "Sent back for changes", exact: true }).click();
   await expect(page).toHaveURL(/\/users\/queue\/sent-back$/);
   await expect(page.getByTestId("sidebar-scroll").getByRole("link", { name: "Sent back for changes", exact: true })).toHaveAttribute("aria-current", "page");
   const row = page.getByTestId("sent-back-row").filter({ hasText: `Change check ${stamp}` });

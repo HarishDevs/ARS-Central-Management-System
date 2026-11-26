@@ -2,9 +2,8 @@ import { formatPeriod, indiaDay } from "@/lib/format/date";
 import type { Metadata } from "next";
 import { formDueDays } from "@/server/approvals/form-due";
 import Link from "next/link";
-import { Hourglass, X } from "lucide-react";
+import { X } from "lucide-react";
 import { requireArea } from "@/server/authorization/guards";
-import { PageHeader } from "@/features/shell/PageHeader";
 import { QueueTable, queueSelectable } from "@/features/requests/lists";
 import { QueueBulkBar } from "@/features/requests/QueueBulkApprove";
 import { parseColumns, QUEUE_COLUMNS } from "@/server/requests/list-columns";
@@ -12,7 +11,7 @@ import { getUserSetting } from "@/lib/db/repositories/user-settings.repository";
 import { priorityRecord } from "@/server/approvals/priority-lookup";
 import { PendingLink } from "@/features/ui/PendingLink";
 import { QueueKeyboard } from "@/features/requests/QueueKeyboard";
-import { countPendingTasksFor, listPendingTasksFor, listSentBackFor, queueChoicesFor, queueTypesFor } from "@/lib/db/repositories/approvals.repository";
+import { countPendingTasksFor, listPendingTasksFor, queueChoicesFor, queueTypesFor } from "@/lib/db/repositories/approvals.repository";
 // v1.58.0 (D-354, owner: saved views are "Only mine"): only the person's own views show and set the default.
 import { applyDefaultListView, myListViews } from "@/server/lists/views";
 import { SavedViews, SaveViewForm } from "@/features/analytics/ReportForms";
@@ -39,14 +38,14 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
   await applyDefaultListView(user.id, "queue", "/users/queue", params);
   const filter = parseQueueFilter(params);
   const PAGE_SIZE = filter.size ?? 25;
-  const [total, everything, types, choices, views, sentBack] = await Promise.all([
+  const [total, everything, types, choices, views] = await Promise.all([
     countPendingTasksFor(user.id, filter),
     countPendingTasksFor(user.id),
     queueTypesFor(user.id),
     queueChoicesFor(user.id),
     myListViews(user.id, "queue"),
-    // v1.59.1 (D-359, owner): what you sent back has its own page; here, a link with how many.
-    listSentBackFor(user.id),
+    // v1.91.1 (D-435, owner): the Sent back for changes link and its count are gone from here;
+    // that page stays in the sidebar (My Approvals → Sent back for changes).
   ]);
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const page = Math.min(Math.max(1, Number(params.page) || 1), pages);
@@ -119,9 +118,10 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
     : undefined;
   return (
     <ListPage
-      header={
-          <PageHeader title="Waiting for me" icon={Hourglass} description="Every request that needs your decision, and work given to you. Keys: J/K to move, Enter to open, ? for all shortcuts." />
-      }
+      // v1.91.1 (D-435, owner: "remove the header"; an owner exception to D-422's PageHeader on
+      // every page): no visible title bar. The Classic tab / Compact sidebar and breadcrumb name
+      // the page; one h1 stays for screen readers.
+      header={<h1 className="sr-only">Waiting for me</h1>}
     >
       {everything > 0 && (
         <ListToolbar
@@ -257,12 +257,9 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
           options={<SaveViewForm target="queue" path="/users/queue" query={Object.fromEntries(new URLSearchParams(queueHref(filter).split("?")[1] ?? ""))} />}
         />
       )}
-      {(total > 0 || filtered) && (
+      {/* v1.91.1 (D-435, owner: "bring the pagination below the table"): the count moved below the table with the pager; the filter chips stay here. */}
+      {chips.length > 0 && (
         <div className="mb-3 flex flex-wrap items-center gap-2 text-label">
-          <p className="text-ink-muted" role="status">
-            {filtered ? `${total.toLocaleString("en-IN")} of ${everything.toLocaleString("en-IN")} waiting` : `${total.toLocaleString("en-IN")} waiting`}
-            {pages > 1 ? ` · page ${page} of ${pages}` : ""}
-          </p>
           {chips.map((chip) => (
             <Link
               key={chip.label}
@@ -296,38 +293,42 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
           />
         </div>
       )}
-      {sentBack.length > 0 && (
-        <p className="mb-3 text-label">
-          <Link href="/users/queue/sent-back" className="link" data-testid="sent-back-link">
-            Sent back for changes ({sentBack.length}) →
-          </Link>
-          <span className="ml-2 text-ink-muted">with the requester now; back here when they resubmit.</span>
-        </p>
-      )}
       {/* v1.54.7 (owner: "drop this in the waiting for me"): the Approve several at once panel is removed; each approval is opened and decided on its own. */}
       {/* v1.90.0 (D-429, owner: "in the table itself I want select and bulk approval option"): tick rows, then Approve (approve only, at most 50, each through the engine on its own). */}
-      {queue.length > 0 && <QueueBulkBar selectable={queue.filter(queueSelectable).length} />}
+      {/* v1.91.1 (D-435): the list and its select bar share one box, so the bar can stick to the screen's bottom over the rows. */}
+      <div data-testid="queue-list">
       {filtered && queue.length === 0 ? (
         <NoResults what="items waiting" query={filter.q} clearSearchHref={without({ q: "" })} resetHref="/users/queue" />
       ) : (
         <QueueKeyboard>
-          <QueueTable items={queue} priority={priority} order={queueOrder} formDue={formDue} groups={groups} sort={{ sortBy: columnSort.sortBy, dir: columnSort.dir, hrefs: sortHrefs, leadKey: "title" }} editable selectable />
+          <QueueTable items={queue} priority={priority} order={queueOrder} formDue={formDue} groups={groups} sort={{ sortBy: columnSort.sortBy, dir: columnSort.dir, hrefs: sortHrefs, leadKey: "title" }} editable selectable titleOnly />
         </QueueKeyboard>
       )}
+      {/* v1.91.1 (D-435, owner: "select also bring below the table"): the select bar is below the table, above the count and pager. */}
+      {queue.length > 0 && <QueueBulkBar selectable={queue.filter(queueSelectable).length} />}
+      </div>
 
-      {pages > 1 && (
-        <nav aria-label="Pages" className="mt-4 flex items-center gap-3 text-label">
-          {page > 1 ? (
-            <PendingLink href={queueHref(filter, page - 1)} className="btn-secondary btn-compact">
-              ← Earlier
-            </PendingLink>
-          ) : null}
-          {page < pages ? (
-            <PendingLink href={queueHref(filter, page + 1)} className="btn-secondary btn-compact">
-              Later →
-            </PendingLink>
-          ) : null}
-        </nav>
+      {(total > 0 || filtered) && (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-label" data-testid="queue-footer">
+          <p className="text-ink-muted" role="status">
+            {filtered ? `${total.toLocaleString("en-IN")} of ${everything.toLocaleString("en-IN")} waiting` : `${total.toLocaleString("en-IN")} waiting`}
+            {pages > 1 ? ` · page ${page} of ${pages}` : ""}
+          </p>
+          {pages > 1 && (
+            <nav aria-label="Pages" className="flex items-center gap-3">
+              {page > 1 ? (
+                <PendingLink href={queueHref(filter, page - 1)} className="btn-secondary btn-compact">
+                  ← Earlier
+                </PendingLink>
+              ) : null}
+              {page < pages ? (
+                <PendingLink href={queueHref(filter, page + 1)} className="btn-secondary btn-compact">
+                  Later →
+                </PendingLink>
+              ) : null}
+            </nav>
+          )}
+        </div>
       )}
     </ListPage>
   );
