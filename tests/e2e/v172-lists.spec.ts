@@ -1,6 +1,6 @@
 import { expect, test, type BrowserContext } from "@playwright/test";
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
-import { db, sessionCookie, userIdByLogin } from "./db";
+import { approvalStepCount, db, raisePurchase, sessionCookie, userIdByLogin } from "./db";
 import { pickPerson } from "./people";
 
 // v1.7.2 through the real screens: Collaborating (its own screen, with the
@@ -107,6 +107,12 @@ test("My requests has the same filters", async ({ page, context }) => {
 });
 
 test("Waiting for me has more filters, and every one becomes a removable chip", async ({ page, context }) => {
+  // v1.92.1 (TD-016, KF-14): the toolbar shows only when something is waiting; when no
+  // earlier spec left a step for E2E_MGR, raise one (E2E Purchase: Manager first).
+  if ((await approvalStepCount("E2E_MGR", "PENDING")) === 0) {
+    await as(context, "E2E_REQ");
+    await raisePurchase(page, `Waiting for me filters ${Date.now().toString(36)}`);
+  }
   await as(context, "E2E_MGR");
   await page.goto("/users/queue");
   await page.getByTestId("list-toolbar").getByTestId("filter-menu").locator("summary").click();

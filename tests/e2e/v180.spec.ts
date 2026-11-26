@@ -1,6 +1,6 @@
 import { expect, test, type BrowserContext } from "@playwright/test";
 import type { RowDataPacket } from "mysql2/promise";
-import { db, sessionCookie, userIdByLogin, toWorkflowStep } from "./db";
+import { approvalStepCount, db, raisePurchase, sessionCookie, userIdByLogin, toWorkflowStep } from "./db";
 
 // v1.8.0 through the real screens: My approved requests and Approved by me;
 // the custom approval set-up (fields and a fixed step option) used on the
@@ -29,6 +29,16 @@ test.afterAll(async () => {
 });
 
 test("My approved requests and Approved by me are in the sidebar, with their filters", async ({ page, context }) => {
+  // v1.92.1 (TD-016, KF-17): Approved by me needs a row; when no earlier spec had
+  // E2E_MGR approve something, raise a purchase and have the manager approve step 1.
+  if ((await approvalStepCount("E2E_MGR", "APPROVED")) === 0) {
+    await as(context, "E2E_REQ");
+    const path = await raisePurchase(page, `Approved by me row ${Date.now().toString(36)}`);
+    await as(context, "E2E_MGR");
+    await page.goto(path);
+    await page.getByRole("button", { name: "Approve", exact: true }).click();
+    await expect(page.getByText(/Approved by Manoj Manager/).first()).toBeVisible();
+  }
   await as(context, "E2E_REQ");
   await page.goto("/users");
   await page.locator("aside nav").getByRole("button", { name: "My Approvals" }).click();

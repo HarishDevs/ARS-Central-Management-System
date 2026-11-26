@@ -8,7 +8,8 @@ import { bulkApprove, BULK_MAX } from "@/server/approvals/bulk";
 import { createWorkflow, publishVersion, submitRequest, type Actor } from "@/server/approvals/service";
 import type { WorkflowDefinition } from "@/server/engine";
 import { indiaDate } from "@/server/workflows/calendar";
-import { createUser, pendingTaskKey } from "./helpers";
+import { createUser, pendingTaskKey, workingDayFrom } from "./helpers";
+import { addDays } from "@/server/work/schedule";
 
 // v1.90.0: the owner's requests of 25 Nov 2026.
 const tag = Date.now().toString(36);
@@ -19,7 +20,6 @@ async function sql<T = RowDataPacket>(query: string, params: unknown[] = []): Pr
   const [rows] = await getDbPool().query<RowDataPacket[]>(query, params);
   return rows as T[];
 }
-const day = (offset: number) => new Date(Date.now() + offset * 86_400_000 + 330 * 60_000).toISOString().slice(0, 10);
 // The live (not deleted) tasks of a series other than `id`.
 const liveNext = (id: number) => sql<{ id: number; recurrence_json: unknown; status: string }>("SELECT id, recurrence_json, status FROM tasks WHERE series_id = ? AND id <> ? AND deleted_at IS NULL ORDER BY id", [id, id]);
 
@@ -33,8 +33,12 @@ afterAll(async () => {
 // D-428, owner: "after completing a task, if we click on Undo and then complete
 // the same task again, the task for the next day is not being created".
 describe("repeating task: Complete → Undo → Complete (D-428)", () => {
+  // v1.92.1 (TD-016, KF-12): the task is due on a working day whose next day is a working day too,
+  // so "the next day's task" is the calendar's next day whatever weekday the suite runs on.
+  let due = "";
   async function dailyTask(title: string): Promise<number> {
-    const added = await work.quickAddTask({ title: `${title} ${tag}`, projectId: null, sectionId: null, parentId: null, assigneeId: null, dueDay: day(2), mySectionId: null }, who(owner));
+    due = await workingDayFrom(2, 2);
+    const added = await work.quickAddTask({ title: `${title} ${tag}`, projectId: null, sectionId: null, parentId: null, assigneeId: null, dueDay: due, mySectionId: null }, who(owner));
     expect(added.ok).toBe(true);
     const id = added.ok ? added.value.id : 0;
     expect((await more.setRecurrence(id, { kind: "DAILY", every: 1 }, who(owner))).ok).toBe(true);
@@ -64,7 +68,7 @@ describe("repeating task: Complete → Undo → Complete (D-428)", () => {
     expect(second).toHaveLength(1);
     expect(Number(second[0]!.id)).not.toBe(firstNext);
     expect(second[0]!.status).toBe("OPEN");
-    expect(indiaDate((await findTask(Number(second[0]!.id)))!.dueAt!)).toBe(day(3)); // the same next day as the first time, not the day after
+    expect(indiaDate((await findTask(Number(second[0]!.id)))!.dueAt!)).toBe(addDays(due, 1)); // the same next day as the first time, not the day after
     expect(await more.recurrenceOf(Number(second[0]!.id))).toMatchObject({ kind: "DAILY" });
     expect(await more.recurrenceOf(id)).toBeNull();
   });
@@ -95,7 +99,7 @@ describe("repeating task: Complete → Undo → Complete (D-428)", () => {
     await work.toggleComplete(id, who(owner));
     expect(await liveNext(id)).toHaveLength(1);
 
-    const plain = await work.quickAddTask({ title: `One-off ${tag}`, projectId: null, sectionId: null, parentId: null, assigneeId: null, dueDay: day(2), mySectionId: null }, who(owner));
+    const plain = await work.quickAddTask({ title: `One-off ${tag}`, projectId: null, sectionId: null, parentId: null, assigneeId: null, dueDay: await workingDayFrom(2), mySectionId: null }, who(owner));
     const plainId = plain.ok ? plain.value.id : 0;
     await work.toggleComplete(plainId, who(owner));
     expect((await work.toggleComplete(plainId, who(owner))).ok).toBe(true);

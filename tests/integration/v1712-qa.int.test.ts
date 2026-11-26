@@ -11,12 +11,10 @@ import { addWorkingDays, indiaDate } from "@/server/workflows/calendar";
 import * as work from "@/server/work/service";
 import * as automations from "@/server/work/automations";
 import { findRule } from "@/lib/db/repositories/automations.repository";
-import { indiaDay } from "@/server/work/rules";
-import { addDays } from "@/server/work/schedule";
 import type { ModuleCode } from "@/server/modules/modules";
 import type { TaskActor } from "@/server/modules/tasks";
 import type { WorkflowDefinition } from "@/server/engine";
-import { createUser, pendingTaskKey } from "./helpers";
+import { createUser, pendingTaskKey, workingDayFrom } from "./helpers";
 
 // v1.71.2 QA fixes (D-388 to D-393) on real MySQL.
 const tag = Date.now().toString(36);
@@ -192,10 +190,10 @@ describe("tasks: a start date must be a real day (D-393, QA logic #8)", () => {
     const me = await createUser({ name: `QA Start ${tag}` });
     const created = await work.createProject({ name: `QA start ${tag}`, description: "", color: "blue", privacy: "PRIVATE", departmentId: null, defaultAccessRole: "EDITOR", defaultView: "LIST", startOn: "", dueOn: "" }, who(me));
     if (!created.ok) throw new Error(created.message);
-    const added = await work.quickAddTask({ title: `QA start ${tag}`, projectId: created.value.id, sectionId: null, parentId: null, assigneeId: null, dueDay: addDays(indiaDay(new Date()), 10), mySectionId: null }, who(me));
+    const added = await work.quickAddTask({ title: `QA start ${tag}`, projectId: created.value.id, sectionId: null, parentId: null, assigneeId: null, dueDay: await workingDayFrom(10), mySectionId: null }, who(me));
     if (!added.ok) throw new Error(added.message);
     expect(await work.setTaskFields(added.value.id, { startDay: "2026-02-31" }, who(me))).toMatchObject({ ok: false, message: "Choose a valid start date." });
-    expect((await work.setTaskFields(added.value.id, { startDay: addDays(indiaDay(new Date()), 2) }, who(me))).ok).toBe(true);
+    expect((await work.setTaskFields(added.value.id, { startDay: await workingDayFrom(2) }, who(me))).ok).toBe(true);
   });
 });
 

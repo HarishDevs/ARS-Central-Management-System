@@ -17,7 +17,7 @@ import { addDays } from "@/server/work/schedule";
 import type { ModuleCode } from "@/server/modules/modules";
 import type { RuleDefinition } from "@/server/work/automation-rules";
 import { POST as webhookRoute } from "@/app/api/webhooks/automations/[token]/route";
-import { createUser } from "./helpers";
+import { createUser, workingDayFrom } from "./helpers";
 
 // v1.68.0 (D-380, PM phase D part 2) through the services: who may build,
 // draft and publish, each trigger firing once, steps with the owner's rights
@@ -48,7 +48,7 @@ const newProject = async (name: string, as = owner) => {
   return created.value.id;
 };
 const task = async (title: string, project = projectId, sectionId: number | null = null, as = owner) => {
-  const added = await work.quickAddTask({ title, projectId: project, sectionId, parentId: null, assigneeId: null, dueDay: addDays(indiaDay(new Date()), 10), mySectionId: null }, who(as));
+  const added = await work.quickAddTask({ title, projectId: project, sectionId, parentId: null, assigneeId: null, dueDay: await workingDayFrom(10), mySectionId: null }, who(as));
   if (!added.ok) throw new Error(added.message);
   return added.value.id;
 };
@@ -423,7 +423,7 @@ describe("the incoming webhook", () => {
     expect(missing.status).toBe(404);
     // Update by the task's number (a rule in UPDATE mode).
     const updater = await makeRule({ trigger: { type: "WEBHOOK", webhookMode: "UPDATE" }, steps: [{ key: "a", type: "SET_PRIORITY", priority: "URGENT" }], paths: [], otherwise: [] });
-    const updated = await handleWebhook((await findRule(updater))!, { task: created.taskNo, dueDate: addDays(indiaDay(new Date()), 5) }, null);
+    const updated = await handleWebhook((await findRule(updater))!, { task: created.taskNo, dueDate: await workingDayFrom(5) }, null);
     expect(updated).toMatchObject({ ok: true, status: 200, taskId: created.id });
     expect((await findTask(created.id))!.priority).toBe("URGENT");
     expect(await handleWebhook((await findRule(updater))!, { task: "TSK-0" }, null)).toMatchObject({ ok: false, status: 404 });

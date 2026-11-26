@@ -4,10 +4,8 @@ import { getDbPool } from "@/lib/db/client";
 import * as work from "@/server/work/service";
 import * as portfolios from "@/server/work/portfolios";
 import { runWorkPurge } from "@/server/work/purge";
-import { indiaDay } from "@/server/work/rules";
-import { addDays } from "@/server/work/schedule";
 import type { ModuleCode } from "@/server/modules/modules";
-import { createUser } from "./helpers";
+import { createUser, workingDayFrom } from "./helpers";
 
 // v1.69.0 (D-382, PM phase D part 3) through the services: create (with
 // projects and people), who may do what, masking of projects a person can't
@@ -35,7 +33,7 @@ const newProject = async (name: string, as: number, privacy = "PRIVATE") => {
   return created.value.id;
 };
 const task = async (title: string, project: number, as: number) => {
-  const added = await work.quickAddTask({ title, projectId: project, sectionId: null, parentId: null, assigneeId: null, dueDay: addDays(indiaDay(new Date()), 10), mySectionId: null }, who(as));
+  const added = await work.quickAddTask({ title, projectId: project, sectionId: null, parentId: null, assigneeId: null, dueDay: await workingDayFrom(10), mySectionId: null }, who(as));
   if (!added.ok) throw new Error(added.message);
   return added.value.id;
 };

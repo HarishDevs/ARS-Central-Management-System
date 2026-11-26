@@ -207,7 +207,7 @@ test("the user sidebar: Home, Inbox, collapsible My Approvals, Tasks & projects,
     // The current-page bar (D-420, aria-hidden) is decoration, not an entry.
     Array.from(element.children).filter((child) => child.getAttribute("aria-hidden") !== "true").map((child) => (child.querySelector(":scope > button") ?? child).textContent?.trim().replace(/\s+/g, " ") ?? ""),
   );
-  expect(top.map((text) => text.replace(/\s*\d+( waiting)?$/, ""))).toEqual(["Home", "Inbox", "My Approvals", "Tasks", "Projects", "Information", "Meetings", "Calendar", "Analytics"]);
+  expect(top.map((text) => text.replace(/\s*\d+( waiting)?$/, ""))).toEqual(["Home", "Inbox", "My Approvals", "Tasks", "Projects", "Information", "Meetings", "Collaborating", "Calendar", "Analytics"]); // v1.92.1 (TD-016): Collaborating is top-level beside Calendar since v1.91.0 (D-433)
   // A group opens like a dropdown, with its pages in the owner's order.
   const approvals = nav.getByRole("button", { name: "My Approvals" });
   await expect(approvals).toHaveAttribute("aria-expanded", "false");

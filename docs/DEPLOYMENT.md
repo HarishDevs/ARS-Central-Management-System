@@ -143,6 +143,8 @@ GoDaddy → **My Products** → **Node.js Hosting** (host.godaddy.com/hosting) �
 
 `npm start` already includes the migrations, so the default start command is right. Nothing needs changing.
 
+When a release changes packages (its release notes say so, e.g. v1.92.1), every deploy (**Update Preview** / **Publish**) runs the install command against `package-lock.json`, so nothing extra is needed. Only a cPanel **Setup Node.js App** deployment, which has no install step on deploy, needs **Run NPM Install** before **Restart**.
+
 ### D4. Add secrets (the screen in your screenshot)
 1. Click **Import from .env file** → choose `D:\Omniroute\deploy-secrets\ars-approvals.production.env`.
 2. Check the list:
@@ -161,7 +163,7 @@ GoDaddy → **My Products** → **Node.js Hosting** (host.godaddy.com/hosting) �
    Applying 202609281200_create_organisation.sql ... (one line per new file)
    Done. Applied <n> migration(s).
    Seeding 001_roles.sql ... Done. Ran 3 seed file(s).
-   ▲ Next.js 15.5.28 - Local: http://localhost:<port>  ✓ Ready
+   ▲ Next.js 15.5.29 - Local: http://localhost:<port>  ✓ Ready
    ```
 3. The app shows **Running / Build status Healthy**. Its preview address looks like `30yc8vknqm.preview.c40.airoapp.ai`.
 4. If it says **"Your app is redirecting"**: the site root `/` sends visitors to `/login`, so health checks need that path. Press **Open General settings** → set the root/health-check path to **`/login`** → save.

@@ -192,3 +192,22 @@ export async function motionSettled(page: import("@playwright/test").Page): Prom
     document.getAnimations().every((animation) => animation.playState !== "running" || animation.effect?.getComputedTiming().iterations === Infinity),
   );
 }
+
+// v1.92.1 (TD-016, KF-14 / KF-17): how many approval steps a person has waiting
+// (PENDING) or has approved (APPROVED), so a spec that needs one can make its own
+// when it runs without the specs that usually leave them behind.
+export async function approvalStepCount(loginId: string, status: "PENDING" | "APPROVED"): Promise<number> {
+  const userId = await userIdByLogin(loginId);
+  const conn = await db();
+  try {
+    const [rows] = await conn.query<mysql.RowDataPacket[]>(
+      status === "PENDING"
+        ? "SELECT COUNT(*) AS n FROM approval_tasks WHERE approver_id = ? AND status = 'PENDING' AND task_type = 'APPROVAL'"
+        : "SELECT COUNT(*) AS n FROM approval_tasks WHERE decided_by = ? AND status = 'APPROVED' AND task_type = 'APPROVAL'",
+      [userId],
+    );
+    return Number(rows[0]?.n ?? 0);
+  } finally {
+    await conn.end();
+  }
+}

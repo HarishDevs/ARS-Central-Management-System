@@ -7,7 +7,8 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    # v1.92.1 (TD-016): release branches (v1921, v193, …) run CI before they reach main.
+    branches: [main, "v[0-9]*"]
   pull_request:
     branches: [main]
 
@@ -30,7 +31,14 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm audit --omit=dev --audit-level=moderate
+      # v1.92.1 (TD-016, D-443): the gate is high and critical advisories in the
+      # production dependencies. Moderate and low ones (production and dev) are
+      # listed by the next step on every run, as a warning, and handled in a
+      # normal release instead of blocking every push.
+      - run: npm audit --omit=dev --audit-level=high
+      - name: npm audit (all levels and dev dependencies, report only)
+        continue-on-error: true
+        run: npm audit || echo "::warning title=npm audit::advisories below the gate (moderate / low, or dev-only); see this step's log"
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
@@ -70,7 +78,10 @@ jobs:
   e2e:
     name: End-to-end tests (Playwright)
     runs-on: ubuntu-latest
-    timeout-minutes: 75 # v1.53.0: the e2e suite outgrew 45 minutes (v1.52.2 and v1.52.3 runs were cut off)
+    # v1.53.0: the e2e suite outgrew 45 minutes. v1.92.1 (TD-016): it outgrew 75 too
+    # (the e2e step alone took 73 min on aadfe3f8, so the QA and origin steps could
+    # never run inside the limit); 120 leaves room for all three.
+    timeout-minutes: 120
     services:
       mysql:
         image: mysql:8.0

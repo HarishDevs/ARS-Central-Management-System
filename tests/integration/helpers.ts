@@ -1,6 +1,10 @@
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { getDbPool } from "@/lib/db/client";
 import type { RoleCode } from "@/types/auth";
+import { holidayContext } from "@/server/work/holiday-store";
+import { holidayName } from "@/server/work/holidays";
+import { indiaDay } from "@/server/work/rules";
+import { addDays } from "@/server/work/schedule";
 
 // Direct SQL helpers for arranging integration-test data.
 let counter = 0;
@@ -61,4 +65,22 @@ export async function requestRow(requestId: number) {
     [requestId],
   );
   return rows[0]!;
+}
+
+// v1.92.1 (TD-016, KF-12): "today + N" can land on a weekly off or a holiday
+// (e.g. Sunday 6 Dec 2026 from 26 Nov), and the task services then answer
+// "The due date … is a holiday" (D-217), so fixtures broke on some weekdays.
+// This gives the first day on or after today + `offset` (India) that is a
+// working day for Tasks, using the same holiday settings and calendar as the
+// app; with `run` > 1, the first day that starts `run` working days in a row
+// (e.g. a daily repeat and its next day). The check under test is unchanged.
+export async function workingDayFrom(offset: number, run = 1): Promise<string> {
+  const { settings, calendar } = await holidayContext();
+  let day = addDays(indiaDay(new Date()), offset);
+  for (let guard = 0; guard < 400; guard += 1, day = addDays(day, 1)) {
+    let free = true;
+    for (let k = 0; k < run && free; k += 1) free = holidayName(addDays(day, k), calendar, settings) === null;
+    if (free) return day;
+  }
+  throw new Error(`No run of ${run} working day(s) within 400 days of today + ${offset}.`);
 }

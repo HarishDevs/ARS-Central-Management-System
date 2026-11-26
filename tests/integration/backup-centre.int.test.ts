@@ -256,7 +256,14 @@ describe("backup package round trip (D-408)", { timeout: 180_000 }, () => {
     process.env.DB_NAME = targetDb;
     try {
       const env = { ...process.env, DB_NAME: targetDb, DB_HOST: host, DB_PORT: String(port), DB_USER: user, DB_PASSWORD: password, RESTORE_CONFIRM: targetDb, RESTORE_FILE: file, UPLOAD_DIR: targetUploads, ENCRYPTION_KEY: KEY_A.toString("base64") };
-      expect((await main({ ...env, RESTORE_PASSPHRASE: "wrong wrong wrong wrong" })).status).toBe("unreadable");
+      // v1.92.1 (TD-016, KF-13): the "already has requests" guard runs before the package is
+      // opened, so on a target that holds requests (a full run: earlier files leave requests in
+      // the source database, and the first restore above copies them) the old call answered
+      // "refused". RESTORE_FORCE lets the call reach the passphrase check whatever the target
+      // holds; a wrong passphrase is still "unreadable" and changes nothing.
+      const untouched = await checksums(targetDb); // (ops_restores, main()'s own ledger, is excluded)
+      expect((await main({ ...env, RESTORE_PASSPHRASE: "wrong wrong wrong wrong", RESTORE_FORCE: targetDb })).status).toBe("unreadable");
+      expect(await checksums(targetDb)).toEqual(untouched);
       // The target already has requests: refused without RESTORE_FORCE.
       const target = await mysql.createConnection({ host, port, user, password, database: targetDb });
       const [[requests]] = await target.query<mysql.RowDataPacket[]>("SELECT COUNT(*) AS n FROM approval_requests");

@@ -1,5 +1,15 @@
 # Release notes
 
+## v1.92.1 (26 Nov 2026): security updates
+Dependency security fixes and a working automatic check (CI) on GitHub (TD-016; D-442..D-444). **Nothing changes for users: no screen, data, setting or migration changes.**
+
+- **Email library (nodemailer) 6.9.16 → 10.6.1.** The old version had a high-severity advisory and about twenty others, among them SMTP command injection (CRLF in the transport name / EHLO and in the envelope size), headers injected through List-* comments, recipient-domain mix-ups in the address parser and several denial-of-service patterns. The app's email code works unchanged on the new version: the GoDaddy relay (relay-hosting.secureserver.net, port 25, no SSL, no sign-in), the SMTP sign-in modes, the mail program route and the Super Admin email diagnostics are as before. New tests build the app's messages with the new version (nothing is sent) and pin the relay settings.
+- **Next.js 15.5.28 → 15.5.29** (three moderate advisories: SVG checks in image optimisation, a cookie exposed by Edge routes, response mix-ups when a self-hosted app forwards fetched responses). Still Next.js 15.
+- **fast-xml-parser 5.11.2 → 5.12.1** (inside Firebase Admin's storage library; a slow-parsing denial of service) and two developer-only tools (minimatch inside typescript-eslint), updated within their existing ranges. `npm audit` now reports **0** vulnerabilities, developer tools included.
+- **CI on GitHub runs green again.** It had failed on every push since at least v1.83.0: the audit step (now: it fails on high and critical advisories in what the server runs, and lists everything else as a warning), the end-to-end job (it needed more than its 75-minute limit; now 120) and test fixtures that depended on the day of the week or on other tests having run first. Release branches are checked before they reach main.
+
+**Owner steps:** GoDaddy → **Update Preview**: the deploy installs the packages from `package-lock.json` (the install command, `npm ci` / `npm install`, DEPLOYMENT D3) and builds; the build log shows `▲ Next.js 15.5.29`. Check the preview (sign in, open a request), then **Publish to Live**. If the app is ever deployed through cPanel's **Setup Node.js App** instead (no install step on deploy), press **Run NPM Install** before **Restart**, because the packages changed. No migration runs (none added); no setting to change; no manual SQL (and never GoDaddy Database Manager → Import). After publishing: Super Admin → Connections → Email → **Send test email**, and check it arrives (the email library changed; the diagnostics report shows "Nodemailer 10.6.1").
+
 ## v1.92.0 (26 Nov 2026): collaborators on tickets
 The owner's answer of 26 Nov 2026 to Q-036 (D-438..D-441): "tickets get collaborators, like requests". **One migration (a new table, added automatically on start); new data: who follows each ticket (see the privacy policy); no new setting.**
 
