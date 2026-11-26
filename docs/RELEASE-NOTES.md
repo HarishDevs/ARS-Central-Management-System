@@ -1,5 +1,18 @@
 # Release notes
 
+## v1.91.3 (26 Nov 2026): every My Approvals screen laid out like Waiting for me
+The owner's request of 26 Nov 2026 (D-437): "All the approval screen layout should match the Waiting for me, except the bulk approval part." **No migration, no new data collected, no new setting.**
+
+- **My pending requests, My approved requests, Sent back for changes and Approved by me** now look like Waiting for me (without its select boxes, which stay on Waiting for me only):
+  - **No title bar.** The tab (Classic view) or the sidebar item and breadcrumb (Compact view) say where you are; the browser tab's title is unchanged, and screen readers still hear the page's title. My pending requests' **New request** button went with its title bar: New request is the first item of My Approvals in the sidebar and the Classic tabs, and is on Home's quick actions and in Ctrl K.
+  - **Title only in the Request column:** the grey line under each title (record number, approval type, files, "amended") is gone. The number is on the request page, and Search still finds a request by its number. On a phone, Approved by me's cards show the title and *from* the person who raised it, as Waiting for me's cards do; your own requests' cards show the title and status.
+  - **Count and pages below the table:** *60 requests · page 1 of 3* (or *12 sent back*, *3 of 12 sent back* when filtered) on the left, **← Earlier / Later →** on the right, replacing the count above the table and the numbered page buttons (or Previous / Next).
+  - Above the table only the toolbar, the status cards, Raised by me / Shared with me (My pending requests) and your filter chips and saved views when you use them. None of these pages had an explanatory link or text line above the table, so nothing else was removed.
+- **New request** and **Approval templates** lose their title bar too; their one action stays at the top right (the Approval templates link; the New request button).
+- The product tour's steps on these pages now point at the list or at that action. Waiting for me, Home, Collaborating and every other list are unchanged.
+
+**Owner steps:** publish as usual (GoDaddy: pull the tag and restart; no new dependencies, so no `npm install`). No migration runs (none added); no setting to change. After publishing: open each My Approvals page (Classic and Compact) and check the title bar is gone, the rows show titles only, and the count and Earlier / Later sit below the table.
+
 ## v1.91.2 (26 Nov 2026): no title bar on Sent back for changes and Approved by me
 The owner's request of 26 Nov 2026 (D-436): "Delete the header for Sent back for changes and Approved by me as well." **Two pages only; no migration, no new data collected, no new setting.**
 

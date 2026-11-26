@@ -15,6 +15,7 @@ import { COLUMN_LABEL, type ListColumn } from "@/server/requests/list-columns";
 import type { MiniRoad } from "@/server/approvals/road";
 import { RequestStatusPill } from "@/features/requests/StatusPill";
 import { LinkPending, PendingLink } from "@/features/ui/PendingLink";
+import { ListFooter } from "@/features/ui/ListFooter";
 import { SafeText } from "@/features/ui/SafeText";
 import { PriorityPill } from "@/features/ui/ChoicePill";
 import type { ShownPriority } from "@/server/approvals/priority";
@@ -134,6 +135,8 @@ export function RequestListScreen({
   groupData,
   columns,
   userId,
+  titleOnly = false,
+  pagerBelow = false,
 }: {
   base: ListBase;
   path: string;
@@ -148,6 +151,12 @@ export function RequestListScreen({
   groupData?: ListGroupData; // v1.54.16: department and form-field groups
   columns?: ListColumn[]; // D-256: the person's chosen columns
   userId: number;
+  // v1.91.3 (D-437): the Waiting for me layout (D-435) for Approved by me. `titleOnly` (the
+  // QueueTable flag's name and meaning): the Request cell is the title only, a phone card keeps
+  // "from {requester}". `pagerBelow`: the count leaves the line above the table and goes below
+  // it with ← Earlier / Later → (ListFooter). Both off by default, so other lists are unchanged.
+  titleOnly?: boolean;
+  pagerBelow?: boolean;
 }) {
   const can = BASE_FEATURES[base];
   const collab = base === "COLLAB";
@@ -553,9 +562,11 @@ export function RequestListScreen({
         <div className="order-last ml-auto">
           <ColumnPicker list={VIEW_TARGET[base]} available={available.map((column) => ({ key: column, label: COLUMN_LABEL[column] }))} shown={order} />
         </div>
-        <p className="text-ink-muted" role="status">
-          {result.total === 0 ? "No requests match." : `${result.total.toLocaleString("en-IN")} request${result.total === 1 ? "" : "s"}${result.pages > 1 ? ` · page ${result.page} of ${result.pages}` : ""}`}
-        </p>
+        {!pagerBelow && (
+          <p className="text-ink-muted" role="status">
+            {result.total === 0 ? "No requests match." : `${result.total.toLocaleString("en-IN")} request${result.total === 1 ? "" : "s"}${result.pages > 1 ? ` · page ${result.page} of ${result.pages}` : ""}`}
+          </p>
+        )}
         {chips.map((chip) => (
           <Link
             key={chip.label}
@@ -598,10 +609,19 @@ export function RequestListScreen({
                     <p className="font-medium text-primary-700">
                       <SafeText text={item.title} />
                     </p>
-                    <p className="text-caption text-ink-muted">
-                      <RecordNo no={item.requestNo} /> · {item.workflowName}
-                      {showRaiser ? ` · from ${item.requesterName}` : ""}
-                    </p>
+                    {titleOnly ? (
+                      // v1.91.3 (D-437, as Waiting for me's cards): no number or type; "from …" stays (a card has no Raised by column).
+                      showRaiser && (
+                        <p className="text-caption text-ink-muted" data-testid="request-card-meta">
+                          from {item.requesterName}
+                        </p>
+                      )
+                    ) : (
+                      <p className="text-caption text-ink-muted">
+                        <RecordNo no={item.requestNo} /> · {item.workflowName}
+                        {showRaiser ? ` · from ${item.requesterName}` : ""}
+                      </p>
+                    )}
                     <div className="mt-1 flex flex-wrap items-center gap-2 text-caption">
                       <RequestStatusPill status={item.status} validUntil={item.validUntil} />
                       {show("priority") && priority[item.id] && <PriorityPill priority={priority[item.id]} />}
@@ -648,11 +668,13 @@ export function RequestListScreen({
                             <Link href={`/users/requests/${item.id}`} className="link font-medium">
                               <SafeText text={item.title} />
                             </Link>
-                            <span className="block text-caption text-ink-muted">
-                              <RecordNo no={item.requestNo} /> · {item.workflowName}
-                              {item.files ? ` · ${item.files} file${item.files === 1 ? "" : "s"}` : ""}
-                              {item.amended ? " · amended" : ""}
-                            </span>
+                            {!titleOnly && (
+                              <span className="block text-caption text-ink-muted">
+                                <RecordNo no={item.requestNo} /> · {item.workflowName}
+                                {item.files ? ` · ${item.files} file${item.files === 1 ? "" : "s"}` : ""}
+                                {item.amended ? " · amended" : ""}
+                              </span>
+                            )}
                           </span>
                         </div>
                       </td>
@@ -674,7 +696,16 @@ export function RequestListScreen({
           </div>
         </FoldScope>
       )}
-      {result.pages > 1 && (
+      {pagerBelow && result.total > 0 && (
+        <ListFooter
+          count={`${result.total.toLocaleString("en-IN")} request${result.total === 1 ? "" : "s"}`}
+          page={result.page}
+          pages={result.pages}
+          earlierHref={href({ page: result.page - 1 })}
+          laterHref={href({ page: result.page + 1 })}
+        />
+      )}
+      {!pagerBelow && result.pages > 1 && (
         <nav aria-label="Pages" className="mt-4 flex flex-wrap items-center justify-between gap-3 text-label" data-testid="list-pages">
           <span className="text-ink-muted">
             Showing {((result.page - 1) * filters.size + 1).toLocaleString("en-IN")}–{Math.min(result.page * filters.size, result.total).toLocaleString("en-IN")} of {result.total.toLocaleString("en-IN")} requests

@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
-import { FilePlus2 } from "lucide-react";
 import Link from "next/link";
 import { requireArea } from "@/server/authorization/guards";
-import { PageHeader } from "@/features/shell/PageHeader";
 import { CustomApprovalForm } from "@/features/requests/CustomApprovalForm";
 import { loadBuilderOptions } from "@/features/admin/workflow-options";
 import { findDraft } from "@/lib/db/repositories/drafts.repository";
@@ -64,11 +62,15 @@ export default async function CustomApprovalPage({ searchParams }: { searchParam
   const defaultApproverId = managerId && managerId !== user.id && options.people.some((person) => person.id === managerId) ? managerId : null;
   return (
     <>
-      <PageHeader title="New request" icon={FilePlus2} description="You choose who approves and in what order. Start from one of your Approval templates to reuse saved levels.">
+      {/* v1.91.3 (D-437, owner: "All the approval screen layout should match the Waiting for me"): no visible
+          title bar (title, ⓘ); one h1 for screen readers. Its Approval templates link stays (an action the
+          person uses), on its own line at the right. */}
+      <h1 className="sr-only">New request</h1>
+      <div className="mb-4 flex justify-end" data-tour="page-actions">
         <Link href="/users/new" className="link text-label">
           Approval templates
         </Link>
-      </PageHeader>
+      </div>
       {template && (
         <p role="status" className="mb-4 rounded-md bg-primary-50 px-4 py-2 text-label text-primary-700" data-testid="from-template">
           Started from your template &ldquo;{template.name}&rdquo;: its approval levels and approvers are set. Fill in the details; you can change the levels too.

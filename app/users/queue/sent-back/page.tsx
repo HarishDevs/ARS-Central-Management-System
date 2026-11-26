@@ -4,7 +4,6 @@ import { requireArea } from "@/server/authorization/guards";
 import { EmptyState } from "@/features/shell/PageHeader";
 import { NoResults } from "@/features/ui/Display";
 import { ListToolbar } from "@/features/ui/ListToolbar";
-import { PendingLink } from "@/features/ui/PendingLink";
 import { SafeText } from "@/features/ui/SafeText";
 import { PriorityPill } from "@/features/ui/ChoicePill";
 import { FoldScope, FoldTbody } from "@/features/ui/GroupFold";
@@ -18,6 +17,7 @@ import { groupRows } from "@/server/lists/group-rows";
 import { listHref } from "@/server/lists/superadmin-lists";
 import { applySentBack, daysWaiting, filterCount, parseSentBackFilter, sentBackBucket, sentBackChoices, SENT_BACK_GROUP_LABEL, SENT_BACK_GROUPS, SENT_BACK_PAGE_SIZE, type SentBackRow } from "@/server/lists/sent-back";
 import { ListPage } from "@/features/ui/ListPage";
+import { ListFooter } from "@/features/ui/ListFooter";
 import { DateRangeField } from "@/features/ui/DateRangeField";
 
 // WEB-05: a plain, non-confidential browser title.
@@ -70,10 +70,10 @@ export default async function SentBackPage({ searchParams }: { searchParams: Pro
     return (
       <tr key={row.requestId} data-testid="sent-back-row">
         <td>
+          {/* v1.91.3 (D-437, as Waiting for me D-435 point 1): the title only; the record number stays on the request page and search by number still works. */}
           <Link href={`/users/requests/${row.requestId}`} className="link">
             <SafeText text={row.title} />
           </Link>
-          <p className="text-caption text-ink-muted">{row.requestNo}</p>
         </td>
         <td>{row.typeName}</td>
         <td>
@@ -155,22 +155,15 @@ export default async function SentBackPage({ searchParams }: { searchParams: Pro
           </div>
         </FoldScope>
       )}
-      {!filter.group && pages > 1 && (
-        <nav aria-label="Pages" className="mt-4 flex items-center gap-3 text-label">
-          {page > 1 && (
-            <PendingLink className="btn-secondary btn-compact" href={listHref(PATH, query, { page: page - 1 })}>
-              ← Previous
-            </PendingLink>
-          )}
-          <span className="text-ink-muted">
-            Page {page} of {pages} · {rows.length} requests
-          </span>
-          {page < pages && (
-            <PendingLink className="btn-secondary btn-compact" href={listHref(PATH, query, { page: page + 1 })}>
-              Next →
-            </PendingLink>
-          )}
-        </nav>
+      {/* v1.91.3 (D-437, as Waiting for me D-435 point 3): the count and pager below the table ("N sent back · page 1 of 2", Earlier / Later). Grouped shows every row, so no pages. */}
+      {all.length > 0 && (
+        <ListFooter
+          count={count || filter.q ? `${rows.length.toLocaleString("en-IN")} of ${all.length.toLocaleString("en-IN")} sent back` : `${rows.length.toLocaleString("en-IN")} sent back`}
+          page={filter.group ? 1 : page}
+          pages={filter.group ? 1 : pages}
+          earlierHref={listHref(PATH, query, { page: page - 1 })}
+          laterHref={listHref(PATH, query, { page: page + 1 })}
+        />
       )}
     </ListPage>
   );

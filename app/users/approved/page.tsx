@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { requireArea } from "@/server/authorization/guards";
-import { PageHeader } from "@/features/shell/PageHeader";
 import { RequestListScreen, VIEW_TARGET, columnsFor } from "@/features/requests/RequestListScreen";
 import { listExtras } from "@/server/requests/list-extras";
-import { BadgeCheck } from "lucide-react";
 import { listChoices, listRequests, tabCounts } from "@/lib/db/repositories/request-lists.repository";
 // v1.58.0 (D-354, owner: saved views are "Only mine"): only the person's own views show and set the default.
 import { myListViews, openedPlainly } from "@/server/lists/views";
@@ -30,9 +28,10 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
   const extras = await listExtras(VIEW_TARGET.APPROVED_MINE, columnsFor("APPROVED_MINE"), user.id, result.items, user.roles);
   return (
     <ListPage
-      header={
-          <PageHeader title="My approved requests" description="Requests you raised that were fully approved: when, by whom, and whether the approval is still valid." icon={BadgeCheck} />
-      }
+      // v1.91.3 (D-437, owner: "All the approval screen layout should match the Waiting for me"):
+      // no visible title bar; the Classic tab / Compact sidebar and breadcrumb name the page, and
+      // one h1 stays for screen readers.
+      header={<h1 className="sr-only">My approved requests</h1>}
     >
       <RequestListScreen
         base="APPROVED_MINE"
@@ -48,6 +47,9 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
         priority={extras.priority}
         groupData={extras.groupData}
         columns={extras.columns}
+        // v1.91.3 (D-437): Waiting for me's layout (D-435): title-only rows, count and pager below the table.
+        titleOnly
+        pagerBelow
       />
     </ListPage>
   );

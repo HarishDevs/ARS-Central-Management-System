@@ -47,6 +47,9 @@ export default async function Page({ searchParams }: { searchParams: Promise<Rec
         priority={extras.priority}
         groupData={extras.groupData}
         columns={extras.columns}
+        // v1.91.3 (D-437): the rest of Waiting for me's layout (D-435): title-only rows, count and pager below the table.
+        titleOnly
+        pagerBelow
       />
     </ListPage>
   );

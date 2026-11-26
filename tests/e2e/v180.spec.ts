@@ -33,7 +33,8 @@ test("My approved requests and Approved by me are in the sidebar, with their fil
   await page.goto("/users");
   await page.locator("aside nav").getByRole("button", { name: "My Approvals" }).click();
   await page.locator("aside nav").getByRole("link", { name: "My approved requests" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "My approved requests" })).toBeVisible();
+  // v1.91.3 (D-437, owner): no visible title bar; the page's h1 stays, for screen readers only.
+  await expect(page.getByRole("heading", { level: 1, name: "My approved requests" })).toHaveClass(/sr-only/);
   // v1.49.5 (owner): no status cards on My approved requests; the filters stay.
   await expect(page.getByRole("navigation", { name: "Quick filters" })).toHaveCount(0);
   await page.getByTestId("list-toolbar").getByTestId("filter-menu").locator("summary").click();
@@ -93,7 +94,8 @@ test("D-206/D-235: choice and skip appear on New request only when IT switches t
   // The first-use checklist links New request too; the Overview's own button is the one with the btn-primary style.
   await page.getByRole("main").locator("a.btn-primary", { hasText: "New request" }).first().click();
   await expect(page).toHaveURL(/\/users\/custom$/);
-  await expect(page.getByRole("heading", { level: 1, name: "New request" })).toBeVisible();
+  // v1.91.3 (D-437, owner): no visible title bar; the page's h1 stays, for screen readers only.
+  await expect(page.getByRole("heading", { level: 1, name: "New request" })).toHaveClass(/sr-only/);
   await toWorkflowStep(page); // v1.54.0: the workflow is its own page (step 2)
   for (const name of ["Add a level", "Add parallel steps"]) await expect(page.getByRole("button", { name })).toBeVisible();
   for (const name of ["Add a DoA matrix", "Add a choice (if / otherwise)"]) await expect(page.getByRole("button", { name })).toHaveCount(0);

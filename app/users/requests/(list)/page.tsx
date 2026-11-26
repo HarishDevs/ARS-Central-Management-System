@@ -1,12 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireArea } from "@/server/authorization/guards";
-import { PageHeader } from "@/features/shell/PageHeader";
 import { columnsFor, RequestListScreen, VIEW_TARGET } from "@/features/requests/RequestListScreen";
 import { OwnershipTabs } from "@/features/requests/OwnershipTabs";
 import { listExtras } from "@/server/requests/list-extras";
-import { ClipboardList, Plus } from "lucide-react";
 import { baseTotal, listChoices, listRequests, tabCounts } from "@/lib/db/repositories/request-lists.repository";
 // v1.58.0 (D-354, owner: saved views are "Only mine"): only the person's own views show and set the default.
 import { applyDefaultListView, myListViews } from "@/server/lists/views";
@@ -39,14 +36,11 @@ export default async function MyRequestsPage({ searchParams }: { searchParams: P
   const extras = await listExtras(VIEW_TARGET.MINE, columnsFor("MINE"), user.id, result.items, user.roles);
   return (
     <ListPage
-      header={
-          <PageHeader title="My pending requests" meta="Track and manage your approval requests in one place." description="Everything you've raised, with where it is now." icon={ClipboardList}>
-            {/* D-206 (owner): New request opens the page where people choose their own approvers. */}
-            <Link href="/users/custom" className="btn-primary inline-flex items-center gap-1.5">
-              <Plus className="h-4 w-4" aria-hidden="true" /> New request
-            </Link>
-          </PageHeader>
-      }
+      // v1.91.3 (D-437, owner: "All the approval screen layout should match the Waiting for me"):
+      // no visible title bar (title, ⓘ, the line under it, and its New request button: New request is
+      // the first item of My Approvals in the sidebar / Classic tabs, on Home's quick actions and in
+      // Ctrl K); one h1 stays for screen readers. Raised by me / Shared with me stay (tabs above the list).
+      header={<h1 className="sr-only">My pending requests</h1>}
     >
       <OwnershipTabs current="mine" mine={mineTotal} shared={sharedTotal} />
       <RequestListScreen
@@ -63,6 +57,9 @@ export default async function MyRequestsPage({ searchParams }: { searchParams: P
         priority={extras.priority}
         groupData={extras.groupData}
         columns={extras.columns}
+        // v1.91.3 (D-437): Waiting for me's layout (D-435): title-only rows, count and pager below the table.
+        titleOnly
+        pagerBelow
       />
     </ListPage>
   );

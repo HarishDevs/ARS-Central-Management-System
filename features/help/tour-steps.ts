@@ -72,7 +72,8 @@ export const TOUR_STEPS: readonly TourStep[] = [
       "Submit: the request gets a number and goes to its first approvers. You're told at each step.",
     ],
     path: "/users/new",
-    target: HEADER,
+    // v1.91.3 (D-437): no visible title bar; the step points at the New request button's line.
+    target: '[data-tour="page-actions"]',
   },
   {
     id: "custom",
@@ -85,7 +86,8 @@ export const TOUR_STEPS: readonly TourStep[] = [
       "Nobody can approve their own request. A finished request can be raised again with the same approvers.",
     ],
     path: "/users/custom",
-    target: HEADER,
+    // v1.91.3 (D-437): no visible title bar; the step points at the Approval templates line.
+    target: '[data-tour="page-actions"]',
   },
   {
     id: "queue",
@@ -115,7 +117,8 @@ export const TOUR_STEPS: readonly TourStep[] = [
       "Changes required: edit and resubmit. You can withdraw a request before it finishes. On a request: comments, files, history and Download PDF.",
     ],
     path: "/users/requests",
-    target: HEADER,
+    // v1.91.3 (D-437): this page has no visible title bar; the step points at the list.
+    target: "[data-list-page]",
   },
   {
     id: "tasks",

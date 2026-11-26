@@ -124,7 +124,8 @@ test("A11Y-01: the task page reflows at 320 px (1280 at 400 %), phone layout", a
 test("D-421: the shell measures the tokens at 1440 in every area (header 64, sidebar 250, padding 24 / 24, title 24)", async ({ page, context }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   for (const [login, path] of [
-    ["E2E_REQ", "/users/requests"],
+    // v1.91.3 (D-437): My pending requests has no visible title bar now; a users page that has one.
+    ["E2E_REQ", "/users/help"],
     ["E2E_ADMIN", "/admin/users"],
     ["E2E_SUPER", "/superadmin/monitoring/audit"],
   ] as const) {

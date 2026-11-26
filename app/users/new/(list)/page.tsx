@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { FilePlus2, LayoutTemplate } from "lucide-react";
+import { FilePlus2 } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireArea } from "@/server/authorization/guards";
-import { EmptyState, PageHeader } from "@/features/shell/PageHeader";
+import { EmptyState } from "@/features/shell/PageHeader";
 import { listApprovalTemplates } from "@/lib/db/repositories/approval-templates.repository";
 import { loadDirectorySnapshot, toDirectory } from "@/lib/db/repositories/directory.repository";
 import { userNames } from "@/lib/db/repositories/approvals.repository";
@@ -49,11 +49,15 @@ export default async function ApprovalTemplatesPage({ searchParams }: { searchPa
   }));
   return (
     <>
-      <PageHeader title="Approval templates" icon={LayoutTemplate} description="Your saved approval levels. Use one to start a request with the same levels and approvers; you can change anything before you submit.">
+      {/* v1.91.3 (D-437, owner: "All the approval screen layout should match the Waiting for me"): no visible
+          title bar (title, ⓘ); one h1 for screen readers. Its New request button stays (an action the
+          person uses), on its own line at the right. */}
+      <h1 className="sr-only">Approval templates</h1>
+      <div className="mb-4 flex justify-end" data-tour="page-actions">
         <Link href="/users/custom" className="btn-secondary btn-compact inline-flex items-center gap-1.5">
           <FilePlus2 aria-hidden="true" className="h-4 w-4" /> New request
         </Link>
-      </PageHeader>
+      </div>
       {cards.length === 0 ? (
         <EmptyState
           title="No approval templates yet"
