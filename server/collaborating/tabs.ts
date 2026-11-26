@@ -19,20 +19,31 @@
 // way the module must be running (the Super Admin's switch, where the module
 // has one) and its record page not Hidden for them (page access). A module
 // switched off for everyone shows nothing.
-export const COLLAB_TABS = ["approvals", "tasks"] as const;
+//
+// v1.92.0 (D-441, owner 26 Nov 2026 answering Q-036: tickets get collaborators):
+// Tickets (ticket_collaborators) is the third tab, under the same rules.
+// Ticketing has no Super Admin switch (it is a module only, D-329), so the
+// tab needs the module or an active collaboration, and the ticket page
+// (users.ticket_item) not Hidden for the person.
+export const COLLAB_TABS = ["approvals", "tasks", "tickets"] as const;
 export type CollabTab = (typeof COLLAB_TABS)[number];
 
-export const COLLAB_TAB_LABEL: Record<CollabTab, string> = { approvals: "Approvals", tasks: "Tasks" };
+export const COLLAB_TAB_LABEL: Record<CollabTab, string> = { approvals: "Approvals", tasks: "Tasks", tickets: "Tickets" };
 
 export const COLLAB_EMPTY: Record<CollabTab, string> = {
   approvals: "Nobody has added you to a request yet. When they do, it appears here.",
   tasks: "Nobody has added you to a task yet. When someone adds you as a collaborator on their task, it appears here.",
+  tickets: "Nobody has added you to a ticket yet. When someone adds you as a collaborator on a ticket, it appears here.",
 };
 
 export const COLLAB_PAGE_SIZE = 25;
 
 export const COLLAB_TASK_SORTS = ["task", "assignee", "status", "due", "updated", "added"] as const;
 export type CollabTaskSort = (typeof COLLAB_TASK_SORTS)[number];
+
+// v1.92.0 (D-441): the Tickets tab's sortable columns.
+export const COLLAB_TICKET_SORTS = ["ticket", "category", "assignee", "status", "updated", "added"] as const;
+export type CollabTicketSort = (typeof COLLAB_TICKET_SORTS)[number];
 
 export interface CollabAccessFacts {
   approvalModule: boolean; // hasModule(APPROVAL)
@@ -42,6 +53,9 @@ export interface CollabAccessFacts {
   tasksSwitch: boolean; // features.tasks (the module is running)
   taskPageOpen: boolean; // page access: users.task not Hidden by a rule
   taskItems: number; // active collaborations on tasks
+  ticketModule?: boolean; // hasModule(TICKET)
+  ticketPageOpen?: boolean; // page access: users.ticket_item not Hidden by a rule
+  ticketItems?: number; // active collaborations on tickets
 }
 
 // The tabs this person may have, in the screen's order.
@@ -49,6 +63,7 @@ export function allowedCollabTabs(facts: CollabAccessFacts): CollabTab[] {
   const tabs: CollabTab[] = [];
   if (facts.requestPageOpen && (facts.approvalModule || facts.approvalItems > 0)) tabs.push("approvals");
   if (facts.tasksSwitch && facts.taskPageOpen && (facts.taskModule || facts.taskItems > 0)) tabs.push("tasks");
+  if (facts.ticketPageOpen && (facts.ticketModule || (facts.ticketItems ?? 0) > 0)) tabs.push("tickets");
   return tabs;
 }
 

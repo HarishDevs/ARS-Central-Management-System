@@ -144,11 +144,11 @@ If the form has a Priority field, the **Priority** column (after Status) shows i
 
 ### Collaborating (v1.91.0)
 One screen for everything other people added you to as a collaborator, in the sidebar beside Calendar (and in More on a phone).
-- **One tab per module**, each with how many items it holds: **Approvals** (requests you follow: the same list as before, with its filters, quick tabs and saved views) and **Tasks** (tasks where you are a collaborator but not the assignee, the creator or the person who assigned it). It opens on the first tab with something in it; the address keeps the tab (`?tab=tasks`).
-- Each tab has **Search** and sorting, and pages of 25. A row opens the item the usual way: a task beside the list on a computer (its own page on a phone), a request on its page; **← Back** returns to the same tab.
+- **One tab per module**, each with how many items it holds: **Approvals** (requests you follow: the same list as before, with its filters, quick tabs and saved views), **Tasks** (tasks where you are a collaborator but not the assignee, the creator or the person who assigned it) and **Tickets** (v1.92.0: tickets you were added to, with their category, status, who has them and when they last changed). It opens on the first tab with something in it; the address keeps the tab (`?tab=tasks`, `?tab=tickets`).
+- Each tab has **Search** and sorting, and pages of 25. A row opens the item the usual way: a task beside the list on a computer (its own page on a phone), a request or a ticket on its page; **← Back** returns to the same tab.
 - **You see a tab only for the modules you use.** If someone adds you to an item in a module you don't use, you can still open that item from Collaborating (and from its notification): you are a **Commenter** there, so you can view it and comment (the page shows a *Commenter* badge). With the module you have your usual collaborator rights (for example adding files). Nothing else of that module opens for you.
 - Being removed from an item, or the item being deleted, takes it off the list and closes it to you at once.
-- Tickets, meetings, information and projects have no collaborators, so they have no tab (projects have members, meetings participants, information recipients).
+- Meetings, information and projects have no collaborators, so they have no tab (projects have members, meetings participants, information recipients). Tickets have collaborators since v1.92.0 (see Tickets below).
 
 Every list has the same toolbar: **Filter**, **Sort**, **Group**, **Options** (rows per page, save the view) and **Search**.
 
@@ -428,6 +428,13 @@ Ask for help: a software problem, a hardware fault, an Admin request. Tickets ap
 - **My tickets** lists the tickets you raised, and those assigned to you; on **Assigned to me**, the **Update** column has **Start work** and **Mark resolved** for each ticket (v1.59.3).
 - **Tickets from before v1.59.3** that had a task: the ticket still shows that task's comments and activity, and links to it as history; the work now continues on the ticket.
 - **Remarks:** anyone on the ticket can add a remark or files. Coordinators and the assignee may mark a remark **Internal**; you don't see those, or the files attached to them (v1.71.2; coordinators and the assignee see such files marked *internal*).
+- **Collaborators** (v1.92.0, like a request's): the person who raised the ticket, its coordinators, its assignee and IT can add people to follow it in the **Collaborators** card on the ticket (type a name, choose, **Add**; up to 20). The people already on the ticket and inactive people can't be added (you're told why). A collaborator:
+  - sees the ticket, its public remarks and files (never internal remarks), and finds it on **Collaborating → Tickets**;
+  - can add remarks, and files too if they use the Ticketing module; without the module they are a **Commenter** (read, download its files, write remarks: the ticket shows a *Commenter* badge);
+  - never assigns, works on, confirms or reopens it, and never adds other collaborators; with the module they can **Stop following**;
+  - is told when they are added and how the ticket goes (assigned, work started, resolved, reopened, closed, and public remarks).
+
+  Removing a collaborator (**Remove**) closes the ticket to them at once; the ticket's timeline records who was added and removed.
 - **Assigned a ticket?** (v1.59.3: no task is made.) Open it from **My tickets → Assigned to me** (or the bell). Press **Start work** (In progress), add remarks and documents on the ticket, then **Mark resolved** with **what was done** (the requester reads it). Resolving asks the requester to confirm; it doesn't close the ticket. You can also Start and Resolve from the Assigned to me row.
 - **Coordinators:**
   - open a new ticket, choose **Assign to**, a **Target date** and remarks, then **Assign** (the assignee updates the ticket itself; no task is made);

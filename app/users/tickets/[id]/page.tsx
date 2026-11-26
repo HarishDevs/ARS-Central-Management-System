@@ -16,7 +16,11 @@ import { AssignTicketForm, ConfirmTicketForms, TicketRemarkForm, TicketWorkForm 
 import { TicketPriorityBadge, TicketStatusBadge } from "@/features/tickets/TicketParts";
 import { ticketsPage } from "@/server/tickets/page-context";
 import { loadTicketFor } from "@/server/tickets/service";
-import { findTicketFeedback, listTicketComments, listTicketEvents } from "@/lib/db/repositories/tickets.repository";
+import { coordinatorsOf, findTicketFeedback, listTicketCollaborators, listTicketComments, listTicketEvents } from "@/lib/db/repositories/tickets.repository";
+import { CollaboratorsCard } from "@/features/requests/CollaboratorsCard";
+import { CommenterBadge } from "@/features/collaborating/CommenterBadge";
+import { collaboratorOnly, mayAddTicketFiles, mayLeaveTicket, mayManageTicketCollaborators } from "@/server/tickets/rules";
+import { collabTabHref } from "@/server/collaborating/tabs";
 import { listPeopleFacts } from "@/lib/db/repositories/tasks.repository";
 import { loadLookupNames } from "@/lib/db/repositories/lookups.repository";
 import { listRecordFiles } from "@/server/modules/files";
@@ -43,7 +47,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   const loaded = await loadTicketFor(Number(id), user);
   if (!loaded) notFound();
   const { ticket, form, actions, internal, viewer } = loaded;
-  const [events, comments, files, taskFiles, people, lookupNames, feedback] = await Promise.all([
+  const [events, comments, files, taskFiles, people, lookupNames, feedback, collaborators] = await Promise.all([
     listTicketEvents(ticket.id, internal),
     listTicketComments(ticket.id, internal),
     listRecordFiles("TICKET", ticket.id, { internal }),
@@ -51,7 +55,17 @@ export default async function Page({ params, searchParams }: { params: Promise<{
     listPeopleFacts(),
     loadLookupNames(),
     ticket.status === "CLOSED" ? findTicketFeedback(ticket.id) : Promise.resolve(null),
+    listTicketCollaborators(ticket.id),
   ]);
+  // v1.92.0 (D-438, D-439): collaborators, like a request's. The raiser,
+  // coordinators, assignee and IT manage them; a collaborator with no other part
+  // in the ticket gets the Collaborating tab as the way back, and without the
+  // Ticketing module is a Commenter (read, download, comment; nothing else).
+  const onlyCollaborator = collaboratorOnly(ticket, viewer);
+  const commenter = Boolean(viewer.commenter && onlyCollaborator);
+  const canManageCollaborators = mayManageTicketCollaborators(ticket, viewer);
+  const ticketPeople = new Set([ticket.requesterId, ...(ticket.assigneeId ? [ticket.assigneeId] : []), ...(canManageCollaborators ? (await coordinatorsOf(ticket.typeId)).map((person) => person.id) : [])]);
+  const collaboratorOptions = canManageCollaborators ? people.filter((person) => !ticketPeople.has(person.id)).map((person) => ({ id: person.id, label: personLabel(person), detail: person.departmentName ?? undefined })) : [];
   const query = await searchParams;
   // v1.89.0 (NAV-04, D-419): the validated way back to another area's list (?from=).
   const returnTo = returnToFor(user, query.from);
@@ -88,7 +102,11 @@ export default async function Page({ params, searchParams }: { params: Promise<{
     <>
       {/* v1.89.0 (NAV-04, D-419): opened from Admin → Records, the way back is that list. */}
       {/* v1.89.0 (D-423, UIQA-CON-11 / CON-12): the way back on the breadcrumb's line; the badges beside the title. */}
-      <Breadcrumbs items={[returnTo ? { href: returnTo.href, label: returnTo.label } : { href: "/users/tickets", label: "My tickets" }, { label: ticket.ticketNo }]} back={returnTo ? <ReturnToLink to={returnTo} /> : undefined} />
+      {/* v1.92.0 (D-441): a collaborator-only viewer's way back is the Collaborating screen's Tickets tab. */}
+      <Breadcrumbs
+        items={[returnTo ? { href: returnTo.href, label: returnTo.label } : onlyCollaborator ? { href: collabTabHref("tickets"), label: "Collaborating" } : { href: "/users/tickets", label: "My tickets" }, { label: ticket.ticketNo }]}
+        back={returnTo ? <ReturnToLink to={returnTo} /> : undefined}
+      />
       <PageHeader
         title={ticket.title}
         icon={Ticket}
@@ -97,6 +115,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
           <>
             <TicketPriorityBadge priority={ticket.priority} />
             <TicketStatusBadge status={ticket.status} closeKind={ticket.closeKind} />
+            {commenter && <CommenterBadge module="Ticketing" />}
           </>
         }
       />
@@ -199,7 +218,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
                 ))}
               </ul>
             )}
-            {actions.has("COMMENT") && <TicketRemarkForm ticketId={ticket.id} canInternal={internal && !requester} />}
+            {actions.has("COMMENT") && <TicketRemarkForm ticketId={ticket.id} canInternal={internal && !requester} canAttach={mayAddTicketFiles(ticket, viewer)} />}
           </section>
         </div>
 
@@ -238,6 +257,15 @@ export default async function Page({ params, searchParams }: { params: Promise<{
               (history; the ticket is now updated here).
             </p>
           )}
+          {/* v1.92.0 (D-438): people following the ticket. */}
+          <CollaboratorsCard
+            kind="ticket"
+            requestId={ticket.id}
+            viewerId={mayLeaveTicket(ticket, viewer) ? user.id : 0}
+            canManage={canManageCollaborators}
+            options={collaboratorOptions}
+            rows={collaborators.map((row) => ({ userId: row.userId, name: row.name, loginId: row.loginId, addedByName: row.addedByName, addedAt: indiaDateTimeText(row.addedAt) }))}
+          />
           <section className="card px-5 py-4" aria-labelledby="timeline-heading">
             <h2 id="timeline-heading" className="mb-3 font-semibold">
               Timeline
@@ -282,6 +310,8 @@ function TicketEventRow({ event }: { event: Awaited<ReturnType<typeof listTicket
       </p>
       {typeof event.detail?.assigneeName === "string" && <p className="text-caption">To {event.detail.assigneeName}, target {day(typeof event.detail.targetDate === "string" ? event.detail.targetDate : null)}</p>}
       {typeof event.detail?.reason === "string" && <p className="text-caption">{event.detail.reason}</p>}
+      {Array.isArray(event.detail?.names) && <p className="text-caption">{(event.detail.names as unknown[]).filter((name) => typeof name === "string").join(", ")}</p>}
+      {event.action === "COLLABORATOR_REMOVED" && typeof event.detail?.name === "string" && <p className="text-caption">{event.detail.self ? `${event.detail.name} stopped following` : event.detail.name}</p>}
       {typeof event.detail?.remarks === "string" && event.detail.remarks && <p className="text-caption">{event.detail.remarks}</p>}
     </li>
   );

@@ -218,4 +218,8 @@ export const ticketMessages = {
     ticketMessage("TICKET_CONFIRM_REMINDER", ticket, to, `Reminder: confirm ticket ${ticket.ticketNo}`, `The work on "${ticket.title}" (${ticket.ticketNo}) is done and waits for your confirmation. It closes by itself after ${confirmBy}.`),
   closed: (ticket: TicketInfo, to: number, how: string) => ticketMessage("TICKET_CLOSED", ticket, to, `Ticket closed: ${ticket.ticketNo}`, `"${ticket.title}" (${ticket.ticketNo}) is closed: ${how}.`),
   reopened: (ticket: TicketInfo, to: number, by: string, reason: string) => ticketMessage("TICKET_REOPENED", ticket, to, `Ticket reopened: ${ticket.ticketNo}`, `${by} reopened "${ticket.title}" (${ticket.ticketNo}). Reason: ${reason}`),
+  // v1.92.0 (D-440): added as a collaborator. No template of its own yet: it reuses the
+  // TICKET_UPDATED event (its notification settings and WhatsApp template); TD-015.
+  collaboratorAdded: (ticket: TicketInfo, to: number, by: string) =>
+    ticketMessage("TICKET_UPDATED", ticket, to, `You were added to ticket ${ticket.ticketNo}`, `${by} added you as a collaborator on the ticket "${ticket.title}" (${ticket.ticketNo}). You can see it and comment, and you'll be told how it goes. You don't need to work on it.`),
 };

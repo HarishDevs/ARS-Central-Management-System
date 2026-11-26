@@ -23,8 +23,11 @@ import {
   isCoordinatorOf,
   updateTicket,
   viewerCategories,
+  isTicketCollaborator,
   type TicketRecord,
 } from "@/lib/db/repositories/tickets.repository";
+import { getDbPool } from "@/lib/db/client";
+import { hasModule, parseModuleSet } from "@/server/modules/modules";
 import { discardStaged, insertRecordFiles, RecordFileError, type StagedFile } from "@/server/modules/files";
 import { ticketMessages } from "@/server/modules/messages";
 import { mayCreate, parseTicketSettings, TICKET_PRIORITIES, type TicketPriority } from "@/server/modules/settings";
@@ -33,8 +36,9 @@ import { isAdminActor, withFileCounts, type TaskActor } from "@/server/modules/t
 import { dueFromDay } from "@/server/work/service";
 import { deliverOutbox } from "@/server/approvals/service";
 import { addWorkingDays, indiaDate } from "@/server/workflows/calendar";
-import { allowedTicketActions, canSeeTicket, CONFIRM_STAGES, seesInternal, type TicketAction, type TicketViewer } from "@/server/tickets/rules";
+import { allowedTicketActions, canSeeTicket, collaboratorOnly, CONFIRM_STAGES, mayAddTicketFiles, seesInternal, type TicketAction, type TicketViewer } from "@/server/tickets/rules";
 import { logError } from "@/lib/logging/logger";
+import { forCollaborators } from "@/server/tickets/collaborator-messages";
 import type { NotifyInput } from "@/server/notifications/notify";
 
 // v1.55.0 (D-326, D-327; owner's simple brief): the Ticketing System.
@@ -50,11 +54,22 @@ async function send(ids: number[]) {
   if (ids.length) await afterResponse("ticket messages", () => deliverOutbox(ids));
 }
 
-export async function ticketViewer(ticket: TicketRecord, actor: { id: number; roles: readonly string[] }): Promise<TicketViewer> {
-  const [isCoordinator, named] = await Promise.all([isCoordinatorOf(ticket.typeId, actor.id), viewerCategories(actor.id)]);
+export async function ticketViewer(ticket: TicketRecord, actor: { id: number; roles: readonly string[] }, db?: Queryable): Promise<TicketViewer> {
+  const [isCoordinator, named, isCollaborator] = await Promise.all([isCoordinatorOf(ticket.typeId, actor.id, db), viewerCategories(actor.id, db), isTicketCollaborator(ticket.id, actor.id, db)]);
   // v1.57.1 (D-338): named for every category, or for this ticket's category.
-  return { id: actor.id, isAdmin: isAdminActor(actor), isCoordinator, seesAll: named === "ALL" || named.includes(ticket.categoryId) };
+  const viewer: TicketViewer = { id: actor.id, isAdmin: isAdminActor(actor), isCoordinator, seesAll: named === "ALL" || named.includes(ticket.categoryId), isCollaborator };
+  // v1.92.0 (D-439, the Commenter rule D-434): a collaborator with no other part
+  // in the ticket and without the Ticketing module (read now, from the users
+  // table, so taking the module away applies at once) is a Commenter.
+  if (collaboratorOnly(ticket, viewer)) viewer.commenter = !hasModule({ roles: actor.roles, modules: await modulesOf(actor.id, db) }, "TICKET");
+  return viewer;
 }
+
+async function modulesOf(userId: number, db: Queryable = getDbPool()) {
+  const [rows] = await db.query<import("mysql2/promise").RowDataPacket[]>("SELECT module_access FROM users WHERE id = ?", [userId]);
+  return parseModuleSet(rows[0]?.module_access as string | null | undefined);
+}
+
 
 // The ticket, if this person may see it (else null: a 404).
 export async function loadTicketFor(id: number, actor: { id: number; roles: readonly string[] }) {
@@ -195,6 +210,8 @@ export async function assignTicket(input: AssignInput, actor: TaskActor): Promis
     await recordAudit({ actorUserId: actor.id, action: `TICKET_${action}`, entityType: "TICKET", entityId: ticket.id, sessionId: actor.sessionId, ipAddress: actor.ipAddress ?? null, metadata: { ticketNo: ticket.ticketNo, assigneeId: assignee.id, targetDate: input.targetDate } }, connection);
     if (assignee.id !== actor.id) messages.push(ticketMessages.assigned(info(ticket), assignee.id, actor.name));
     if (ticket.requesterId !== actor.id) messages.push(ticketMessages.updated(info(ticket), ticket.requesterId, `assigned to ${assignee.name}, target ${input.targetDate}`));
+    // v1.92.0 (D-440): its collaborators hear it too.
+    messages.push(...(await forCollaborators(ticket.id, [assignee.id, ticket.requesterId], actor.id, (id) => ticketMessages.updated(info(ticket), id, `assigned to ${assignee.name}, target ${input.targetDate}`), connection)));
     return { outbox: await insertOutbox(null, messages, connection) } as const;
   });
   if ("error" in outcome) return fail(outcome.error!);
@@ -247,7 +264,9 @@ export async function confirmTicket(input: { ticketId: number; rating: number | 
     await insertTicketFeedback(ticket.id, ticket.reopenCount, input.rating, feedback || null, actor.id, connection);
     await appendTicketEvent(ticket.id, { actorId: actor.id, action: "CONFIRMED", from: ticket.status, to: "CLOSED", detail: { rating: input.rating, feedback: feedback || null } }, connection);
     const to = [ticket.assigneeId, ...(await coordinatorsOf(ticket.typeId, connection)).map((person) => person.id)].filter((id): id is number => id !== null && id !== actor.id);
-    return { messages: [...new Set(to)].map((id) => ticketMessages.closed(info(ticket), id, `confirmed by ${actor.name}${input.rating ? `, rated ${input.rating}/5` : ""}`)), message: "Thank you. The ticket is closed." };
+    const how = `confirmed by ${actor.name}${input.rating ? `, rated ${input.rating}/5` : ""}`;
+    const followers = await forCollaborators(ticket.id, to, actor.id, (id) => ticketMessages.closed(info(ticket), id, how), connection);
+    return { messages: [...[...new Set(to)].map((id) => ticketMessages.closed(info(ticket), id, how)), ...followers], message: "Thank you. The ticket is closed." };
   });
 }
 
@@ -264,7 +283,8 @@ export async function reopenTicket(input: { ticketId: number; reason: string }, 
     await appendTicketEvent(ticket.id, { actorId: actor.id, action: "REOPENED", from: ticket.status, to: "REOPENED", detail: { reason, previousResolution: ticket.resolutionText } }, connection);
     await insertTicketComment(ticket.id, actor.id, `Reopened: ${reason}`, false, connection);
     const to = [ticket.assigneeId, ...(await coordinatorsOf(ticket.typeId, connection)).map((person) => person.id)].filter((id): id is number => id !== null && id !== actor.id);
-    return { messages: [...new Set(to)].map((id) => ticketMessages.reopened(info(ticket), id, actor.name, reason)), message: "Reopened. It is back with the assignee, and the coordinators have been told." };
+    const followers = await forCollaborators(ticket.id, to, actor.id, (id) => ticketMessages.reopened(info(ticket), id, actor.name, reason), connection);
+    return { messages: [...[...new Set(to)].map((id) => ticketMessages.reopened(info(ticket), id, actor.name, reason)), ...followers], message: "Reopened. It is back with the assignee, and the coordinators have been told." };
   });
 }
 
@@ -301,6 +321,8 @@ export async function commentOnTicket(input: { ticketId: number; body: string; i
       const viewer = await ticketViewer(ticket, actor);
       if (!allowedTicketActions(ticket, viewer).has("COMMENT")) return { error: canSeeTicket(ticket, viewer) ? "This ticket is closed." : "Not found." } as const;
       // Only coordinators and the assignee may keep a remark internal.
+      // v1.92.0 (D-439, D-434): a Commenter (a collaborator without the Ticketing module) adds no files.
+      if (input.files.length && !mayAddTicketFiles(ticket, viewer)) return { error: "Adding files needs the Ticketing module. You can still write a remark." } as const;
       const internal = input.internal && seesInternal(ticket, viewer) && ticket.requesterId !== actor.id;
       if (body) await insertTicketComment(ticket.id, actor.id, body, internal, connection);
       // D-388 (QA security M-1): an internal remark's files are internal too.
@@ -308,7 +330,9 @@ export async function commentOnTicket(input: { ticketId: number; body: string; i
       await appendTicketEvent(ticket.id, { actorId: actor.id, action: input.files.length && !body ? "FILES_ADDED" : "REMARK", internal, detail: input.files.length ? { files: input.files.length } : null }, connection);
       const people = new Set<number>([...(await coordinatorsOf(ticket.typeId, connection)).map((person) => person.id), ...(ticket.assigneeId ? [ticket.assigneeId] : []), ...(internal ? [] : [ticket.requesterId])]);
       people.delete(actor.id);
-      return { outbox: await insertOutbox(null, [...people].map((id) => ticketMessages.comment(info(ticket), id, actor.name)), connection) } as const;
+      // v1.92.0 (D-440): a public remark reaches the collaborators too (an internal one never does).
+      const followers = internal ? [] : await forCollaborators(ticket.id, people, actor.id, (id) => ticketMessages.comment(info(ticket), id, actor.name), connection);
+      return { outbox: await insertOutbox(null, [...[...people].map((id) => ticketMessages.comment(info(ticket), id, actor.name)), ...followers], connection) } as const;
     });
     if ("error" in outcome) {
       await discardStaged(input.files);
@@ -361,7 +385,9 @@ export async function runTicketConfirmations(now = new Date()): Promise<{ remind
           await appendTicketEvent(ticket.id, { actorId: null, action: "AUTO_CLOSED", from: ticket.status, to: "CLOSED", detail: { reason, lastDay } }, connection);
           await recordAudit({ actorUserId: null, action: "TICKET_AUTO_CLOSED", entityType: "TICKET", entityId: ticket.id, metadata: { ticketNo: ticket.ticketNo, lastDay } }, connection);
           const to = [ticket.requesterId, ticket.assigneeId, ...(await coordinatorsOf(ticket.typeId, connection)).map((person) => person.id)].filter((id): id is number => id !== null);
-          return { kind: "closed", outbox: await insertOutbox(null, [...new Set(to)].map((id) => ticketMessages.closed(info(ticket), id, "closed automatically: no answer in 4 working days")), connection) } as const;
+          const how = "closed automatically: no answer in 4 working days";
+          const followers = await forCollaborators(ticket.id, to, null, (id) => ticketMessages.closed(info(ticket), id, how), connection);
+          return { kind: "closed", outbox: await insertOutbox(null, [...[...new Set(to)].map((id) => ticketMessages.closed(info(ticket), id, how)), ...followers], connection) } as const;
         });
         if (!outcome || outcome.kind === "skipped") continue;
         if (outcome.kind === "closed") closed += 1;

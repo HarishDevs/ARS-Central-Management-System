@@ -3,7 +3,8 @@ import type { RowDataPacket } from "mysql2/promise";
 import { getDbPool, type Queryable } from "@/lib/db/client";
 import { sqlDir, type ColumnSort } from "@/server/lists/sorting";
 import type { TaskStatus } from "@/server/modules/task-rules";
-import { COLLAB_PAGE_SIZE, type CollabTaskSort } from "@/server/collaborating/tabs";
+import { COLLAB_PAGE_SIZE, type CollabTaskSort, type CollabTicketSort } from "@/server/collaborating/tabs";
+import type { TicketStatus } from "@/server/tickets/rules";
 
 // v1.91.0 (D-433, owner: one common Collaborating screen). The Tasks tab:
 // tasks the person was added to as a collaborator (task_followers, any
@@ -121,4 +122,82 @@ export async function collaboratesOnRequestComment(commentId: number, userId: nu
     [commentId, userId],
   );
   return rows.length > 0;
+}
+
+// v1.92.0 (D-441, owner answering Q-036): the Tickets tab: tickets the person
+// is an active collaborator on (ticket_collaborators, not removed). Being an
+// active collaborator always lets the person open the ticket (canSeeTicket),
+// so the list never shows a ticket its page would refuse. One query for the
+// page, one for the count (no N+1; idx_ticket_collaborators_user).
+const TICKET_BASE = `FROM ticket_collaborators f
+     JOIN tickets k ON k.id = f.ticket_id
+     JOIN ticket_categories c ON c.id = k.category_id
+     JOIN users r ON r.id = k.requester_id
+     LEFT JOIN users a ON a.id = k.assignee_id
+    WHERE f.user_id = ? AND f.removed_at IS NULL`;
+
+const TICKET_SORT_SQL: Record<CollabTicketSort, { expr: string; nullable?: boolean }> = {
+  ticket: { expr: "k.title" },
+  category: { expr: "c.name" },
+  assignee: { expr: "a.name", nullable: true },
+  status: { expr: "FIELD(k.status, 'NEW', 'REOPENED', 'ASSIGNED', 'IN_PROGRESS', 'AWAITING_CONFIRMATION', 'CLOSED')" },
+  updated: { expr: "k.updated_at" },
+  added: { expr: "f.added_at" },
+};
+
+export interface CollabTicketRow {
+  id: number;
+  ticketNo: string;
+  title: string;
+  status: TicketStatus;
+  closeKind: string | null;
+  categoryName: string;
+  requesterName: string;
+  assigneeName: string | null;
+  updatedAt: Date;
+  addedAt: Date;
+}
+
+function ticketSearch(q: string): { sql: string; params: unknown[] } {
+  if (!q) return { sql: "", params: [] };
+  return { sql: " AND (k.ticket_no = ? OR k.title LIKE ?)", params: [q.toUpperCase(), likeOf(q)] };
+}
+
+export function collabTicketOrder(sort: ColumnSort<CollabTicketSort>): string {
+  const column = sort.sortBy ? TICKET_SORT_SQL[sort.sortBy] : undefined;
+  // Default: open tickets first, then the most recently changed.
+  if (!column) return "ORDER BY k.status = 'CLOSED', k.updated_at DESC, k.id DESC";
+  return `ORDER BY ${column.nullable ? `${column.expr} IS NULL, ` : ""}${column.expr} ${sqlDir(sort.dir)}, k.id DESC`;
+}
+
+export async function countCollabTickets(userId: number, q = "", db: Queryable = getDbPool()): Promise<number> {
+  const where = ticketSearch(q);
+  const [[row]] = await db.query<RowDataPacket[]>(`SELECT COUNT(*) AS n ${TICKET_BASE}${where.sql}`, [userId, ...where.params]);
+  return Number(row?.n ?? 0);
+}
+
+export async function listCollabTickets(userId: number, options: { q: string; sort: ColumnSort<CollabTicketSort>; page: number }, db: Queryable = getDbPool()): Promise<{ items: CollabTicketRow[]; total: number }> {
+  const where = ticketSearch(options.q);
+  const total = await countCollabTickets(userId, options.q, db);
+  const page = Math.max(1, Math.floor(options.page) || 1);
+  const [rows] = await db.query<RowDataPacket[]>(
+    `SELECT k.id, k.ticket_no, k.title, k.status, k.close_kind, k.updated_at, f.added_at, c.name AS category_name, r.name AS requester_name, a.name AS assignee_name
+       ${TICKET_BASE}${where.sql} ${collabTicketOrder(options.sort)} LIMIT ? OFFSET ?`,
+    [userId, ...where.params, COLLAB_PAGE_SIZE, (page - 1) * COLLAB_PAGE_SIZE],
+  );
+  return {
+    total,
+    items: rows.map((row) => ({
+      id: Number(row.id),
+      ticketNo: String(row.ticket_no),
+      title: String(row.title),
+      status: String(row.status) as TicketStatus,
+      closeKind: row.close_kind ? String(row.close_kind) : null,
+      categoryName: String(row.category_name),
+      requesterName: String(row.requester_name),
+      assigneeName: row.assignee_name ? String(row.assignee_name) : null,
+      updatedAt: new Date(row.updated_at as string),
+      addedAt: new Date(row.added_at as string),
+    })),
+  };
 }

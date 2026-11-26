@@ -21,8 +21,10 @@ import { formatDate, formatDateTime } from "@/lib/format/date";
 import { isOverdue, TASK_STATUS_LABEL } from "@/server/modules/task-rules";
 import { nextDir, parseColumnSort } from "@/server/lists/sorting";
 import { collabAccess } from "@/server/collaborating/service";
-import { COLLAB_EMPTY, COLLAB_PAGE_SIZE, COLLAB_TASK_SORTS, collabTabHref, pickCollabTab } from "@/server/collaborating/tabs";
-import { listCollabTasks } from "@/lib/db/repositories/collaborating.repository";
+import { COLLAB_EMPTY, COLLAB_PAGE_SIZE, COLLAB_TASK_SORTS, COLLAB_TICKET_SORTS, collabTabHref, pickCollabTab } from "@/server/collaborating/tabs";
+import { listCollabTasks, listCollabTickets } from "@/lib/db/repositories/collaborating.repository";
+import { TicketStatusBadge } from "@/features/tickets/TicketParts";
+import { RETURN_PARAM } from "@/lib/nav/return-to";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
 export const metadata: Metadata = { title: "Collaborating" };
@@ -58,10 +60,10 @@ export default async function CollaboratingPage({ searchParams }: { searchParams
   const tab = pickCollabTab(params, tabs, counts)!;
   return (
     <ListPage
-      header={<PageHeader title="Collaborating" meta="Everything people added you to: follow it and comment." description="Requests and tasks other people added you to as a collaborator, one tab per module. You can see them and comment (and add files in the modules you use); you don't approve or own them." icon={UsersRound} />}
+      header={<PageHeader title="Collaborating" meta="Everything people added you to: follow it and comment." description="Requests, tasks and tickets other people added you to as a collaborator, one tab per module. You can see them and comment (and add files in the modules you use); you don't approve, own or work on them." icon={UsersRound} />}
       tabs={<CollaboratingTabs current={tab} tabs={tabs} counts={counts} />}
     >
-      {tab === "approvals" ? <ApprovalsTab userId={user.id} roles={user.roles} params={params} /> : <TasksTab userId={user.id} params={params} />}
+      {tab === "approvals" ? <ApprovalsTab userId={user.id} roles={user.roles} params={params} /> : tab === "tickets" ? <TicketsTab userId={user.id} params={params} /> : <TasksTab userId={user.id} params={params} />}
     </ListPage>
   );
 }
@@ -182,3 +184,86 @@ async function TasksTab({ userId, params }: { userId: number; params: Query }) {
   );
 }
 
+
+const TICKET_COLUMNS = [
+  { key: "ticket", header: "Ticket" },
+  { key: "category", header: "Category" },
+  { key: "assignee", header: "Assigned to" },
+  { key: "status", header: "Status" },
+  { key: "updated", header: "Updated" },
+  { key: "added", header: "You were added" },
+];
+
+// v1.92.0 (D-441, owner answering Q-036): the Tickets tab: tickets people
+// added you to as a collaborator. A row opens the ticket's page with ?from=
+// this tab, so its way back returns here (with the search and sort kept).
+async function TicketsTab({ userId, params }: { userId: number; params: Query }) {
+  const q = str(params.q).trim().slice(0, 100);
+  const page = Math.max(1, Math.min(1000, Number(str(params.page)) || 1));
+  const sort = parseColumnSort(params, COLLAB_TICKET_SORTS);
+  const { items, total } = await listCollabTickets(userId, { q, sort, page });
+  const pages = Math.max(1, Math.ceil(total / COLLAB_PAGE_SIZE));
+  const keep = { q: q || null, ...(sort.sortBy ? { sortBy: sort.sortBy, dir: sort.dir } : {}) };
+  const href = (change: Record<string, string | number | null>) => collabTabHref("tickets", { ...keep, ...change });
+  const back = new URLSearchParams({ [RETURN_PARAM]: href(page > 1 ? { page } : {}) }).toString();
+  return (
+    <>
+      <ListToolbar
+        id="collab-tickets"
+        path="/users/collaborating"
+        label="Find tickets you collaborate on"
+        lead={
+          <span className="text-label text-ink-muted" role="status" data-testid="collab-total">
+            {total.toLocaleString("en-IN")} ticket{total === 1 ? "" : "s"}
+          </span>
+        }
+        keep={{ tab: "tickets", ...(sort.sortBy ? { sortBy: sort.sortBy, dir: sort.dir } : {}) }}
+        search={{ name: "q", value: q, placeholder: "Ticket number or subject" }}
+        filterCount={0}
+        clearHref={q ? href({ q: null, page: null }) : null}
+      />
+      <DataTable
+        caption="Tickets you collaborate on"
+        storageKey="collab-tickets"
+        testId="collab-tickets-table"
+        columns={TICKET_COLUMNS.map((column) => ({ ...column, sortable: true }))}
+        serverSort={{
+          sortBy: sort.sortBy,
+          dir: sort.dir,
+          hrefs: Object.fromEntries(COLLAB_TICKET_SORTS.map((column) => [column, href({ sortBy: column, dir: nextDir(sort, column), page: null })])),
+        }}
+        empty={q ? { title: "No ticket matches", body: "Try other words, or clear the search." } : { title: "No tickets here yet", body: COLLAB_EMPTY.tickets }}
+        rows={items.map((ticket) => ({
+          id: ticket.id,
+          cells: {
+            ticket: (
+              <span data-testid="collab-ticket-row">
+                <Link href={`/users/tickets/${ticket.id}?${back}`} className="link font-medium">
+                  {ticket.title}
+                </Link>
+                <span className="block">
+                  <RecordNo no={ticket.ticketNo} />
+                  <span className="text-caption text-ink-muted"> · raised by {ticket.requesterName}</span>
+                </span>
+              </span>
+            ),
+            category: <span className="text-label">{ticket.categoryName}</span>,
+            assignee: <span className="text-label">{ticket.assigneeName ?? "Not assigned yet"}</span>,
+            status: <TicketStatusBadge status={ticket.status} closeKind={ticket.closeKind} />,
+            updated: <span className="text-label">{formatDateTime(ticket.updatedAt, { year: "auto" })}</span>,
+            added: <span className="text-label">{formatDate(ticket.addedAt, { year: "auto" })}</span>,
+          },
+        }))}
+      />
+      {pages > 1 && (
+        <nav aria-label="Pages" className="mt-4 flex items-center justify-between text-label">
+          {page > 1 ? <Link href={href({ page: page - 1 })} className="link">← Previous</Link> : <span />}
+          <span className="text-ink-muted">
+            Page {page} of {pages}
+          </span>
+          {page < pages ? <Link href={href({ page: page + 1 })} className="link">Next →</Link> : <span />}
+        </nav>
+      )}
+    </>
+  );
+}

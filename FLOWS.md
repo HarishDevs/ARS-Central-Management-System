@@ -2980,7 +2980,7 @@ flowchart TD
 ## F-COLLABORATING: One Collaborating screen for every module (v1.91.0, D-433)
 Supersedes F-118 step 1 (Collaborating was a page of My Approvals). Owner (26 Nov 2026): "Separate the collaborators screen from approvals and make it common for all like we have for calendar and analytics. In collaborator screen whatever we are as collaborators needs to be displayed like tasks, approvals, tickets as tabs".
 1. **Sidebar → Collaborating** (top level, just before Calendar; More on a phone; Classic view: its own module; Ctrl K: "Collaborating"). The item shows when the person has a module with collaborators (Approvals, Tasks with its switch on) or collaborates on something (D-434); otherwise it is hidden and `/users/collaborating` is the in-shell "page isn't available" (404).
-2. **Tabs, each with its count:** Approvals (requests: `request_collaborators`, not removed, request not deleted) and Tasks (`task_followers`: the person is not the assignee, the creator or the assigner; task not deleted). Tickets, meetings, information and projects have no collaborator relationship, so no tab (Q-036). A tab shows only for a running module whose record page isn't Hidden for the person, and only if they have the module or collaborate on an item of it.
+2. **Tabs, each with its count:** Approvals (requests: `request_collaborators`, not removed, request not deleted) and Tasks (`task_followers`: the person is not the assignee, the creator or the assigner; task not deleted). Meetings, information and projects have no collaborator relationship, so no tab. (v1.92.0, D-441: Tickets = `ticket_collaborators`, not removed; see F-TICKET-COLLABORATORS.) A tab shows only for a running module whose record page isn't Hidden for the person, and only if they have the module or collaborate on an item of it.
 3. **Which tab opens:** `?tab=tasks` / `?tab=approvals` when the person has it; a forced tab they don't have → the first allowed tab (nothing of that module is read); any other filter (old bookmarks, a request quick tab such as `?tab=open`, saved views) → Approvals; a bare address → the person's default saved view of Approvals if any, else the first tab with items, else the first tab.
 4. **Approvals tab:** the request list as before (filters, quick tabs, saved views, default view).
 5. **Tasks tab:** ListToolbar Search (number or title), sortable columns (Task, Assigned to, Status, Due, Updated, You were added), 25 a page; phone cards. A row opens the task in the side pane on a computer (`?tab=tasks&task=<id>`; × returns to the tab), its own page on a phone or without the Tasks module.
@@ -3006,3 +3006,27 @@ flowchart TD
 ```
 - Server checks: page access lets `/users/requests/<id>`, `/api/requests/<id>/progress|summary.pdf` and `/api/attachments/<id>` through only for an active collaborator on that request (`requestCollaboratorPass`); every Approvals action needs the module (`app/users/actions.ts`, `collab-actions.ts`), except commenting, which also accepts an active collaborator on that request. Tasks: `rightsOn` gives a person without the Tasks module, who is not a party, Commenter rights on a task they were added to directly (`task_followers`, not through a parent, project or reporting line); task actions are COMMENT only and without files; collaborator changes are refused.
 - The Super Admin's switch (Tasks) off hides everything, collaborators included. Nothing is deleted or sent when access changes; giving the module back restores the usual rights.
+
+## F-TICKET-COLLABORATORS: Collaborators on a ticket (v1.92.0, D-438..D-441)
+Owner (26 Nov 2026), answering Q-036: tickets get collaborators, like requests; then the Collaborating screen's Tickets tab (F-COLLABORATING step 2 now includes Tickets) and the Commenter rule (F-COMMENTER) apply.
+```mermaid
+flowchart TD
+  P[Ticket page: Collaborators card] --> W{Who is acting?}
+  W -- raiser / coordinator of the form / assignee / IT --> ADD[Add: people picker, up to 20]
+  W -- collaborator or anyone else --> NO[No add control; a direct call is refused on the server]
+  ADD --> V{Each person}
+  V -- inactive / break-glass --> SK1[Skipped: inactive]
+  V -- raiser / assignee / coordinator --> SK2[Skipped: already sees it]
+  V -- already active --> SK3[No change]
+  V -- new --> T[Transaction: lock the ticket row; insert or clear removed_at; event COLLABORATORS_ADDED; audit TICKET_COLLABORATORS_ADDED; message TICKET_UPDATED 'You were added']
+  T --> C[Collaborator opens the ticket: Collaborating → Tickets, notification, email]
+  C --> M{Has the Ticketing module?}
+  M -- yes --> R1[See ticket, public remarks and files; remark with files; Stop following]
+  M -- no --> R2[Commenter badge: see, download, remark without files]
+  R1 & R2 --> X[Never: assign, start, resolve, confirm, reopen, internal remarks, add collaborators, other tickets, lists, board, dashboards]
+  P --> RM[Remove: raiser / coordinator / assignee / IT any; a collaborator with the module only themselves]
+  RM --> RT[removed_at, removed_by stamped; event COLLABORATOR_REMOVED; audit TICKET_COLLABORATOR_REMOVED] --> GONE[Ticket, files, remarks and the tab closed to them at once]
+```
+- **Updates to collaborators** (active users, once each, never the actor, never someone already told): assigned / reassigned (TICKET_UPDATED), work started and resolved (TICKET_UPDATED), reopened (TICKET_REOPENED), confirmed or auto-closed (TICKET_CLOSED), public remarks (TICKET_COMMENT; internal remarks never).
+- **Collaborating → Tickets:** `?tab=tickets`; count; Search (number or subject); sort on Ticket, Category, Assigned to, Status, Updated, You were added; 25 a page; phone cards; a row opens `/users/tickets/<id>?from=/users/collaborating?tab=tickets…` and **← Back to Collaborating** returns to it. A collaborator-only viewer without `?from=` gets Collaborating as the breadcrumb.
+- Status, dashboards, the board and analytics are unchanged (collaborators never change a ticket's state).

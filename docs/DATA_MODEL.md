@@ -239,6 +239,12 @@ erDiagram
         bigint user_id PK, FK
         datetime removed_at
     }
+    ticket_collaborators {
+        bigint ticket_id PK, FK
+        bigint user_id PK, FK
+        bigint added_by FK
+        datetime removed_at
+    }
     consultations {
         bigint id PK
         bigint request_id FK
@@ -937,6 +943,7 @@ Migration names are shortened to their date-time prefix; the full file is `datab
 | `alert_events` | Reports | Each time an alert fired | 202610121300 |
 | `legal_holds` | Governance | Holds that block deletion or pruning | 202610121400 |
 | `request_collaborators` | Approvals | People following a request (never decide) | 202610130900 |
+| `ticket_collaborators` | Tickets | v1.92.0 (D-438): people following a ticket (never assign, work, confirm or reopen). Same shape as `request_collaborators`: PK (ticket_id, user_id), `added_by`, `added_at`, soft removal `removed_at` / `removed_by` (re-adding clears it); index (user_id, removed_at) for the Collaborating Tickets tab; FKs to tickets and users. Events `COLLABORATORS_ADDED` / `COLLABORATOR_REMOVED` in `ticket_events`; audit `TICKET_COLLABORATORS_ADDED` / `TICKET_COLLABORATOR_REMOVED`. Additive; recovery: leave it in place on a code rollback | 202611261000 |
 | `export_jobs` | Reports | Large exports made in the background (`attempts`: up to 3 tries since v1.57.6) | 202610140900, 202611191200 |
 | `custom_approval_settings` | Approvals | Custom approval form and policy (one row) | 202610150900 |
 | `page_access_rules` | People | Hidden, View or Full per page and scope | 202610150900 |

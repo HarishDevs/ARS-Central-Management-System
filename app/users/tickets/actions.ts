@@ -11,6 +11,8 @@ import { assignTicket, commentOnTicket, confirmTicket, raiseTicket, reopenTicket
 import type { TaskActor } from "@/server/modules/tasks";
 import { LIMITS, overLimit } from "@/server/security/limits";
 import { logError } from "@/lib/logging/logger";
+import { addTicketCollaborators, removeTicketCollaborator } from "@/server/tickets/collaborators";
+import { collaboratorIdsFrom } from "@/server/approvals/collaborators";
 import type { ActionResult } from "@/lib/http/action-result";
 
 // v1.55.0 (owner's ticketing brief): the Ticketing System's actions. The
@@ -142,4 +144,39 @@ export async function commentTicketAction(_previous: ActionResult | null, formDa
     logError("commentTicketAction failed", error);
     return { ok: false, message: "Couldn't add the remark. Please try again." };
   }
+}
+
+// v1.92.0 (D-438): collaborators on a ticket, like a request's. The service
+// decides who may (raiser, coordinators, assignee, IT add and remove; a
+// collaborator with the Ticketing module only removes themselves).
+export async function addTicketCollaboratorsAction(_previous: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  const me = await actor();
+  const ticketId = idOf(text(formData, "ticketId"));
+  if (!me || !ticketId) return NOT_FOUND;
+  try {
+    const result = await addTicketCollaborators(ticketId, collaboratorIdsFrom(formData), me);
+    if (!result.ok) return { ok: false, message: result.message, fieldErrors: { collaborator: result.message } };
+    revalidatePath(`/users/tickets/${ticketId}`);
+    const skipped = result.skipped.length ? ` Not added: ${result.skipped.join(", ")}.` : "";
+    return result.added.length ? { ok: true, message: `Added ${result.added.length} collaborator${result.added.length === 1 ? "" : "s"}; they have been told.${skipped}` } : { ok: false, message: `Nobody new to add.${skipped}` };
+  } catch (error) {
+    logError("addTicketCollaboratorsAction failed", error);
+    return { ok: false, message: "Couldn't add. Please try again." };
+  }
+}
+
+export async function removeTicketCollaboratorAction(_previous: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  const me = await actor();
+  const ticketId = idOf(text(formData, "ticketId"));
+  const userId = idOf(text(formData, "userId"));
+  if (!me || !ticketId || !userId) return NOT_FOUND;
+  try {
+    const result = await removeTicketCollaborator(ticketId, userId, me);
+    if (!result.ok) return { ok: false, message: result.message };
+  } catch (error) {
+    logError("removeTicketCollaboratorAction failed", error);
+    return { ok: false, message: "Couldn't remove. Please try again." };
+  }
+  revalidatePath(`/users/tickets/${ticketId}`);
+  return { ok: true, message: userId === me.id ? "You no longer follow this ticket." : "Removed." };
 }

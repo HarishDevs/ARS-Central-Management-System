@@ -1,5 +1,16 @@
 # Release notes
 
+## v1.92.0 (26 Nov 2026): collaborators on tickets
+The owner's answer of 26 Nov 2026 to Q-036 (D-438..D-441): "tickets get collaborators, like requests". **One migration (a new table, added automatically on start); new data: who follows each ticket (see the privacy policy); no new setting.**
+
+- **Collaborators card on the ticket page:** the person who raised the ticket, its coordinators, its assignee and IT add people to follow it (type a name, choose, **Add**; up to 20) and remove them. The people already on the ticket and inactive people can't be added; you're told why. Every add and removal is in the ticket's timeline and the audit log; a removal is recorded, never erased.
+- **What a collaborator can do:** see the ticket, its public remarks and files (never internal remarks or their files), write remarks, and add files if they use the Ticketing module. Without the module they are a **Commenter** (read, download, write remarks; the ticket shows a *Commenter* badge), exactly as for requests and tasks since v1.91.0. A collaborator never assigns, works on, confirms or reopens a ticket, never adds other collaborators and sees nothing else of Ticketing (no lists, board, dashboards or other tickets); with the module they can **Stop following**. Removing them closes the ticket to them at once.
+- **Collaborating → Tickets:** a third tab, with its count, Search, sorting on every column (ticket, category, assigned to, status, updated, when you were added), cards on a phone; a ticket opens on its page and **← Back to Collaborating** returns to the tab. The tab shows when you have the Ticketing module or follow at least one ticket.
+- **Notifications:** the person added is told (in-app and email; WhatsApp when IT has switched on the ticket-update template), and collaborators then hear how the ticket goes: assigned, work started, resolved, reopened, closed, and public remarks. These reuse the existing ticket messages (being added uses the "ticket updated" message); the owner may supply a dedicated template later (TD-015).
+- Ticket statuses, dashboards, the coordinator board and their counts are unchanged: collaborators don't change a ticket.
+
+**Owner steps:** publish as usual (GoDaddy: pull the tag and restart; no new dependencies, so no `npm install`). The start script runs the migration `202611261000_ticket_collaborators.sql` by itself on start (it adds one new table, `ticket_collaborators`; nothing existing changes): **no manual SQL, and never use GoDaddy Database Manager → Import.** No setting to change. After publishing: open a ticket you raised, add a colleague in **Collaborators**, then (as that colleague) open **Collaborating → Tickets**, open the ticket and add a remark.
+
 ## v1.91.3 (26 Nov 2026): every My Approvals screen laid out like Waiting for me
 The owner's request of 26 Nov 2026 (D-437): "All the approval screen layout should match the Waiting for me, except the bulk approval part." **No migration, no new data collected, no new setting.**
 

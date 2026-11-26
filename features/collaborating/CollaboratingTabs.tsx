@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { CheckSquare, CircleCheck } from "lucide-react";
+import { CheckSquare, CircleCheck, Ticket } from "lucide-react";
 import { LinkPending } from "@/features/ui/PendingLink";
 import { COLLAB_TAB_LABEL, collabTabHref, type CollabTab } from "@/server/collaborating/tabs";
 
-const ICON = { approvals: CheckSquare, tasks: CircleCheck } as const;
+const ICON = { approvals: CheckSquare, tasks: CircleCheck, tickets: Ticket } as const;
 
 // v1.91.0 (D-433): one tab per module the person collaborates in, each with
 // how many items it holds in all. The same look as the request lists'

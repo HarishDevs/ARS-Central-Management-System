@@ -22,6 +22,8 @@ const ALLOWED: { prefix: string; exact?: boolean; label: string; area: ReturnAre
   { prefix: "/admin/insights", label: "Admin → Insights", area: "admin" },
   { prefix: "/admin", exact: true, label: "Admin → Overview", area: "admin" },
   { prefix: "/superadmin", exact: true, label: "Super Admin", area: "superadmin" },
+  // v1.92.0 (D-441): a ticket opened from the Collaborating screen's Tickets tab goes back to that tab.
+  { prefix: "/users/collaborating", exact: true, label: "Collaborating", area: "users" },
 ];
 
 export const RETURN_PARAM = "from";

@@ -13,4 +13,7 @@ export const TICKET_EVENT_TEXT: Record<string, string> = {
   AUTO_CLOSED: "Closed automatically",
   REMARK: "Remark",
   FILES_ADDED: "Files added",
+  // v1.92.0 (D-438): collaborators.
+  COLLABORATORS_ADDED: "Collaborators added",
+  COLLABORATOR_REMOVED: "Collaborator removed",
 };

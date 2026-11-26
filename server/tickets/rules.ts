@@ -57,6 +57,12 @@ export interface TicketViewer {
   isCoordinator: boolean; // a coordinator of the ticket's form
   // v1.57.0 (D-336): sees every ticket (Admin → Ticket categories → who else sees all tickets); read-only.
   seesAll?: boolean;
+  // v1.92.0 (D-438, D-439): an active collaborator on THIS ticket (ticket_collaborators, not removed).
+  isCollaborator?: boolean;
+  // v1.92.0 (D-439, the Commenter rule D-434): a collaborator whose only link to
+  // the ticket is that, and who doesn't have the Ticketing module: they read it,
+  // download its (non-internal) files and comment; nothing else.
+  commenter?: boolean;
 }
 export interface TicketFacts {
   status: TicketStatus;
@@ -72,7 +78,32 @@ export const roleOf = (ticket: TicketFacts, viewer: TicketViewer) => ({
 
 export function canSeeTicket(ticket: TicketFacts, viewer: TicketViewer): boolean {
   const role = roleOf(ticket, viewer);
-  return role.requester || role.coordinator || role.assignee || Boolean(viewer.seesAll);
+  return role.requester || role.coordinator || role.assignee || Boolean(viewer.seesAll) || Boolean(viewer.isCollaborator);
+}
+
+// v1.92.0 (D-439): is the person on the ticket as a collaborator only (no other part in it)?
+export function collaboratorOnly(ticket: TicketFacts, viewer: TicketViewer): boolean {
+  const role = roleOf(ticket, viewer);
+  return Boolean(viewer.isCollaborator) && !role.requester && !role.coordinator && !role.assignee && !viewer.seesAll;
+}
+
+// v1.92.0 (D-438, mirroring request collaborators D-127): the ticket's raiser,
+// its form's coordinators (IT Admin and Super Admin coordinate every ticket)
+// and its assignee add and remove collaborators. A collaborator never adds
+// anyone (as on a request); one with the Ticketing module may leave (remove
+// themselves); a Commenter may not (D-434).
+export function mayManageTicketCollaborators(ticket: TicketFacts, viewer: TicketViewer): boolean {
+  const role = roleOf(ticket, viewer);
+  return role.requester || role.coordinator || role.assignee;
+}
+export function mayLeaveTicket(ticket: TicketFacts, viewer: TicketViewer): boolean {
+  return Boolean(viewer.isCollaborator) && !viewer.commenter;
+}
+
+// v1.92.0 (D-439): may the person add files (with a remark)? Everyone who may
+// comment, except a Commenter (D-434: no files without the module).
+export function mayAddTicketFiles(ticket: TicketFacts, viewer: TicketViewer): boolean {
+  return allowedTicketActions(ticket, viewer).has("COMMENT") && !(viewer.commenter && collaboratorOnly(ticket, viewer));
 }
 
 // Coordinator remarks are internal: coordinators and the assignee see them, the requester doesn't.
@@ -95,7 +126,8 @@ export function allowedTicketActions(ticket: TicketFacts, viewer: TicketViewer):
     actions.add("CONFIRM");
     actions.add("REOPEN");
   }
-  if (role.requester || role.coordinator || role.assignee || viewer.seesAll) actions.add("COMMENT");
+  // v1.92.0 (D-439): a collaborator comments too (with or without the module); never anything else above.
+  if (role.requester || role.coordinator || role.assignee || viewer.seesAll || viewer.isCollaborator) actions.add("COMMENT");
   return actions;
 }
 

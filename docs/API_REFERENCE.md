@@ -415,6 +415,8 @@ Signed in (users area, Tasks, Projects module, **Projects E** switch). Anyone wh
 
 **`/api/files/{id}` (v1.71.0):** a file on a project message (`record_files.entity_type` PROJECT_MESSAGE) opens for anyone who sees the message's project while the message (and its conversation) is not deleted; otherwise `404` (audited `RECORD_FILE_ACCESS_DENIED`).
 
+**`/api/files/{id}` (v1.92.0, D-439):** a ticket file also opens for an active collaborator on that ticket (`ticket_collaborators`, not removed), with or without the Ticketing module (a Commenter downloads); internal-remark files never; a removed collaborator or another ticket's file: `404` (audited). **Server actions** (no HTTP API): `addTicketCollaboratorsAction` / `removeTicketCollaboratorAction` in `app/users/tickets/actions.ts` (form fields `ticketId`, `collaborator` × n / `userId`); the service decides who may (`server/tickets/collaborators.ts`).
+
 ## GET /api/work/projects/{id}/export?format=csv|xlsx|json (v1.70.0, D-383)
 
 Signed in (users area, Tasks, Projects module, **Projects E** switch). `csv` and `xlsx`: anyone who sees the project; the List's columns (Task ID, Name, Section, Assignee, Assignee email, Due date, Start date, Priority, Status, Completed on, Parent task, Tags, Description) and every custom field as shown, for tasks and subtasks the person may see (CSV with a BOM; cells that start with = + - @ are prefixed with ' so spreadsheets don't run them). `json`: owners and editors; the full structure in the template shape (`version: 2`, see DATA_MODEL). `404` not found, `403` not allowed, `429` more than 10 downloads a minute. Audited (`PROJECT_EXPORTED`).

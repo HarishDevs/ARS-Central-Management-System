@@ -209,7 +209,8 @@ export function ConfirmTicketForms({ ticketId }: { ticketId: number }) {
 }
 
 // Remarks (and files) on the ticket; coordinators and the assignee may keep one internal.
-export function TicketRemarkForm({ ticketId, canInternal }: { ticketId: number; canInternal: boolean }) {
+// v1.92.0 (D-439): canAttach false for a Commenter (a collaborator without the Ticketing module).
+export function TicketRemarkForm({ ticketId, canInternal, canAttach = true }: { ticketId: number; canInternal: boolean; canAttach?: boolean }) {
   const { result, pending, onSubmit } = useActionForm(commentTicketAction);
   const [editorKey, setEditorKey] = useState(0);
   // The box empties once the remark is saved.
@@ -226,7 +227,7 @@ export function TicketRemarkForm({ ticketId, canInternal }: { ticketId: number; 
       <input type="hidden" name="ticketId" value={ticketId} />
       <RichEditor key={editorKey} id="ticket-remark" name="body" label="Remark" minHeight={70} maxLength={4000} testId="ticket-remark-editor" />
       <FieldError result={result} name="body" />
-      <FileListInput id="ticket-remark-files" name="attachments" accept={ACCEPT} maxFiles={10} ariaLabel="Attach files to the remark" />
+      {canAttach && <FileListInput id="ticket-remark-files" name="attachments" accept={ACCEPT} maxFiles={10} ariaLabel="Attach files to the remark" />}
       <div className="flex flex-wrap items-center gap-3">
         {canInternal && (
           <label className="flex items-center gap-2 text-label">

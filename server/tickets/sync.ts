@@ -6,6 +6,7 @@ import { addWorkingDays, indiaDate } from "@/server/workflows/calendar";
 import { ticketMessages } from "@/server/modules/messages";
 import { CONFIRM_STAGES, statusForTask } from "@/server/tickets/rules";
 import type { NotifyInput } from "@/server/notifications/notify";
+import { forCollaborators } from "@/server/tickets/collaborator-messages";
 
 // v1.55.0 (owner's brief §5-6): the ticket follows its task, in the task's own
 // transaction. Started → In progress; completed (with completion remarks) →
@@ -34,10 +35,13 @@ export async function applyTicketWork(ticketId: number, taskStatus: string, acto
   if (!(await updateTicket(ticket.id, ticket.rowVersion, changes, db))) return null;
   await appendTicketEvent(ticket.id, { actorId: actor.id, action: next === "IN_PROGRESS" ? "WORK_STARTED" : "WORK_COMPLETED", from: ticket.status, to: next, detail: next === "AWAITING_CONFIRMATION" ? { remarks: remarks.trim().slice(0, 4000), confirmBy } : null }, db);
   const info = { id: ticket.id, ticketNo: ticket.ticketNo, title: ticket.title };
-  if (next === "IN_PROGRESS") return [ticketMessages.updated(info, ticket.requesterId, `${actor.name} started work on it`)];
+  // v1.92.0 (D-440): the ticket's collaborators hear both steps too.
+  if (next === "IN_PROGRESS") return [ticketMessages.updated(info, ticket.requesterId, `${actor.name} started work on it`), ...(await forCollaborators(ticket.id, [ticket.requesterId], actor.id, (id) => ticketMessages.updated(info, id, `${actor.name} started work on it`), db))];
   const coordinators = await coordinatorsOf(ticket.typeId, db);
+  const done = `${actor.name} completed the work; waiting for the requester to confirm`;
   return [
     ticketMessages.confirmationRequested(info, ticket.requesterId, actor.name, confirmBy!),
-    ...coordinators.filter((person) => person.id !== actor.id).map((person) => ticketMessages.updated(info, person.id, `${actor.name} completed the work; waiting for the requester to confirm`)),
+    ...coordinators.filter((person) => person.id !== actor.id).map((person) => ticketMessages.updated(info, person.id, done)),
+    ...(await forCollaborators(ticket.id, [ticket.requesterId, ...coordinators.map((person) => person.id)], actor.id, (id) => ticketMessages.updated(info, id, done), db)),
   ];
 }

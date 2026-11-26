@@ -581,3 +581,34 @@ export async function ticketIdForTask(taskId: number, db: Queryable = getDbPool(
   const [rows] = await db.query<Row[]>("SELECT ticket_id FROM tasks WHERE id = ?", [taskId]);
   return rows[0]?.ticket_id ? num(rows[0].ticket_id) : null;
 }
+
+// ---- collaborators (v1.92.0, D-438) ------------------------------------------------------------
+// People added to follow one ticket (the same shape as request_collaborators).
+// Read on every page view and action, so a removal takes effect at once.
+export async function isTicketCollaborator(ticketId: number, userId: number, db: Queryable = getDbPool()): Promise<boolean> {
+  const [rows] = await db.query<Row[]>("SELECT 1 FROM ticket_collaborators WHERE ticket_id = ? AND user_id = ? AND removed_at IS NULL LIMIT 1", [ticketId, userId]);
+  return rows.length > 0;
+}
+
+export interface TicketCollaborator {
+  userId: number;
+  name: string;
+  loginId: string;
+  addedByName: string;
+  addedAt: Date;
+}
+export async function listTicketCollaborators(ticketId: number, db: Queryable = getDbPool()): Promise<TicketCollaborator[]> {
+  const [rows] = await db.query<Row[]>(
+    `SELECT c.user_id, u.name, u.login_id, a.name AS added_by_name, c.added_at
+       FROM ticket_collaborators c JOIN users u ON u.id = c.user_id JOIN users a ON a.id = c.added_by
+      WHERE c.ticket_id = ? AND c.removed_at IS NULL ORDER BY u.name`,
+    [ticketId],
+  );
+  return rows.map((row) => ({ userId: num(row.user_id), name: String(row.name), loginId: String(row.login_id), addedByName: String(row.added_by_name), addedAt: new Date(row.added_at as string) }));
+}
+
+// The active collaborators who are still active users (who hear about the ticket).
+export async function activeTicketCollaboratorIds(ticketId: number, db: Queryable = getDbPool()): Promise<number[]> {
+  const [rows] = await db.query<Row[]>("SELECT c.user_id FROM ticket_collaborators c JOIN users u ON u.id = c.user_id WHERE c.ticket_id = ? AND c.removed_at IS NULL AND u.active = TRUE", [ticketId]);
+  return rows.map((row) => num(row.user_id));
+}

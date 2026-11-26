@@ -168,7 +168,8 @@ describe("the Tasks tab's list", () => {
 
 describe("the tabs (D-433, D-434)", () => {
   it("with both modules: both tabs and their counts", async () => {
-    expect(await collabAccess(person(withModule))).toEqual({ tabs: ["approvals", "tasks"], counts: { approvals: 1, tasks: 1 } });
+    // v1.92.0 (D-441): with the Ticketing module the Tickets tab shows too (no ticket here: 0).
+    expect(await collabAccess(person(withModule))).toEqual({ tabs: ["approvals", "tasks", "tickets"], counts: { approvals: 1, tasks: 1, tickets: 0 } });
   });
   it("without the modules but collaborating: a tab per module with items", async () => {
     expect(await collabAccess(person(commenter, []))).toEqual({ tabs: ["approvals", "tasks"], counts: { approvals: 1, tasks: 1 } });
@@ -181,7 +182,7 @@ describe("the tabs (D-433, D-434)", () => {
   it("Tasks switched off for everyone hides the Tasks tab, even for collaborators", async () => {
     await getDbPool().query("INSERT INTO system_settings (setting_key, setting_group, value_type, encrypted, value) VALUES ('features.tasks', 'FEATURES', 'STRING', FALSE, 'OFF') ON DUPLICATE KEY UPDATE value = 'OFF'");
     try {
-      expect((await collabAccess(person(withModule))).tabs).toEqual(["approvals"]);
+      expect((await collabAccess(person(withModule))).tabs).toEqual(["approvals", "tickets"]); // v1.92.0: Tickets has no switch
       expect((await collabAccess(person(commenter, []))).tabs).toEqual(["approvals"]);
     } finally {
       await getDbPool().query("DELETE FROM system_settings WHERE setting_key = 'features.tasks'");
