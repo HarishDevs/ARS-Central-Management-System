@@ -80,14 +80,15 @@ test("QA-AUTH-01 sign out ends the session on the server; Back can't show protec
 test("QA-AUTH-02 a deactivated person is locked out at once", async ({ page, context }) => {
   await as(context, "E2E_HOD");
   await page.goto("/users");
-  await expect(page.getByText(/Welcome back/).first()).toBeVisible();
+  // v1.92.1 (TD-016): the home greets by the time of day or "Welcome back" (D-396 / D-397), as guard.spec checks.
+  await expect(page.getByText(/(Welcome back|Good (morning|afternoon|evening)), Harini/).first()).toBeVisible();
   await sql("UPDATE users SET active = FALSE WHERE login_id = 'E2E_HOD'");
   try {
     const response = await page.goto("/users");
     note("QA-AUTH-02", { status: response?.status(), url: new URL(page.url()).pathname });
     expect(["/login", "/signed-out"].includes(new URL(page.url()).pathname) || response?.status() === 404).toBe(true);
     if (new URL(page.url()).pathname === "/signed-out") await expect(page.getByRole("heading", { name: "Your account isn't active" })).toBeVisible();
-    await expect(page.getByText(/Welcome back, Harini/)).toHaveCount(0);
+    await expect(page.getByText(/(Welcome back|Good (morning|afternoon|evening)), Harini/)).toHaveCount(0);
   } finally {
     await sql("UPDATE users SET active = TRUE WHERE login_id = 'E2E_HOD'");
   }
@@ -222,7 +223,8 @@ test("QA-BL-02 hold → resume → approve by both levels → Approved; audit an
   await expect(page.getByText(/Approved by Manoj Manager/).first()).toBeVisible();
   await as(context, "E2E_HOD");
   await decide(page, path, "Approve");
-  await expect(page.getByText("Fully approved", { exact: true })).toBeVisible();
+  // v1.92.1 (TD-016): the status shows in the levels banner and again at the foot of the page; check the banner.
+  await expect(page.getByTestId("levels-banner").getByText("Fully approved", { exact: true })).toBeVisible();
   const status = await count("SELECT status = 'APPROVED' AS n FROM approval_requests WHERE id = ?", [id]);
   const events = await count("SELECT COUNT(*) AS n FROM approval_events WHERE request_id = ?", [id]);
   const outbox = await count("SELECT COUNT(*) AS n FROM notification_outbox WHERE request_id = ?", [id]);
@@ -267,7 +269,8 @@ test("QA-BL-05 the Super Admin reopens an approved request; it runs through the 
   await expect(page.getByText(/Approved by Manoj Manager/).first()).toBeVisible();
   await as(context, "E2E_HOD");
   await decide(page, path, "Approve");
-  await expect(page.getByText("Fully approved", { exact: true })).toBeVisible();
+  // v1.92.1 (TD-016): the status shows in the levels banner and again at the foot of the page; check the banner.
+  await expect(page.getByTestId("levels-banner").getByText("Fully approved", { exact: true })).toBeVisible();
   await as(context, "E2E_SUPER");
   await page.goto(path);
   await page.getByLabel("Reason for reopening").fill("Amount corrected by finance");
@@ -425,7 +428,7 @@ test("QA-PERF-02 20 people at once (server only, no browsers): every page loads,
   const clients = await Promise.all(
     Array.from({ length: 20 }, async (_, i) => {
       const cookie = await sessionCookie(logins[i % logins.length]!);
-      return playwright.request.newContext({ baseURL: `http://localhost:3100`, extraHTTPHeaders: { cookie: `${cookie.name}=${cookie.value}` } });
+      return playwright.request.newContext({ baseURL: test.info().project.use.baseURL /* v1.92.1: the configured server (E2E_PORT), not a fixed 3100 */, extraHTTPHeaders: { cookie: `${cookie.name}=${cookie.value}` } });
     }),
   );
   const t0 = Date.now();

@@ -58,7 +58,10 @@ test("QA-API-02 IT and Super Admin APIs refuse a plain employee", async ({ playw
 test("QA-API-03 a state-changing API call from another site is refused (CSRF)", async ({ playwright }) => {
   const admin = await playwright.request.newContext({ baseURL: test.info().project.use.baseURL, storageState: await asState("E2E_ADMIN") });
   const leaks: string[] = [];
-  for (const route of routes.filter((r) => !/^\/api\/(webhooks|jobs|cron|ingest)/.test(r.url))) {
+  // v1.92.1 (TD-016): /api/backup-transfer/receive is server-to-server (D-409): another server calls it
+  // with the one-time pairing code (x-pairing-code), never with a session cookie, so it is not a CSRF
+  // target, like webhooks; its own test (no or a wrong code → refused) is in v1810-backup-centre / integration.
+  for (const route of routes.filter((r) => !/^\/api\/(webhooks|jobs|cron|ingest|backup-transfer\/receive)/.test(r.url))) {
     for (const method of route.methods.filter((m) => m !== "GET")) {
       const response = await admin.fetch(route.url, { method, data: {}, headers: { "sec-fetch-site": "cross-site", origin: "https://evil.example" }, maxRedirects: 0, failOnStatusCode: false });
       if (response.status() !== 403) leaks.push(`${method} ${route.url} → ${response.status()}`);
