@@ -862,6 +862,9 @@
 
 ## 5. Work log (newest first)
 
+### 26 Nov 2026 (v1.91.0 released)
+- Release commit **dce3879a0a17bf86290f08b05ff0ecf38ebbb78f** (`dce3879a`), tagged **v1.91.0** (tag = that commit). Gates checked before pushing, chained: tag equals HEAD, start script intact, origin/main (1ca2761f) an ancestor (fast-forward). **Pushed and confirmed** with `git ls-remote`: `refs/heads/main` and `refs/tags/v1.91.0` both at dce3879a. This entry is the follow-up docs commit (governance §10.3); the tag stays on the release commit. No migration; owner steps in the release notes. Clean-up: test databases `ars_approvals_test_v191`, `_v191i`, `_v191ref` dropped, reference worktree `ref191` and the node_modules junction removed; worktree `v191` left for the owner.
+
 ### 26 Nov 2026 (v1.91.0: one common Collaborating screen D-433; Commenter access D-434)
 - Worktree `.claude/worktrees/v191` (branch `v191` from origin/main 1ca2761f = v1.90.0 + follow-up); test DBs `ars_approvals_test_v191` (e2e, visual), `ars_approvals_test_v191i` (integration), ports 3295 / 4196; reference worktree `ref191` (origin/main) with `ars_approvals_test_v191ref`, ports 3296 / 4197, for the pre-existing checks. Owner: "go ahead with my recommendations". **No migration, no new dependency, no new setting.**
 - **Owner's requests (26 Nov 2026):** (1) "Separate the collaborators screen from approvals and make it common for all like we have for calendar and analytics …" → D-433. (2) "what if a person doesn't have access to the module" → tabs only with access, forced tab falls back, switch off = no access, hide the item when no tab. (3) "if I am not having any access for the approvals module, if I am added as a collaborator I should be able to open and access that approval" and "in this case I am a commenter. If I have the module access then I have my same privileges." → D-434 (supersedes the "not shown without the module" part of (2)).
