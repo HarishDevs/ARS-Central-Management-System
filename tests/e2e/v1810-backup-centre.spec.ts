@@ -16,6 +16,12 @@ async function as(context: BrowserContext, loginId: string) {
 }
 async function axe(page: Page) {
   await page.waitForLoadState("networkidle");
+  // v1.92.1 (TD-016, D-444): axe's target-size counts a button as "partially obscured" when the
+  // page is scrolled so that it sits half under the sticky top bar (CI: Restore… scrolls the
+  // restore panel up, and with two packages the row above it lands under the bar's profile
+  // button). That is scroll position, not a defect: audit from the top of the page, where
+  // nothing is under the bar; every rule, target-size's size and spacing checks included, still runs.
+  await page.evaluate(() => window.scrollTo(0, 0));
   const result = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
   return result.violations.filter((violation) => violation.impact === "serious" || violation.impact === "critical").map((violation) => `${violation.id}: ${violation.nodes.slice(0, 3).map((node) => `${node.target.join(" ")} [${(node.failureSummary ?? "").replace(/\s+/g, " ").trim()}${node.any.concat(node.all, node.none).flatMap((check) => check.relatedNodes ?? []).slice(0, 3).map((related) => ` ~ ${related.target.join(" ")}`).join("")}]`).join(" | ")}`); // v1.92.1 (TD-016): why, and what overlaps, so a CI-only failure can be read from the log
 }
