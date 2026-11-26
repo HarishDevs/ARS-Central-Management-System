@@ -22,7 +22,7 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 - [x] V1913-2 (26 Nov 2026) New request and Approval templates: title bar removed, their one action kept; tour targets moved off the removed headers
 - [x] V1913-3 (26 Nov 2026) Tests: e2e v1912-list-headers covers all six screens (Compact, Classic, 390; Chromium + Firefox); unit ListFooter; affected specs re-run and assertions on removed headers updated (v180, v1890-ui-shell); visual baselines of the changed screens only
 - [x] V1913-4 (26 Nov 2026) Docs: release notes, D-437, work log, build status, User Guide; general pages checked
-- [ ] V1913-5 release: version 1.91.3, tag, push; hash recorded in the follow-up docs commit
+- [x] V1913-5 (26 Nov 2026) release: version 1.91.3, commit 5f459b6e tagged v1.91.3, fast-forward push to main confirmed (ls-remote); hash recorded in this follow-up docs commit
 - **Now (26 Nov 2026): v1.91.2** (no visible header on Sent back for changes and Approved by me, D-436). Branch `v1912` → main, tag v1.91.2; owner publishes (no migration). **Next:** owner answers Q-036 (collaborators on tickets); D-435's other layout points on these two pages if the owner wants; then the work queue as before (R2 → R3 → motion review → BK-1).
 - [x] V1912-1 (26 Nov 2026) Sent back for changes and Approved by me: PageHeader replaced by the hidden h1 (the Waiting for me mechanism, ListPage `header`), browser titles unchanged, nothing else on the pages changed (D-436)
 - [x] V1912-2 (26 Nov 2026) Tests: new e2e v1912-list-headers (Compact, Classic, phone 390; Chromium + Firefox); v180 Approved by me h1 assertion now checks the hidden h1; no visual baselines exist for these pages
