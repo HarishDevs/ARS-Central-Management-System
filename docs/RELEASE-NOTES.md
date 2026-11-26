@@ -1,5 +1,13 @@
 # Release notes
 
+## v1.91.2 (26 Nov 2026): no title bar on Sent back for changes and Approved by me
+The owner's request of 26 Nov 2026 (D-436): "Delete the header for Sent back for changes and Approved by me as well." **Two pages only; no migration, no new data collected, no new setting.**
+
+- **No title bar** on **Sent back for changes** and **Approved by me**, as on Waiting for me since v1.91.1: the heading, its ⓘ and the line under it are gone. The tab (Classic view) or the sidebar item and breadcrumb (Compact view) say where you are; the browser tab's title is the same as before, and screen readers still hear the page's title.
+- Nothing else changes on these pages: the toolbar, the table, its rows, the count and the pages work as before.
+
+**Owner steps:** publish as usual (GoDaddy: pull the tag and restart; no new dependencies, so no `npm install`). No migration runs (none added); no setting to change. After publishing: open **My Approvals → Sent back for changes** and **Approved by me** (Classic and Compact) and check that the title bar is gone and the list starts with the toolbar.
+
 ## v1.91.1 (26 Nov 2026): a leaner Waiting for me
 The owner's request of 26 Nov 2026 (D-435): "In waiting for me I want the 1st line to be available and the 2nd line is not needed and remove the header, bring the pagination below the table and remove the link and text." **Waiting for me only; no migration, no new data collected, no new setting.**
 

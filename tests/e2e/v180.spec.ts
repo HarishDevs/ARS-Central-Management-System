@@ -42,7 +42,8 @@ test("My approved requests and Approved by me are in the sidebar, with their fil
 
   await as(context, "E2E_MGR");
   await page.goto("/users/approved-by-me");
-  await expect(page.getByRole("heading", { level: 1, name: "Approved by me" })).toBeVisible();
+  // v1.91.2 (D-436, owner): no visible title bar; the page's h1 stays, for screen readers only.
+  await expect(page.getByRole("heading", { level: 1, name: "Approved by me" })).toHaveClass(/sr-only/);
   await expect(page.getByTestId("request-table").getByRole("row").nth(1)).toBeVisible();
   await page.getByTestId("list-toolbar").getByTestId("filter-menu").locator("summary").click();
   for (const label of ["Step I approved", "Approved for", "Raised by"]) await expect(page.getByLabel(label, { exact: true })).toBeVisible();

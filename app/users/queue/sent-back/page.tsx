@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireArea } from "@/server/authorization/guards";
-import { PageHeader, EmptyState } from "@/features/shell/PageHeader";
+import { EmptyState } from "@/features/shell/PageHeader";
 import { NoResults } from "@/features/ui/Display";
 import { ListToolbar } from "@/features/ui/ListToolbar";
 import { PendingLink } from "@/features/ui/PendingLink";
@@ -93,12 +93,10 @@ export default async function SentBackPage({ searchParams }: { searchParams: Pro
   };
   return (
     <ListPage
-      header={
-          <PageHeader
-            title="Sent back for changes"
-            description="Requests you sent back, now with the requester. Open one to review it; when they resubmit, it is back in Waiting for me for your approval."
-          />
-      }
+      // v1.91.2 (D-436, owner: "Delete the header for Sent back for changes"): as Waiting for me
+      // (D-435), no visible title bar; the Classic tab / Compact sidebar and breadcrumb name the
+      // page, and one h1 stays for screen readers.
+      header={<h1 className="sr-only">Sent back for changes</h1>}
     >
       <ListToolbar
         id="sent-back-filters"
