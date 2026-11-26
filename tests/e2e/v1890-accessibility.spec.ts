@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type BrowserContext, type Page } from "@playwright/test";
-import { db, motionSettled, phoneLayoutCookie, sessionCookie, typeCreateDue, userIdByLogin } from "./db";
+import { db, fillDue, motionSettled, phoneLayoutCookie, sessionCookie, userIdByLogin } from "./db";
 
 // v1.89.0 stage 3d (UI unification batch 4, accessibility; D-424):
 //   A11Y-04: status text on the open (row-active) Task Summary row passes AA, light and dark.
@@ -109,7 +109,9 @@ test("keyboard only: + Create → Task; an empty Create says what is missing (FO
   await expect(page.locator("#create-title")).toBeFocused();
   await page.keyboard.type(title);
   await expect(page.locator("#create-title")).not.toHaveAttribute("aria-invalid", "true");
-  await typeCreateDue(dialog, new Date(Date.now() + 330 * 60_000 + 2 * 86_400_000).toISOString().slice(0, 10));
+  // v1.92.1 (KF-20): today + 2 was typed as is, so on a Friday (India) it was the Sunday weekly off and
+  // the window stayed open asking "is a holiday"; fillDue moves a Sunday to the Monday, as every other spec does.
+  await fillDue(dialog, 2);
   await page.locator("#create-title").focus();
   await page.keyboard.press("Control+Enter");
   await expect(dialog).toHaveCount(0);
