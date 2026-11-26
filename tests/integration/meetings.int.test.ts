@@ -4,7 +4,7 @@ import { getDbPool } from "@/lib/db/client";
 import * as meetings from "@/server/meetings/service";
 import * as repo from "@/lib/db/repositories/meetings.repository";
 import { findTask } from "@/lib/db/repositories/tasks.repository";
-import { createDepartment, createUser } from "./helpers";
+import { createDepartment, createUser, workingDayFrom } from "./helpers";
 
 // v1.51.0 (D-300, D-301): Meeting Management end to end against MySQL:
 // schedule → points (Coordinator raises, Owner approves) → start → MOM →
@@ -22,8 +22,14 @@ let dept: number;
 let typeId: number;
 let meetingId: number;
 
-const IST = 330 * 60_000;
-const local = (offsetMinutes: number) => new Date(Date.now() + IST + offsetMinutes * 60_000).toISOString().slice(0, 16);
+// v1.92.1 (KF-19): the meeting was "now + 24 h" to "now + 25 h"; after about 22:35 IST the MOM's
+// extended end (scheduled end + 25 min, entered as HH:MM on the meeting's day) fell after India
+// midnight and read as earlier than the start, so SAVE_MOM was refused and 5 tests failed (main CI
+// run 45865247719 at 22:40 IST). The meeting is now on the next working day, 10:00-11:00 IST, so
+// every time the test enters stays inside that day whenever the suite runs.
+let meetingDay = "";
+let actionDue = "";
+const at = (hhmm: string) => `${meetingDay}T${hhmm}`;
 const base = (over: Partial<meetings.ScheduleMeetingInput> = {}): meetings.ScheduleMeetingInput => ({
   meetingId: null,
   rowVersion: null,
@@ -42,8 +48,8 @@ const base = (over: Partial<meetings.ScheduleMeetingInput> = {}): meetings.Sched
   priority: "IMPORTANT",
   confidentiality: "GENERAL",
   guests: "",
-  start: local(60 * 24),
-  end: local(60 * 25),
+  start: at("10:00"),
+  end: at("11:00"),
   agendaDue: "",
   momDue: "",
   pointsPolicy: "BLOCK",
@@ -58,6 +64,8 @@ async function notices(userId: number, eventType: string): Promise<number> {
 }
 
 beforeAll(async () => {
+  meetingDay = await workingDayFrom(1);
+  actionDue = await workingDayFrom(6);
   owner = await createUser({ name: `Owner ${tag}` });
   coordinator = await createUser({ name: `Coordinator ${tag}` });
   member = await createUser({ name: `Member ${tag}` });
@@ -89,7 +97,7 @@ describe("Meeting Management (D-300)", () => {
   });
 
   it("refuses a meeting without an Owner, or ending before it starts", async () => {
-    const bad = await meetings.scheduleMeeting(base({ ownerId: null, end: local(60 * 23) }), who(coordinator));
+    const bad = await meetings.scheduleMeeting(base({ ownerId: null, end: at("09:00") }), who(coordinator));
     expect(bad.ok).toBe(false);
     expect(!bad.ok && Object.keys(bad.fieldErrors ?? {}).sort()).toEqual(["end", "ownerId"]);
   });
@@ -140,7 +148,7 @@ describe("Meeting Management (D-300)", () => {
       discussions: [{ pointId: points[0]!.id, text: "Output up 4%." }],
       decisions: ["Second shift from Monday"],
       actions: [
-        { title: "Hire two operators", description: "", ownerId: member, priority: "HIGH", dueOn: "2026-12-01" },
+        { title: "Hire two operators", description: "", ownerId: member, priority: "HIGH", dueOn: actionDue },
         { title: "Fix conveyor", description: "Line 2", ownerId: null, priority: "NORMAL", dueOn: "" },
       ],
       openPoints: [{ text: "Power tariff review", ownerId: owner, reviewOn: "" }],
