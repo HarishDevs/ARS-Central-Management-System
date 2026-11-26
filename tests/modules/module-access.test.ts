@@ -76,7 +76,9 @@ describe("every page of the user space has a module decision", () => {
   // Shared by every module on purpose; anything else must name its module.
   // D-210: users.menu (Classic view menus) lists only pages the person may already open.
   // v1.55.1 (D-329, owner: "ticketing as a separate module"): the ticket pages name the TICKET module.
-  const SHARED = ["users.overview", "users.menu", "users.calendar", "users.analytics", "users.help", "users.profile", "users.notifications", "users.delegation"];
+  // v1.91.0 (D-433, owner: "make it common for all like we have for calendar and analytics"):
+  // Collaborating is shared; its tabs follow the person's modules and collaborations.
+  const SHARED = ["users.overview", "users.menu", "users.calendar", "users.analytics", "users.collaborating", "users.help", "users.profile", "users.notifications", "users.delegation"];
   it("approval, task and information pages name their module; nothing is left undecided", () => {
     for (const page of PAGES.filter((item) => item.area === "users")) {
       if (SHARED.includes(page.key)) expect(page.module, page.key).toBeUndefined();

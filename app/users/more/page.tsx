@@ -30,6 +30,7 @@ import {
   Smartphone,
   User,
   UserCog,
+  UsersRound,
   CalendarClock,
 } from "lucide-react";
 import { requireArea } from "@/server/authorization/guards";
@@ -82,6 +83,8 @@ export default async function MorePage() {
         has("/users/work/projects") && { href: "/users/work/projects", label: "Projects", icon: FolderKanban },
         has("/users/work/portfolios") && { href: "/users/work/portfolios", label: "Portfolios", icon: Briefcase },
         has("/users/work/periodic") && { href: "/users/work/periodic", label: "Periodic tasks", icon: RefreshCw },
+        // v1.91.0 (D-433): Collaborating is common to every module, beside Calendar.
+        has("/users/collaborating") && { href: "/users/collaborating", label: "Collaborating", icon: UsersRound, hint: "Requests and tasks you were added to" },
         has("/users/calendar") && { href: "/users/calendar", label: "Calendar", icon: CalendarDays },
       ]),
     },

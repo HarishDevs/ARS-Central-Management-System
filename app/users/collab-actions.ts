@@ -1,5 +1,8 @@
 "use server";
 
+import { hasModule } from "@/server/modules/modules";
+import type { ModuleCode } from "@/types/auth";
+import { isActiveRequestCollaborator } from "@/lib/db/repositories/collaborating.repository";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireApiArea } from "@/server/authorization/guards";
@@ -32,10 +35,33 @@ async function actor(): Promise<Actor | null> {
   }
 }
 
+// v1.91.0 (D-434, owner: "in this case I am a commenter. If I have the module
+// access then I have my same privileges."): the request actions below need the
+// Approvals module, wherever they are posted from. Without it a person only
+// comments, and only on a request they are an active collaborator on.
+const approvalsUser = (user: { roles: readonly string[]; modules?: readonly ModuleCode[] }) => !user.modules || hasModule({ roles: user.roles, modules: user.modules }, "APPROVAL");
+async function actorForApprovals(): Promise<Actor | null> {
+  try {
+    const session = await requireApiArea("users");
+    return approvalsUser(session.user) ? { id: session.user.id, roles: session.user.roles } : null;
+  } catch {
+    return null;
+  }
+}
+async function actorForComment(requestId: number | null): Promise<Actor | null> {
+  try {
+    const session = await requireApiArea("users");
+    if (approvalsUser(session.user)) return { id: session.user.id, roles: session.user.roles };
+    return requestId !== null && (await isActiveRequestCollaborator(requestId, session.user.id)) ? { id: session.user.id, roles: session.user.roles } : null;
+  } catch {
+    return null;
+  }
+}
+
 const num = (value: FormDataEntryValue | null) => (typeof value === "string" && /^\d+$/.test(value) ? Number(value) : null);
 
 export async function submitCustomAction(_previous: ActionResult | null, formData: FormData): Promise<ActionResult> {
-  const me = await actor();
+  const me = await actorForApprovals();
   if (!me) return NOT_FOUND;
   let builder;
   try {
@@ -112,8 +138,8 @@ export async function submitCustomAction(_previous: ActionResult | null, formDat
 }
 
 export async function commentAction(_previous: ActionResult | null, formData: FormData): Promise<ActionResult> {
-  const me = await actor();
   const requestId = num(formData.get("requestId"));
+  const me = await actorForComment(requestId);
   if (!me || requestId === null) return NOT_FOUND;
   let notVisible: string[] = [];
   try {
@@ -248,7 +274,7 @@ export async function markUnreadAction(_previous: ActionResult | null, formData:
 
 // ---- v1.6.0 consultation and links (EN-06, EN-08) ------------------------------
 export async function consultAction(_previous: ActionResult | null, formData: FormData): Promise<ActionResult> {
-  const me = await actor();
+  const me = await actorForApprovals();
   const requestId = num(formData.get("requestId"));
   const consulteeId = num(formData.get("consulteeId"));
   if (!me || requestId === null) return NOT_FOUND;
@@ -265,7 +291,7 @@ export async function consultAction(_previous: ActionResult | null, formData: Fo
 }
 
 export async function answerConsultAction(_previous: ActionResult | null, formData: FormData): Promise<ActionResult> {
-  const me = await actor();
+  const me = await actorForApprovals();
   const consultationId = num(formData.get("consultationId"));
   const requestId = num(formData.get("requestId"));
   if (!me || consultationId === null || requestId === null) return NOT_FOUND;
@@ -281,7 +307,7 @@ export async function answerConsultAction(_previous: ActionResult | null, formDa
 }
 
 export async function linkAction(_previous: ActionResult | null, formData: FormData): Promise<ActionResult> {
-  const me = await actor();
+  const me = await actorForApprovals();
   const requestId = num(formData.get("requestId"));
   const otherNo = String(formData.get("otherRequestNo") ?? "").trim();
   if (!me || requestId === null) return NOT_FOUND;
@@ -300,7 +326,7 @@ export async function linkAction(_previous: ActionResult | null, formData: FormD
 // v1.6.1 collaborators on the request page: the requester or IT adds people;
 // the requester, IT or the person themselves removes them.
 export async function addCollaboratorsAction(_previous: ActionResult | null, formData: FormData): Promise<ActionResult> {
-  const me = await actor();
+  const me = await actorForApprovals();
   const requestId = num(formData.get("requestId"));
   if (!me || requestId === null) return NOT_FOUND;
   try {
@@ -316,7 +342,7 @@ export async function addCollaboratorsAction(_previous: ActionResult | null, for
 }
 
 export async function removeCollaboratorAction(_previous: ActionResult | null, formData: FormData): Promise<ActionResult> {
-  const me = await actor();
+  const me = await actorForApprovals();
   const requestId = num(formData.get("requestId"));
   const userId = num(formData.get("userId"));
   if (!me || requestId === null || userId === null) return NOT_FOUND;

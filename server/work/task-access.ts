@@ -7,7 +7,7 @@ import { personFacts } from "@/lib/db/repositories/tasks.repository";
 import { getManagerMap } from "@/lib/db/repositories/admin-users.repository";
 import { teamBelow } from "@/server/work/hierarchy";
 import { isFollowing, projectFacts, projectsGoverning } from "@/lib/db/repositories/work.repository";
-import { effectiveProjectRole, higher, taskRights, type ProjectRole, type TaskRights, type WorkViewer } from "@/server/work/access";
+import { commenterRights, effectiveProjectRole, higher, taskRights, type ProjectRole, type TaskRights, type WorkViewer } from "@/server/work/access";
 import type { TaskViewer } from "@/server/modules/task-rules";
 
 // D-215: one place that works out how a person is connected to a task
@@ -19,7 +19,9 @@ export async function workViewer(actor: { id: number; roles: readonly string[]; 
   const me = await personFacts(actor.id, db);
   // D-308: without the Projects module, projects grant nothing (modules unknown = as before).
   const projects = !actor.modules || hasModule({ roles: actor.roles, modules: actor.modules }, "PROJECT");
-  return { id: actor.id, departmentId: me?.departmentId ?? null, isAdmin: isAdminRoles(actor.roles), teamIds: await teamOf(actor.id, db), projects };
+  // v1.91.0 (D-434): known not to have the Task module (modules unknown = as before).
+  const withoutTaskModule = Boolean(actor.modules) && !hasModule({ roles: actor.roles, modules: actor.modules ?? [] }, "TASK");
+  return { id: actor.id, departmentId: me?.departmentId ?? null, isAdmin: isAdminRoles(actor.roles), teamIds: await teamOf(actor.id, db), projects, ...(withoutTaskModule ? { withoutTaskModule } : {}) };
 }
 
 // D-216: everyone below the person in the reporting chain (all levels).
@@ -36,7 +38,18 @@ interface TaskShape {
   assigneeManagerId: number | null;
 }
 
-export async function rightsOn(task: TaskShape, viewer: WorkViewer, db: Queryable = getDbPool()): Promise<TaskRights & { bestRole: ProjectRole | null; adhoc: boolean }> {
+export async function rightsOn(task: TaskShape, viewer: WorkViewer, db: Queryable = getDbPool()): Promise<TaskRights & { bestRole: ProjectRole | null; adhoc: boolean; commenter?: boolean }> {
+  // v1.91.0 (D-434, owner: "if I am added as a collaborator I should be able to
+  // open and access that approval" / "in this case I am a commenter"): without
+  // the Task module, a task the person is not a party to (v1.50.1 keeps the
+  // parties' rights) opens only if they were added to THAT task as a
+  // collaborator (not through its top task, a project or the reporting line),
+  // and then only to view, comment and like. Removing them revokes it at once.
+  if (viewer.withoutTaskModule && !viewer.isAdmin && task.assigneeId !== viewer.id && task.createdBy !== viewer.id && task.assignedBy !== viewer.id) {
+    const direct = await isFollowing([task.id], viewer.id, db);
+    const none = taskRights({ isAssignee: false, isCreator: false, isFollower: false, managesAssignee: false, isAdmin: false, bestProjectRole: null, adhoc: true, isOriginalCreator: false });
+    return { ...commenterRights(none, direct), bestRole: null, adhoc: true, commenter: direct };
+  }
   let best: ProjectRole | null = null;
   for (const { project, members } of await projectsGoverning(task.id, task.rootTaskId, db)) best = higher(best, effectiveProjectRole(projectFacts(project, members), viewer));
   // The top task's people see its subtasks too.
@@ -78,5 +91,7 @@ export async function taskViewerFor(task: TaskShape, actor: { id: number; roles:
     // D-222: an ad hoc task is edited, reassigned, cancelled and reopened by its creator (and IT) only.
     creatorOnly: rights.adhoc,
     teamIds: viewer.teamIds,
+    // v1.91.0 (D-434): a collaborator without the Task module: view and comment only.
+    ...(rights.commenter ? { commenter: true } : {}),
   };
 }

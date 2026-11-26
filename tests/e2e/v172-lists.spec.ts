@@ -36,11 +36,12 @@ test.beforeAll(async () => {
 test("Collaborating is its own screen in the sidebar, with quick tabs and the full filter set", async ({ page, context }) => {
   await as(context, "E2E_STAFF");
   await page.goto("/users");
-  await page.locator("aside nav").getByRole("button", { name: "My Approvals" }).click();
-  await page.locator("aside nav").getByRole("link", { name: "Collaborating" }).click();
+  // v1.91.0 (D-433, owner): Collaborating is a top-level sidebar item (beside Calendar), no longer in My Approvals.
+  await page.locator("aside nav").getByRole("link", { name: "Collaborating", exact: true }).click();
   await expect(page).toHaveURL(/\/users\/collaborating$/);
   await expect(page.getByRole("heading", { level: 1, name: "Collaborating" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Shared with me" })).toHaveAttribute("aria-current", "page");
+  // v1.91.0 (D-433): the module tabs replace Raised by me / Shared with me here; Approvals is the open tab.
+  await expect(page.getByTestId("collab-tab-approvals")).toHaveAttribute("aria-current", "page");
   await expect(page.getByRole("link", { name: sharedTitle }).first()).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Quick filters" }).getByRole("link", { name: /^All \(\d+\)$/ })).toHaveAttribute("aria-current", "page");
 

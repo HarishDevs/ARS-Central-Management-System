@@ -38,7 +38,8 @@ export const PAGES: readonly PageDef[] = [
   { key: "users.queue", module: "APPROVAL", area: "users", label: "Waiting for me", what: "Approvals and work waiting for the person; bulk approval.", paths: [under("/users/queue")] },
   { key: "users.requests", module: "APPROVAL", area: "users", label: "My requests", what: "The requests the person raised.", paths: [exact("/users/requests")] },
   { key: "users.request", module: "APPROVAL", area: "users", label: "Request page", what: "Opening a request: details, decisions, comments, files, PDF. View only = can read, not decide or comment.", paths: [/^\/users\/requests\/\d+(\/.*)?$/], apis: [/^\/api\/requests\/\d+\//, /^\/api\/attachments\//] },
-  { key: "users.collaborating", module: "APPROVAL", area: "users", label: "Collaborating", what: "Requests the person was added to follow.", paths: [under("/users/collaborating")] },
+  // v1.91.0 (D-433): common to every module (like Calendar); its tabs follow the person's modules and collaborations.
+  { key: "users.collaborating", area: "users", label: "Collaborating", what: "Everything the person was added to as a collaborator: requests and tasks, one tab each.", paths: [under("/users/collaborating")] },
   { key: "users.approved", module: "APPROVAL", area: "users", label: "My approved requests", what: "The person's requests that were approved.", paths: [under("/users/approved")] },
   { key: "users.approved_by_me", module: "APPROVAL", area: "users", label: "Approved by me", what: "Requests the person approved.", paths: [under("/users/approved-by-me")] },
   { key: "users.new", module: "APPROVAL", area: "users", label: "Approval templates", what: "The person's own approval templates (saved approval levels), and starting a request from one.", paths: [under("/users/new")] },

@@ -1,5 +1,15 @@
 # Release notes
 
+## v1.91.0 (26 Nov 2026): one Collaborating screen for every module, and Commenter access
+The owner's request of 26 Nov 2026 (D-433) and its two follow-ups (D-434). **No migration, no new data collected, no new setting.**
+
+- **Collaborating is common to every module** ("make it common for all like we have for calendar and analytics"): it left the My Approvals group and is now its own sidebar item, just before Calendar (More on a phone; its own entry in the Classic view; Ctrl K). The address is the same, so bookmarks, notifications and saved views keep working.
+- **One tab per module, with counts** ("tasks, approvals, tickets as tabs"): **Approvals** (requests people added you to: the same list, filters and saved views as before) and **Tasks** (tasks where you are a collaborator but not the assignee or creator), each with how many items it holds. It opens on the first tab with something in it. The Tasks tab has Search, sorting on every column and cards on a phone; a task opens beside the list (its own page on a phone) and closing it returns to the tab; a request's ← Back returns to the Approvals tab. Tickets, meetings, information and projects have no collaborators today, so they have no tab; whether tickets should get collaborators is a question for the owner (Q-036).
+- **Collaborators without the module are Commenters** ("if I am added as a collaborator I should be able to open and access that approval" / "in this case I am a commenter"): if someone adds you to a request or task of a module you don't use, it shows under Collaborating and you can open that item (from the tab, the notification or the email), see it, download its files and comment. A *Commenter* badge says why there's nothing else to do: no files to add, no decisions, no changes, no other pages of that module. With the module you keep your usual rights. Being removed from the item closes it to you at once. **Terms:** one line (collaborator access without the module is view-and-comment on that item only; effective 26 Nov 2026).
+- **Tightened while doing this:** every Approvals action now checks the Approvals module itself, wherever it is sent from (before, only the page it was sent from was checked).
+
+**Owner steps:** publish as usual (GoDaddy: pull the tag and restart; no new dependencies, so no `npm install`). No migration runs (none added); no setting to change. After publishing: open **Collaborating** in the sidebar (beside Calendar) and switch between Approvals and Tasks. To see the Commenter view, add a colleague who has only the Tasks module as a collaborator on one of your requests and ask them to open it from Collaborating. Please answer Q-036 (collaborators on tickets) when convenient.
+
 ## v1.90.0 (25 Nov 2026): every ticket status count, Undo on repeating tasks, select and approve on Waiting for me, TODAY() and NOW()
 The owner's four requests of 25 Nov 2026 (D-427..D-430), the build execution policy (D-431) and the engineering governance addendum (D-432). **No migration, no new data collected, no new setting.**
 

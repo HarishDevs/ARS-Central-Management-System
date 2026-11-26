@@ -66,8 +66,10 @@ export const isAdminActor = (actor: { roles: readonly string[] }) => actor.roles
 // are on (assigned to them, by them, or created by them: the email links it),
 // but no other task (team, project or IT views need the module).
 type ModuleActor = { id: number; roles: readonly string[]; modules?: readonly ModuleCode[] };
+// v1.91.0 (D-434, owner): someone added to THIS task as a collaborator opens
+// it too, as a Commenter (taskViewerFor sets viewer.commenter: view and comment only).
 const outsideModule = (actor: ModuleActor, task: Parameters<typeof isParty>[0], viewer: Parameters<typeof isParty>[1]) =>
-  Boolean(actor.modules) && !hasModule({ roles: actor.roles, modules: actor.modules ?? [] }, "TASK") && !isParty(task, viewer);
+  Boolean(actor.modules) && !hasModule({ roles: actor.roles, modules: actor.modules ?? [] }, "TASK") && !isParty(task, viewer) && !viewer.commenter;
 
 export async function loadTaskFor(id: number, actor: ModuleActor) {
   const task = await findTask(id);
@@ -307,6 +309,8 @@ export async function actOnTask(input: TaskActionInput, actor: TaskActor): Promi
       const settings = parseTaskSettings(ctx.version.settings);
       const viewer = await taskViewerFor(task, actor, connection);
       if (outsideModule(actor, task, viewer)) return { error: "Not found." } as const;
+      // v1.91.0 (D-434): a Commenter comments; adding files needs the Task module.
+      if (viewer.commenter && input.files.length > 0) return { error: "As a commenter you can read this task and comment; adding files needs the Tasks module." } as const;
       const allowed = allowedTaskActions(task, viewer, settings);
       if (!allowed.has(input.action)) return { error: allowed.size ? "That can't be done to this task now. Reload to see its latest state." : "Not found." } as const;
       if (input.rowVersion !== null && input.rowVersion !== task.rowVersion && input.action !== "COMMENT") return { error: "Someone changed this task while you were looking. Reload and try again." } as const;

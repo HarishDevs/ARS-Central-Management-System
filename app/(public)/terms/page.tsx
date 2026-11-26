@@ -19,7 +19,7 @@ export default function TermsPage() {
     <PublicPage>
       <Prose>
         <h1>Terms of use</h1>
-        <p className="text-label text-ink-muted">Effective 25 November 2026 · approved by the head of IT, 2 November 2026</p>
+        <p className="text-label text-ink-muted">Effective 26 November 2026 · approved by the head of IT, 2 November 2026</p>
         <p>
           ARS CMS (approval.arssteels.net) is provided by {COMPANY} (&ldquo;ARS&rdquo;) for its employees to carry out company work. By signing in you agree to these terms and to ARS&apos;s
           policies that apply to company systems.
@@ -33,6 +33,10 @@ export default function TermsPage() {
           <li>
             Approving several requests at once on Waiting for me is your own decision for each of them: tick only requests you have reviewed. Each is recorded under your name as if you had approved
             it on its own.
+          </li>
+          <li>
+            Being added as a collaborator to an item of a module you don&apos;t use lets you view that item and comment on it (as a Commenter), nothing more: it gives no access to anything else in
+            that module, and it ends when you are removed from the item.
           </li>
           <li>
             As the approver a request is waiting on, change its details or the levels after yours only when the change is right for the company, and say why. The change, its reason and your name are

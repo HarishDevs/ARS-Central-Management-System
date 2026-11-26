@@ -9,6 +9,7 @@ import { hasModule, MODULES } from "@/server/modules/modules";
 import type { ModuleCode } from "@/types/auth";
 import { isApproverDesignation } from "@/lib/db/repositories/profile.repository";
 import { countPendingTasksFor } from "@/lib/db/repositories/approvals.repository";
+import { collaboratesOnAttachment, isActiveRequestCollaborator } from "@/lib/db/repositories/collaborating.repository";
 
 // v1.8.0 (owner): page access set by the Super Admin, checked on the server
 // for every page view, Server Action and API call of My approvals and the
@@ -19,6 +20,28 @@ type Person = { id: number; roles: readonly string[]; modules: readonly ModuleCo
 // D-168: a page of a module the person doesn't have is refused like a hidden one.
 const lacksModule = (person: Person, page: PageDef | null | undefined) => Boolean(page?.module && !page.partyOpen && !hasModule(person, page.module));
 export const isPageExempt = (person: Pick<Person, "roles">) => person.roles.includes("SUPER_ADMIN");
+
+// v1.91.0 (D-434, owner, 26 Nov 2026: "if I am not having any access for the
+// approvals module, if I am added as a collaborator I should be able to open
+// and access that approval" and "in this case I am a commenter"): a person
+// without the Approvals module may still open ONE request they are an active
+// collaborator on: its page, its progress and PDF, and its attachments' downloads.
+// Nothing else of the module (no list, no amend, no other request; an ID that
+// isn't theirs stays refused). Checked on every request, so removing them or
+// deleting the request revokes it at once. The actions they may post from that
+// page are limited to commenting by the actions themselves (app/users/*-actions.ts).
+const REQUEST_ITEM_PATHS = [/^\/users\/requests\/(\d{1,10})\/?$/, /^\/api\/requests\/(\d{1,10})\/(?:progress|summary\.pdf)\/?$/];
+const ATTACHMENT_PATH = /^\/api\/attachments\/(\d{1,10})\/?$/;
+export async function requestCollaboratorPass(personId: number, path: string | null): Promise<boolean> {
+  if (!path) return false;
+  const clean = path.split("?")[0]!.split("#")[0]!;
+  for (const pattern of REQUEST_ITEM_PATHS) {
+    const match = pattern.exec(clean);
+    if (match) return isActiveRequestCollaborator(Number(match[1]), personId).catch(() => false);
+  }
+  const file = ATTACHMENT_PATH.exec(clean);
+  return file ? collaboratesOnAttachment(Number(file[1]), personId).catch(() => false) : false;
+}
 
 // Every page's level for this person (once per request).
 export const accessFor = cache(async (userId: number): Promise<Map<string, PageLevel>> => {
@@ -59,7 +82,7 @@ export async function checkPageAccess(person: Person, change: boolean): Promise<
       if (restricted && !(path && isOpenAddress(path))) return { ok: false, reason: "UNKNOWN_PAGE", pageKey: null };
       return { ok: true, level: null };
     }
-    if (lacksModule(person, page)) return { ok: false, reason: "MODULE", pageKey: page.key };
+    if (lacksModule(person, page) && !(page.key === "users.request" && (await requestCollaboratorPass(person.id, await requestPath())))) return { ok: false, reason: "MODULE", pageKey: page.key };
     const level = access.get(page.key) ?? "FULL";
     if (level === "HIDDEN") return { ok: false, reason: "HIDDEN", pageKey: page.key };
     if (change && level === "VIEW") return { ok: false, reason: "VIEW_ONLY", pageKey: page.key };
@@ -67,6 +90,17 @@ export async function checkPageAccess(person: Person, change: boolean): Promise<
   } catch (error) {
     logError("page access check failed", error);
     return { ok: false, reason: "UNKNOWN_PAGE", pageKey: null };
+  }
+}
+
+// v1.91.0 (D-433): the Super Admin's rule for a page (module aside): is it Hidden for this person?
+export async function pageHiddenByRule(person: Pick<Person, "id" | "roles">, pageKey: string): Promise<boolean> {
+  if (isPageExempt(person)) return false;
+  try {
+    return (await accessFor(person.id)).get(pageKey) === "HIDDEN";
+  } catch (error) {
+    logError("page access check failed", error);
+    return true;
   }
 }
 

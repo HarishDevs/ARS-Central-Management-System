@@ -42,6 +42,16 @@ export interface WorkViewer {
   // nothing (no project seen, no task seen or changed through a project), so
   // the person has only the tasks they are on and their team's. Unset = true.
   projects?: boolean;
+  // v1.91.0 (D-434, owner: "in this case I am a commenter"): true when the
+  // person is known not to have the Task module. Then a task they are not a
+  // party to opens only when they were added to THAT task as a collaborator,
+  // and only as a Commenter (view, comment, like); nothing else is granted.
+  withoutTaskModule?: boolean;
+}
+
+// v1.91.0 (D-434): a collaborator without the module is a Commenter on that item only.
+export function commenterRights<T extends { view: boolean; edit: boolean; details: boolean; planning: boolean; progress: boolean; comment: boolean; like: boolean; follow: boolean }>(rights: T, allowed: boolean): T {
+  return { ...rights, view: allowed, edit: false, details: false, planning: false, progress: false, comment: allowed, like: allowed, follow: false };
 }
 
 export function effectiveProjectRole(project: ProjectFacts, viewer: WorkViewer): ProjectRole | null {

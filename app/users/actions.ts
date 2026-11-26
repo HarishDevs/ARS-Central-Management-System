@@ -1,5 +1,7 @@
 "use server";
 
+import { hasModule } from "@/server/modules/modules";
+import type { ModuleCode } from "@/types/auth";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireApiArea } from "@/server/authorization/guards";
@@ -37,9 +39,15 @@ function submissionKeyOf(formData: FormData): string | null {
   return typeof value === "string" && UUID.test(value) ? value.toLowerCase() : null;
 }
 
+const approvalsUser = (user: { roles: readonly string[]; modules?: readonly ModuleCode[] }) => !user.modules || hasModule({ roles: user.roles, modules: user.modules }, "APPROVAL");
+// v1.91.0 (D-434, owner: "in this case I am a commenter"): every action here
+// is an Approvals action (raise, decide, files, withdraw, recall, amend…), so
+// it needs the Approvals module wherever it is posted from. A collaborator
+// without the module only comments (app/users/collab-actions.ts commentAction).
 async function actor(): Promise<Actor | null> {
   try {
     const session = await requireApiArea("users");
+    if (!approvalsUser(session.user)) return null;
     return { id: session.user.id, roles: session.user.roles };
   } catch {
     return null;

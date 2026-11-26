@@ -126,7 +126,8 @@ export async function AppShell({ area, user, nav, children, settingsIndex }: { a
     { href: "/users/queue", label: "Waiting for me", group: "My approvals" },
     { href: "/users/queue/sent-back", label: "Sent back for changes", group: "My approvals" },
     { href: "/users/approved-by-me", label: "Approved by me", group: "My approvals" },
-    { href: "/users/collaborating", label: "Collaborating", group: "My approvals" },
+    // v1.91.0 (D-433): common to every module; offered when the sidebar offers it.
+    ...(nav.some((item) => item.href === "/users/collaborating") ? [{ href: "/users/collaborating", label: "Collaborating", group: "Common" }] : []),
     { href: "/users/new", label: "Approval templates", group: "My approvals" },
     { href: "/users/search", label: "Search requests", group: "My approvals" },
     { href: "/users/analytics", label: "Analytics", group: "My approvals" },

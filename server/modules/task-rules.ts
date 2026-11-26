@@ -32,6 +32,7 @@ export interface TaskViewer {
   workComment?: boolean;
   teamIds?: readonly number[]; // D-216: everyone below the viewer, every level
   creatorOnly?: boolean; // D-222: ad hoc task: only its creator (and IT) change it
+  commenter?: boolean; // v1.91.0 (D-434): a collaborator without the Task module (view and comment; no files)
 }
 
 export const isParty = (task: TaskFacts, viewer: TaskViewer) => viewer.id === task.createdBy || viewer.id === task.assigneeId || viewer.id === task.assignedBy;
@@ -59,6 +60,8 @@ export function allowedTaskActions(task: TaskFacts, viewer: TaskViewer, settings
   if (open && owner && settings.allowReassign) actions.add("REASSIGN");
   if (open && owner) actions.add("EDIT");
   if (isParty(task, viewer) || viewer.isAdmin || viewer.workComment) actions.add("COMMENT");
+  // v1.91.0 (D-434): a Commenter only comments, whatever else the rules above found.
+  if (viewer.commenter) return new Set<TaskAction>(actions.has("COMMENT") ? ["COMMENT"] : []);
   return actions;
 }
 

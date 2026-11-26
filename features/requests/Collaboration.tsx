@@ -114,7 +114,8 @@ export interface LinkRow {
   relation: string;
 }
 
-export function Links({ requestId, rows, followUpHref }: { requestId: number; rows: LinkRow[]; followUpHref: string | null }) {
+// v1.91.0 (D-434): canLink false for a Commenter (a collaborator without the Approvals module).
+export function Links({ requestId, rows, followUpHref, canLink = true }: { requestId: number; rows: LinkRow[]; followUpHref: string | null; canLink?: boolean }) {
   const { result, pending, formRef, onSubmit } = useActionForm(linkAction, { resetOnSuccess: true });
   return (
     <section className="card px-5 py-4" aria-labelledby="links">
@@ -144,6 +145,7 @@ export function Links({ requestId, rows, followUpHref }: { requestId: number; ro
           </Link>
         </p>
       )}
+      {canLink && (
       <form ref={formRef} onSubmit={onSubmit} className="flex flex-wrap items-end gap-2">
         <input type="hidden" name="requestId" value={requestId} />
         <div className="min-w-0 flex-1 basis-40">
@@ -161,6 +163,7 @@ export function Links({ requestId, rows, followUpHref }: { requestId: number; ro
           {result?.ok && <ResultMessage result={result} />}
         </div>
       </form>
+      )}
     </section>
   );
 }

@@ -2,11 +2,13 @@ import "server-only";
 import { enabledFeatures } from "@/server/settings/features";
 import { coordinatesAny, viewerCategories } from "@/lib/db/repositories/tickets.repository";
 import type { NavItem } from "@/features/shell/SideNav";
+import { hasCollabTabs } from "@/server/collaborating/service";
+import type { ModuleCode } from "@/types/auth";
 
 // The My approvals space's pages, in the owner's order. Used by the sidebar
 // (Compact view) and by the Gateway and module menus (Classic view, D-210).
-export async function usersNav(user: { id: number; roles: readonly string[] }): Promise<NavItem[]> {
-  const features = await enabledFeatures(user);
+export async function usersNav(user: { id: number; roles: readonly string[]; modules: readonly ModuleCode[] }): Promise<NavItem[]> {
+  const [features, collaborating] = await Promise.all([enabledFeatures(user), hasCollabTabs(user).catch(() => false)]);
   // v1.55.3 (D-331, owner): Ticket dashboards are for the coordinators of ticket forms (and IT).
   const ticketDashboards = user.roles.includes("IT_ADMIN") || user.roles.includes("SUPER_ADMIN") || (await coordinatesAny(user.id).catch(() => false)) || (await viewerCategories(user.id).then((named) => named === "ALL" || named.length > 0).catch(() => false));
   return [
@@ -24,7 +26,6 @@ export async function usersNav(user: { id: number; roles: readonly string[] }): 
     // v1.59.1 (D-359, owner): requests you sent back for changes, on their own page.
     { href: "/users/queue/sent-back", label: "Sent back for changes", section: "My Approvals" },
     { href: "/users/approved-by-me", label: "Approved by me", section: "My Approvals" },
-    { href: "/users/collaborating", label: "Collaborating", section: "My Approvals" },
     { href: "/users/new", label: "Approval templates", section: "My Approvals" },
     ...(features.tasks
       ? [
@@ -72,6 +73,10 @@ export async function usersNav(user: { id: number; roles: readonly string[] }): 
     // group lists the person's chats with a search (SideNav).
     ...(features.ai ? [{ href: "/users/ai/assistant", label: "AI Assistant", section: "AI Assistant", chats: true }] : []),
     // D-236 (owner): no Search in the sidebar; the header search covers it.
+    // v1.91.0 (D-433, owner: "make it common for all like we have for calendar
+    // and analytics"): Collaborating is a top-level item beside Calendar, for
+    // anyone with a module that has collaborators or a collaboration (D-434).
+    ...(collaborating ? [{ href: "/users/collaborating", label: "Collaborating" }] : []),
     { href: "/users/calendar", label: "Calendar" },
     ...(features.analytics ? [{ href: "/users/analytics", label: "Analytics" }] : []),
   ];

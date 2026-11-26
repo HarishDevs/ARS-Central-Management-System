@@ -2976,3 +2976,33 @@ flowchart TD
   SK --> SUM
   NA --> SUM
 ```
+
+## F-COLLABORATING: One Collaborating screen for every module (v1.91.0, D-433)
+Supersedes F-118 step 1 (Collaborating was a page of My Approvals). Owner (26 Nov 2026): "Separate the collaborators screen from approvals and make it common for all like we have for calendar and analytics. In collaborator screen whatever we are as collaborators needs to be displayed like tasks, approvals, tickets as tabs".
+1. **Sidebar → Collaborating** (top level, just before Calendar; More on a phone; Classic view: its own module; Ctrl K: "Collaborating"). The item shows when the person has a module with collaborators (Approvals, Tasks with its switch on) or collaborates on something (D-434); otherwise it is hidden and `/users/collaborating` is the in-shell "page isn't available" (404).
+2. **Tabs, each with its count:** Approvals (requests: `request_collaborators`, not removed, request not deleted) and Tasks (`task_followers`: the person is not the assignee, the creator or the assigner; task not deleted). Tickets, meetings, information and projects have no collaborator relationship, so no tab (Q-036). A tab shows only for a running module whose record page isn't Hidden for the person, and only if they have the module or collaborate on an item of it.
+3. **Which tab opens:** `?tab=tasks` / `?tab=approvals` when the person has it; a forced tab they don't have → the first allowed tab (nothing of that module is read); any other filter (old bookmarks, a request quick tab such as `?tab=open`, saved views) → Approvals; a bare address → the person's default saved view of Approvals if any, else the first tab with items, else the first tab.
+4. **Approvals tab:** the request list as before (filters, quick tabs, saved views, default view).
+5. **Tasks tab:** ListToolbar Search (number or title), sortable columns (Task, Assigned to, Status, Due, Updated, You were added), 25 a page; phone cards. A row opens the task in the side pane on a computer (`?tab=tasks&task=<id>`; × returns to the tab), its own page on a phone or without the Tasks module.
+6. **Way back:** a request opened from a tab: breadcrumb / ← Back to Collaborating returns to `/users/collaborating?tab=…` (OriginLink, D-419).
+7. **Empty tab:** "Nobody has added you to a task yet…" (per tab).
+
+## F-COMMENTER: A collaborator without the module (v1.91.0, D-434)
+Owner (26 Nov 2026): "if I am not having any access for the approvals module, if I am added as a collaborator I should be able to open and access that approval" and "in this case I am a commenter. If I have the module access then I have my same privileges."
+```mermaid
+flowchart TD
+  L[Link to an item: Collaborating tab, notification, email / WhatsApp, recent item] --> M{Has the item's module?}
+  M -- yes --> U[Usual rights, unchanged: a collaborator views, comments, adds files]
+  M -- no --> S{Module running? record page not Hidden?}
+  S -- no --> X[Refused: no-access / not found, nothing named]
+  S -- yes --> C{Active collaborator on THIS item? removed_at null / follower row, item not deleted}
+  C -- no --> X
+  C -- yes --> K[Opens as Commenter: Commenter badge; view details, timeline, files; download files; comment]
+  K --> A{Posts something}
+  A -- comment --> OK[Saved; mentions tell people but add no collaborator]
+  A -- files, decide, withdraw, link, advice, add / remove collaborators, edit, status, follow --> R[Refused on the server; the controls are not shown]
+  K --> O[Any other page of the module: lists, New, search, another ID, amend → refused]
+  REM[Removed from the item or item deleted] --> X
+```
+- Server checks: page access lets `/users/requests/<id>`, `/api/requests/<id>/progress|summary.pdf` and `/api/attachments/<id>` through only for an active collaborator on that request (`requestCollaboratorPass`); every Approvals action needs the module (`app/users/actions.ts`, `collab-actions.ts`), except commenting, which also accepts an active collaborator on that request. Tasks: `rightsOn` gives a person without the Tasks module, who is not a party, Commenter rights on a task they were added to directly (`task_followers`, not through a parent, project or reporting line); task actions are COMMENT only and without files; collaborator changes are refused.
+- The Super Admin's switch (Tasks) off hides everything, collaborators included. Nothing is deleted or sent when access changes; giving the module back restores the usual rights.

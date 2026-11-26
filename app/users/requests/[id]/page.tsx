@@ -68,6 +68,7 @@ import { listMentionable } from "@/lib/db/repositories/collab.repository";
 import { expiryState } from "@/server/approvals/expiry-rules";
 import { personProfile } from "@/lib/db/repositories/profile.repository";
 import { BrandAnimation } from "@/features/ui/BrandAnimation";
+import { CommenterBadge } from "@/features/collaborating/CommenterBadge";
 import { RequestPriorityBadge } from "@/features/ui/ChoicePill";
 import { personLabel } from "@/lib/people/label";
 
@@ -86,13 +87,23 @@ export default async function RequestPage({
   const { user } = await requireArea("users");
   const { id } = await params;
   if (!/^\d+$/.test(id)) notFound();
-  const view = await loadRequestView(Number(id), { id: user.id, roles: user.roles });
-  const journey = view ? await loadJourney(view.id, { id: user.id, roles: user.roles }).catch(() => null) : null;
+  const found = await loadRequestView(Number(id), { id: user.id, roles: user.roles });
+  const journey = found ? await loadJourney(found.id, { id: user.id, roles: user.roles }).catch(() => null) : null;
   const road = journey ? { road: journey.road } : null;
-  if (!view) notFound();
+  if (!found) notFound();
+  // v1.91.0 (D-434, owner: "if I am added as a collaborator I should be able to
+  // open and access that approval" / "in this case I am a commenter. If I have
+  // the module access then I have my same privileges."): without the Approvals
+  // module the person reached this page only as an active collaborator on it
+  // (server/authorization/page-access.ts). They read it and comment; every
+  // other control is left out here, and the actions refuse them anyway.
+  const commenter = !hasModule(user, "APPROVAL");
+  const view = commenter
+    ? { ...found, myTasks: [], canResume: false, canWithdraw: false, canReopen: false, canRecall: false, canAddFiles: false, canResubmit: false, canConsult: false, canFollowUp: false, canAnswerQuestion: false, approvedByMe: false }
+    : found;
   // v1.57.0 (D-335): Item list fields, ticked as provided (confidential ones the viewer can't see are left out).
   const checklists = view.form.some((field) => field.type === "ITEM_LIST") ? await checklistsFor("REQUEST", view.id, view.form, view.rawFields) : [];
-  const canTickItems = checklists.length > 0 && (await mayTickRequest(view.id, user));
+  const canTickItems = !commenter && checklists.length > 0 && (await mayTickRequest(view.id, user));
   // WS-04: remember the visit (only after the access check passed).
   await recordView(user.id, view.id).catch(() => undefined);
   const query = await searchParams;
@@ -130,12 +141,12 @@ export default async function RequestPage({
   const templatesOn = await featureOn("templates", user);
   // v1.6.1 collaborators: the requester and IT manage them.
   const collaborators = await listCollaborators(view.id);
-  const canManageCollaborators = view.requesterId === user.id || user.roles.includes("IT_ADMIN") || user.roles.includes("SUPER_ADMIN");
+  const canManageCollaborators = !commenter && (view.requesterId === user.id || user.roles.includes("IT_ADMIN") || user.roles.includes("SUPER_ADMIN"));
   const collaboratorOptions = canManageCollaborators
     ? (await listActiveUserOptions()).filter((person) => person.id !== view.requesterId).map((person) => ({ id: person.id, label: personLabel(person), detail: person.departmentName ?? undefined }))
     : [];
   // FN5: the requester may amend an approved request when the type allows it.
-  const canAmend = view.requesterId === user.id && view.status === "APPROVED" && (await amendmentPlan(view.id, { id: user.id, roles: user.roles })).ok;
+  const canAmend = !commenter && view.requesterId === user.id && view.status === "APPROVED" && (await amendmentPlan(view.id, { id: user.id, roles: user.roles })).ok;
   // Blocked steps (IT): approval steps take approver-eligible people; work any active person.
   const assignable = view.blockedSteps.length
     ? {
@@ -152,9 +163,9 @@ export default async function RequestPage({
   const isSuperAdmin = user.roles.includes("SUPER_ADMIN");
   // D-234: a custom request can be raised again (approvers included). v1.54.0
   // (D-309): IT's approval types are gone, so only custom requests offer it.
-  const raiseAgainHref = view.requesterId === user.id && view.isCustom ? `/users/custom?from=${view.id}` : null;
+  const raiseAgainHref = !commenter && view.requesterId === user.id && view.isCustom ? `/users/custom?from=${view.id}` : null;
   // v1.54.0 (D-309): the requester saves this request's levels as their own approval template.
-  const reuse: "template" | null = templatesOn && view.requesterId === user.id && view.isCustom ? "template" : null;
+  const reuse: "template" | null = !commenter && templatesOn && view.requesterId === user.id && view.isCustom ? "template" : null;
 
   // v1.52.3 (owner): a file can be deleted until the first approval, or while changes are asked for.
   const anyApproval = await hasAnyApproval(view.id).catch(() => true);
@@ -176,7 +187,7 @@ export default async function RequestPage({
   const followUps = view.links.filter((link) => link.kind === "FOLLOW_UP" && link.direction === "to");
   const followUpWith = await pendingWithFor(followUps.map((link) => link.id)).catch(() => new Map<number, string>());
   const followUpHref = view.canFollowUp ? (view.isCustom ? `/users/custom?followUp=${view.id}` : `/users/new?followUp=${view.id}`) : null;
-  const canAddTask = view.status !== "CANCELLED" && hasModule(user, "TASK") && (await featureOn("tasks", user).catch(() => false));
+  const canAddTask = !commenter && view.status !== "CANCELLED" && hasModule(user, "TASK") && (await featureOn("tasks", user).catch(() => false));
   const taskPeople = canAddTask ? (await listActiveUserOptions()).map((person) => ({ id: person.id, label: personLabel(person), detail: person.departmentName ?? undefined })) : [];
   const backTo =
     view.myTasks.length > 0
@@ -187,8 +198,8 @@ export default async function RequestPage({
           : { href: "/users/requests", label: "My pending requests" }
         : view.approvedByMe
           ? { href: "/users/approved-by-me", label: "Approved by me" }
-          : collaborators.some((row) => row.userId === user.id)
-            ? { href: "/users/collaborating", label: "Collaborating" }
+          : commenter || collaborators.some((row) => row.userId === user.id)
+            ? { href: commenter ? "/users/collaborating?tab=approvals" : "/users/collaborating", label: "Collaborating" }
             : { href: "/users/search", label: "Search" };
   // v1.87.0 (D-417, audit gap 19): opened from another area's list (Admin →
   // Records' Open full page), the way back is named after it and keeps its
@@ -223,6 +234,7 @@ export default async function RequestPage({
                 {view.priority && !view.priority.hidden && <RequestPriorityBadge priority={view.priority} />}
                 <RequestStatusPill status={view.status} validUntil={view.validUntil} />
                 <ValidityBadge validUntil={view.validUntil} />
+                {commenter && <CommenterBadge module="Approvals" />}
               </>
             }
             meta={`${view.requestNo} · ${view.workflowName} · raised by ${view.requesterName}${view.round > 1 ? ` · round ${view.round}` : ""}`}
@@ -473,7 +485,7 @@ export default async function RequestPage({
           <SectionBoundary label="Collaborators">
             <CollaboratorsCard
               requestId={view.id}
-              viewerId={user.id}
+              viewerId={commenter ? 0 : user.id}
               canManage={canManageCollaborators}
               options={collaboratorOptions}
               rows={collaborators.map((row) => ({ userId: row.userId, name: row.name, loginId: row.loginId, addedByName: row.addedByName, addedAt: formatIndiaTime(row.addedAt) }))}
@@ -527,7 +539,7 @@ export default async function RequestPage({
                 answer: row.answer,
                 status: row.status,
                 askedAt: formatIndiaTime(row.createdAt),
-                mine: row.consulteeId === user.id && row.status === "OPEN",
+                mine: !commenter && row.consulteeId === user.id && row.status === "OPEN",
               }))}
             />
           </SectionBoundary>
@@ -601,6 +613,7 @@ export default async function RequestPage({
           <SectionBoundary label="Linked requests">
             <Links
               requestId={view.id}
+              canLink={!commenter}
               followUpHref={null}
               rows={view.links.filter((link) => !(link.kind === "FOLLOW_UP" && link.direction === "to")).map((link) => ({
                 id: link.id,

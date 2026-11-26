@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/features/shell/PageHeader";
 import { Hint } from "@/features/ui/Hint";
 import { Badge, Breadcrumbs } from "@/features/ui/Display";
+import { CommenterBadge } from "@/features/collaborating/CommenterBadge";
 import { returnToFor } from "@/server/authorization/return-to";
 import { ReturnToLink } from "@/features/ui/ReturnToLink";
 import { AttachFilesForm, EditTaskForm, ReassignForm, TaskActionButton } from "@/features/modules/TaskForms";
@@ -121,6 +122,9 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
   // D-215: projects, subtasks, dependencies, tags, followers, likes, comments (shared with the task panel, D-219).
   const view = await taskWorkView(task, user);
   const { panel, rights, chain, links, viewer, group } = view;
+  // v1.91.0 (D-434, owner: "in this case I am a commenter"): added to this task
+  // as a collaborator without the Tasks module: read and comment only.
+  const commenter = Boolean(loaded.viewer.commenter);
   const fromProject = links.find((link) => String(link.projectId) === query.project) ?? null;
   // v1.89.0 (NAV-04, D-419): opened from Admin → Records (Open full page), the
   // validated ?from= is the way back (first crumb and "← Back to …"); never in a pane.
@@ -217,7 +221,7 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
           <span className="grid h-11 w-11 place-items-center">
             <CopyLinkButton path={`/users/tasks/${task.id}`} />
           </span>
-          <SheetButton label="Task actions" title="Task actions" content={<div className="space-y-4 pb-2 [&_.card]:border-0 [&_.card]:px-0 [&_.card]:shadow-none">{actionsCard}<TaskShareButton taskId={task.id} title={task.title} followers={panel.followers} people={panel.people} visibility={visibilityText(links)} canAdd={rights.comment} /></div>} testId="m-task-actions" className="grid h-11 w-11 place-items-center rounded-full text-ink-muted">
+          <SheetButton label="Task actions" title="Task actions" content={<div className="space-y-4 pb-2 [&_.card]:border-0 [&_.card]:px-0 [&_.card]:shadow-none">{actionsCard}<TaskShareButton taskId={task.id} title={task.title} followers={panel.followers} people={panel.people} visibility={visibilityText(links)} canAdd={rights.comment && !commenter} /></div>} testId="m-task-actions" className="grid h-11 w-11 place-items-center rounded-full text-ink-muted">
             <MoreHorizontal aria-hidden="true" className="h-6 w-6" />
           </SheetButton>
         </div>
@@ -233,6 +237,7 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
             <TaskPriorityPill priority={task.priority} showNormal />
             {late && <Badge tone="danger">Overdue</Badge>}
             {task.deletedAt && <Badge tone="danger">Deleted</Badge>}
+            {commenter && <CommenterBadge module="Tasks" />}
           </div>
           {/* v1.72.2 (D-394): each fact is dt + dd directly (axe definition-list); the picture is a dd placed first. */}
           <dl className="grid grid-cols-2 gap-3 border-y border-line py-3" data-testid="m-task-facts">
@@ -256,7 +261,7 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
       <>
       {!popup && <Breadcrumbs
         items={[
-          returnTo ? { href: returnTo.href, label: returnTo.label } : fromProject ? { href: `/users/work/projects/${fromProject.projectId}`, label: fromProject.projectName } : { href: "/users/tasks", label: "Tasks" },
+          returnTo ? { href: returnTo.href, label: returnTo.label } : commenter ? { href: "/users/collaborating?tab=tasks", label: "Collaborating" } : fromProject ? { href: `/users/work/projects/${fromProject.projectId}`, label: fromProject.projectName } : { href: "/users/tasks", label: "Tasks" },
           ...chain.map((item) => ({ href: `/users/tasks/${item.id}`, label: item.title })),
           { label: task.taskNo },
         ]}
@@ -273,8 +278,8 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
           <div className="sticky top-0 z-[3] -mx-4 -mt-4 flex flex-wrap items-center gap-1 border-b border-line bg-surface px-3 py-2 sm:-mx-5 sm:-mt-5" role="toolbar" aria-label="Task actions" data-testid="pane-bar">
             {canTick && <TaskCompleteButton taskId={task.id} done={task.status === "COMPLETED"} disabled={!(actions.has("COMPLETE") || actions.has("REOPEN"))} title={task.title} />}
             <span className="flex-1" />
-            <TaskShareButton taskId={task.id} title={task.title} followers={panel.followers} people={panel.people} visibility={visibilityText(links)} canAdd={rights.comment} collaborators />
-            <TaskShareButton taskId={task.id} title={task.title} followers={panel.followers} people={panel.people} visibility={visibilityText(links)} canAdd={rights.comment} />
+            <TaskShareButton taskId={task.id} title={task.title} followers={panel.followers} people={panel.people} visibility={visibilityText(links)} canAdd={rights.comment && !commenter} collaborators />
+            <TaskShareButton taskId={task.id} title={task.title} followers={panel.followers} people={panel.people} visibility={visibilityText(links)} canAdd={rights.comment && !commenter} />
             <span aria-hidden="true" className="mx-1 h-5 w-px bg-line" />
             <TaskLikeButton taskId={task.id} liked={panel.likes.some((person) => person.id === user.id)} count={panel.likes.length} names={panel.likes.map((person) => person.name)} />
             <CopyLinkButton path={`/users/tasks/${task.id}`} />
@@ -301,6 +306,7 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
             {task.isMilestone && <Badge tone="primary">Milestone</Badge>}
             <Badge tone={panel.adhoc ? "neutral" : "info"}>{panel.adhoc ? "Ad hoc" : panel.recurrence ? `Periodic: ${recurrenceLabel(panel.recurrence)}` : "Periodic"}</Badge>
             {task.deletedAt && <Badge tone="danger">Deleted</Badge>}
+            {commenter && <CommenterBadge module="Tasks" />}
           </div>
         </header>
       ) : (
@@ -319,10 +325,11 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
             {/* D-222: the two kinds of task. */}
             <Badge tone={panel.adhoc ? "neutral" : "info"}>{panel.adhoc ? "Ad hoc" : panel.recurrence ? `Periodic: ${recurrenceLabel(panel.recurrence)}` : "Periodic"}</Badge>
             {task.deletedAt && <Badge tone="danger">Deleted</Badge>}
+            {commenter && <CommenterBadge module="Tasks" />}
           </>
         }
       >
-        <TaskShareButton taskId={task.id} title={task.title} followers={panel.followers} people={panel.people} visibility={visibilityText(links)} canAdd={rights.comment} />
+        <TaskShareButton taskId={task.id} title={task.title} followers={panel.followers} people={panel.people} visibility={visibilityText(links)} canAdd={rights.comment && !commenter} />
         {/* D-219: complete or reopen in one click, as in Asana (types that need a note or file say so). */}
         {((actions.has("COMPLETE") && settings.completion === "NONE") || actions.has("REOPEN") || task.status === "COMPLETED") && (
           <TaskCompleteButton taskId={task.id} done={task.status === "COMPLETED"} disabled={!(actions.has("COMPLETE") || actions.has("REOPEN"))} title={task.title} />
@@ -406,7 +413,7 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
             </h2>
             {files.length ? <FileLinks files={files} label="" /> : <p className="text-label text-ink-muted">No files yet.</p>}
             {ticketSide && ticketFiles.length > 0 && <FileLinks files={ticketFiles} label={`From ticket ${ticketSide.ticket.ticketNo}`} />}
-            {actions.has("COMMENT") && <AttachFilesForm taskId={task.id} />}
+            {actions.has("COMMENT") && !commenter && <AttachFilesForm taskId={task.id} />}
           </section>
           {group.length > 0 && (
             <p className="card px-5 py-3 text-label" data-testid="assign-group">

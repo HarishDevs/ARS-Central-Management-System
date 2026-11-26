@@ -723,6 +723,8 @@ export async function restoreTask(taskId: number, actor: TaskActor): Promise<Wor
 export async function setFollower(taskId: number, userId: number, on: boolean, actor: TaskActor): Promise<WorkResult> {
   const loaded = await taskFor(taskId, actor);
   if (!loaded) return fail(NOT_FOUND);
+  // v1.91.0 (D-434): a Commenter (collaborator without the Task module) doesn't change the collaborators.
+  if (loaded.rights.commenter) return fail("As a commenter you can read this task and comment; changing its collaborators needs the Tasks module.");
   const self = userId === actor.id;
   if (!self && !loaded.rights.comment) return fail("You can't change this task's followers.");
   if (on && !self) {
@@ -753,6 +755,8 @@ export async function addComment(taskId: number, body: string, parentCommentId: 
   const loaded = await taskFor(taskId, actor);
   if (!loaded) return fail(NOT_FOUND);
   if (!loaded.rights.comment) return fail("You can read this task but not comment on it.");
+  // v1.91.0 (D-434): a Commenter's @mention tells people but never adds them as collaborators.
+  if (loaded.rights.commenter) options = { ...options, addMentionedAsFollowers: false };
   const text = body.trim();
   if (!text) return fail("Write a comment.", { body: "Write a comment." });
   if (text.length > 4000) return fail("Use 4000 characters or fewer.", { body: "Use 4000 characters or fewer." });
@@ -777,7 +781,7 @@ export async function addComment(taskId: number, body: string, parentCommentId: 
     const id = await repo.insertComment(taskId, parentCommentId, actor.id, text, connection);
     await appendTaskEvent(taskId, { actorId: actor.id, type: "COMMENTED", body: text.slice(0, 2000), payload: { commentId: id } }, connection);
     await repo.addFollower(taskId, actor.id, "COMMENT", actor.id, connection);
-    for (const person of canSee) await repo.addFollower(taskId, person, "MENTION", actor.id, connection);
+    if (!loaded.rights.commenter) for (const person of canSee) await repo.addFollower(taskId, person, "MENTION", actor.id, connection);
     const followers = (await repo.listFollowers(taskId, connection)).map((item) => item.id);
     const recipients = new Set<number>([loaded.task.assigneeId, loaded.task.createdBy, ...followers]);
     recipients.delete(actor.id);

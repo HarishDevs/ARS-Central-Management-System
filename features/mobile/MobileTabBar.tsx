@@ -14,11 +14,11 @@ const TABS = [
     href: "/users/approvals",
     label: "Approvals",
     icon: CheckSquare,
-    match: (path: string) => /^\/users\/(approvals|queue|requests|approved|approved-by-me|collaborating|new|custom|search)(\/|$)/.test(path),
+    match: (path: string) => /^\/users\/(approvals|queue|requests|approved|approved-by-me|new|custom|search)(\/|$)/.test(path),
   },
   { key: "tasks", href: "/users/work/my-tasks", label: "My tasks", icon: CircleCheck, match: (path: string) => /^\/users\/(work|tasks)(\/|$)/.test(path) },
   { key: "inbox", href: "/users/inbox", label: "Inbox", icon: Inbox, match: (path: string) => /^\/users\/(inbox|notifications)(\/|$)/.test(path) },
-  { key: "more", href: "/users/more", label: "More", icon: Menu, match: (path: string) => /^\/users\/(more|menu|information|meetings|tickets|calendar|analytics|ai|reports|profile|help|delegation|security|people|switched-off)(\/|$)/.test(path) },
+  { key: "more", href: "/users/more", label: "More", icon: Menu, match: (path: string) => /^\/users\/(more|menu|information|meetings|tickets|collaborating|calendar|analytics|ai|reports|profile|help|delegation|security|people|switched-off)(\/|$)/.test(path) },
 ] as const;
 
 export function MobileTabBar({ waiting, unread, hidden }: { waiting: number; unread: number; hidden: string[] }) {
