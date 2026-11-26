@@ -215,8 +215,9 @@ test("the user sidebar: Home, Inbox, collapsible My Approvals, Tasks & projects,
   await approvals.click();
   await expect(approvals).toHaveAttribute("aria-expanded", "true");
   const links = await page.getByTestId("nav-group-My Approvals").getByRole("link").allTextContents();
-  // v1.49.5 (owner): a requester (not an approver designation) has these four; approvers have all seven (v1495-nav-roles).
-  expect(links.map((text) => text.replace(/\d+ waiting$/, "").trim())).toEqual(["New request", "My pending requests", "My approved requests", "Collaborating"]);
+  // v1.49.5 (owner): a requester (not an approver designation) has these; approvers have the rest too (v1495-nav-roles).
+  // v1.92.1 (TD-016): Collaborating left this group for the top level in v1.91.0 (D-433), so three remain.
+  expect(links.map((text) => text.replace(/\d+ waiting$/, "").trim())).toEqual(["New request", "My pending requests", "My approved requests"]);
   // The choice is remembered on the next page.
   await nav.getByRole("link", { name: "Calendar" }).click();
   await expect(page).toHaveURL(/\/users\/calendar/);
