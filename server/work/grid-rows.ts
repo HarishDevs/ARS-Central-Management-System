@@ -24,6 +24,7 @@ export function toGridTask(item: WorkTaskItem, meId: number, canEdit: boolean, s
     updatedAt: item.updatedAt?.toISOString() ?? null,
     parentId: item.parentTaskId,
     completedAt: item.completedAt?.toISOString() ?? null,
+    lastComment: item.lastComment ? { text: item.lastComment.text, authorName: item.lastComment.authorName, at: item.lastComment.at.toISOString() } : null,
     likes: item.likes,
     comments: item.comments,
     subtasks: item.subtasks,

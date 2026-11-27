@@ -178,7 +178,10 @@ describe("the critical path on the server", () => {
   });
   it("counts, but doesn't follow, links to tasks in other projects", async () => {
     const elsewhere = await task(`Elsewhere ${tag}`, null, addDays(monday, 30), otherProject);
-    expect((await link(elsewhere, a)).ok).toBe(true);
+    // v1.93.0 (D-449): a new link to another project (no shared portfolio) is refused; a link made
+    // before v1.93.0 still exists, so the critical path must still count it without following it.
+    expect((await link(elsewhere, a)).ok).toBe(false);
+    await getDbPool().query("INSERT INTO task_dependencies (blocker_task_id, blocked_task_id, dep_type, created_by) VALUES (?, ?, 'FS', ?)", [elsewhere, a, owner]);
     const result = await schedule.projectCriticalPath(projectId, who(owner));
     expect(result.ok && result.value.outsideLinks).toBeGreaterThanOrEqual(1);
     expect(result.ok && result.value.tasks[elsewhere]).toBeFalsy();

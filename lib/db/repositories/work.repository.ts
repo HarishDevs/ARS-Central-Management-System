@@ -11,6 +11,7 @@ import type { TaskStatus } from "@/server/modules/task-rules";
 import type { TabRow, TabScope, TabView } from "@/server/work/view-tabs";
 import type { FieldType } from "@/server/work/custom-fields";
 import { assignIds, idFieldsOfProject } from "@/lib/db/repositories/fields.repository";
+import { commentPreview } from "@/server/work/grid";
 
 // D-215: Task & Project Management data. Every list that shows tasks uses
 // visibleTaskClause, the SQL twin of server/work/access.ts taskRights().view.
@@ -313,6 +314,8 @@ export interface WorkTaskItem {
   // v1.76.0 (D-401): privacy and department for the Task visibility column.
   projects: { id: number; name: string; color: string; privacy?: "PRIVATE" | "DEPARTMENT" | "ORGANISATION"; departmentName?: string | null }[];
   summary?: string | null; // D-265: the description's start, for Home's task table
+  // v1.93.0 (D-448): the newest comment that isn't deleted (a reply counts), as plain text.
+  lastComment?: { text: string; authorName: string; at: Date } | null;
   // v1.42.1 (owner: "task created from approval should be highlighted and mapped
   // with approval unique number"): the request a task belongs to, and whether
   // it's that request's work step (D-269).
@@ -335,7 +338,19 @@ async function decorate(rows: Row[], db: Queryable): Promise<WorkTaskItem[]> {
   const tags = new Map<number, WorkTaskItem["tags"]>();
   const projects = new Map<number, WorkTaskItem["projects"]>();
   const followers = new Map<number, WorkTaskItem["followers"]>();
+  const lastComments = new Map<number, NonNullable<WorkTaskItem["lastComment"]>>();
   if (ids.length) {
+    // v1.93.0 (D-448): each task's newest live comment in one query (the
+    // (task_id, id) index finds the newest id per task; no query per row).
+    const [commentRows] = await db.query<Row[]>(
+      `SELECT cm.task_id, LEFT(cm.body, 600) AS body, cm.created_at, u.name AS author_name FROM task_comments cm JOIN users u ON u.id = cm.author_id
+       WHERE cm.id IN (SELECT MAX(lc.id) FROM task_comments lc WHERE lc.task_id IN (?) AND lc.deleted_at IS NULL GROUP BY lc.task_id)`,
+      [ids],
+    );
+    for (const row of commentRows) {
+      const text = commentPreview(String(row.body ?? ""));
+      if (text) lastComments.set(num(row.task_id), { text: text.slice(0, 500), authorName: String(row.author_name), at: row.created_at as Date });
+    }
     const [followerRows] = await db.query<Row[]>("SELECT f.task_id, u.id, u.name FROM task_followers f JOIN users u ON u.id = f.user_id WHERE f.task_id IN (?) ORDER BY f.created_at", [ids]);
     for (const row of followerRows) followers.set(num(row.task_id), [...(followers.get(num(row.task_id)) ?? []), { id: num(row.id), name: String(row.name) }]);
     const [tagRows] = await db.query<Row[]>("SELECT tt.task_id, g.id, g.name, g.color FROM task_tags tt JOIN work_tags g ON g.id = tt.tag_id WHERE tt.task_id IN (?) ORDER BY g.name", [ids]);
@@ -384,6 +399,7 @@ async function decorate(rows: Row[], db: Queryable): Promise<WorkTaskItem[]> {
     followers: followers.get(num(row.id)) ?? [],
     tags: tags.get(num(row.id)) ?? [],
     projects: projects.get(num(row.id)) ?? [],
+    lastComment: lastComments.get(num(row.id)) ?? null,
   }));
 }
 

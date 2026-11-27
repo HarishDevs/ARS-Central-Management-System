@@ -11,8 +11,10 @@ import { DEP_TYPE_HELP, DEP_TYPE_LABEL, DEP_TYPES, isDepType, linkBlocks, type D
 // v1.65.0 (D-373, spec PV §16.2): the task's dependencies in the pane and on
 // the task page: "Blocked by" and "Blocking" lists with each link's type
 // (changeable), lag (0, read-only for now) and the other task's due date; and
-// "Add dependency": a Blocked by / Blocking toggle, a search across every
-// project the person can see (name and project), and a type picker.
+// "Add dependency": a Blocked by / Blocking toggle, a search, and a type picker.
+// v1.93.0 (D-449, owner's choice "Picker filtered"): the search lists tasks of
+// this task's project first, with a switch to widen it to the project's
+// portfolio; a task in no project lists the person's own tasks in no project.
 export interface DependencyView {
   id: number;
   taskNo: string;
@@ -36,8 +38,22 @@ export function DependencyEditor({ taskId, title, blockedBy, blocking, canChange
   const [found, setFound] = useState<Found[]>([]);
   const [active, setActive] = useState(-1);
   const [open, setOpen] = useState(false);
+  const [wide, setWide] = useState(false);
+  const [scope, setScope] = useState<{ canWiden: boolean; note: string } | null>(null);
   const listId = useId();
+  const noteId = useId();
   const input = useRef<HTMLInputElement>(null);
+  // What the list covers (and whether it can widen), before anything is typed.
+  useEffect(() => {
+    if (!canChange) return;
+    let live = true;
+    void dependencyTargetsAction("", taskId, wide).then((answer) => {
+      if (live && answer.ok && answer.value) setScope({ canWiden: answer.value.canWiden, note: answer.value.note });
+    });
+    return () => {
+      live = false;
+    };
+  }, [canChange, taskId, wide]);
   useEffect(() => {
     const text = query.trim();
     if (text.length < 2) {
@@ -46,9 +62,10 @@ export function DependencyEditor({ taskId, title, blockedBy, blocking, canChange
     }
     let live = true;
     const timer = window.setTimeout(() => {
-      void dependencyTargetsAction(text, taskId).then((answer) => {
+      void dependencyTargetsAction(text, taskId, wide).then((answer) => {
         if (!live) return;
-        setFound(answer.ok ? (answer.value ?? []) : []);
+        setFound(answer.ok ? (answer.value?.items ?? []) : []);
+        if (answer.ok && answer.value) setScope({ canWiden: answer.value.canWiden, note: answer.value.note });
         setActive(-1);
         setOpen(true);
       });
@@ -57,7 +74,7 @@ export function DependencyEditor({ taskId, title, blockedBy, blocking, canChange
       live = false;
       window.clearTimeout(timer);
     };
-  }, [query, taskId]);
+  }, [query, taskId, wide]);
   const choose = (item: Found) => {
     setOpen(false);
     setQuery("");
@@ -140,6 +157,16 @@ export function DependencyEditor({ taskId, title, blockedBy, blocking, canChange
           <p className="text-caption text-ink-muted">
             {role === "BLOCKED_BY" ? `"${title}"` : "The other task"}: {DEP_TYPE_HELP[type].charAt(0).toLowerCase() + DEP_TYPE_HELP[type].slice(1)}
           </p>
+          {scope && (
+            <div className="flex flex-wrap items-center justify-between gap-2 text-caption text-ink-muted" data-testid="dependency-scope">
+              <span id={noteId}>{scope.note}</span>
+              {scope.canWiden && (
+                <label className="inline-flex items-center gap-1.5 text-ink">
+                  <input type="checkbox" checked={wide} onChange={(event) => setWide(event.target.checked)} data-testid="dependency-wide" /> Whole portfolio
+                </label>
+              )}
+            </div>
+          )}
           <div className="relative">
             <input
               ref={input}
@@ -149,6 +176,7 @@ export function DependencyEditor({ taskId, title, blockedBy, blocking, canChange
               aria-autocomplete="list"
               aria-activedescendant={active >= 0 ? `${listId}-${active}` : undefined}
               aria-label={role === "BLOCKED_BY" ? "Find the task it waits for" : "Find the task that waits for it"}
+              aria-describedby={scope ? noteId : undefined}
               placeholder="Find a task by name or number"
               className="field-input"
               value={query}
@@ -178,7 +206,7 @@ export function DependencyEditor({ taskId, title, blockedBy, blocking, canChange
               <ul id={listId} role="listbox" aria-label="Tasks" className="absolute z-popover mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-line bg-raised py-1 shadow-overlay">
                 {found.length === 0 && (
                   <li role="option" aria-selected={false} aria-disabled="true" className="px-3 py-1.5 text-label text-ink-muted">
-                    No task found that you can see.
+                    {scope?.canWiden && !wide ? "No task found in this project. Try the whole portfolio." : "No task found that you can see."}
                   </li>
                 )}
                 {found.map((item, index) => (

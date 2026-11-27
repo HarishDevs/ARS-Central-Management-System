@@ -668,7 +668,8 @@ export function ProjectWorkspace({
           subtasks={grid.subtasks}
           density={density}
           initial={grid.initial}
-          columns={["assignee", "due", "priority", "collaborators", "createdBy", "tags"]}
+          // v1.93.0 (D-446): + Start date, Completed date, Last comment; Created by is off by default (DEFAULT_HIDDEN).
+          columns={["assignee", "start", "due", "priority", "collaborators", "createdBy", "tags", "completed", "lastComment"]}
           groupsAllowed={["section", "assignee", "createdBy", "due", "priority", "kind"]}
           sections={sections}
           sectionHeader={(section, count, viewItems) => <SectionHeader section={section} sections={sections} count={count} canEdit={canEdit} plain projectId={projectId} automations={automations} viewItems={viewItems} />}

@@ -3,7 +3,8 @@
 import { TaskPriorityPill, priorityControlProps } from "@/features/ui/ChoicePill";
 import { ApprovalBadge, approvalRowClass } from "@/features/work/ApprovalLink";
 import { ArrowDown, ArrowUp, ArrowUpDown, CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ChevronsDownUp, ChevronsUpDown, EyeOff, Filter, GitBranch, Globe2, Building2, Layers, Lock, RotateCcw, MessageSquare, MoreHorizontal, Pencil, Plus, Repeat, Settings2, Users, X } from "lucide-react";
-import { DueCell } from "@/features/work/DueCell";
+import { DueCell, StartCell } from "@/features/work/DueCell";
+import { formatDate, formatRelative } from "@/lib/format/date";
 import { DateRangePicker } from "@/features/ui/DateRangePicker";
 import Link from "next/link";
 import { useProjectsOn } from "@/features/work/projects-access";
@@ -44,7 +45,10 @@ import {
   GROUP_LABEL,
   gridUrlState,
   groupsStartFolded,
+  moveColumn,
   nextColumnSort,
+  orderColumns,
+  placeColumn,
   SORT_LABEL,
   SORTS,
   sortMenu,
@@ -77,7 +81,8 @@ export interface GridView {
 }
 
 const COMPLETED_LABEL: Record<(typeof COMPLETED_RANGES)[number], string> = { none: "Hide", all: "All completed", today: "Completed today", week: "Past 7 days", month: "Past 30 days" };
-const WIDTH: Record<GridColumn, number> = { due: 130, assignee: 190, collaborators: 150, createdBy: 160, projects: 210, visibility: 180, priority: 160, tags: 150 };
+const WIDTH: Record<GridColumn, number> = { due: 130, assignee: 190, collaborators: 150, createdBy: 160, projects: 210, visibility: 180, priority: 160, tags: 150, start: 130, completed: 140, lastComment: 260 };
+const FIELD_KEY = /^f\d{1,10}$/;
 const FIELD_WIDTH = 150;
 
 export function TaskGrid({
@@ -235,14 +240,67 @@ export function TaskGrid({
   const shown = config.hidden.length ? columns.filter((column) => !config.hidden.includes(column)) : columns;
   // v1.64.0 (D-371): the field columns this view shows (Options or the column menu hide them).
   const shownFields = planning && config.hiddenFields?.length ? fields.filter((field) => !config.hiddenFields.includes(field.id)) : fields;
+  // v1.93.0 (D-446, owner: "column rearrangement option"): built-in columns and
+  // field columns in the view's order (config.columnOrder, saved with the view
+  // like hidden columns). Moved by dragging a column title, Alt+Left / Alt+Right
+  // on a focused title, a field column's menu, or Options > Columns.
+  const fieldById = new Map(fields.map((field) => [`f${field.id}`, field]));
+  const orderedKeys = orderColumns([...columns, ...fields.map((field) => `f${field.id}`)], config.columnOrder ?? []);
+  const shownKeys = orderedKeys.filter((key) => (FIELD_KEY.test(key) ? shownFields.some((field) => `f${field.id}` === key) : shown.includes(key as GridColumn)));
+  const keyLabel = (key: string) => fieldById.get(key)?.name ?? COLUMN_LABEL[key as GridColumn] ?? key;
+  const [colDrag, setColDrag] = useState<string | null>(null);
+  const [colOver, setColOver] = useState<string | null>(null);
+  const reorderTo = (next: string[], key: string) => {
+    if (next.join() === orderedKeys.join()) return;
+    setConfig((value) => ({ ...value, columnOrder: next }));
+    const visible = next.filter((item) => shownKeys.includes(item));
+    setGridLive(`${keyLabel(key)} moved to column ${visible.indexOf(key) + 1} of ${visible.length}.`);
+  };
+  const moveBy = (key: string, delta: -1 | 1) => reorderTo(moveColumn(orderedKeys, shownKeys, key, delta), key);
+  const columnDrag = (key: string) => ({
+    draggable: true,
+    onDragStart: (event: React.DragEvent) => {
+      setColDrag(key);
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", key);
+    },
+    onDragOver: (event: React.DragEvent) => {
+      if (!colDrag) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "move";
+      setColOver(key);
+    },
+    onDragLeave: () => setColOver((current) => (current === key ? null : current)),
+    onDrop: (event: React.DragEvent) => {
+      event.preventDefault();
+      const from = colDrag;
+      setColDrag(null);
+      setColOver(null);
+      if (!from || from === key) return;
+      // Dropped on a title: it takes that column's place (after it when moving right).
+      const right = shownKeys.indexOf(from) < shownKeys.indexOf(key);
+      reorderTo(right ? placeColumn(orderedKeys, from, null, key) : placeColumn(orderedKeys, from, key), from);
+    },
+    onDragEnd: () => {
+      setColDrag(null);
+      setColOver(null);
+    },
+  });
+  const moveKeys = (key: string) => (event: React.KeyboardEvent) => {
+    if (!event.altKey || (event.key !== "ArrowLeft" && event.key !== "ArrowRight")) return;
+    event.preventDefault();
+    event.stopPropagation();
+    moveBy(key, event.key === "ArrowLeft" ? -1 : 1);
+    requestAnimationFrame(() => scroller.current?.querySelector<HTMLElement>(`[role="columnheader"][data-column="${key}"] [data-testid="grid-sort"]`)?.focus());
+  };
+  const dragClass = (key: string) => `${colOver === key && colDrag && colDrag !== key ? "bg-primary-50" : ""} ${colDrag === key ? "opacity-50" : ""}`;
   const canDrag = Boolean(onMove) && config.group === moveGroup && config.sort === "none" && !config.sortField && filterCount(config) === 0 && !config.search;
   // Owner: "all the columns in all the tables should be resizable". Every
   // column but the row number takes its width from one state (drag the right
   // edge of its title; ←/→ when focused; double-click or Enter resets).
   const widthDefaults: ColumnDefault[] = [
     { key: "name", width: 260, flex: true },
-    ...shown.map((column) => ({ key: column, width: WIDTH[column] })),
-    ...shownFields.map((field) => ({ key: `f${field.id}`, width: FIELD_WIDTH })),
+    ...shownKeys.map((key) => ({ key, width: FIELD_KEY.test(key) ? FIELD_WIDTH : WIDTH[key as GridColumn] })),
     ...(planning && customise ? [{ key: "addField", width: 44 }] : []),
   ];
   const resize = useColumnWidths(widthKey ?? (testId === "task-grid" ? "taskgrid" : `taskgrid:${testId}`), widthDefaults);
@@ -289,8 +347,8 @@ export function TaskGrid({
     const state = columnSortState(config, field.id);
     const Icon = state === "asc" ? ArrowUp : state === "desc" ? ArrowDown : ArrowUpDown;
     return (
-      <span key={field.id} role="columnheader" aria-sort={state === "asc" ? "ascending" : state === "desc" ? "descending" : "none"} className="relative flex min-w-0 items-center gap-1 border-r border-line px-2 py-2" data-column={`f${field.id}`}>
-        <button type="button" onClick={() => set(nextColumnSort(config, field.id))} title={`Sort by ${field.name}, ${state === "asc" ? "descending" : "ascending"}`} className={`inline-flex min-w-0 items-center gap-1 hover:text-ink ${state ? "text-ink" : ""}`} data-testid="grid-sort">
+      <span key={field.id} role="columnheader" aria-sort={state === "asc" ? "ascending" : state === "desc" ? "descending" : "none"} className={`relative flex min-w-0 items-center gap-1 border-r border-line px-2 py-2 ${dragClass(`f${field.id}`)}`} data-column={`f${field.id}`} {...columnDrag(`f${field.id}`)}>
+        <button type="button" onClick={() => set(nextColumnSort(config, field.id))} onKeyDown={moveKeys(`f${field.id}`)} aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight" aria-describedby={`${testId}-move-help`} title={`Sort by ${field.name}, ${state === "asc" ? "descending" : "ascending"}`} className={`inline-flex min-w-0 items-center gap-1 hover:text-ink ${state ? "text-ink" : ""}`} data-testid="grid-sort">
           <FieldGlyph kind={field.kind} />
           <span className="truncate">{field.name}</span>
           <Icon aria-hidden="true" className={`h-3.5 w-3.5 shrink-0 ${state ? "" : "opacity-40"}`} />
@@ -308,6 +366,8 @@ export function TaskGrid({
             { label: "Filter by this field", icon: <Filter className="h-4 w-4" />, onSelect: () => set({ fieldFilters: [...(config.fieldFilters ?? []), { fieldId: field.id, op: "notEmpty" as const, value: "" }].slice(0, 10) }) },
             { label: "Group by this field", icon: <Layers className="h-4 w-4" />, onSelect: () => set({ groupField: field.id }) },
             { label: "Hide column", icon: <EyeOff className="h-4 w-4" />, onSelect: () => set({ hiddenFields: [...(config.hiddenFields ?? []), field.id] }) },
+            ...(shownKeys.indexOf(`f${field.id}`) > 0 ? [{ label: "Move left", icon: <ChevronLeft className="h-4 w-4" />, shortcut: "Alt+←", onSelect: () => moveBy(`f${field.id}`, -1) }] : []),
+            ...(shownKeys.indexOf(`f${field.id}`) < shownKeys.length - 1 ? [{ label: "Move right", icon: <ChevronRight className="h-4 w-4" />, shortcut: "Alt+→", onSelect: () => moveBy(`f${field.id}`, 1) }] : []),
             ...(field.canEdit ? [{ label: "Edit field", icon: <Pencil className="h-4 w-4" />, onSelect: () => openFieldDialog({ fieldId: field.id }) }] : []),
           ]}
         />
@@ -316,12 +376,22 @@ export function TaskGrid({
     );
   };
   const sortHead = (column: SortableColumn, label: string, className: string, colKey: string) => {
+    const movable = colKey !== "name";
     const state = columnSortState(config, column);
     const Icon = state === "asc" ? ArrowUp : state === "desc" ? ArrowDown : ArrowUpDown;
     const next = state === "asc" ? "descending" : "ascending";
     return (
-      <span key={String(column)} role="columnheader" aria-sort={state === "asc" ? "ascending" : state === "desc" ? "descending" : "none"} className={`relative ${className}`} data-column={colKey}>
-        <button type="button" onClick={() => set(nextColumnSort(config, column))} title={`Sort by ${label}, ${next}`} className={`inline-flex max-w-full items-center gap-1 hover:text-ink ${state ? "text-ink" : ""}`} data-testid="grid-sort">
+      <span key={String(column)} role="columnheader" aria-sort={state === "asc" ? "ascending" : state === "desc" ? "descending" : "none"} className={`relative ${className} ${movable ? dragClass(colKey) : ""}`} data-column={colKey} {...(movable ? columnDrag(colKey) : {})}>
+        <button
+          type="button"
+          onClick={() => set(nextColumnSort(config, column))}
+          onKeyDown={movable ? moveKeys(colKey) : undefined}
+          aria-keyshortcuts={movable ? "Alt+ArrowLeft Alt+ArrowRight" : undefined}
+          aria-describedby={movable ? `${testId}-move-help` : undefined}
+          title={`Sort by ${label}, ${next}`}
+          className={`inline-flex max-w-full items-center gap-1 hover:text-ink ${state ? "text-ink" : ""}`}
+          data-testid="grid-sort"
+        >
           <span className="truncate">{label}</span>
           <Icon aria-hidden="true" className={`h-3.5 w-3.5 shrink-0 ${state ? "" : "opacity-40"}`} />
         </button>
@@ -640,30 +710,48 @@ export function TaskGrid({
               density={density ? { value: rowDensity ?? "COMFORTABLE", set: (choice) => { setRowDensity(choice); void call(() => densityAction(choice), { success: false }); }, name: testId } : undefined}
               columns={
                 <>
-                  {columns.map((column) => (
-                    <label key={column} className="flex items-center gap-2 rounded px-2 py-1 text-label hover:bg-surface-muted">
-                      <input
-                        type="checkbox"
-                        checked={!config.hidden.includes(column)}
-                        onChange={(event) => set({ hidden: event.target.checked ? config.hidden.filter((item) => item !== column) : [...config.hidden, column] })}
-                      />{" "}
-                      {COLUMN_LABEL[column]}
-                    </label>
-                  ))}
+                  <p className="mb-1 px-2 text-caption text-ink-muted">Tick a column to show it. Move it with the arrows, by dragging its title, or with Alt+← / Alt+→ on its title.</p>
+                  {orderedKeys
+                    .filter((key) => !FIELD_KEY.test(key))
+                    .map((key) => {
+                      const column = key as GridColumn;
+                      return (
+                        <ColumnChoice
+                          key={column}
+                          label={COLUMN_LABEL[column]}
+                          checked={!config.hidden.includes(column)}
+                          onCheck={(on) => set({ hidden: on ? config.hidden.filter((item) => item !== column) : [...config.hidden, column] })}
+                          index={shownKeys.indexOf(column)}
+                          count={shownKeys.length}
+                          onMove={(delta) => moveBy(column, delta)}
+                        />
+                      );
+                    })}
                   {planning && fields.length > 0 && (
                     <div className="mt-2 border-t border-line pt-2" data-testid="field-columns">
                       <p className="mb-1 px-2 text-caption font-semibold text-ink-muted">Fields</p>
-                      {fields.map((field) => (
-                        <label key={field.id} className="flex items-center gap-2 rounded px-2 py-1 text-label hover:bg-surface-muted">
-                          <input
-                            type="checkbox"
-                            checked={!(config.hiddenFields ?? []).includes(field.id)}
-                            onChange={(event) => set({ hiddenFields: event.target.checked ? (config.hiddenFields ?? []).filter((id) => id !== field.id) : [...(config.hiddenFields ?? []), field.id] })}
-                          />{" "}
-                          {field.name}
-                        </label>
-                      ))}
+                      {orderedKeys
+                        .filter((key) => fieldById.has(key))
+                        .map((key) => {
+                          const field = fieldById.get(key)!;
+                          return (
+                            <ColumnChoice
+                              key={key}
+                              label={field.name}
+                              checked={!(config.hiddenFields ?? []).includes(field.id)}
+                              onCheck={(on) => set({ hiddenFields: on ? (config.hiddenFields ?? []).filter((id) => id !== field.id) : [...(config.hiddenFields ?? []), field.id] })}
+                              index={shownKeys.indexOf(key)}
+                              count={shownKeys.length}
+                              onMove={(delta) => moveBy(key, delta)}
+                            />
+                          );
+                        })}
                     </div>
+                  )}
+                  {(config.columnOrder ?? []).length > 0 && (
+                    <button type="button" className="link mt-2 px-2 text-label" onClick={() => set({ columnOrder: [] })} data-testid="reset-column-order">
+                      Reset column order
+                    </button>
                   )}
                 </>
               }
@@ -742,8 +830,11 @@ export function TaskGrid({
               #
             </span>
             {sortHead("name", "Name", "border-r border-line px-2 py-2", "name")}
-            {shown.map((column) => sortHead(column, COLUMN_LABEL[column], "truncate border-r border-line px-2 py-2", column))}
-            {planning ? shownFields.map((field) => fieldHead(field)) : fields.map((field) => sortHead(field.id, field.name, "truncate border-r border-line px-2 py-2", `f${field.id}`))}
+            {shownKeys.map((key) => {
+              const field = fieldById.get(key);
+              if (!field) return sortHead(key as GridColumn, COLUMN_LABEL[key as GridColumn], "truncate border-r border-line px-2 py-2", key);
+              return planning ? fieldHead(field) : sortHead(field.id, field.name, "truncate border-r border-line px-2 py-2", key);
+            })}
             {planning && customise && (
               <span role="columnheader" className="flex items-center justify-center">
                 <button type="button" aria-label="Add field" title="Add field" onClick={() => openFieldDialog({})} className="rounded p-1 text-ink-muted hover:bg-surface-muted hover:text-ink" data-testid="grid-add-field">
@@ -890,7 +981,20 @@ export function TaskGrid({
                           )}
                         </span>
                       </span>
-                      {shown.map((column) => (
+                      {shownKeys.map((key) => {
+                        const field = fieldById.get(key);
+                        if (field)
+                          return (
+                            <span key={key} role="gridcell" className="min-w-0 border-r border-line px-1">
+                              {sub || (fieldScope && !fieldScope[task.id]?.includes(field.id)) ? null : planning ? (
+                                <FieldValueEditor taskId={task.id} field={field} cell={values[task.id]?.[field.id]} label={`${field.name} of ${task.title}`} canChange={task.canEdit} people={people} compact />
+                              ) : (
+                                <FieldInput taskId={task.id} field={{ ...field, name: `${field.name} of ${task.title}` }} value={values[task.id]?.[field.id]?.edit ?? ""} canChange={task.canEdit} compact />
+                              )}
+                            </span>
+                          );
+                        const column = key as GridColumn;
+                        return (
                         <span key={column} role="gridcell" className="flex min-w-0 items-center border-r border-line px-2 py-1">
                           {column === "due" &&
                             (task.canEdit && open ? (
@@ -965,17 +1069,35 @@ export function TaskGrid({
                               <TaskPriorityPill priority={task.priority} showNormal />
                             ))}
                           {column === "tags" && <TagsCell taskId={task.id} title={task.title} tags={task.tags} canEdit={task.canEdit && open} />}
-                        </span>
-                      ))}
-                      {shownFields.map((field) => (
-                        <span key={field.id} role="gridcell" className="min-w-0 border-r border-line px-1">
-                          {sub || (fieldScope && !fieldScope[task.id]?.includes(field.id)) ? null : planning ? (
-                            <FieldValueEditor taskId={task.id} field={field} cell={values[task.id]?.[field.id]} label={`${field.name} of ${task.title}`} canChange={task.canEdit} people={people} compact />
-                          ) : (
-                            <FieldInput taskId={task.id} field={{ ...field, name: `${field.name} of ${task.title}` }} value={values[task.id]?.[field.id]?.edit ?? ""} canChange={task.canEdit} compact />
+                          {column === "start" &&
+                            (task.canEdit && open && !task.isMilestone ? (
+                              <StartCell task={task} />
+                            ) : (
+                              <span className={task.startsOn ? "truncate" : "text-ink-faint"} data-testid="start-cell">
+                                {task.startsOn ? formatDate(task.startsOn, { year: "auto", now }) : task.isMilestone ? "" : "–"}
+                              </span>
+                            ))}
+                          {column === "completed" && (
+                            <span className={task.completedAt ? "truncate" : "text-ink-faint"} data-testid="completed-cell">
+                              {task.completedAt ? formatDate(task.completedAt, { year: "auto", now }) : "–"}
+                            </span>
                           )}
+                          {column === "lastComment" &&
+                            (task.lastComment ? (
+                              <span className="flex min-w-0 flex-col leading-tight" title={`${task.lastComment.authorName}, ${formatRelative(task.lastComment.at, now)}: ${task.lastComment.text}`} data-testid="last-comment-cell">
+                                <span className="truncate">{task.lastComment.text}</span>
+                                <span className="truncate text-caption text-ink-muted">
+                                  {task.lastComment.authorName} · {formatRelative(task.lastComment.at, now)}
+                                </span>
+                              </span>
+                            ) : (
+                              <span className="text-ink-faint" data-testid="last-comment-cell">
+                                {"–"}
+                              </span>
+                            ))}
                         </span>
-                      ))}
+                        );
+                      })}
                       {planning && customise && <span role="gridcell" aria-hidden="true" />}
                     </div>
                   );
@@ -988,6 +1110,9 @@ export function TaskGrid({
       </div>
       <span role="status" aria-live="polite" className="sr-only">
         {gridLive}
+      </span>
+      <span id={`${testId}-move-help`} hidden>
+        Drag the title, or press Alt with the left or right arrow, to move this column.
       </span>
       {bulk && allShown.length > 0 && (
         <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-ink-muted" data-testid="select-hint">
@@ -1295,7 +1420,7 @@ export function OptionsPanel({
   if (page === "columns")
     return (
       <div className="pt-1" data-testid="options-columns">
-        {back("Show/hide columns")}
+        {back("Columns")}
         {columns}
       </div>
     );
@@ -1332,13 +1457,35 @@ export function OptionsPanel({
   return (
     <div className="space-y-0.5 pt-1">
       <p className="mb-1 truncate px-2 pr-6 text-label font-semibold">{title}</p>
-      {columns && entry("Show/hide columns", hiddenCount ? `${hiddenCount} hidden` : null, () => setPage("columns"), "options-columns-row")}
+      {columns && entry("Columns", hiddenCount ? `${hiddenCount} hidden` : null, () => setPage("columns"), "options-columns-row")}
       {entry("Filters", filters || null, (event) => { close(event); open("filter-menu"); }, "options-filters-row")}
       {entry("Sorts", sortText, (event) => { close(event); open("sort"); }, "options-sorts-row")}
       {entry("Groups", groupText, (event) => { close(event); open("group-menu"); }, "options-groups-row")}
       {subtasks && entry("Subtasks", null, () => setPage("subtasks"), "options-subtasks-row")}
       {density && entry("Rows", density.value === "COMPACT" ? "Compact" : "Comfortable", () => setPage("rows"), "options-rows-row")}
       {footer}
+    </div>
+  );
+}
+
+// v1.93.0 (D-446): one row of Options > Columns: show or hide the column, and
+// (while shown) move it left or right among the shown columns.
+function ColumnChoice({ label, checked, onCheck, index, count, onMove }: { label: string; checked: boolean; onCheck: (on: boolean) => void; index: number; count: number; onMove: (delta: -1 | 1) => void }) {
+  return (
+    <div className="flex items-center gap-1 rounded px-2 py-0.5 text-label hover:bg-surface-muted" data-testid="column-choice" data-column-label={label}>
+      <label className="flex min-w-0 flex-1 items-center gap-2 py-0.5">
+        <input type="checkbox" checked={checked} onChange={(event) => onCheck(event.target.checked)} /> <span className="truncate">{label}</span>
+      </label>
+      {checked && (
+        <>
+          <button type="button" aria-label={`Move ${label} left`} title="Move left" disabled={index <= 0} onClick={() => onMove(-1)} className="rounded px-1 text-ink-muted hover:bg-surface-muted disabled:opacity-30" data-testid="column-move-left">
+            <ChevronLeft aria-hidden="true" className="h-3.5 w-3.5" />
+          </button>
+          <button type="button" aria-label={`Move ${label} right`} title="Move right" disabled={index < 0 || index >= count - 1} onClick={() => onMove(1)} className="rounded px-1 text-ink-muted hover:bg-surface-muted disabled:opacity-30" data-testid="column-move-right">
+            <ChevronRight aria-hidden="true" className="h-3.5 w-3.5" />
+          </button>
+        </>
+      )}
     </div>
   );
 }

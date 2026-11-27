@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { DEFAULT_GRID, type GridConfig, type GridTask } from "@/server/work/grid";
+import { DEFAULT_GRID, DEFAULT_HIDDEN, GRID_CONFIG_VERSION, type GridConfig, type GridTask } from "@/server/work/grid";
 
 // v1.77.0 (D-404, owner's Task Summary decision 3, release 2 "organise and
 // share"). Pure and unit-tested; the services and the page use these.
@@ -47,7 +47,9 @@ export function shareProblem(input: { ownerId: number; targetId: number; targetA
 export const readOnlyRow = (row: GridTask): GridTask => ({ ...row, canEdit: false, canComplete: false });
 
 // ---- Customise › Fields ---------------------------------------------------------------------
-export const SUMMARY_COLUMNS = ["due", "priority", "collaborators", "createdBy", "projects", "visibility"] as const;
+// v1.93.0 (D-446): + Start date, Completed date, Last comment; Created by is
+// off by default (DEFAULT_FIELDS) and can be ticked back here or in Options.
+export const SUMMARY_COLUMNS = ["start", "due", "priority", "collaborators", "createdBy", "projects", "visibility", "completed", "lastComment"] as const;
 export type SummaryColumn = (typeof SUMMARY_COLUMNS)[number];
 export const FIELDS_SETTING = "work.my_tasks.fields";
 export const summaryFieldsSchema = z.object({
@@ -55,12 +57,17 @@ export const summaryFieldsSchema = z.object({
   hiddenFields: z.array(z.number().int().positive().max(1e10)).max(200).default([]),
 });
 export type SummaryFields = z.infer<typeof summaryFieldsSchema>;
-export const DEFAULT_FIELDS: SummaryFields = { hidden: [], hiddenFields: [] };
+export const DEFAULT_FIELDS: SummaryFields = { hidden: DEFAULT_HIDDEN.filter((column): column is SummaryColumn => (SUMMARY_COLUMNS as readonly string[]).includes(column)), hiddenFields: [] };
+// v1.93.0 (D-447): columns saved before v1.93.0 (no "v") are read with Created by hidden too, as list views are.
 export function parseSummaryFields(raw: string | null | undefined): SummaryFields {
   if (!raw) return DEFAULT_FIELDS;
   try {
-    const parsed = summaryFieldsSchema.safeParse(JSON.parse(raw));
-    return parsed.success ? { hidden: [...new Set(parsed.data.hidden)], hiddenFields: [...new Set(parsed.data.hiddenFields)] } : DEFAULT_FIELDS;
+    const value: unknown = JSON.parse(raw);
+    const parsed = summaryFieldsSchema.safeParse(value);
+    if (!parsed.success) return DEFAULT_FIELDS;
+    const old = !(value && typeof value === "object" && (value as Record<string, unknown>).v === GRID_CONFIG_VERSION);
+    const hidden = old ? [...parsed.data.hidden, ...DEFAULT_FIELDS.hidden] : parsed.data.hidden;
+    return { hidden: [...new Set(hidden)], hiddenFields: [...new Set(parsed.data.hiddenFields)] };
   } catch {
     return DEFAULT_FIELDS;
   }

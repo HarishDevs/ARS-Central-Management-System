@@ -7,9 +7,14 @@ import { fieldFilterSchema, fieldGroups, matchFieldFilter, viewDef, type CellMap
 // Tasks: numbered rows, grouping, Filters (quick filters + field filters),
 // Sort, Groups, Options (columns) and Search. Pure and unit-tested; the
 // table (features/work/TaskGrid.tsx) draws what this returns.
-export const GRID_COLUMNS = ["due", "assignee", "collaborators", "createdBy", "projects", "visibility", "priority", "tags"] as const;
+// v1.93.0 (D-446, owner 27 Nov 2026): + Start date, Completed date and Last
+// comment in the column library.
+export const GRID_COLUMNS = ["due", "assignee", "collaborators", "createdBy", "projects", "visibility", "priority", "tags", "start", "completed", "lastComment"] as const;
 export type GridColumn = (typeof GRID_COLUMNS)[number];
 export const COLUMN_LABEL: Record<GridColumn, string> = {
+  start: "Start date",
+  completed: "Completed date",
+  lastComment: "Last comment",
   due: "Due date",
   assignee: "Assignee",
   collaborators: "Collaborators",
@@ -23,13 +28,14 @@ export const COLUMN_LABEL: Record<GridColumn, string> = {
 // all columns"): + collaborators, projects, visibility and tags, so every column
 // of the table sorts from its title (with `dir`).
 // v1.61.0 (D-367, spec PRJ-04): + "modified" (last changed).
-export const SORTS = ["none", "due", "start", "assignee", "createdBy", "createdOn", "modified", "completedOn", "likes", "alpha", "priority", "collaborators", "projects", "visibility", "tags"] as const;
+// v1.93.0 (D-446): + "lastComment" (the newest comment first).
+export const SORTS = ["none", "due", "start", "assignee", "createdBy", "createdOn", "modified", "completedOn", "likes", "alpha", "priority", "collaborators", "projects", "visibility", "tags", "lastComment"] as const;
 export type GridSort = (typeof SORTS)[number];
 // v1.72.0 (D-387, spec PM §3.8.2): the Sort menu's order: None, then Start
 // date, Due date, Assignee, Created by, Created on, Last modified, Completed on,
 // Likes, Alphabetical, then the built-in fields (custom fields follow them),
 // Project last. Only the sorts a table offers are kept.
-export const SORT_MENU_ORDER: readonly GridSort[] = ["none", "start", "due", "assignee", "createdBy", "createdOn", "modified", "completedOn", "likes", "alpha", "priority", "collaborators", "tags", "visibility", "projects"];
+export const SORT_MENU_ORDER: readonly GridSort[] = ["none", "start", "due", "assignee", "createdBy", "createdOn", "modified", "completedOn", "lastComment", "likes", "alpha", "priority", "collaborators", "tags", "visibility", "projects"];
 export function sortMenu(offered: readonly GridSort[]): { before: GridSort[]; after: GridSort[] } {
   const ordered = SORT_MENU_ORDER.filter((sort) => offered.includes(sort));
   return { before: ordered.filter((sort) => sort !== "projects"), after: ordered.filter((sort) => sort === "projects") };
@@ -50,6 +56,7 @@ export const SORT_LABEL: Record<GridSort, string> = {
   projects: "Projects",
   visibility: "Task visibility",
   tags: "Tags",
+  lastComment: "Last comment",
 };
 // v1.57.3 (D-341): "department" = the assignee's department.
 // v1.76.0 (D-401): "mySection" = Task Summary's "My sections" (the person's own sections).
@@ -93,7 +100,25 @@ export function passesWindow(day: string | null, value: string): boolean | null 
 }
 export const COMPLETED_RANGES = ["none", "all", "today", "week", "month"] as const;
 
-export const gridConfigSchema = z.object({
+// v1.93.0 (D-446, D-447): the column library's default view leaves Created by
+// out (it can be added back from Options). `v` is the config's version: a view
+// saved before v1.93.0 (no `v`) is read with Created by hidden as well, so every
+// table shows the new defaults; what its owner hid stays hidden, and Start date,
+// Completed date and Last comment show (they weren't in the library before).
+export const DEFAULT_HIDDEN: readonly GridColumn[] = ["createdBy"];
+export const GRID_CONFIG_VERSION = 2;
+// A column key of the order: a built-in column or a custom field ("f12").
+const COLUMN_KEY = /^(?:[a-zA-Z]{2,20}|f\d{1,10})$/;
+export function upgradeGridConfig(raw: unknown): unknown {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return raw;
+  const value = raw as Record<string, unknown>;
+  if (value.v === GRID_CONFIG_VERSION) return raw;
+  const hidden = Array.isArray(value.hidden) ? value.hidden : [];
+  return { ...value, v: GRID_CONFIG_VERSION, hidden: [...new Set([...hidden, ...DEFAULT_HIDDEN])] };
+}
+
+const gridConfigObject = z.object({
+  v: z.literal(GRID_CONFIG_VERSION).default(GRID_CONFIG_VERSION),
   incomplete: z.boolean().default(true),
   completed: z.enum(COMPLETED_RANGES).default("none"),
   dueThisWeek: z.boolean().default(false),
@@ -106,7 +131,11 @@ export const gridConfigSchema = z.object({
   dir: z.enum(["asc", "desc"]).default("asc"),
   sortField: z.number().int().positive().nullable().default(null),
   group: z.enum(GROUPS).default("none"),
-  hidden: z.array(z.enum(GRID_COLUMNS)).max(8).default([]),
+  hidden: z.array(z.enum(GRID_COLUMNS)).max(GRID_COLUMNS.length * 2).default([]),
+  // v1.93.0 (D-446): the view's column order (built-in columns and custom
+  // fields, "f12"); empty = the table's own order. Columns not listed keep
+  // their place after the column they follow by default (orderColumns).
+  columnOrder: z.array(z.string().regex(COLUMN_KEY)).max(520).default([]),
   search: z.string().max(100).default(""),
   // v1.61.0 (D-367): the section menu's "Hide empty groups", saved with the view.
   hideEmpty: z.boolean().default(false),
@@ -116,8 +145,61 @@ export const gridConfigSchema = z.object({
   groupField: z.number().int().positive().nullable().default(null),
   hiddenFields: z.array(z.number().int().positive()).max(500).default([]),
 });
-export type GridConfig = z.infer<typeof gridConfigSchema>;
+export const gridConfigSchema = z.preprocess(upgradeGridConfig, gridConfigObject);
+export type GridConfig = z.infer<typeof gridConfigObject>;
 export const DEFAULT_GRID: GridConfig = gridConfigSchema.parse({});
+
+// v1.93.0 (D-446): the columns in the view's order. Keys the order lists come
+// first in that order; a key it doesn't list (a new column or field) goes just
+// after the column it follows in `keys` (the table's own order), or first.
+export function orderColumns<T extends string>(keys: readonly T[], order: readonly string[]): T[] {
+  const known = new Set<string>(keys);
+  const out: T[] = [];
+  for (const key of order) if (known.has(key) && !out.includes(key as T)) out.push(key as T);
+  keys.forEach((key, index) => {
+    if (out.includes(key)) return;
+    let at = 0;
+    for (let back = index - 1; back >= 0; back -= 1) {
+      const place = out.indexOf(keys[back]!);
+      if (place >= 0) {
+        at = place + 1;
+        break;
+      }
+    }
+    out.splice(at, 0, key);
+  });
+  return out;
+}
+// Move one column by delta (-1 left, +1 right) past its shown neighbour; the
+// full order (hidden columns keep their places) is what's kept.
+export function moveColumn(order: readonly string[], shown: readonly string[], key: string, delta: -1 | 1): string[] {
+  const from = shown.indexOf(key);
+  const neighbour = shown[from + delta];
+  if (from < 0 || neighbour === undefined) return [...order];
+  return delta < 0 ? placeColumn(order, key, neighbour) : placeColumn(order, key, null, neighbour);
+}
+// Put `key` just before `beforeKey`, else just after `afterKey`, else last.
+export function placeColumn(order: readonly string[], key: string, beforeKey: string | null, afterKey: string | null = null): string[] {
+  if (!order.includes(key) || key === beforeKey || key === afterKey) return [...order];
+  const rest = order.filter((item) => item !== key);
+  if (beforeKey !== null && rest.includes(beforeKey)) rest.splice(rest.indexOf(beforeKey), 0, key);
+  else if (afterKey !== null && rest.includes(afterKey)) rest.splice(rest.indexOf(afterKey) + 1, 0, key);
+  else rest.push(key);
+  return rest;
+}
+
+// v1.93.0 (D-448): the last comment as a list cell shows it: plain text (the
+// formatting marks and mention codes taken out), on one line.
+export function commentPreview(body: string): string {
+  return body
+    .replace(/@\[([^\]\n]{1,80})\]\(user:\d{1,10}\)/g, "@$1")
+    .replace(/\[([^\]\n]{1,200})\]\((?:https?:\/\/|mailto:)[^\s)]{1,500}\)/g, "$1")
+    .replace(/^[ \t]*(?:[-*\u2022]|\d{1,3}[.)]|>|#{1,3})[ \t]+/gm, "")
+    .replace(/\*\*|~~|\+\+|`/g, "")
+    .replace(/(^|\s)[_*]([^_*\n]+)[_*](?=\s|$|[.,!?;:])/g, "$1$2")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 export function parseGridConfig(raw: unknown): GridConfig {
   const parsed = gridConfigSchema.safeParse(typeof raw === "string" ? safeJson(raw) : raw);
   return parsed.success ? parsed.data : DEFAULT_GRID;
@@ -143,6 +225,8 @@ export interface GridTask {
   updatedAt?: string | null; // v1.61.0 (D-367): the Modified sort
   parentId?: number | null; // v1.61.0: set on a subtask shown under its task
   completedAt: string | null;
+  // v1.93.0 (D-448): the task's newest comment (replies too), deleted ones left out.
+  lastComment?: { text: string; authorName: string; at: string } | null;
   likes: number;
   comments: number;
   subtasks: number;
@@ -256,8 +340,9 @@ const SORT_VALUE: Record<Exclude<GridSort, "none">, (task: GridTask) => unknown>
   projects: (task) => task.projects.map((project) => project.name).join(", "),
   visibility: (task) => (task.projects.length ? `${task.projects[0]!.name} members` : "Collaborators"),
   tags: (task) => task.tags.map((tag) => tag.name).join(", "),
+  lastComment: (task) => task.lastComment?.at ?? null,
 };
-const NATURAL_DESC: ReadonlySet<GridSort> = new Set(["createdOn", "modified", "completedOn", "likes"]);
+const NATURAL_DESC: ReadonlySet<GridSort> = new Set(["createdOn", "modified", "completedOn", "likes", "lastComment"]);
 
 export function sortGridRows(rows: readonly GridTask[], config: Pick<GridConfig, "sort" | "dir" | "sortField">, values?: CellMap): GridTask[] {
   const manual = [...rows].sort((a, b) => a.position - b.position || a.id - b.id);
@@ -285,6 +370,9 @@ const COLUMN_SORT: Record<GridColumn | "name", Exclude<GridSort, "none">> = {
   visibility: "visibility",
   priority: "priority",
   tags: "tags",
+  start: "start",
+  completed: "completedOn",
+  lastComment: "lastComment",
 };
 export function columnSortState(config: Pick<GridConfig, "sort" | "dir" | "sortField">, column: SortableColumn): SortDir | null {
   if (typeof column === "number") return config.sortField === column ? config.dir : null;

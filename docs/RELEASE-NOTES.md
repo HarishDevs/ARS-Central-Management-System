@@ -1,5 +1,17 @@
 # Release notes
 
+## v1.93.0 (27 Nov 2026): task table columns and dependency search
+The owner's five requests for Project Management (27 Nov 2026; D-446..D-449). **No migration, no new setting, no new data collected** (the column order is kept inside the saved view, like the columns you hide).
+
+- **Move columns** in every task table (a project's List, Task Summary, task search): drag a column title onto another, or focus a title and press **Alt+←** / **Alt+→**, or use the **‹ ›** arrows in **Options › Columns** (a custom field's column menu has **Move left / Move right**). **Reset column order** puts the table's own order back. The order is part of the view: a project tab shows **Unsaved changes** until **Save view**; Task Summary tabs keep it by themselves; task search keeps it while the page is open. The Task Summary CSV follows the tab's column order.
+- **Created by is no longer shown by default.** It stays in the column library: tick it in **Options › Columns** (or Task Summary's **Customise › Fields**).
+- **Start date and Completed date are shown by default.** Start date can be changed in the cell like the due date (where you may change the task; a milestone has none); Completed date shows the day a task was completed.
+- **Last comment** (new column, shown by default): the newest comment on the task (a reply counts; deleted comments don't), cut to fit, with who wrote it and when; hover it for the whole text. It sorts newest first from its title or the Sort menu.
+- **Views saved before this release** keep every column you hid, show the three new columns, and leave Created by out; tick it back if you want it.
+- **Dependencies follow the project.** **Add dependency** now lists the tasks of this task's project (a subtask: its top task's project). Tick **Whole portfolio** to include the other projects of the portfolio(s) the project is in, and the portfolios inside them (when IT has switched portfolios on). A task in no project lists only your own tasks in no project. Visibility still applies. A new link to a task outside these is refused by the server; links made before stay as they are and can still be changed or removed.
+
+**Owner steps:** GoDaddy → **Update Preview**, check the preview (open a project's List: the Start date, Completed date and Last comment columns; Options › Columns), then **Publish to Live**. No migration; no setting; no manual SQL.
+
 ## v1.92.2 (27 Nov 2026): the build fits GoDaddy's memory
 GoDaddy's **Update Preview** for v1.92.1 stopped with "JavaScript heap out of memory" (the build worker was stopped, SIGABRT) (D-445). **Nothing changes for users: no screen, data, setting, package or migration changes.**
 

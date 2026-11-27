@@ -113,7 +113,7 @@ export default async function WorkSearchPage({ searchParams }: { searchParams: P
               rows={result.items.map((task) => toGridTask(task, user.id, false))}
               initial={gridInitial}
               syncUrl
-              columns={["assignee", "due", "priority", "projects", "tags", "createdBy", "collaborators"]} // v1.47.0: + Priority
+              columns={["assignee", "start", "due", "priority", "projects", "tags", "createdBy", "collaborators", "completed", "lastComment"]} // v1.47.0: + Priority; v1.93.0 (D-446): + Start, Completed, Last comment (Created by off by default)
               groupsAllowed={["assignee", "createdBy", "project", "due", "priority", "kind"]}
               people={people}
               projects={projects.map((project) => ({ id: project.id, name: project.name }))}

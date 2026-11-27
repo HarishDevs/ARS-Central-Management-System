@@ -50,8 +50,9 @@ export async function typedDependencyAction(taskId: number, otherId: number, rol
   return run("dependency", await actor(), (me) => schedule.setTypedDependency({ taskId: task, otherId: other, role, type: String(type), on: on === true }, me));
 }
 
-export async function dependencyTargetsAction(q: string, excludeId: number | null): Promise<ActionResult & { value?: { id: number; taskNo: string; title: string; projectName: string | null; dueAt: string | null; status: string }[] }> {
-  return run("targets", await actor(), (me) => schedule.dependencyTargets(String(q ?? ""), me, id(excludeId)), true);
+// v1.93.0 (D-449): scoped to the task's project (`wide`: its portfolio); see dependency-scope.ts.
+export async function dependencyTargetsAction(q: string, taskId: number | null, wide = false): Promise<ActionResult & { value?: schedule.DependencyTargets }> {
+  return run("targets", await actor(), (me) => schedule.dependencyTargets(String(q ?? ""), me, id(taskId), wide === true), true);
 }
 
 export async function projectScheduleAction(projectId: number, input: { mode?: string; skipOffDays?: boolean }): Promise<ActionResult> {

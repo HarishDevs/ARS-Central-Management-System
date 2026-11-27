@@ -197,7 +197,7 @@ test("My sections with rules, the pane's section picker, and the CSV download", 
   const [download] = await Promise.all([page.waitForEvent("download"), actions.getByRole("menuitem", { name: /^CSV/ }).click()]);
   expect(download.suggestedFilename()).toMatch(/^task-summary-Pending-Tasks-\d{4}-\d{2}-\d{2}\.csv$/);
   const text = await readFile((await download.path())!, "utf8");
-  expect(text).toContain("Task no.,Task,Due date");
+  expect(text).toContain("Task no.,Task,Start date,Due date"); // v1.93.0 (D-446): Start date is a default column
   expect(text).toContain(T("far"));
   expect(text).toContain("Later");
 });

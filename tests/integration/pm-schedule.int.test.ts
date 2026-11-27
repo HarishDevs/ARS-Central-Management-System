@@ -105,11 +105,17 @@ describe("typed dependencies", () => {
     const extra = await task(`Spoke extra ${tag}`, null, "2027-04-02");
     expect(await link(hub, extra)).toMatchObject({ ok: false, message: "A task has at most 30 dependencies." });
   });
-  it("searches tasks across projects with the project name, only those the person sees", async () => {
-    const found = await schedule.dependencyTargets(`Spoke extra ${tag}`, who(owner), null);
-    expect(found.ok && found.value[0]).toMatchObject({ title: `Spoke extra ${tag}`, projectName: `Schedule ${tag}` });
+  // v1.93.0 (D-449, supersedes BR-PROJ-041): the search is scoped to the task's
+  // project (see v193-dependency-scope for portfolios and tasks in no project).
+  it("searches the task's own project with the project name, only tasks the person sees", async () => {
+    const anchor = await task(`Anchor ${tag}`, null, "2027-04-03");
+    const found = await schedule.dependencyTargets(`Spoke extra ${tag}`, who(owner), anchor);
+    expect(found.ok && found.value.items[0]).toMatchObject({ title: `Spoke extra ${tag}`, projectName: `Schedule ${tag}` });
+    expect(found.ok && found.value).toMatchObject({ kind: "PROJECT", wide: false, canWiden: false });
+    // The outsider can't see the anchor task at all.
+    expect((await schedule.dependencyTargets(`Spoke extra ${tag}`, who(outsider), anchor)).ok).toBe(false);
     const none = await schedule.dependencyTargets(`Spoke extra ${tag}`, who(outsider), null);
-    expect(none.ok && none.value).toEqual([]);
+    expect(none.ok && none.value.items).toEqual([]);
   });
   it("tells the waiting task's assignee per type (SF never; FS when the last holding link is done)", async () => {
     const a = await task(`Done A ${tag}`, null, "2027-03-01");

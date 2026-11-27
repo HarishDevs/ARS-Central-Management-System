@@ -13,7 +13,7 @@ import type { TaskActor } from "@/server/modules/tasks";
 import type { WorkViewer } from "@/server/work/access";
 import { getManagerMap } from "@/lib/db/repositories/admin-users.repository";
 import { chainAbove } from "@/server/work/hierarchy";
-import { parseGridConfig } from "@/server/work/grid";
+import { GRID_CONFIG_VERSION, parseGridConfig } from "@/server/work/grid";
 import { FIELDS_SETTING, parseSummaryFields, shareInputSchema, shareProblem, summaryAccessOf, summaryFieldsSchema, withFields, type SummaryAccess, type SummaryFields } from "@/server/work/summary-views";
 
 // v1.77.0 (D-404, owner's Task Summary decision 3): who may open whose Task
@@ -134,7 +134,8 @@ export async function saveSummaryFields(input: unknown, actor: TaskActor): Promi
   if (!parsed.success) return { ok: false, message: "Those columns can't be saved." };
   const fields: SummaryFields = { hidden: [...new Set(parsed.data.hidden)], hiddenFields: [...new Set(parsed.data.hiddenFields)] };
   const changed = await withTransaction(async (db) => {
-    await setUserSetting(actor.id, FIELDS_SETTING, JSON.stringify(fields), db);
+    // v1.93.0 (D-447): stored with the version, so Created by ticked back on stays on.
+    await setUserSetting(actor.id, FIELDS_SETTING, JSON.stringify({ ...fields, v: GRID_CONFIG_VERSION }), db);
     let tabs = 0;
     if (apply) {
       const [rows] = await db.query<Row[]>("SELECT id, config_json FROM work_views WHERE scope = 'MY_TASKS' AND scope_id = ? AND view_type = 'LIST'", [actor.id]);

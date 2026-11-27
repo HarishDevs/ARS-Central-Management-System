@@ -7,7 +7,8 @@ import { addableViews, buildStrip, catalogueGroups, tabMenuEntries, VIEW_CATALOG
 describe("Sort menu order", () => {
   it("lists None, the spec's sorts in order, then Project last", () => {
     const { before, after } = sortMenu(SORTS);
-    expect(before.map((sort) => SORT_LABEL[sort]).slice(0, 10)).toEqual(["None", "Start date", "Due date", "Assignee", "Created by", "Created on", "Last modified", "Completed on", "Likes", "Alphabetical"]);
+    // v1.93.0 (D-446): + Last comment after Completed on.
+    expect(before.map((sort) => SORT_LABEL[sort]).slice(0, 11)).toEqual(["None", "Start date", "Due date", "Assignee", "Created by", "Created on", "Last modified", "Completed on", "Last comment", "Likes", "Alphabetical"]);
     expect(after).toEqual(["projects"]);
     expect([...before, ...after].sort()).toEqual([...SORTS].sort());
   });

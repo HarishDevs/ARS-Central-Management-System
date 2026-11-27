@@ -149,7 +149,8 @@ test("List toolbar: Add task ▾ (Task, Milestone, Section), a Sort menu in the 
   const sort = grid.getByTestId("sort-menu");
   await trigger(sort).press("Enter");
   const order = await names(sort);
-  expect(order.slice(0, 10)).toEqual(["None", "Start date", "Due date", "Assignee", "Created by", "Created on", "Last modified", "Completed on", "Likes", "Alphabetical"]);
+  // v1.93.0 (D-446): + Last comment after Completed on.
+  expect(order.slice(0, 11)).toEqual(["None", "Start date", "Due date", "Assignee", "Created by", "Created on", "Last modified", "Completed on", "Last comment", "Likes", "Alphabetical"]);
   expect(order.at(-1)).toBe("Projects");
   await sort.getByRole("menuitemradio", { name: "Due date" }).click();
   await expect(sort.getByRole("menuitemradio", { name: "Due date" })).toHaveAttribute("aria-checked", "true");
@@ -167,9 +168,9 @@ test("List toolbar: Add task ▾ (Task, Milestone, Section), a Sort menu in the 
   await expect(grid.getByTestId("group-by")).toHaveValue("section");
   await page.keyboard.press("Escape");
 
-  // Options: rows in the spec's order; Show/hide columns opens its own page.
+  // Options: rows in the spec's order; Columns (v1.93.0, D-446: was Show/hide columns; it also moves them) opens its own page.
   await grid.getByTestId("options-menu").locator("summary").click();
-  await expect(grid.getByTestId("options-menu").locator("[data-testid$='-row']")).toHaveText([/^Show\/hide columns/, /^Filters/, /^Sorts/, /^Groups/, /^Rows/]);
+  await expect(grid.getByTestId("options-menu").locator("[data-testid$='-row']")).toHaveText([/^Columns/, /^Filters/, /^Sorts/, /^Groups/, /^Rows/]);
   await grid.getByTestId("options-columns-row").click();
   await expect(grid.getByTestId("options-columns")).toContainText("Assignee");
   await grid.getByTestId("options-back").click();

@@ -67,10 +67,13 @@ describe("sharing", () => {
 
 describe("Customise › Fields", () => {
   it("parses the stored choice and drops junk", () => {
-    expect(parseSummaryFields(null)).toEqual({ hidden: [], hiddenFields: [] });
-    expect(parseSummaryFields("not json")).toEqual({ hidden: [], hiddenFields: [] });
-    expect(parseSummaryFields(JSON.stringify({ hidden: ["priority", "priority"], hiddenFields: [4] }))).toEqual({ hidden: ["priority"], hiddenFields: [4] });
-    expect(parseSummaryFields(JSON.stringify({ hidden: ["assignee"] }))).toEqual({ hidden: [], hiddenFields: [] });
+    // v1.93.0 (D-447): Created by is off by default, and a choice stored before v1.93.0 (no "v") is read with it off too.
+    expect(parseSummaryFields(null)).toEqual({ hidden: ["createdBy"], hiddenFields: [] });
+    expect(parseSummaryFields("not json")).toEqual({ hidden: ["createdBy"], hiddenFields: [] });
+    expect(parseSummaryFields(JSON.stringify({ hidden: ["priority", "priority"], hiddenFields: [4] }))).toEqual({ hidden: ["priority", "createdBy"], hiddenFields: [4] });
+    expect(parseSummaryFields(JSON.stringify({ hidden: ["assignee"] }))).toEqual({ hidden: ["createdBy"], hiddenFields: [] });
+    // Saved from v1.93.0 on: exactly as chosen (Created by ticked back on stays on).
+    expect(parseSummaryFields(JSON.stringify({ v: 2, hidden: ["priority"], hiddenFields: [] }))).toEqual({ hidden: ["priority"], hiddenFields: [] });
   });
   it("new tabs and Reset start with the chosen columns; a stored tab keeps its filters", () => {
     expect(summaryListStart({ hidden: ["visibility"], hiddenFields: [] })).toEqual({ ...DEFAULT_GRID, group: "section", hidden: ["visibility"], hiddenFields: [] });

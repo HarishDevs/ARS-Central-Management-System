@@ -19,6 +19,7 @@ import { projectAbilities, STATUS_KIND_LABEL, STATUS_KINDS } from "@/server/work
 import { dependencyLoop, indiaDay, MAX_DEPENDENCIES } from "@/server/work/rules";
 import { rightsOn, workViewer } from "@/server/work/task-access";
 import { criticalPath, type CpmResult } from "@/server/work/critical-path";
+import { dependencyScope, inDependencyScope, OUT_OF_SCOPE, scopeClause, scopeNote, type ScopeKind } from "@/server/work/dependency-scope";
 import { planningBasis } from "@/server/work/durations";
 import {
   DEP_TYPE_LABEL,
@@ -102,6 +103,9 @@ export async function setTypedDependency(input: { taskId: number; otherId: numbe
   const family = new Set([...(await repo.ancestors(succ.task.id)).map((item) => item.id), ...(await repo.descendants(succ.task.id)).map((item) => item.id)]);
   if (pred.task.id === succ.task.id) return fail("A task can't wait for itself.", { other: "Choose another task." });
   if (family.has(pred.task.id)) return fail("A task can't wait for its own parent or subtasks.", { other: "Choose a task outside this one's family." });
+  // v1.93.0 (D-449): a new link stays inside the task's project (or portfolio);
+  // an existing link (made before) can still change type or be removed.
+  const reachable = await inDependencyScope(here.task.id, other.task.id, actor);
   const problem = await withTransaction(async (connection) => {
     // Lock both tasks so two people linking at once can't make a loop together.
     await connection.query("SELECT id FROM tasks WHERE id IN (?) ORDER BY id FOR UPDATE", [[pred.task.id, succ.task.id]]);
@@ -112,6 +116,7 @@ export async function setTypedDependency(input: { taskId: number; otherId: numbe
       await appendTaskEvent(succ.task.id, { actorId: actor.id, type: "DEPENDENCY_ADDED", body: `Now waits for ${pred.task.taskNo} as ${DEP_TYPE_LABEL[type]}` }, connection);
       return null;
     }
+    if (!reachable) return OUT_OF_SCOPE;
     for (const id of [pred.task.id, succ.task.id]) if ((await repo.countDependencies(id, connection)) >= MAX_DEPENDENCIES) return `A task has at most ${MAX_DEPENDENCIES} dependencies.`;
     if (dependencyLoop(pred.task.id, succ.task.id, await repo.dependencyEdges(connection))) return "This would create a circular dependency.";
     await connection.query("INSERT INTO task_dependencies (blocker_task_id, blocked_task_id, dep_type, lag_days, created_by) VALUES (?, ?, ?, 0, ?)", [pred.task.id, succ.task.id, type, actor.id]);
@@ -124,23 +129,39 @@ export async function setTypedDependency(input: { taskId: number; otherId: numbe
   return { ok: true, value: { type }, message: `${succ.task.taskNo} now waits for ${pred.task.taskNo} (${DEP_TYPE_LABEL[type]}).` };
 }
 
-// Tasks the person can see whose number or name matches (spec BR-PROJ-041:
-// across every project they can see), each with its first project's name.
-export async function dependencyTargets(q: string, actor: TaskActor, excludeId: number | null): Promise<Result<{ id: number; taskNo: string; title: string; projectName: string | null; dueAt: string | null; status: string }[]>> {
+// v1.93.0 (D-449, supersedes spec BR-PROJ-041): the tasks a task's dependency
+// may point to, whose number or name matches: the task's own project(s) first;
+// `wide` widens to its portfolio(s); a task in no project: the person's own
+// tasks in no project. Only tasks the person can see; each with a project name
+// (one of the task's own projects first).
+export type DependencyTarget = { id: number; taskNo: string; title: string; projectName: string | null; dueAt: string | null; status: string };
+export type DependencyTargets = { items: DependencyTarget[]; kind: ScopeKind; wide: boolean; canWiden: boolean; note: string };
+export async function dependencyTargets(q: string, actor: TaskActor, taskId: number | null, wideAsked = false): Promise<Result<DependencyTargets>> {
   if (!(await planningOn(actor))) return fail(OFF);
+  if (taskId && !(await taskFor(taskId, actor))) return fail(NOT_FOUND);
+  const scope = await dependencyScope(taskId, actor);
+  const canWiden = scope.portfolioProjectIds !== null;
+  const wide = wideAsked && canWiden;
+  const meta = { kind: scope.kind, wide, canWiden, note: scopeNote(scope, wide) };
   const text = q.replace(/\s+/g, " ").trim().slice(0, 80);
-  if (text.length < 2) return { ok: true, value: [] };
+  if (text.length < 2) return { ok: true, value: { items: [], ...meta } };
   const viewer = await workViewer(actor);
   const visible = repo.visibleTaskClause(viewer);
+  const inside = scopeClause(scope, wide, actor.id);
+  const own = scope.projectIds.length ? scope.projectIds : [0];
   const like = `%${text.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
   const [rows] = await getDbPool().query<RowDataPacket[]>(
     `SELECT t.id, t.task_no, t.title, t.status, t.due_at,
-       (SELECT p.name FROM task_projects tp JOIN projects p ON p.id = tp.project_id AND p.deleted_at IS NULL WHERE tp.task_id = t.id ORDER BY p.name LIMIT 1) AS project_name
-     FROM tasks t JOIN users a ON a.id = t.assignee_id WHERE ${visible.sql} AND t.id <> ? AND (t.task_no = ? OR t.title LIKE ?)
-     ORDER BY t.status IN ('COMPLETED', 'CANCELLED'), t.updated_at DESC LIMIT 8`,
-    [...visible.params, excludeId ?? 0, text.toUpperCase(), like],
+       (SELECT p.name FROM task_projects tp JOIN projects p ON p.id = tp.project_id AND p.deleted_at IS NULL WHERE tp.task_id IN (t.id, COALESCE(t.root_task_id, t.id)) ORDER BY tp.project_id IN (?) DESC, p.name LIMIT 1) AS project_name,
+       EXISTS (SELECT 1 FROM task_projects op WHERE op.task_id IN (t.id, COALESCE(t.root_task_id, t.id)) AND op.project_id IN (?)) AS same_project
+     FROM tasks t JOIN users a ON a.id = t.assignee_id WHERE ${visible.sql} AND ${inside.sql} AND t.id <> ? AND (t.task_no = ? OR t.title LIKE ?)
+     ORDER BY same_project DESC, t.status IN ('COMPLETED', 'CANCELLED'), t.updated_at DESC LIMIT 8`,
+    [own, own, ...visible.params, ...inside.params, taskId ?? 0, text.toUpperCase(), like],
   );
-  return { ok: true, value: rows.map((row) => ({ id: num(row.id), taskNo: String(row.task_no), title: String(row.title), projectName: row.project_name ? String(row.project_name) : null, dueAt: row.due_at ? (row.due_at as Date).toISOString() : null, status: String(row.status) })) };
+  return {
+    ok: true,
+    value: { items: rows.map((row) => ({ id: num(row.id), taskNo: String(row.task_no), title: String(row.title), projectName: row.project_name ? String(row.project_name) : null, dueAt: row.due_at ? (row.due_at as Date).toISOString() : null, status: String(row.status) })), ...meta },
+  };
 }
 
 // Links among a set of tasks (a project's view) and, for the Gantt's

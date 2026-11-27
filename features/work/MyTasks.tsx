@@ -415,7 +415,7 @@ export function MyTasksGrid({
     <TaskGrid
       rows={rows}
       initial={initial}
-      columns={["due", "priority", "collaborators", "createdBy", "projects", "visibility"]} // v1.52.1 (owner): Priority beside the due date
+      columns={[...SUMMARY_COLUMNS]} // v1.52.1 (owner): Priority beside the due date; v1.93.0 (D-446): the library in summary-views (Start, Completed, Last comment; Created by off by default)
       groupsAllowed={mySections ? ["section", "mySection", "createdBy", "project", "due", "priority", "kind"] : ["section", "assignee", "createdBy", "project", "due", "priority", "kind"]}
       groupLabels={mySections ? { section: "Date sections" } : undefined}
       sortsHidden={["assignee"]}

@@ -2266,7 +2266,7 @@ flowchart LR
 ```mermaid
 flowchart TD
   A[Task pane: Add dependency] --> B{Blocked by or Blocking}
-  B --> C[Type part of a name or number → tasks from every project the person sees, with the project]
+  B --> C[Type part of a name or number → tasks of this task's project first (v1.93.0, F-PM-DEP-SCOPE; was: every project the person sees), with the project]
   C --> D[Pick the type: FS default, SS, FF, SF]
   D --> E[Server: switch on? planning right on the waiting task, sight of the other? same family? cap 30 each? loop?]
   E -- refused --> X[Message: e.g. This would create a circular dependency]
@@ -3031,3 +3031,44 @@ flowchart TD
 - **Updates to collaborators** (active users, once each, never the actor, never someone already told): assigned / reassigned (TICKET_UPDATED), work started and resolved (TICKET_UPDATED), reopened (TICKET_REOPENED), confirmed or auto-closed (TICKET_CLOSED), public remarks (TICKET_COMMENT; internal remarks never).
 - **Collaborating → Tickets:** `?tab=tickets`; count; Search (number or subject); sort on Ticket, Category, Assigned to, Status, Updated, You were added; 25 a page; phone cards; a row opens `/users/tickets/<id>?from=/users/collaborating?tab=tickets…` and **← Back to Collaborating** returns to it. A collaborator-only viewer without `?from=` gets Collaborating as the breadcrumb.
 - Status, dashboards, the board and analytics are unchanged (collaborators never change a ticket's state).
+
+## F-PM-DEP-SCOPE: Which tasks a dependency may point to (v1.93.0, D-449; supersedes BR-PROJ-041)
+Owner (27 Nov 2026): "all dependencies based task should show based on portfolio or project"; chose **Picker filtered**.
+```mermaid
+flowchart TD
+  A[Task pane: Add dependency, the picker opens] --> S[Server: dependencyScope of this task]
+  S --> P{Is the task, or a subtask's top task, in a project?}
+  P -- no --> OWN[List: the person's own tasks, assigned to or made by them, in no project; no switch]
+  P -- yes --> PR[List: tasks of the same projects; note: Tasks in this task's project]
+  PR --> W{pm_portfolios on, and the project in a live portfolio?}
+  W -- no --> NOSW[No Whole portfolio switch]
+  W -- yes --> SW[Switch: Whole portfolio]
+  SW -- ticked --> WIDE[List: every project of those portfolios and the portfolios nested below them; own project first]
+  OWN & PR & WIDE --> V[Only tasks the person can see, visibleTaskClause; at most 8; number or name match]
+  V --> PICK[Pick a task and the type]
+  PICK --> CHK{Server on save: new link inside the widest scope?}
+  CHK -- no --> REF[Refused: Choose a task in the same project or portfolio]
+  CHK -- yes --> OK[F-PM-DEPS checks: rights, family, cap 30, loop, then the link is saved]
+  OLD[A link made before v1.93.0 outside the scope] --> KEEP[Still listed; type can change; can be removed]
+```
+- The same check guards the older by-number form (planning switch off, `setDependency`) and the Gantt's drag-to-link.
+
+## F-TASK-COLUMNS: Task table columns and their order (v1.93.0, D-446..D-448)
+Owner (27 Nov 2026): column rearrangement; Created by out of the default view; Start date and Completed date by default; a field for the last comment.
+```mermaid
+flowchart TD
+  T[A task table: project List, Task Summary, task search] --> C[Columns: the table's library in its own order, then custom fields]
+  C --> O{View config has columnOrder?}
+  O -- no --> D[Table's own order]
+  O -- yes --> R[orderColumns: listed keys in that order; new columns after the one they follow]
+  C --> H{View config version}
+  H -- saved before v1.93.0, no v --> UP[Read with Created by hidden too; the owner's hidden columns kept; Start, Completed, Last comment shown]
+  H -- v 2 --> AS[As saved]
+  M[Move: drag a title onto another, Alt+← or Alt+→ on a focused title, Options › Columns arrows, a field column's menu] --> N[columnOrder updated; live region: X moved to column n of m]
+  N --> SV{Which table?}
+  SV -- project tab --> U[Unsaved changes, then Save view by owners and editors]
+  SV -- Task Summary tab --> AUTO[Saves itself after a second]
+  SV -- task search --> PAGE[Kept while the page is open]
+  RS[Options › Columns › Reset column order] --> D
+  LC[List query: decorate] --> Q[One batched query: newest non-deleted comment per task, replies count] --> CELL[Last comment cell: text cut to fit, author · relative time; full text on hover]
+```

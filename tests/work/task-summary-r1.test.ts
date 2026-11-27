@@ -133,9 +133,10 @@ describe("CSV", () => {
     const { csv, rows: count } = summaryCsv(groups, { hidden: ["collaborators", "priority"], group: "createdBy", groupField: null });
     const lines = csv.replace(/^﻿/, "").trim().split("\r\n");
     expect(count).toBe(2);
-    expect(lines[0]).toBe("Task no.,Task,Due date,Created by,Projects,Task visibility,Group,Status,Completed on");
-    expect(lines[1]).toBe('T-1,"Say ""hi"", then go",2026-11-25,Asha,Ops,Everyone at ARS,Asha,Open,');
-    expect(lines[2]).toBe("T-2,'=SUM(A1),2026-11-25,Asha,,Collaborators,Asha,Completed,2026-11-23");
+    // v1.93.0 (D-446): + Start date and Last comment (shown unless hidden); Completed on stays last.
+    expect(lines[0]).toBe("Task no.,Task,Start date,Due date,Created by,Projects,Task visibility,Last comment,Group,Status,Completed on");
+    expect(lines[1]).toBe('T-1,"Say ""hi"", then go",,2026-11-25,Asha,Ops,Everyone at ARS,,Asha,Open,');
+    expect(lines[2]).toBe("T-2,'=SUM(A1),,2026-11-25,Asha,,Collaborators,,Asha,Completed,2026-11-23");
     expect(summaryFileName("Today's DB", "2026-11-23")).toBe("task-summary-Todays-DB-2026-11-23.csv");
   });
 });

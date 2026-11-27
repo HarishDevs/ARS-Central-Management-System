@@ -1,6 +1,7 @@
 import { meetingOfTask } from "@/lib/db/repositories/meetings.repository";
 import { workMirrorLink } from "@/server/approvals/work-mirror";
 import "server-only";
+import { inDependencyScope, OUT_OF_SCOPE } from "@/server/work/dependency-scope";
 import { afterResponse } from "@/lib/http/after-response";
 import type { RowDataPacket } from "mysql2/promise";
 import type { Queryable } from "@/lib/db/client";
@@ -875,6 +876,8 @@ export async function setDependency(blockedId: number, blockerRef: string, on: b
   const chain = (await repo.ancestors(blockedId)).map((item) => item.id);
   const below = (await repo.descendants(blockedId)).map((item) => item.id);
   if (chain.includes(blocker.task.id) || below.includes(blocker.task.id)) return fail("A task can't wait for its own parent or subtasks.", { blocker: "Choose a task outside this one's family." });
+  // v1.93.0 (D-449): the same project / portfolio scope as the typed links.
+  if (!(await inDependencyScope(blockedId, blocker.task.id, actor))) return fail(OUT_OF_SCOPE, { blocker: OUT_OF_SCOPE });
   const result = await withTransaction(async (connection) => {
     if ((await repo.countDependencies(blockedId, connection)) >= MAX_DEPENDENCIES) return `A task has at most ${MAX_DEPENDENCIES} dependencies.`;
     if (dependencyLoop(blocker.task.id, blockedId, await repo.dependencyEdges(connection))) return "That would make the tasks wait for each other in a loop.";
