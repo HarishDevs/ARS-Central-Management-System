@@ -887,6 +887,9 @@
 
 ## 5. Work log (newest first)
 
+### 27 Nov 2026 (v1.94.0 released)
+- Commit `fac098dd0f1a5cd81e4999c4dd21bde1d9280b62` (tag **v1.94.0**, annotated) pushed to `main` after the chained checks (tag = HEAD; start script exactly `node scripts/database/restore-on-start.js && node scripts/database/migrate.js && node scripts/database/seed.js && next start`; origin/main 7e806153 an ancestor, fast-forward); `git ls-remote` shows main and the tag at fac098dd. **Owner:** GoDaddy → Update Preview (the migration runs on start; its optional trigger blocks are skipped with a warning), check Super Admin → Control panel, then Publish to Live.
+
 ### 27 Nov 2026 (v1.94.0: Super Admin full control, D-451..D-460)
 - **Request (owner, 27 Nov 2026):** "From Super admin should be able to create, Modify, Delete, archive anything like approval, task, Ticket at any level". **Owner's answers (27 Nov 2026), recorded verbatim as D-452 (Delete = "Bin, then purge"), D-453 (Modify = "Logged override"), D-458 (Create = "On behalf of"), D-451 (Scope = "All modules").** A security / authorisation change the owner explicitly approved; the permanent delete is the owner-approved exception for item content only (the audit log is never erased). Standing "go ahead with my recommendations".
 - **Delivered in v1.94.0:** approvals, tasks (incl. repeating) and tickets: Super Admin → Control → **Control panel** (find by number, title, person, module, state; item page with Modify, Archive / Un-archive, Move to Deleted items; Create on behalf) and **Deleted items** (restore with a reason; Delete permanently after 30 days with the number typed). **Deferred, not dropped:** PM projects and portfolios, meetings, forms / responses → v1.94.1+ (TD-025); TD-027..TD-031 logged; TD-026 closed after the rebase on v1.93.0.
