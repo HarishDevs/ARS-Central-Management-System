@@ -19,12 +19,20 @@ const nextConfig: NextConfig = {
   // D-016: reveal nothing about the stack or the build.
   poweredByHeader: false,
   productionBrowserSourceMaps: false,
-  eslint: { ignoreDuringBuilds: false },
-  typescript: { ignoreBuildErrors: false },
+  // v1.92.2 (D-445): GoDaddy's build container caps the Node heap at ~1.5 GB
+  // and `next build`'s own lint + type-check pass ran out of memory there
+  // (FATAL ERROR: heap out of memory, worker SIGABRT on Update Preview).
+  // Lint and types are not skipped: they are separate, required gates
+  // (`npm run lint`, `npm run typecheck`) in CI before `npm run build` and
+  // in every release check, so the build no longer repeats them.
+  eslint: { ignoreDuringBuilds: true },
+  typescript: { ignoreBuildErrors: true },
   env: FIREBASE_PUBLIC_CONFIG,
   // Attachments (D-072; D-330: 10 files): up to 10 files of 10 MB in one
   // upload. The middleware limit must match, or big bodies would be cut short.
   experimental: {
+    // v1.92.2 (D-445): lower webpack peak memory for GoDaddy's ~1.5 GB heap.
+    webpackMemoryOptimizations: true,
     serverActions: { bodySizeLimit: "102mb" },
     middlewareClientMaxBodySize: "102mb",
   },

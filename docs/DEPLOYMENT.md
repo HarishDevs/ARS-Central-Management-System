@@ -143,6 +143,8 @@ GoDaddy → **My Products** → **Node.js Hosting** (host.godaddy.com/hosting) �
 
 `npm start` already includes the migrations, so the default start command is right. Nothing needs changing.
 
+If a build log ends with **"JavaScript heap out of memory"**: since v1.92.2 (D-445) `npm run build` runs `scripts/next-build.mjs`, which gives the build 2.5 GB of heap (unless `NODE_OPTIONS` already sets `--max-old-space-size`), and `next build` skips its own lint and type pass (CI runs `npm run lint` and `npm run typecheck` as separate gates). If it still runs out, ask IT to raise the plan's memory, or set `NODE_OPTIONS=--max-old-space-size=3072` as a build-time variable.
+
 When a release changes packages (its release notes say so, e.g. v1.92.1), every deploy (**Update Preview** / **Publish**) runs the install command against `package-lock.json`, so nothing extra is needed. Only a cPanel **Setup Node.js App** deployment, which has no install step on deploy, needs **Run NPM Install** before **Restart**.
 
 ### D4. Add secrets (the screen in your screenshot)

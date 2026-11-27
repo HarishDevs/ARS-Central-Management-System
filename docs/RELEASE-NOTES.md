@@ -1,5 +1,14 @@
 # Release notes
 
+## v1.92.2 (27 Nov 2026): the build fits GoDaddy's memory
+GoDaddy's **Update Preview** for v1.92.1 stopped with "JavaScript heap out of memory" (the build worker was stopped, SIGABRT) (D-445). **Nothing changes for users: no screen, data, setting, package or migration changes.**
+
+- The build no longer repeats the lint and type checks inside `next build`. Those checks used the most memory, and they still run as their own required steps on GitHub (`npm run lint`, `npm run typecheck`) before every build and release, so nothing goes unchecked.
+- The build asks Node for 2.5 GB of memory instead of the default (about 1.5 GB on GoDaddy), unless the host already sets its own limit, and webpack's memory saving is switched on.
+- Checked on this computer under GoDaddy's limit (`--max-old-space-size=1536`): before, the same out-of-memory error at "Linting and checking validity of types"; after, the build completes.
+
+**Owner steps:** GoDaddy → **Update Preview** again (the log now says "Skipping validation of types" and "Skipping linting", then "Generating static pages (43/43)"), check the preview (sign in, open a request), then **Publish to Live**, then Super Admin → Connections → Email → **Send test email** (v1.92.1's email library change is in this release too). No migration; no setting; no manual SQL (never GoDaddy Database Manager → Import).
+
 ## v1.92.1 (26 Nov 2026): security updates
 Dependency security fixes and a working automatic check (CI) on GitHub (TD-016; D-442..D-444). **Nothing changes for users: no screen, data, setting or migration changes.**
 
