@@ -1,3 +1,4 @@
+import { isArchived } from "@/lib/db/repositories/archive.repository";
 import "server-only";
 import { findRequest, findWorkflowVersion } from "@/lib/db/repositories/approvals.repository";
 import { handlesRequest, listItemChecks, saveItemCheck, type ItemCheckEntity } from "@/lib/db/repositories/item-checks.repository";
@@ -54,6 +55,7 @@ export async function checklistsFor(entityType: ItemCheckEntity, entityId: numbe
 type Actor = { id: number; roles: readonly string[]; sessionId?: string | null; ipAddress?: string | null };
 
 export async function mayTickRequest(requestId: number, actor: Actor): Promise<boolean> {
+  if (await isArchived("REQUEST", requestId)) return false; // v1.94.0 (D-456)
   return isAdminActor(actor) || (await handlesRequest(requestId, actor.id));
 }
 

@@ -2,7 +2,8 @@ import { formatDate } from "@/lib/format/date";
 import { countPendingTasksFor, listPendingTasksFor } from "@/lib/db/repositories/approvals.repository";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Breadcrumbs } from "@/features/ui/Display";
+import { Badge, Breadcrumbs } from "@/features/ui/Display";
+import { itemFlags } from "@/lib/db/repositories/archive.repository";
 import { NavOwner } from "@/features/shell/nav-owner";
 import { RequestTaskForm } from "@/features/requests/RequestTaskForm";
 import { pendingWithFor } from "@/lib/db/repositories/approvals.repository";
@@ -98,9 +99,12 @@ export default async function RequestPage({
   // (server/authorization/page-access.ts). They read it and comment; every
   // other control is left out here, and the actions refuse them anyway.
   const commenter = !hasModule(user, "APPROVAL");
-  const view = commenter
-    ? { ...found, myTasks: [], canResume: false, canWithdraw: false, canReopen: false, canRecall: false, canAddFiles: false, canResubmit: false, canConsult: false, canFollowUp: false, canAnswerQuestion: false, approvedByMe: false }
-    : found;
+  // v1.94.0 (D-456): an archived request is read-only for everyone (its actions are refused on the server too).
+  const flags = await itemFlags("REQUEST", found.id);
+  const view =
+    commenter || flags.archivedAt
+      ? { ...found, myTasks: [], canResume: false, canWithdraw: false, canReopen: false, canRecall: false, canAddFiles: false, canResubmit: false, canConsult: false, canFollowUp: false, canAnswerQuestion: false, approvedByMe: false }
+      : found;
   // v1.57.0 (D-335): Item list fields, ticked as provided (confidential ones the viewer can't see are left out).
   const checklists = view.form.some((field) => field.type === "ITEM_LIST") ? await checklistsFor("REQUEST", view.id, view.form, view.rawFields) : [];
   const canTickItems = !commenter && checklists.length > 0 && (await mayTickRequest(view.id, user));
@@ -234,6 +238,8 @@ export default async function RequestPage({
                 {view.priority && !view.priority.hidden && <RequestPriorityBadge priority={view.priority} />}
                 <RequestStatusPill status={view.status} validUntil={view.validUntil} />
                 <ValidityBadge validUntil={view.validUntil} />
+                {flags.archivedAt && <Badge tone="neutral">Archived (read-only)</Badge>}
+                {flags.onBehalfByName && <Badge tone="info">Created by Super Admin on behalf of {view.requesterName}</Badge>}
                 {commenter && <CommenterBadge module="Approvals" />}
               </>
             }
@@ -660,6 +666,9 @@ export default async function RequestPage({
               <Link href={`/superadmin/data/danger-zone/requests?q=${encodeURIComponent(view.requestNo)}`} className="btn-secondary btn-compact inline-flex items-center gap-1.5">
                 <ShieldCheck aria-hidden="true" className="h-4 w-4" />
                 Super Admin
+              </Link>
+              <Link href={`/superadmin/control/request/${view.id}`} className="btn-secondary btn-compact" data-testid="control-panel-link">
+                Change, archive or delete
               </Link>
               <Hint text="Remove this request from every screen." align="end" />
               <DeleteRequestButton requestId={view.id} requestNo={view.requestNo} redirectTo="/superadmin/data/danger-zone/requests?tab=deleted" />

@@ -184,9 +184,13 @@ export interface TicketRecord {
   resolutionText: string | null;
   reopenCount: number;
   rowVersion: number;
+  // v1.94.0 (D-454, D-456, D-458)
+  deletedAt?: Date | null;
+  archivedAt?: Date | null;
+  onBehalfByName?: string | null;
 }
 const TICKET_SELECT = `SELECT k.*, c.name AS category_name, v.type_id, t.name AS type_name, r.name AS requester_name, r.login_id AS requester_login, r.email AS requester_email, d.name AS department_name,
-    a.name AS assignee_name, co.name AS coordinator_name, tk.task_no
+    a.name AS assignee_name, co.name AS coordinator_name, tk.task_no, (SELECT ob.name FROM users ob WHERE ob.id = k.created_on_behalf_by) AS on_behalf_by_name
   FROM tickets k
   JOIN ticket_categories c ON c.id = k.category_id
   JOIN module_type_versions v ON v.id = k.type_version_id
@@ -236,11 +240,16 @@ const toTicket = (row: Row): TicketRecord => ({
   resolutionText: row.resolution_text ? String(row.resolution_text) : null,
   reopenCount: num(row.reopen_count),
   rowVersion: num(row.row_version),
+  deletedAt: date(row.deleted_at),
+  archivedAt: date(row.archived_at),
+  onBehalfByName: row.on_behalf_by_name ? String(row.on_behalf_by_name) : null,
 });
 
-export async function findTicket(id: number, db: Queryable = getDbPool(), lock = false): Promise<TicketRecord | null> {
+// v1.94.0 (D-454): a ticket in the Super Admin bin is "not found" for everyone
+// (only the Super Admin control panel reads it, with includeBinned).
+export async function findTicket(id: number, db: Queryable = getDbPool(), lock = false, includeBinned = false): Promise<TicketRecord | null> {
   if (lock) await db.query<Row[]>("SELECT id FROM tickets WHERE id = ? FOR UPDATE", [id]);
-  const [rows] = await db.query<Row[]>(`${TICKET_SELECT} WHERE k.id = ?`, [id]);
+  const [rows] = await db.query<Row[]>(`${TICKET_SELECT} WHERE k.id = ?${includeBinned ? "" : " AND k.deleted_at IS NULL"}`, [id]);
   return rows[0] ? toTicket(rows[0]) : null;
 }
 
@@ -262,7 +271,7 @@ export async function insertTicket(
 }
 
 // Every change goes through here, guarded by the row version read under the lock.
-const UPDATABLE = ["status", "priority", "assignee_id", "coordinator_id", "task_id", "due_at", "first_response_at", "assigned_at", "work_started_at", "resolved_at", "confirmation_requested_at", "confirm_due_on", "closed_at", "close_kind", "close_reason", "resolution_text", "reopen_count"];
+const UPDATABLE = ["title", "description", "required_on", "status", "priority", "assignee_id", "coordinator_id", "task_id", "due_at", "first_response_at", "assigned_at", "work_started_at", "resolved_at", "confirmation_requested_at", "confirm_due_on", "closed_at", "close_kind", "close_reason", "resolution_text", "reopen_count"];
 export async function updateTicket(id: number, expectedVersion: number, changes: Record<string, unknown>, db: Queryable): Promise<boolean> {
   const keys = Object.keys(changes).filter((key) => UPDATABLE.includes(key));
   if (keys.length === 0) return true;
@@ -442,7 +451,8 @@ function ticketWhere(filter: TicketListFilter, viewer: TicketScopeViewer): { cla
   }
   return { clause: where.length ? `WHERE ${where.join(" AND ")}` : "", params };
 }
-const LIST_FROM = `FROM tickets k JOIN module_type_versions v ON v.id = k.type_version_id JOIN module_types t ON t.id = v.type_id JOIN ticket_categories c ON c.id = k.category_id JOIN users r ON r.id = k.requester_id LEFT JOIN users a ON a.id = k.assignee_id LEFT JOIN departments d ON d.id = k.requester_department_id`;
+// v1.94.0 (D-454): a ticket in the Super Admin bin (deleted_at) is left out of every list, count and export.
+const LIST_FROM = `FROM (SELECT * FROM tickets WHERE deleted_at IS NULL) k JOIN module_type_versions v ON v.id = k.type_version_id JOIN module_types t ON t.id = v.type_id JOIN ticket_categories c ON c.id = k.category_id JOIN users r ON r.id = k.requester_id LEFT JOIN users a ON a.id = k.assignee_id LEFT JOIN departments d ON d.id = k.requester_department_id`;
 
 export async function listTickets(filter: TicketListFilter, viewer: TicketScopeViewer, db: Queryable = getDbPool()): Promise<{ items: TicketListItem[]; total: number }> {
   const { clause, params } = ticketWhere(filter, viewer);
@@ -561,7 +571,7 @@ export async function ticketCounts(filter: TicketListFilter, viewer: TicketScope
 
 // ---- the confirmation clock (auto-close job) -----------------------------------------------------
 export async function awaitingTickets(db: Queryable = getDbPool()): Promise<{ id: number; requestedAt: Date; reopenCount: number }[]> {
-  const [rows] = await db.query<Row[]>("SELECT id, confirmation_requested_at, reopen_count FROM tickets WHERE status = 'AWAITING_CONFIRMATION' AND confirmation_requested_at IS NOT NULL ORDER BY id LIMIT 500");
+  const [rows] = await db.query<Row[]>("SELECT id, confirmation_requested_at, reopen_count FROM tickets WHERE status = 'AWAITING_CONFIRMATION' AND confirmation_requested_at IS NOT NULL AND deleted_at IS NULL ORDER BY id LIMIT 500");
   return rows.map((row) => ({ id: num(row.id), requestedAt: new Date(row.confirmation_requested_at as string), reopenCount: num(row.reopen_count) }));
 }
 // Claims one stage of one confirmation cycle; only the first caller gets true.

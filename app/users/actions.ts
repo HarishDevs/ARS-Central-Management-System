@@ -26,11 +26,12 @@ import { hitRateLimit } from "@/lib/db/repositories/jobs.repository";
 import type { ActionResult } from "@/lib/http/action-result";
 import { bulkApprove, BULK_COMMENT_MAX, BULK_MAX, type BulkOutcome } from "@/server/approvals/bulk";
 import { recordAudit } from "@/lib/db/repositories/audit.repository";
+import { ON_BEHALF_FIELD, parseOnBehalfId, resolveOnBehalf } from "@/server/superadmin/control/on-behalf";
 
 // Server Actions for requests (F-14). Every one re-checks the session; the
 // service then enforces who may do what on the record (F-12, D-057).
 const NOT_FOUND: ActionResult = { ok: false, message: "Not found." };
-const RESERVED = new Set(["workflowId", "requestId", "title", "taskKey", "decision", "comment", "attachments", "submissionKey", "allowDuplicate", "acknowledged", "overrideReason", "followUpOf", "attachmentCount", "templateName", "amendmentOf", "amendReason", "amendment", "collaborator", "expiredReason"]);
+const RESERVED = new Set(["workflowId", "requestId", "title", "taskKey", "decision", "comment", "attachments", "submissionKey", "allowDuplicate", "acknowledged", "overrideReason", "followUpOf", "attachmentCount", "templateName", "amendmentOf", "amendReason", "amendment", "collaborator", "expiredReason", "onBehalfOf"]);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // D-QA-01: the form's one-time key (anything else is ignored).
@@ -67,9 +68,20 @@ function fieldsFrom(formData: FormData): Record<string, string> {
 }
 
 export async function submitRequestAction(_previous: ActionResult | null, formData: FormData): Promise<ActionResult> {
-  const me = await actor();
+  const signedIn = await actor();
   const workflowId = num(formData.get("workflowId"));
-  if (!me || workflowId === null) return NOT_FOUND;
+  if (!signedIn || workflowId === null) return NOT_FOUND;
+  // v1.94.0 (D-458): Super Admin raising it on someone's behalf: the request is
+  // theirs (requester, every rule), the Super Admin is recorded as its maker.
+  let me: Actor = signedIn;
+  let onBehalfBy: number | null = null;
+  const behalfId = parseOnBehalfId(formData.get(ON_BEHALF_FIELD));
+  if (behalfId !== null) {
+    const resolved = await resolveOnBehalf(signedIn, behalfId, "APPROVAL");
+    if (!resolved.ok) return { ok: false, message: resolved.message };
+    me = { id: resolved.person.id, roles: resolved.person.roles };
+    onBehalfBy = signedIn.id;
+  }
   // Files are checked before the request exists, so a bad file never
   // leaves a half-made request behind (F-18).
   const files = await prepareFiles(filesFrom(formData));
@@ -99,6 +111,7 @@ export async function submitRequestAction(_previous: ActionResult | null, formDa
         acknowledged: formData.get("acknowledged") === "on",
         overrideReason: String(formData.get("overrideReason") ?? "").slice(0, 500),
         attachmentCount: files.files.length + fieldFiles.total,
+        onBehalfBy,
       },
       me,
     );
@@ -118,7 +131,7 @@ export async function submitRequestAction(_previous: ActionResult | null, formDa
     const collaborators = collaboratorIdsFrom(formData);
     if (collaborators.length && !result.value.repeated) await addCollaborators(requestId, collaborators, me).catch((error) => logError("submit: collaborators failed", error, { requestId }));
     // The draft has become a request (#3).
-    await deleteDraft(me.id, `WF:${workflowId}`).catch((error) => logError("submitRequestAction: draft cleanup failed", error));
+    await deleteDraft(signedIn.id, `WF:${workflowId}`).catch((error) => logError("submitRequestAction: draft cleanup failed", error));
   } catch (error) {
     logError("submitRequestAction failed", error);
     return { ok: false, message: "Couldn't submit. Please try again." };

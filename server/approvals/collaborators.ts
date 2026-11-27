@@ -1,3 +1,4 @@
+import { ARCHIVED_MESSAGE, isArchived } from "@/lib/db/repositories/archive.repository";
 import "server-only";
 import type { RowDataPacket } from "mysql2/promise";
 import { afterResponse } from "@/lib/http/after-response";
@@ -39,7 +40,7 @@ export async function listCollaborators(requestId: number, db: Queryable = getDb
 // The requester and IT manage the list; anyone on the list can leave it.
 export async function canManageCollaborators(requestId: number, actor: Actor): Promise<boolean> {
   const request = await findRequest(requestId);
-  return Boolean(request && (request.requesterId === actor.id || isAdmin(actor)));
+  return Boolean(request && (request.requesterId === actor.id || isAdmin(actor)) && !(await isArchived("REQUEST", requestId)));
 }
 
 type Outcome = { ok: true; added: number[]; skipped: string[] } | { ok: false; message: string };
@@ -47,6 +48,7 @@ type Outcome = { ok: true; added: number[]; skipped: string[] } | { ok: false; m
 export async function addCollaborators(requestId: number, userIds: readonly number[], actor: Actor, options: { notify?: boolean } = {}): Promise<Outcome> {
   const request = await findRequest(requestId);
   if (!request || !(request.requesterId === actor.id || isAdmin(actor))) return { ok: false, message: "Not found." };
+  if (await isArchived("REQUEST", requestId)) return { ok: false, message: ARCHIVED_MESSAGE }; // v1.94.0 (D-456)
   const wanted = [...new Set(userIds.filter((id) => Number.isInteger(id) && id > 0))].slice(0, MAX_COLLABORATORS);
   if (!wanted.length) return { ok: false, message: "Choose at least one person." };
   const db = getDbPool();
@@ -111,6 +113,7 @@ export async function removeCollaborator(requestId: number, userId: number, acto
   const request = await findRequest(requestId);
   const allowed = request && (request.requesterId === actor.id || isAdmin(actor) || (actor.id === userId && (await isParticipant(requestId, actor.id))));
   if (!request || !allowed) return { ok: false, message: "Not found." };
+  if (await isArchived("REQUEST", requestId)) return { ok: false, message: ARCHIVED_MESSAGE }; // v1.94.0 (D-456)
   return withTransaction(async (connection) => {
     const [result] = await connection.query<import("mysql2/promise").ResultSetHeader>(
       "UPDATE request_collaborators SET removed_at = CURRENT_TIMESTAMP, removed_by = ? WHERE request_id = ? AND user_id = ? AND removed_at IS NULL",

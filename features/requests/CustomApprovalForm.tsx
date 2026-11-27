@@ -138,6 +138,7 @@ export function CustomApprovalForm({
   defaultApproverId = null,
   followUpOf,
   expiredSource,
+  onBehalfOf,
 }: {
   options: BuilderOptions;
   draft?: DraftInfo;
@@ -150,6 +151,7 @@ export function CustomApprovalForm({
   defaultApproverId?: number | null; // D-234: the reporting manager, when they may approve
   followUpOf?: number; // v1.50.3: linked to this approved request on submit
   expiredSource?: { requestNo: string; expiredOn: string }; // DR-05: asks why
+  onBehalfOf?: number; // v1.94.0 (D-458): Super Admin raising it for this person (checked again on the server)
 }) {
   const [stages, setStages] = useState<BuilderStage[]>(
     () =>
@@ -299,6 +301,7 @@ export function CustomApprovalForm({
     <form ref={autosave.formRef} onSubmit={onSubmit} onChange={refresh} className="request-form mx-auto max-w-5xl space-y-4" data-step={step}>
       <input type="hidden" name="spec" value={JSON.stringify({ stages })} />
       <input type="hidden" name="submissionKey" value={submissionKey} />
+      {onBehalfOf ? <input type="hidden" name="onBehalfOf" value={onBehalfOf} /> : null}
       {followUpOf && <input type="hidden" name="followUpOf" value={followUpOf} />}
 
       {/* The bar that stays put: the steps on the left, the actions on the right. */}

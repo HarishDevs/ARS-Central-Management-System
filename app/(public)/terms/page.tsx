@@ -19,7 +19,7 @@ export default function TermsPage() {
     <PublicPage>
       <Prose>
         <h1>Terms of use</h1>
-        <p className="text-label text-ink-muted">Effective 26 November 2026 · approved by the head of IT, 2 November 2026</p>
+        <p className="text-label text-ink-muted">Effective 27 November 2026 · approved by the head of IT, 2 November 2026</p>
         <p>
           ARS CMS (approval.arssteels.net) is provided by {COMPANY} (&ldquo;ARS&rdquo;) for its employees to carry out company work. By signing in you agree to these terms and to ARS&apos;s
           policies that apply to company systems.
@@ -45,6 +45,12 @@ export default function TermsPage() {
           <li>
             Nobody approves, passes on, holds or otherwise moves an approval of a request they raised, including as someone&apos;s out-of-office delegate or as a member of the IT team: another person
             does it. Only the Super Admin removes the IT Admin role from another IT Admin.
+          </li>
+          <li>
+            The Super Admin (the IT head&apos;s account) may, for ARS, change any approval request, task or ticket (including who approves it and its status), archive it, move it to
+            Deleted items, restore it, delete it permanently after 30 days in the bin, and raise one on a person&apos;s behalf. Every such action needs a reason, is shown on the item as done by
+            the Super Admin, is recorded in the audit log and is told to the people involved; an item raised on someone&apos;s behalf is theirs, with every usual rule (nobody approves their own
+            request, and the Super Admin never overrides a request they raised). Use these powers only for genuine business needs.
           </li>
           <li>Don&apos;t try to access records you aren&apos;t given, get around security, or disrupt the service.</li>
           <li>

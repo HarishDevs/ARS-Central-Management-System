@@ -703,7 +703,8 @@ export async function deleteTask(taskId: number, actor: TaskActor): Promise<Work
 
 export async function restoreTask(taskId: number, actor: TaskActor): Promise<WorkResult> {
   const task = await findTask(taskId);
-  if (!task?.deletedAt) return fail(NOT_FOUND);
+  // v1.94.0 (D-454): a task in the Super Admin bin comes back only from the bin.
+  if (!task?.deletedAt || task.binned) return fail(NOT_FOUND);
   if (!(task.createdBy === actor.id || task.deletedBy === actor.id || isAdminRoles(actor.roles))) return fail(NOT_FOUND);
   await withTransaction(async (connection) => {
     for (const id of [taskId, ...(await repo.descendants(taskId, connection)).map((item) => item.id)]) {

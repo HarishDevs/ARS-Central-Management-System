@@ -391,8 +391,10 @@ export async function findRecentDuplicate(input: { requesterId: number; title: s
 }
 
 // FOR UPDATE: actions on the same request run one after another (F-13).
+// v1.94.0 (D-456): an archived request is read-only, so no action locks it
+// (Super Admin's control panel un-archives it first, with its own lock).
 export async function lockRequest(id: number, db: Queryable): Promise<RequestRecord | null> {
-  const [rows] = await db.query<RequestRow[]>(`SELECT ${REQUEST_COLUMNS} FROM approval_requests WHERE id = ? AND deleted_at IS NULL LIMIT 1 FOR UPDATE`, [id]);
+  const [rows] = await db.query<RequestRow[]>(`SELECT ${REQUEST_COLUMNS} FROM approval_requests WHERE id = ? AND deleted_at IS NULL AND archived_at IS NULL LIMIT 1 FOR UPDATE`, [id]);
   return rows[0] ? toRequest(rows[0]) : null;
 }
 

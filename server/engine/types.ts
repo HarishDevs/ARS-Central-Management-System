@@ -261,7 +261,15 @@ export type EngineEvent =
   | { type: "INFO_REQUESTED"; nodeId: string; actorId: number; question: string }
   // v1.59.0 (D-357): the approver this request waits on changed its values (fieldKeys) and/or the levels to come.
   | { type: "DETAILS_CHANGED"; nodeId: string; actorId: number; reason: string; fieldKeys: string[]; fieldLabels: string[]; levelsChanged: boolean; round: number; onBehalfOf?: number; earlierApproverIds: number[] }
-  | { type: "INFO_ANSWERED"; actorId: number; answer: string; askedBy: number; heldSince: string; pendingApproverIds: number[] };
+  | { type: "INFO_ANSWERED"; actorId: number; answer: string; askedBy: number; heldSince: string; pendingApproverIds: number[] }
+  // v1.94.0 (D-457, owner: "logged override"): a change made by Super Admin.
+  // Recorded before the engine events it caused (append-only; earlier
+  // decisions stay on record). notifyIds: the people involved who are told.
+  | { type: "SUPER_ADMIN_OVERRIDE"; actorId: number; action: SuperAdminOverrideAction; reason: string; summary: string; notifyIds: number[]; before?: Record<string, unknown>; after?: Record<string, unknown> }
+  // v1.94.0 (D-458, owner: "on behalf of"): Super Admin raised it for the requester.
+  | { type: "CREATED_ON_BEHALF"; actorId: number; onBehalfOf: number };
+
+export type SuperAdminOverrideAction = "EDIT_FIELDS" | "CHANGE_APPROVER" | "ADD_APPROVER" | "SKIP_STEP" | "FORCE_STATUS" | "REOPEN" | "ARCHIVE" | "UNARCHIVE" | "BIN" | "RESTORE";
 
 export type Decision = "APPROVE" | "REJECT" | "REQUEST_CHANGES";
 

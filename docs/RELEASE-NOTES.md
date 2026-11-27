@@ -1,5 +1,15 @@
 # Release notes
 
+## v1.94.0 (27 Nov 2026): Super Admin full control
+The owner's request (27 Nov 2026): "From Super admin should be able to create, Modify, Delete, archive anything like approval, task, Ticket at any level", with the owner's answers: Delete = bin, then purge; Modify = logged override; Create = on behalf of; scope = all modules (D-451..D-460). **This release: approval requests, tasks (repeating ones too) and tickets. Projects, portfolios, meetings and forms follow in v1.94.1+ (TD-025). One migration (added automatically on start). New data: who archived, binned, restored or deleted an item and why, and who raised an item on someone's behalf (see the privacy policy).**
+
+- **Super Admin → Control → Control panel:** find any approval, task or ticket by number, title or person, module and state (Open, Finished, Archived), and open it.
+- **Modify (logged override):** change an approver, add one to the step waiting now, skip a waiting step, force the status (Approved, Rejected, Cancelled), reopen a finished request, edit its title and details; for tasks and tickets edit their details, assign, set the status, reopen. Each change needs a reason, shows on the item as **Changed by Super Admin** (approvals already given stay on record), goes to the audit log and is told to the people involved. Nobody overrides their own request, and nobody approves their own request.
+- **Archive:** a finished item becomes read-only for everyone, still visible with an **Archived** badge; My requests has an **Archived** card. Un-archive makes it editable again.
+- **Deleted items (the bin):** deleting moves the item there; it disappears for everyone, everywhere (lists, search, counts, dashboards, calendar, notifications, exports, Collaborating, analytics). Restore it with a reason, or after 30 days **Delete permanently** by typing its number; the audit log keeps the record. Danger zone → Delete requests now uses the bin too, and requests deleted before are in it.
+- **Create on someone's behalf:** raise a request, create a task or raise a ticket as another person; it is theirs, with all the usual rules, and shows **Created by Super Admin on behalf of** them.
+
+**Owner steps:** GoDaddy → **Update Preview** (the migration `202611271000_superadmin_control.sql` runs on start: one new table and new columns; the trigger blocks in it are optional and are skipped on GoDaddy with a warning, which is expected), check the preview (sign in as itadmin, open Super Admin → Control panel, search a request), then **Publish to Live**. Optional, for the database-level history guards: IT may run `database/optional/v1940_purge_triggers.sql` and `database/optional/v1600_comment_triggers.sql` once in **phpMyAdmin → SQL** (never Database Manager → Import).
 ## v1.93.0 (27 Nov 2026): task table columns and dependency search
 The owner's five requests for Project Management (27 Nov 2026; D-446..D-449). **No migration, no new setting, no new data collected** (the column order is kept inside the saved view, like the columns you hide).
 

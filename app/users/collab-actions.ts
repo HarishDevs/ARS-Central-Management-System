@@ -22,6 +22,7 @@ import { loadCustomConfig } from "@/server/approvals/custom-config";
 import { prepareFieldFiles, saveFieldFiles } from "@/server/attachments/field-files";
 import { deleteDraft } from "@/lib/db/repositories/drafts.repository";
 import type { ActionResult } from "@/lib/http/action-result";
+import { ON_BEHALF_FIELD, parseOnBehalfId, resolveOnBehalf } from "@/server/superadmin/control/on-behalf";
 
 // Custom approvals (F-33), comments (F-15), out-of-office (F-30), inbox.
 const NOT_FOUND: ActionResult = { ok: false, message: "Not found." };
@@ -61,8 +62,20 @@ async function actorForComment(requestId: number | null): Promise<Actor | null> 
 const num = (value: FormDataEntryValue | null) => (typeof value === "string" && /^\d+$/.test(value) ? Number(value) : null);
 
 export async function submitCustomAction(_previous: ActionResult | null, formData: FormData): Promise<ActionResult> {
-  const me = await actorForApprovals();
-  if (!me) return NOT_FOUND;
+  const signedIn = await actorForApprovals();
+  if (!signedIn) return NOT_FOUND;
+  // v1.94.0 (D-458): Super Admin raising it on someone's behalf: the request is
+  // theirs (requester; nobody approves their own request), the Super Admin is
+  // recorded as its maker. Checked here on the server, whatever the page sent.
+  let me: Actor = signedIn;
+  let onBehalfBy: number | null = null;
+  const behalfId = parseOnBehalfId(formData.get(ON_BEHALF_FIELD));
+  if (behalfId !== null) {
+    const resolved = await resolveOnBehalf(signedIn, behalfId, "APPROVAL");
+    if (!resolved.ok) return { ok: false, message: resolved.message };
+    me = { id: resolved.person.id, roles: resolved.person.roles };
+    onBehalfBy = signedIn.id;
+  }
   let builder;
   try {
     const parsed = builderSpecSchema.safeParse(JSON.parse(String(formData.get("spec") ?? "null")));
@@ -106,6 +119,7 @@ export async function submitCustomAction(_previous: ActionResult | null, formDat
           return typeof value === "string" && /^[0-9a-f-]{36}$/i.test(value) ? value.toLowerCase() : null;
         })(),
         allowDuplicate: formData.get("allowDuplicate") === "on",
+        onBehalfBy,
       },
       me,
     );
@@ -121,7 +135,7 @@ export async function submitCustomAction(_previous: ActionResult | null, formDat
     if (followUpFrom && !result.value.repeated) {
       await linkFollowUp({ sourceId: followUpFrom.id, followUpId: requestId, followUpNo: result.value.requestNo, ...(expiredReason ? { expiredReason } : {}) }, me).catch((error) => logError("custom follow-up link failed", error));
     }
-    await deleteDraft(me.id, "CUSTOM").catch((error) => logError("submitCustomAction: draft cleanup failed", error));
+    await deleteDraft(signedIn.id, "CUSTOM").catch((error) => logError("submitCustomAction: draft cleanup failed", error));
   } catch (error) {
     logError("submitCustomAction failed", error);
     return { ok: false, message: "Couldn't submit. Please try again." };

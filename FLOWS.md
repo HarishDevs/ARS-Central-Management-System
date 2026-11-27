@@ -3071,4 +3071,53 @@ flowchart TD
   SV -- task search --> PAGE[Kept while the page is open]
   RS[Options › Columns › Reset column order] --> D
   LC[List query: decorate] --> Q[One batched query: newest non-deleted comment per task, replies count] --> CELL[Last comment cell: text cut to fit, author · relative time; full text on hover]
+## F-SA-CONTROL: Super Admin control panel: find, modify, archive, bin, create on behalf (v1.94.0, D-451..D-460)
+Owner (27 Nov 2026): "From Super admin should be able to create, Modify, Delete, archive anything like approval, task, Ticket at any level". v1.94.0: approvals, tasks (incl. repeating), tickets; projects, portfolios, meetings and forms follow (TD-025).
+```mermaid
+flowchart TD
+  SA[Super Admin → Control → Control panel] --> F[Find: number, title or person; module; state Any / Open / Finished / Archived; newest 50]
+  F --> I[Item page /superadmin/control/&lt;module&gt;/&lt;id&gt;]
+  I --> M{Modify: logged override, a reason each time}
+  M -- approval --> MA[Change an approver · Add an approver to a waiting step · Skip a waiting step · Force Approved / Rejected / Cancelled · Reopen a finished one · Edit title and plain fields]
+  M -- task --> MT[Edit title, description, priority, due date, assignee · Force status · Reopen]
+  M -- ticket --> MK[Edit subject, description, priority, required date · Assign · Force In progress / Closed · Reopen]
+  MA & MT & MK --> L[One transaction: row lock + version check · SUPER_ADMIN_OVERRIDE event with reason and before/after · engine events · audit · people involved told]
+  I --> AR{Finished?}
+  AR -- yes --> A[Archive: read-only for everyone, still visible, Archived badge and tab] --> UA[Un-archive]
+  AR -- no --> AF[Force its status first]
+  I --> B[Move to Deleted items: F-SA-BIN]
+  SA --> C[Create on behalf: choose the person → New request / New task / New ticket opens with ?onBehalfOf]
+  C --> CV{Server: Super Admin? person active, ordinary, has the module, not themselves?}
+  CV -- no --> CN[Refused; for anyone else the address is ignored]
+  CV -- yes --> CY[Created AS the person: their rules, no self-approval · created_on_behalf_by · 'Created by Super Admin on behalf of X' on the timeline · audit]
+```
+- **Never on one's own request:** the engine refuses every override when the actor is the requester; the requester can never be added as an approver.
+- **Linked tasks:** a request's work step, a ticket's or a meeting's task changes status / assignee (and goes to the bin) with that item.
+- **Who is told:** requester / creator, assignee, approvers waiting before and after, coordinators, collaborators; never the Super Admin.
+
+## F-SA-BIN: Deleted items: move to the bin, restore (v1.94.0, D-452, D-454, D-459)
+```mermaid
+flowchart TD
+  B[Move to Deleted items + reason] --> K{Module}
+  K -- approval --> R[D-086 delete: an open request closes through the engine, its approvers and requester told · deleted_at · bin row · its work-step tasks binned with it]
+  K -- task --> T[Refused if it belongs to a request, ticket or meeting · the task and its subtasks: deleted_at, open ones cancelled, DELETED events, bin rows]
+  K -- ticket --> TK[deleted_at · BINNED event · bin row · a legacy linked task binned with it]
+  R & T & TK --> H[Hidden from everyone: lists, queues, search and Ctrl K, counts, dashboards, calendar, reminders and jobs, exports, analytics, Collaborating, the bell and inbox · creators can't restore · never auto-purged]
+  H --> BIN[Super Admin → Deleted items: filter by module, search, days until Delete permanently]
+  BIN --> RS[Restore + reason: deleted_at cleared for the item and what went with it, statuses put back, RESTORED event, audit]
+  RS --> BACK[Back where it was; a request that was open comes back cancelled: Reopen from the panel]
+  BIN --> P[Delete permanently: F-SA-PURGE]
+```
+
+## F-SA-PURGE: Delete permanently (v1.94.0, D-455)
+```mermaid
+flowchart TD
+  P[Deleted items: Delete permanently] --> D{30 days in the bin?}
+  D -- no --> W[Shows 'Delete permanently in N days'; the server refuses too]
+  D -- yes --> T[Type the item's number to confirm]
+  T --> S{Server: Super Admin, still in the bin, word matches, 30+ days, no legal hold}
+  S -- no --> X[Refused, nothing removed]
+  S -- yes --> TX[One transaction: the item's rows and everything hanging on it, the items binned with it, its notifications; triggers allow it only for 30+ days in the bin]
+  TX --> AU[Bin row kept: number, title, who / when / why, purged_at · audit SUPERADMIN_PURGED · the audit log is never erased]
+  AU --> FS[Files removed from disk after the commit]
 ```

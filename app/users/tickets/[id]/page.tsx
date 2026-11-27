@@ -7,7 +7,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Ticket } from "lucide-react";
 import { PageHeader } from "@/features/shell/PageHeader";
-import { Breadcrumbs } from "@/features/ui/Display";
+import { Badge, Breadcrumbs } from "@/features/ui/Display";
 import { returnToFor } from "@/server/authorization/return-to";
 import { ReturnToLink } from "@/features/ui/ReturnToLink";
 import { FieldValues, FileLinks } from "@/features/modules/RecordParts";
@@ -115,6 +115,8 @@ export default async function Page({ params, searchParams }: { params: Promise<{
           <>
             <TicketPriorityBadge priority={ticket.priority} />
             <TicketStatusBadge status={ticket.status} closeKind={ticket.closeKind} />
+            {ticket.archivedAt && <Badge tone="neutral">Archived (read-only)</Badge>}
+            {ticket.onBehalfByName && <Badge tone="info">Created by Super Admin on behalf of {ticket.requesterName}</Badge>}
             {commenter && <CommenterBadge module="Ticketing" />}
           </>
         }

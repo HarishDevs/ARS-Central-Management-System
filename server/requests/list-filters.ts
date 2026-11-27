@@ -65,7 +65,7 @@ export const BASE_FEATURES: Record<ListBase, { people: boolean; collab: boolean;
 };
 
 // Quick tabs: a named condition, per list.
-type TabDef = { key: string; label: string; card?: false; statuses?: ListStatus[]; overdue?: boolean; validity?: (typeof VALIDITY)[number] | "none"; amended?: boolean; onBehalf?: boolean };
+type TabDef = { key: string; label: string; card?: false; statuses?: ListStatus[]; overdue?: boolean; validity?: (typeof VALIDITY)[number] | "none"; amended?: boolean; onBehalf?: boolean; archived?: boolean };
 const STATUS_TABS: TabDef[] = [
   { key: "all", label: "All" },
   // v1.49.5 (owner): no Open card; the filter still works from older links.
@@ -77,6 +77,8 @@ const STATUS_TABS: TabDef[] = [
   { key: "rejected", label: "Rejected", statuses: ["REJECTED"] },
   { key: "withdrawn", label: "Withdrawn", statuses: ["CANCELLED"] },
   { key: "overdue", label: "Overdue", overdue: true },
+  // v1.94.0 (D-456, owner: "Archive = read-only, kept visible under an Archived filter").
+  { key: "archived", label: "Archived", archived: true },
 ];
 export const TABS: Record<ListBase, readonly TabDef[]> = {
   MINE: STATUS_TABS,
@@ -88,6 +90,7 @@ export const TABS: Record<ListBase, readonly TabDef[]> = {
     { key: "expired", label: "Expired", validity: "expired" },
     { key: "noexpiry", label: "No expiry", validity: "none" },
     { key: "amended", label: "Amended", amended: true },
+    { key: "archived", label: "Archived", archived: true },
   ],
   APPROVED_BY_ME: [
     { key: "all", label: "All" },
@@ -96,6 +99,7 @@ export const TABS: Record<ListBase, readonly TabDef[]> = {
     { key: "rejected", label: "Rejected later", statuses: ["REJECTED"] },
     { key: "withdrawn", label: "Withdrawn", statuses: ["CANCELLED"] },
     { key: "behalf", label: "For someone else", onBehalf: true },
+    { key: "archived", label: "Archived", archived: true },
   ],
 };
 export type QuickTab = string;
@@ -316,6 +320,7 @@ export function listFilterSql(f: ListFilters, base: ListBase, userId = 0): { whe
   }
   if (tab?.validity) where.push(VALIDITY_SQL[tab.validity]);
   if (tab?.amended) where.push(AMENDED_SQL);
+  if (tab?.archived) where.push("r.archived_at IS NOT NULL");
   if (tab?.onBehalf) {
     where.push(`${MY_APPROVAL} AND ma.on_behalf_of IS NOT NULL)`);
     params.push(userId);

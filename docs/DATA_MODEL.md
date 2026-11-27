@@ -1222,3 +1222,14 @@ Setting: `features.page_transitions` (ON / OFF / IT_ONLY; default OFF until v1.8
 | `automation_webhook_deliveries` | `id`, `automation_id`, `received_at`, `status` ACCEPTED/REFUSED/FAILED, `http_status`, `payload_json` (accepted bodies, ≤ 16 KB), `task_id`, `error` | Every webhook call; removed after 30 days. Also counts the 60-a-minute limit. |
 
 Settings: `features.pm_automations` (ON / OFF / IT_ONLY, default OFF), `tasks.automation_limits` (JSON `{perProject: 50, stepsPerRule: 20}`). `task_events.payload_json.automation = {id, name, ownerId}` marks a change made by a rule (actor = the system user); `audit_logs.on_behalf_of_user_id` is the rule's owner.
+
+## Super Admin full control (v1.94.0, D-451..D-460; migration 202611271000_superadmin_control.sql)
+
+| Table / columns | Key columns | Notes |
+|---|---|---|
+| `superadmin_bin` | `id`, `entity_type` REQUEST/TASK/TICKET, `entity_id` (no foreign key: the row outlives a permanent delete), `parent_bin_id` → superadmin_bin (moved with that entry), `entity_no`, `title`, `detail_json`, `reason`, `binned_by` → users, `binned_at`, `purge_after` (+30 days), `restored_at` / `restored_by` / `restore_reason`, `purged_at` / `purged_by`, `active_key` (generated: "TYPE:id" while in the bin; UNIQUE) | The one Deleted items bin. The item is hidden by its own `deleted_at`; `active_key` lets any query (notifications, the task purge) leave binned items out with one indexed lookup. Restored and purged rows stay as the bin's history (number, title, who, when, why); a purge clears `detail_json`. |
+| `approval_requests`, `tasks`, `tickets` + `archived_at`, `archived_by` → users | | Archived = read-only, still visible (D-456). |
+| `approval_requests`, `tasks`, `tickets` + `created_on_behalf_by` → users | | The Super Admin who created it as the requester / creator (D-458). |
+| `tickets` + `deleted_at`, `deleted_by` → users, index `idx_tickets_deleted` | | In the Super Admin bin (every ticket query leaves it out). |
+
+New events (append-only, on the item's own timeline): `approval_events` `SUPER_ADMIN_OVERRIDE` (action, reason, summary, before / after, people told) and `CREATED_ON_BEHALF`; `task_events` `SUPER_ADMIN_OVERRIDE`, `CREATED_ON_BEHALF`, `ARCHIVED`, `UNARCHIVED` (binning uses `DELETED` / `RESTORED` with `payload.bin`); `ticket_events` the same plus `BINNED`, `RESTORED`. Audit actions: `SUPERADMIN_ARCHIVED`, `SUPERADMIN_UNARCHIVED`, `SUPERADMIN_BINNED`, `SUPERADMIN_RESTORED`, `SUPERADMIN_PURGED`, `REQUEST_SUPER_ADMIN_OVERRIDE`, `TASK_SUPER_ADMIN_OVERRIDE`, `TICKET_SUPER_ADMIN_OVERRIDE`, `REQUEST_CREATED_ON_BEHALF`, `TASK_CREATED_ON_BEHALF`, `TICKET_CREATED_ON_BEHALF`. Triggers (optional): `trg_approval_events_no_delete`, `trg_request_comments_no_delete`, `trg_comment_versions_no_delete` allow a delete only for an item 30+ days in the bin; `audit_logs` stays strictly append-only.

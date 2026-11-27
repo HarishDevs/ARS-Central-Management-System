@@ -83,6 +83,11 @@ export const TASK_EVENT_TEXT: Record<string, string> = {
   FIELD_SET: "Field changed",
   // v1.66.0 (D-374): made from a project form by the system user, on behalf of the submitter.
   FORM_SUBMITTED: "Submitted through a form",
+  // v1.94.0 (D-456..D-458): Super Admin full control.
+  CREATED_ON_BEHALF: "Created by Super Admin on behalf of the creator",
+  SUPER_ADMIN_OVERRIDE: "Changed by Super Admin",
+  ARCHIVED: "Archived by Super Admin (read-only)",
+  UNARCHIVED: "Un-archived by Super Admin",
 };
 
 // v1.9.0 (D-143): one task. Only its creator, assigner, assignee, the
@@ -237,6 +242,8 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
             <TaskPriorityPill priority={task.priority} showNormal />
             {late && <Badge tone="danger">Overdue</Badge>}
             {task.deletedAt && <Badge tone="danger">Deleted</Badge>}
+            {task.archivedAt && <Badge tone="neutral">Archived (read-only)</Badge>}
+            {task.onBehalfByName && <Badge tone="info">Created by Super Admin on behalf of {task.createdByName}</Badge>}
             {commenter && <CommenterBadge module="Tasks" />}
           </div>
           {/* v1.72.2 (D-394): each fact is dt + dd directly (axe definition-list); the picture is a dd placed first. */}
@@ -306,6 +313,8 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
             {task.isMilestone && <Badge tone="primary">Milestone</Badge>}
             <Badge tone={panel.adhoc ? "neutral" : "info"}>{panel.adhoc ? "Ad hoc" : panel.recurrence ? `Periodic: ${recurrenceLabel(panel.recurrence)}` : "Periodic"}</Badge>
             {task.deletedAt && <Badge tone="danger">Deleted</Badge>}
+            {task.archivedAt && <Badge tone="neutral">Archived (read-only)</Badge>}
+            {task.onBehalfByName && <Badge tone="info">Created by Super Admin on behalf of {task.createdByName}</Badge>}
             {commenter && <CommenterBadge module="Tasks" />}
           </div>
         </header>
@@ -325,6 +334,8 @@ export async function TaskDetail({ taskId, user, query, popup }: { taskId: numbe
             {/* D-222: the two kinds of task. */}
             <Badge tone={panel.adhoc ? "neutral" : "info"}>{panel.adhoc ? "Ad hoc" : panel.recurrence ? `Periodic: ${recurrenceLabel(panel.recurrence)}` : "Periodic"}</Badge>
             {task.deletedAt && <Badge tone="danger">Deleted</Badge>}
+            {task.archivedAt && <Badge tone="neutral">Archived (read-only)</Badge>}
+            {task.onBehalfByName && <Badge tone="info">Created by Super Admin on behalf of {task.createdByName}</Badge>}
             {commenter && <CommenterBadge module="Tasks" />}
           </>
         }

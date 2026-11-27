@@ -92,6 +92,7 @@ export interface RaiseTicketInput {
   fields: Record<string, string | undefined>;
   files: StagedFile[]; // form attachment fields (fieldKey) and general attachments (no fieldKey)
   submissionKey: string;
+  onBehalfBy?: number | null; // v1.94.0 (D-458): the Super Admin raising it as the requester (actor)
 }
 
 export async function raiseTicket(input: RaiseTicketInput, actor: TaskActor): Promise<TicketResult<{ id: number; ticketNo: string }>> {
@@ -145,6 +146,12 @@ export async function raiseTicket(input: RaiseTicketInput, actor: TaskActor): Pr
       const id = await insertTicket({ ticketNo, categoryId: found.id, typeVersionId: type.versionId, title, description, formData: parsed.data, requesterId: actor.id, departmentId: me.departmentId, priority, requiredOn, submissionKey }, connection);
       if (id === "DUPLICATE") return { duplicate: true } as const;
       await appendTicketEvent(id, { actorId: actor.id, action: "RAISED", to: "NEW", detail: { priority, requiredOn } }, connection);
+      // v1.94.0 (D-458): "Created by Super Admin on behalf of" the requester.
+      if (input.onBehalfBy) {
+        await connection.query("UPDATE tickets SET created_on_behalf_by = ? WHERE id = ?", [input.onBehalfBy, id]);
+        await appendTicketEvent(id, { actorId: input.onBehalfBy, action: "CREATED_ON_BEHALF", detail: { onBehalfOf: actor.id, reason: `On behalf of ${actor.name}` } }, connection);
+        await recordAudit({ actorUserId: input.onBehalfBy, action: "TICKET_CREATED_ON_BEHALF", entityType: "TICKET", entityId: id, onBehalfOfUserId: actor.id, sessionId: actor.sessionId, ipAddress: actor.ipAddress ?? null, metadata: { ticketNo } }, connection);
+      }
       await insertRecordFiles("TICKET", id, input.files, actor.id, "GENERAL", connection);
       await recordAudit({ actorUserId: actor.id, action: "TICKET_RAISED", entityType: "TICKET", entityId: id, sessionId: actor.sessionId, ipAddress: actor.ipAddress ?? null, metadata: { ticketNo, typeVersionId: type.versionId, files: input.files.length } }, connection);
       const summary = { id, ticketNo, title };

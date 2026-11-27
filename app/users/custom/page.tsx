@@ -14,14 +14,18 @@ import { followUpSource, followUpValues } from "@/server/approvals/follow-up";
 import { formatIndiaTime } from "@/server/notifications/security-messages";
 import { personLabel } from "@/lib/people/label";
 import { findApprovalTemplate } from "@/lib/db/repositories/approval-templates.repository";
+import { parseOnBehalfId, resolveOnBehalf } from "@/server/superadmin/control/on-behalf";
 
 // WEB-05 (v1.10.0): a plain, non-confidential browser title.
 export const metadata: Metadata = { title: "New request" };
 
 // F-33: any user, whenever needed (D-026, D-040).
-export default async function CustomApprovalPage({ searchParams }: { searchParams: Promise<{ from?: string; followUp?: string; template?: string }> }) {
+export default async function CustomApprovalPage({ searchParams }: { searchParams: Promise<{ from?: string; followUp?: string; template?: string; onBehalfOf?: string }> }) {
   const { user } = await requireArea("users");
   const query = await searchParams;
+  // v1.94.0 (D-458): Super Admin raising a request for someone (from the control panel).
+  const behalfId = parseOnBehalfId(query.onBehalfOf);
+  const behalf = behalfId !== null && user.roles.includes("SUPER_ADMIN") ? await resolveOnBehalf(user, behalfId, "APPROVAL") : null;
   const options = await loadBuilderOptions();
   const draft = await findDraft(user.id, "CUSTOM");
   const everyone = (await listActiveUserOptions()).map((person) => ({ id: person.id, label: personLabel(person), detail: person.departmentName ?? undefined }));
@@ -71,6 +75,17 @@ export default async function CustomApprovalPage({ searchParams }: { searchParam
           Approval templates
         </Link>
       </div>
+      {behalf && (
+        <p role={behalf.ok ? "status" : "alert"} className={`mb-4 rounded-md px-4 py-2 text-label ${behalf.ok ? "border border-warning-600/40 bg-warning-50 text-ink" : "bg-danger-50 text-danger-600"}`} data-testid="on-behalf-banner">
+          {behalf.ok ? (
+            <>
+              Raising on behalf of <strong>{behalf.person.name}</strong>. They will be the requester and every usual rule applies (they can&apos;t approve it). The request shows &ldquo;Created by Super Admin on behalf of {behalf.person.name}&rdquo;.
+            </>
+          ) : (
+            behalf.message
+          )}
+        </p>
+      )}
       {template && (
         <p role="status" className="mb-4 rounded-md bg-primary-50 px-4 py-2 text-label text-primary-700" data-testid="from-template">
           Started from your template &ldquo;{template.name}&rdquo;: its approval levels and approvers are set. Fill in the details; you can change the levels too.
@@ -90,7 +105,7 @@ export default async function CustomApprovalPage({ searchParams }: { searchParam
         key={followUp ? `follow-${followUp.id}` : again ? `again-${fromId}` : template ? `template-${template.id}` : "new"}
         followUpOf={followUp?.id}
         expiredSource={followUp?.expired && followUp.validUntil ? { requestNo: followUp.requestNo, expiredOn: formatIndiaTime(followUp.validUntil) } : undefined}
-        defaultApproverId={defaultApproverId}
+        defaultApproverId={behalf ? null : defaultApproverId}
         options={options}
         collaboratorOptions={collaboratorOptions}
         fields={config.form}
@@ -98,7 +113,8 @@ export default async function CustomApprovalPage({ searchParams }: { searchParam
         lookups={lookups}
         people={everyone}
         initial={followUpInitial ?? (again ? { title: again.title, fields: again.fields } : template ? { title: "", fields: { spec: JSON.stringify({ stages: template.stages }) } } : draft ? { title: draft.title, fields: draft.fields } : undefined)}
-        draft={followUp || template ? undefined : { key: "CUSTOM", version: draft?.version ?? null, savedAt: draft ? draft.updatedAt.toISOString() : null }}
+        onBehalfOf={behalf?.ok ? behalf.person.id : undefined}
+        draft={behalf || followUp || template ? undefined : { key: "CUSTOM", version: draft?.version ?? null, savedAt: draft ? draft.updatedAt.toISOString() : null }}
       />
     </>
   );

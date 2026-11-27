@@ -126,4 +126,12 @@ describe("onboarding tour steps", () => {
     expect(home).toContain("Private notepad");
     expect(TOUR_STEPS.find((step) => step.id === "tasks")?.points.join(" ")).toContain("Save view");
   });
+
+  it("My requests mentions Archived and the Super Admin's changes and requests raised on your behalf (v1.94.0, D-456..D-458)", () => {
+    const step = TOUR_STEPS.find((item) => item.id === "my-requests");
+    expect(step?.intro).toContain("Archived");
+    const points = step?.points.join(" ") ?? "";
+    expect(points).toContain("Changed by Super Admin");
+    expect(points).toContain("Created by Super Admin on behalf of");
+  });
 });

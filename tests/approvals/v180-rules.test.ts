@@ -95,7 +95,8 @@ describe("approved lists (v1.8.0)", () => {
   it("My approved requests: validity tabs, approved by, amended; no status or waiting filters", () => {
     const f = parseListFilters({ tab: "expired", approvedBy: "4", amended: "yes", status: "REJECTED", step: "X", raisedBy: "3", sort: "approved" }, "APPROVED_MINE");
     expect(f).toMatchObject({ tab: "expired", approvedById: 4, amended: true, statuses: [], step: null, requesterId: null, sort: "approved" });
-    expect(tabsFor("APPROVED_MINE").map((tab) => tab.key)).toEqual(["all", "valid", "expiring", "expired", "noexpiry", "amended"]);
+    // v1.94.0 (D-456): Archived added to every request list.
+    expect(tabsFor("APPROVED_MINE").map((tab) => tab.key)).toEqual(["all", "valid", "expiring", "expired", "noexpiry", "amended", "archived"]);
     const sql = listFilterSql(f, "APPROVED_MINE", 7);
     expect(sql.where.join(" ")).toContain("r.valid_until <= CURRENT_TIMESTAMP");
     expect(sql.params).toEqual([4, 4]);

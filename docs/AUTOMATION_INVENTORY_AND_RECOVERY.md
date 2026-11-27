@@ -137,3 +137,8 @@ A healthy pending request is never listed. This is covered by `tests/integration
 - **Weekly HOD report / scheduled reports:** runs stuck SENDING / RUNNING for over an hour are marked FAILED ("interrupted") and retried once on the next run (same email key, so no duplicates). Ordinary send failures are not retried.
 - **AI data sync:** runs stuck RUNNING for over an hour are marked FAILED; the checkpoint never moves forward from them.
 
+## v1.94.0 (27 Nov 2026): Super Admin bin and the 30-day purge (D-454, D-455)
+- **No new automation.** Super Admin's **Delete permanently** is manual only (owner: "Optional scheduled purge is NOT requested").
+- **workPurge** (the 30-day purge of tasks deleted by their creators) now leaves out every task in the Super Admin bin (`purgeTaskCandidates` checks `superadmin_bin.active_key`), so a binned task is removed for good only by the Super Admin.
+- **ticketConfirmations** (reminders and auto-close) leaves out tickets in the bin. Every other job already left out binned requests and tasks through their `deleted_at` (D-086, D-368).
+- **Recovery:** a binned item comes back with **Restore** in Super Admin → Deleted items; a permanently deleted item only from a backup (its audit records stay).

@@ -5,6 +5,9 @@ import type { SettingDefinition } from "@/server/settings/definitions";
 // five groups (docs/ops/ADMIN-REDESIGN-BRIEF.md). Sentence case everywhere.
 export const SUPERADMIN_NAV: readonly NavItem[] = [
   { href: "/superadmin", label: "Health console", section: "Health" },
+  // v1.94.0 (D-451): Super Admin full control: find, change, archive or bin any item; the one Deleted items bin.
+  { href: "/superadmin/control", label: "Control panel", section: "Control" },
+  { href: "/superadmin/control/bin", label: "Deleted items", section: "Control" },
   { href: "/superadmin/connections/email", label: "Email", section: "Connections" },
   { href: "/superadmin/connections/whatsapp", label: "WhatsApp", section: "Connections" },
   { href: "/superadmin/connections/push", label: "Phone & desktop notifications", section: "Connections" },

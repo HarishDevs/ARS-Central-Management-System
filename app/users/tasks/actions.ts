@@ -12,6 +12,7 @@ import { TASK_ACTIONS, type TaskAction } from "@/server/modules/task-rules";
 import { findLiveType } from "@/lib/db/repositories/module-types.repository";
 import { logError } from "@/lib/logging/logger";
 import type { ActionResult } from "@/lib/http/action-result";
+import { ON_BEHALF_FIELD, parseOnBehalfId, resolveOnBehalf } from "@/server/superadmin/control/on-behalf";
 
 // v1.9.0 (D-143): Task Management actions. Each checks the session and page
 // access (requireApiArea), then the service checks the task rules for this
@@ -34,8 +35,19 @@ const text = (formData: FormData, name: string) => {
 const idOf = (value: string) => (/^\d{1,10}$/.test(value) ? Number(value) : null);
 
 export async function createTaskAction(_previous: ActionResult | null, formData: FormData): Promise<ActionResult> {
-  const me = await actor();
-  if (!me) return { ok: false, message: "Not found." };
+  const signedIn = await actor();
+  if (!signedIn) return { ok: false, message: "Not found." };
+  // v1.94.0 (D-458): Super Admin creating it on someone's behalf: the task is
+  // theirs (creator, assigned by them, their rules), checked on the server.
+  let me: TaskActor = signedIn;
+  let onBehalfBy: number | null = null;
+  const behalfId = parseOnBehalfId(formData.get(ON_BEHALF_FIELD));
+  if (behalfId !== null) {
+    const resolved = await resolveOnBehalf(signedIn, behalfId, "TASK");
+    if (!resolved.ok) return { ok: false, message: resolved.message };
+    me = { id: resolved.person.id, name: resolved.person.name, roles: resolved.person.roles, modules: resolved.person.modules, sessionId: signedIn.sessionId, ipAddress: signedIn.ipAddress };
+    onBehalfBy = signedIn.id;
+  }
   const typeId = idOf(text(formData, "type"));
   if (!typeId) return { ok: false, message: "Choose a task type." };
   const type = await findLiveType("TASK", typeId);
@@ -64,6 +76,7 @@ export async function createTaskAction(_previous: ActionResult | null, formData:
         submissionKey: /^[0-9a-f-]{36}$/i.test(key) ? key : null,
         holidayOk: text(formData, "holiday_ok") === "1",
         files: files.staged,
+        onBehalfBy,
       },
       me,
     );

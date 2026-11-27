@@ -110,11 +110,13 @@ export const TOUR_STEPS: readonly TourStep[] = [
     id: "my-requests",
     section: "Approvals",
     title: "My requests: follow what you raised",
-    intro: "Raised by me and Shared with me, with a card per status (All, Open, Waiting, Sent back, On hold, Approved, Rejected, Withdrawn, Overdue).",
+    intro: "Raised by me and Shared with me, with a card per status (All, Open, Waiting, Sent back, On hold, Approved, Rejected, Withdrawn, Overdue, Archived).",
     points: [
       "Each row shows who it's waiting on and its progress; ⋮ has the row's actions. Search, Filter, Sort, Group and Columns are above the list.",
       "On a request, the journey shows where it is: the ARS van waits beside the level deciding now, with the request out for review; each approval stamps it and the van drives on to the flag.",
       "Changes required: edit and resubmit. You can withdraw a request before it finishes. On a request: comments, files, history and Download PDF.",
+      // v1.94.0 (D-456, D-457, D-458): what the Super Admin may do to a request shows on it.
+      "Archived requests are read-only and listed under Archived. A change made by the Super Admin shows in the history as Changed by Super Admin, with the reason, and a request the Super Admin raised for you says Created by Super Admin on behalf of you.",
     ],
     path: "/users/requests",
     // v1.91.3 (D-437): this page has no visible title bar; the step points at the list.

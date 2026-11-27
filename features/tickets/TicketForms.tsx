@@ -27,6 +27,7 @@ export function RaiseTicketForm({
   defaultPriority,
   submissionKey,
   today,
+  onBehalfOf,
 }: {
   typeId: number;
   typeName: string;
@@ -39,12 +40,14 @@ export function RaiseTicketForm({
   defaultPriority: TicketPriority;
   submissionKey: string;
   today: string;
+  onBehalfOf?: number; // v1.94.0 (D-458): Super Admin raising it for this person (checked on the server)
 }) {
   const { result, pending, onSubmit } = useActionForm(raiseTicketAction);
   return (
     <form onSubmit={onSubmit} className="max-w-form space-y-5" aria-label="New ticket" data-testid="raise-ticket">
       <input type="hidden" name="type" value={typeId} />
       <input type="hidden" name="submission_key" value={submissionKey} />
+      {onBehalfOf ? <input type="hidden" name="onBehalfOf" value={onBehalfOf} /> : null}
       {/* Filled in from your user details (owner's brief §3). */}
       <section className="card grid gap-3 px-5 py-4 sm:grid-cols-2 lg:grid-cols-4" aria-label="Your details">
         {[

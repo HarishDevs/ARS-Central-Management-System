@@ -1,3 +1,4 @@
+import { ARCHIVED_MESSAGE, isArchived } from "@/lib/db/repositories/archive.repository";
 import "server-only";
 import { findRequest, isParticipant } from "@/lib/db/repositories/approvals.repository";
 import { recordAudit } from "@/lib/db/repositories/audit.repository";
@@ -41,6 +42,7 @@ export async function changeComment(target: CommentTarget, commentId: number, ch
   const peek = await lockCommentBody(target, commentId, getDbPool());
   if (!peek || peek.deleted || !(await seesParent(target, peek.parentId, peek.internal, actor))) return { ok: false, message: NOT_FOUND };
   if (!mayChangeComment(peek.authorId, actor)) return { ok: false, message: "Only its author and IT can change a comment." };
+  if (await isArchived(target, peek.parentId)) return { ok: false, message: ARCHIVED_MESSAGE }; // v1.94.0 (D-456)
   const outcome = await withTransaction(async (connection: Queryable) => {
     const current = await lockCommentBody(target, commentId, connection);
     if (!current || current.deleted) return "gone" as const;

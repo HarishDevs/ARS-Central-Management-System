@@ -103,6 +103,11 @@ export function describeEvent(event: TimelineEvent, labelOf: (nodeId: string) =>
       return `${nameOf(event.actorId)} added ${event.userIds.map(nameOf).join(", ")} as collaborator${event.userIds.length === 1 ? "" : "s"}`;
     case "COLLABORATOR_REMOVED":
       return event.userId === event.actorId ? `${nameOf(event.actorId)} stopped following this request` : `${nameOf(event.actorId)} removed ${nameOf(event.userId)} as a collaborator`;
+    // v1.94.0 (D-457, D-458): Super Admin's logged overrides and requests raised on someone's behalf.
+    case "SUPER_ADMIN_OVERRIDE":
+      return `Changed by Super Admin (${nameOf(event.actorId)}): ${event.summary}. Reason: ${event.reason}`;
+    case "CREATED_ON_BEHALF":
+      return `Created by Super Admin (${nameOf(event.actorId)}) on behalf of ${nameOf(event.onBehalfOf)}`;
     case "BRANCH_TAKEN":
     case "NODE_ACTIVATED":
       return null;
@@ -170,7 +175,10 @@ export function eventKind(event: TimelineEvent): TimelineKind {
     case "BLOCK_RESOLVED":
     case "DELETED":
     case "VERSION_MIGRATED":
+    case "SUPER_ADMIN_OVERRIDE":
       return "admin";
+    case "CREATED_ON_BEHALF":
+      return "submit";
     case "COLLABORATORS_ADDED":
     case "COLLABORATOR_REMOVED":
       return "info";

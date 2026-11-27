@@ -91,6 +91,43 @@ export function messagesForEvents(
           whatsappVariables: vars({ reason: event.reason }),
         });
         break;
+      // v1.94.0 (D-457): a Super Admin change; the requester and the people
+      // involved hear what changed and why (the event names them).
+      case "SUPER_ADMIN_OVERRIDE":
+        for (const userId of new Set([request.requesterId, ...event.notifyIds])) {
+          if (userId === event.actorId) continue;
+          out.push({
+            eventType: "REQUEST_DETAILS_CHANGED",
+            userId,
+            title: "Changed by Super Admin",
+            message: `${ref}: ${event.summary}. Reason: ${event.reason}`,
+            deepLink: link,
+            email: { subject: `Changed by Super Admin: ${request.requestNo}`, text: `Super Admin changed this request: ${event.summary}.
+
+${ref}
+Reason: ${event.reason}
+
+${link}` },
+            whatsappVariables: vars({ reason: event.reason }),
+          });
+        }
+        break;
+      // v1.94.0 (D-458): raised for the requester by Super Admin.
+      case "CREATED_ON_BEHALF":
+        out.push({
+          eventType: "REQUEST_DETAILS_CHANGED",
+          userId: event.onBehalfOf,
+          title: "Raised on your behalf",
+          message: `Super Admin raised ${ref} on your behalf. You are its requester.`,
+          deepLink: link,
+          email: { subject: `Raised on your behalf: ${request.requestNo}`, text: `Super Admin raised this request on your behalf. You are its requester; it goes through the usual approvals.
+
+${ref}
+
+${link}` },
+          whatsappVariables: vars(),
+        });
+        break;
       case "TASK_REASSIGNED":
         out.push({
           eventType: "APPROVAL_NEEDED",

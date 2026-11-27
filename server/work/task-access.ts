@@ -36,9 +36,17 @@ interface TaskShape {
   assigneeId: number;
   assignedBy: number;
   assigneeManagerId: number | null;
+  archivedAt?: Date | null; // v1.94.0 (D-456)
 }
 
 export async function rightsOn(task: TaskShape, viewer: WorkViewer, db: Queryable = getDbPool()): Promise<TaskRights & { bestRole: ProjectRole | null; adhoc: boolean; commenter?: boolean }> {
+  const rights = await rightsOnLive(task, viewer, db);
+  // v1.94.0 (D-456, owner: "Archive = read-only"): an archived task is seen
+  // by whoever saw it, and changed by nobody (Super Admin un-archives it first).
+  return task.archivedAt ? { ...rights, edit: false, details: false, planning: false, progress: false, comment: false, like: false, follow: false } : rights;
+}
+
+async function rightsOnLive(task: TaskShape, viewer: WorkViewer, db: Queryable): Promise<TaskRights & { bestRole: ProjectRole | null; adhoc: boolean; commenter?: boolean }> {
   // v1.91.0 (D-434, owner: "if I am added as a collaborator I should be able to
   // open and access that approval" / "in this case I am a commenter"): without
   // the Task module, a task the person is not a party to (v1.50.1 keeps the

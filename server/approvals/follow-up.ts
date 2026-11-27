@@ -1,3 +1,4 @@
+import { isArchived } from "@/lib/db/repositories/archive.repository";
 import "server-only";
 import { loadRequestView } from "@/server/approvals/view";
 import type { Actor } from "@/server/approvals/service";
@@ -17,6 +18,7 @@ export async function followUpSource(
   if (sourceId === null) return null;
   const view = await loadRequestView(sourceId, actor);
   if (!view || view.status !== "APPROVED") return null;
+  if (await isArchived("REQUEST", view.id)) return null; // v1.94.0 (D-456): read-only
   return { id: view.id, requestNo: view.requestNo, title: view.title, fields: view.rawFields, form: view.form, expired: isExpiredApproval(view.status, view.validUntil), validUntil: view.validUntil };
 }
 

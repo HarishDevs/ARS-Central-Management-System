@@ -31,7 +31,7 @@ export const metadata: Metadata = {
 // v1.81.0 (D-408): full encrypted backups with every file and the server keys, restore and moves (Super Admin).
 // v1.82.0 (D-409): moves app to app with pairing codes, S3, links and database to database.
 // v1.89.0 (D-421): the sidebar's two small cookies (ars_sidebar, the person's fold choice; ars_vw, the window's width class) are named.
-const PRIVACY_EFFECTIVE = "26 November 2026";
+const PRIVACY_EFFECTIVE = "27 November 2026";
 
 export default function PrivacyPage() {
   return (
@@ -206,6 +206,16 @@ export default function PrivacyPage() {
           <li>
             <strong>Security records</strong> (sign-in attempts, WhatsApp code records, ended sessions and used security or set-password links) are deleted automatically after 90 days, unless a
             legal hold applies. The audit log is kept. Requests and their history are never deleted automatically.
+          </li>
+          <li>
+            <strong>Items the Super Admin deletes</strong> (approval requests, tasks and tickets) first go to a &ldquo;Deleted items&rdquo; bin: they are hidden from everyone at once, with their
+            notifications, and the Super Admin can restore them. Only after 30 days in the bin, and only when the Super Admin confirms by typing the item&apos;s number, can it be deleted
+            permanently: its details, history, comments, files and notifications are then removed for good (never automatically, and never while a legal hold applies). The audit log keeps a
+            record that the item existed and who deleted it, and is never erased. <strong>Archived</strong> items are kept as they are, read-only.
+          </li>
+          <li>
+            <strong>Changes and items made by the Super Admin for someone else:</strong> when the Super Admin changes an item (with a reason) or raises a request, task or ticket on a
+            person&apos;s behalf, the item&apos;s history and the audit log record that the Super Admin did it, the reason, and the values before and after; the people involved are told.
           </li>
           <li>
             <strong>Profile photo and About me</strong> can be changed or removed by the person at any time from Profile.

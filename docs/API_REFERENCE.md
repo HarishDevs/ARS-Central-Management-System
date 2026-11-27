@@ -461,3 +461,6 @@ Super Admin only (a plain `404` for anyone else, and while `features.backup_cent
   - `POST /api/backup-transfer/receive` `{fileName, size}` → `{id, received}` (a RECEIVE code; again with the same code resumes).
   - `PUT /api/backup-transfer/receive/{id}?offset=N` with ≤8 MiB → `{received, size, packageName}`.
   - `GET /api/backup-transfer/offer` → `{name, size, sha256}`; `GET /api/backup-transfer/offer?offset=N&length=L` → the bytes (≤16 MiB; an OFFER code).
+
+## Super Admin control panel (v1.94.0, D-451..D-460)
+No new route handler: the control panel works through Server Actions in `app/superadmin/control/actions.ts` (`archiveAction`, `binAction`, `restoreAction`, `purgeAction`, `overrideAction`), each checking the session, the `/superadmin` area and the Super Admin role, then `server/superadmin/control/service.ts` checks the role, the reason and the item's state again under its row lock. Creating on someone's behalf adds an optional `onBehalfOf` field to the existing create actions (`submitCustomAction`, `submitRequestAction`, `createTaskAction`, `raiseTicketAction`), honoured only for a Super Admin (`server/superadmin/control/on-behalf.ts`). The route count is unchanged.

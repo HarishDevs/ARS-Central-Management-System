@@ -15,6 +15,7 @@ import {
   type EngineEvent,
   type EngineResult,
   type InstanceState,
+  type InstanceStatus,
   type JoinNode,
   type WorkflowDefinition,
   type WorkflowEdge,
@@ -407,7 +408,7 @@ class Run {
     return this.isHumanCheck(node.id) ? 1 : required(node.completion, total);
   }
 
-  private finishApproved(): void {
+  finishApproved(): void {
     this.state.status = "APPROVED";
     for (const [id, nodeState] of Object.entries(this.state.nodes)) {
       if (nodeState.status === "ACTIVE" || nodeState.status === "BLOCKED") {
@@ -1151,4 +1152,106 @@ export function answerInformation(previous: InstanceState, input: { actorId: num
   delete state.hold;
   const pendingApproverIds = [...new Set(state.tasks.filter((task) => task.status === "PENDING").map((task) => task.approverId))];
   return { state, events: [{ type: "INFO_ANSWERED", actorId: input.actorId, answer, askedBy: hold.by, heldSince: hold.at, pendingApproverIds }] };
+}
+
+// ------------------------------------------------- Super Admin overrides --
+// v1.94.0 (D-457, owner 27 Nov 2026: "Super Admin can edit any field,
+// change/skip/add approvers at any level, reopen, or force a status; each
+// change needs a reason ... Approvals already given stay on record"). Pure,
+// like every engine call: the caller locks the request, checks the role and
+// appends these events after its SUPER_ADMIN_OVERRIDE event. Nobody overrides
+// a request of their own (D-388), and nobody approves their own request.
+const OPEN_STATES: readonly InstanceStatus[] = ["IN_PROGRESS", "ON_HOLD", "CHANGES_REQUIRED"];
+const FINAL_STATES: readonly InstanceStatus[] = ["APPROVED", "REJECTED", "CANCELLED"];
+
+function notOwnRequest(actorId: number, context: EngineContext): void {
+  if (actorId === context.requesterId) throw new EngineError("INVALID_ACTION", "You can't override a request you raised yourself. Ask another Super Admin.");
+}
+
+// Skip a step that is waiting (or blocked): its open approvals close as not
+// needed and the request moves on, as if the step were not on the route.
+export function overrideSkipStep(definition: WorkflowDefinition, previous: InstanceState, input: { nodeId: string; actorId: number }, context: EngineContext, directory: Directory): EngineResult {
+  notOwnRequest(input.actorId, context);
+  if (previous.status !== "IN_PROGRESS") throw new EngineError("NOT_IN_PROGRESS", "Only a request waiting for approval can have a step skipped.");
+  const graph = new Graph(definition);
+  const node = graph.nodes.get(input.nodeId);
+  const nodeState = previous.nodes[input.nodeId];
+  if (!node || node.kind !== "APPROVAL" || !nodeState || (nodeState.status !== "ACTIVE" && nodeState.status !== "BLOCKED")) {
+    throw new EngineError("INVALID_ACTION", "Only a step that is waiting now can be skipped. Reload the page.");
+  }
+  if (previous.humanCheck?.nodeId === node.id) throw new EngineError("INVALID_ACTION", "This step is the request's one human approval, so it can't be skipped. Change its approver, or force the status.");
+  const state = clone(previous);
+  const run = new Run(graph, state, context, directory);
+  run.closeTasks(node.id, "NOT_REQUIRED");
+  run.skip(node.id, "SKIPPED_BY_IT");
+  return { state, events: run.events };
+}
+
+// One more person on a step that is waiting now (an any-one / any-N step
+// gains a choice; an all-of step waits for them too).
+export function overrideAddApprover(definition: WorkflowDefinition, previous: InstanceState, input: { nodeId: string; userId: number; actorId: number }, context: EngineContext, directory: Directory): EngineResult {
+  notOwnRequest(input.actorId, context);
+  if (previous.status !== "IN_PROGRESS" && previous.status !== "ON_HOLD") throw new EngineError("NOT_IN_PROGRESS", "Only an open request's steps take more approvers.");
+  const graph = new Graph(definition);
+  const node = graph.nodes.get(input.nodeId);
+  if (!node || node.kind !== "APPROVAL" || previous.nodes[input.nodeId]?.status !== "ACTIVE") throw new EngineError("INVALID_ACTION", "Only a step that is waiting now takes another approver. Reload the page.");
+  if (!directory.isActive(input.userId)) throw new EngineError("INVALID_ACTION", "Choose an active person.");
+  if (node.mode !== "WORK" && input.userId === context.requesterId) throw new EngineError("INVALID_ACTION", "The requester can't approve their own request.");
+  const round = previous.round;
+  if (previous.tasks.some((task) => task.nodeId === node.id && task.round === round && (task.approverId === input.userId || task.decidedBy === input.userId) && task.status !== "CANCELLED")) {
+    throw new EngineError("INVALID_ACTION", "That person is already on this step.");
+  }
+  const state = clone(previous);
+  state.seq += 1;
+  const task: ApprovalTask = { id: `t${state.seq}`, nodeId: node.id, round, approverId: input.userId, status: "PENDING", createdAt: context.now };
+  state.tasks.push(task);
+  return { state, events: [{ type: "TASK_CREATED", taskId: task.id, nodeId: node.id, approverId: input.userId }] };
+}
+
+// Force an open request to Approved, Rejected or Cancelled. Open approvals
+// close (not needed / cancelled); decisions already made stay on record.
+export function overrideForceStatus(
+  definition: WorkflowDefinition,
+  previous: InstanceState,
+  input: { status: "APPROVED" | "REJECTED" | "CANCELLED"; actorId: number; reason: string },
+  context: EngineContext,
+  directory: Directory,
+): EngineResult {
+  notOwnRequest(input.actorId, context);
+  if (!OPEN_STATES.includes(previous.status)) throw new EngineError("NOT_OPEN", "Only an open request's status can be forced. Reopen it first.");
+  const reason = input.reason.trim();
+  if (!reason) throw new EngineError("COMMENT_REQUIRED", "Please give a reason.");
+  if (input.status === "CANCELLED") return withdraw(previous, { actorId: input.actorId, reason });
+  const graph = new Graph(definition);
+  const state = clone(previous);
+  delete state.hold;
+  delete state.humanCheck;
+  delete state.changesRequested;
+  const run = new Run(graph, state, context, directory);
+  if (input.status === "APPROVED") {
+    run.finishApproved();
+  } else {
+    const active = Object.entries(state.nodes).find(([, nodeState]) => nodeState.status === "ACTIVE" || nodeState.status === "BLOCKED")?.[0] ?? "";
+    state.status = "REJECTED";
+    run.closeTasks(null, "CANCELLED");
+    run.endActiveSteps();
+    run.events.push({ type: "INSTANCE_REJECTED", nodeId: active, actorId: input.actorId, comment: reason });
+  }
+  return { state, events: run.events };
+}
+
+// Reopen a finished request (approved, rejected or cancelled): a new round
+// from the first step, on the same number and workflow version, as F-29.
+export function overrideReopen(definition: WorkflowDefinition, previous: InstanceState, input: { actorId: number; reason: string }, context: EngineContext, directory: Directory): EngineResult {
+  notOwnRequest(input.actorId, context);
+  if (!FINAL_STATES.includes(previous.status)) throw new EngineError("NOT_OPEN", "Only a finished request can be reopened.");
+  const reason = input.reason.trim();
+  if (!reason) throw new EngineError("COMMENT_REQUIRED", "Please give a reason.");
+  const graph = new Graph(definition);
+  const state = freshState(definition, previous.round + 1, previous.seq, previous);
+  state.tasks = previous.tasks.map((task) => ({ ...task }));
+  const run = new Run(graph, state, context, directory);
+  run.events.push({ type: "REOPENED", actorId: input.actorId, reason, round: state.round });
+  run.activate(graph.start());
+  return { state, events: run.events };
 }

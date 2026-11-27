@@ -934,3 +934,14 @@ Each file has its rollback SQL at the top. No new environment variable, cron job
 2. People without a module see it as a locked **Coming soon** card or choice (Home, Classic menu, Analytics); the Super Admin always sees everything.
 3. Check with a test person who has only Approvals and Tasks: Home → Task Management shows a locked Projects card; `/users/work/projects` says "coming soon for you".
 
+## Part Y: v1.94.0 (Super Admin full control: control panel, Deleted items, archive, on behalf)
+
+### Y1. Migration (runs by itself on start; additive)
+- `202611271000_superadmin_control.sql` (D-451..D-460): new table `superadmin_bin`; `archived_at`, `archived_by`, `created_on_behalf_by` on `approval_requests`, `tasks`, `tickets`; `deleted_at`, `deleted_by` on `tickets`; requests deleted before (D-086) are put in the bin. Its rollback / recovery SQL is at the top of the file.
+- Its three trigger blocks (the append-only guards on `approval_events`, `request_comments`, `comment_versions`, changed to allow Super Admin's permanent delete after 30 days in the bin) are **`-- @optional`**: on GoDaddy they are skipped with a warning ("skipped optional statement"), which is expected; the app checks the same rules itself. To add the database guards: **phpMyAdmin → the app database → SQL**, paste `database/optional/v1940_purge_triggers.sql`, then `database/optional/v1600_comment_triggers.sql` (updated), **Go**. **Never** use Database Manager → Import (it empties the database).
+- No new environment variable, cron job or provider setting. No scheduled purge: Delete permanently is manual only.
+
+### Y2. After deploying v1.94.0
+1. Sign in as the Super Admin → the sidebar has **Control** → **Control panel** and **Deleted items**.
+2. Control panel → search a request number → open it: Modify, Archive / Un-archive, Move to Deleted items are there; an IT admin opening `/superadmin/control` gets the 404.
+3. Deleted items lists the requests deleted earlier from Danger zone (each with its days until Delete permanently).

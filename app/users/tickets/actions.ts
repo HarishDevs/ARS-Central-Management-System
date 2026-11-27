@@ -14,6 +14,7 @@ import { logError } from "@/lib/logging/logger";
 import { addTicketCollaborators, removeTicketCollaborator } from "@/server/tickets/collaborators";
 import { collaboratorIdsFrom } from "@/server/approvals/collaborators";
 import type { ActionResult } from "@/lib/http/action-result";
+import { ON_BEHALF_FIELD, parseOnBehalfId, resolveOnBehalf } from "@/server/superadmin/control/on-behalf";
 
 // v1.55.0 (owner's ticketing brief): the Ticketing System's actions. The
 // session and the feature switch are checked here; the service re-checks who
@@ -38,8 +39,19 @@ const text = (formData: FormData, name: string) => {
 const idOf = (value: string) => (/^\d{1,10}$/.test(value) ? Number(value) : null);
 
 export async function raiseTicketAction(_previous: ActionResult | null, formData: FormData): Promise<ActionResult> {
-  const me = await actor(true);
-  if (!me) return NOT_FOUND;
+  const signedIn = await actor(true);
+  if (!signedIn) return NOT_FOUND;
+  // v1.94.0 (D-458): Super Admin raising it on someone's behalf: the ticket is
+  // theirs (requester, their rules), checked on the server.
+  let me: TaskActor = signedIn;
+  let onBehalfBy: number | null = null;
+  const behalfId = parseOnBehalfId(formData.get(ON_BEHALF_FIELD));
+  if (behalfId !== null) {
+    const resolved = await resolveOnBehalf(signedIn, behalfId, "TICKET");
+    if (!resolved.ok) return { ok: false, message: resolved.message };
+    me = { id: resolved.person.id, name: resolved.person.name, roles: resolved.person.roles, sessionId: signedIn.sessionId, ipAddress: signedIn.ipAddress };
+    onBehalfBy = signedIn.id;
+  }
   // Abuse guard: at most 5 tickets a minute per person.
   if (await overLimit(`ticket-raise:${me.id}`, LIMITS.ticketRaise)) return { ok: false, message: "That's a lot of tickets in a short time. Please wait a little and try again." };
   const typeId = idOf(text(formData, "type"));
@@ -55,7 +67,7 @@ export async function raiseTicketAction(_previous: ActionResult | null, formData
   let saved: { id: number; ticketNo: string };
   try {
     const result = await raiseTicket(
-      { typeId, title: text(formData, "title"), description: text(formData, "description"), priority: text(formData, "priority"), requiredOn: text(formData, "required_on"), fields, files: files.staged, submissionKey: text(formData, "submission_key") },
+      { typeId, title: text(formData, "title"), description: text(formData, "description"), priority: text(formData, "priority"), requiredOn: text(formData, "required_on"), fields, files: files.staged, submissionKey: text(formData, "submission_key"), onBehalfBy },
       me,
     );
     if (!result.ok) return { ok: false, message: result.message, fieldErrors: result.fieldErrors };

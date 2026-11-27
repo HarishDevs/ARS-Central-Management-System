@@ -11,7 +11,9 @@
 -- * lets only the text of a request comment change;
 -- * keeps comment edit history (comment_versions) unchangeable, except that the
 --   30-day clean-up may remove the history of a task deleted more than 30 days
---   ago (v1.71.1, D-385).
+--   ago (v1.71.1, D-385), and Super Admin's Delete permanently may remove the
+--   history of a request or ticket in the bin for 30 days or more (v1.94.0,
+--   D-455; needs the v1.94.0 migration first, for the superadmin_bin table).
 --
 -- How: cPanel -> phpMyAdmin -> choose the app database -> SQL -> paste this
 -- whole file -> Go. Safe to run again (it drops before it creates). The
@@ -40,9 +42,16 @@ END$$
 CREATE TRIGGER trg_comment_versions_no_delete BEFORE DELETE ON comment_versions
 FOR EACH ROW
 BEGIN
-  IF OLD.target <> 'TASK' OR NOT EXISTS (
-    SELECT 1 FROM task_comments c JOIN tasks t ON t.id = c.task_id
-    WHERE c.id = OLD.comment_id AND t.deleted_at IS NOT NULL AND t.deleted_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 30 DAY)
+  IF NOT (
+    (OLD.target = 'TASK' AND EXISTS (
+      SELECT 1 FROM task_comments c JOIN tasks t ON t.id = c.task_id
+      WHERE c.id = OLD.comment_id AND t.deleted_at IS NOT NULL AND t.deleted_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 30 DAY)))
+    OR (OLD.target = 'REQUEST' AND EXISTS (
+      SELECT 1 FROM request_comments c JOIN superadmin_bin b ON b.active_key = CONCAT('REQUEST:', c.request_id)
+      WHERE c.id = OLD.comment_id AND b.binned_at <= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 30 DAY)))
+    OR (OLD.target = 'TICKET' AND EXISTS (
+      SELECT 1 FROM ticket_comments c JOIN superadmin_bin b ON b.active_key = CONCAT('TICKET:', c.ticket_id)
+      WHERE c.id = OLD.comment_id AND b.binned_at <= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 30 DAY)))
   ) THEN
     SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'comment_versions is append-only';
   END IF;

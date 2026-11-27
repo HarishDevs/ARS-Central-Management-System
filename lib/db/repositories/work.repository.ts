@@ -1082,7 +1082,7 @@ export async function generalTypeVersion(db: Queryable = getDbPool()): Promise<{
 // Deleted tasks the person created or deleted (last 30 days), for Restore.
 export async function listDeletedTasks(userId: number, db: Queryable = getDbPool()): Promise<{ id: number; taskNo: string; title: string; deletedAt: Date }[]> {
   const [rows] = await db.query<Row[]>(
-    "SELECT id, task_no, title, deleted_at FROM tasks WHERE deleted_at IS NOT NULL AND deleted_at > DATE_SUB(UTC_TIMESTAMP(), INTERVAL 30 DAY) AND (created_by = ? OR deleted_by = ?) AND parent_task_id IS NULL ORDER BY deleted_at DESC LIMIT 100",
+    "SELECT id, task_no, title, deleted_at FROM tasks WHERE deleted_at IS NOT NULL AND deleted_at > DATE_SUB(UTC_TIMESTAMP(), INTERVAL 30 DAY) AND (created_by = ? OR deleted_by = ?) AND parent_task_id IS NULL AND NOT EXISTS (SELECT 1 FROM superadmin_bin sb WHERE sb.active_key = CONCAT('TASK:', tasks.id)) ORDER BY deleted_at DESC LIMIT 100",
     [userId, userId],
   );
   return rows.map((row) => ({ id: num(row.id), taskNo: String(row.task_no), title: String(row.title), deletedAt: row.deleted_at as Date }));

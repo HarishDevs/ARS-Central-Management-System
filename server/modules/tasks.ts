@@ -74,13 +74,16 @@ const outsideModule = (actor: ModuleActor, task: Parameters<typeof isParty>[0], 
 export async function loadTaskFor(id: number, actor: ModuleActor) {
   const task = await findTask(id);
   if (!task) return null;
+  // v1.94.0 (D-454): a task in the Super Admin bin is hidden from everyone (only the control panel opens it).
+  if (task.binned) return null;
   if (task.deletedAt && !(task.createdBy === actor.id || task.deletedBy === actor.id || isAdminActor(actor))) return null;
   const viewer = await taskViewerFor(task, actor);
   const ctx = await versionWithType(task.typeVersionId);
   if (!ctx) return null;
   const settings = parseTaskSettings(ctx.version.settings);
   if (!canSeeTask(task, viewer) || outsideModule(actor, task, viewer)) return null;
-  const actions = task.deletedAt ? new Set<TaskAction>() : allowedTaskActions(task, viewer, settings);
+  // v1.94.0 (D-456): an archived task is read-only for everyone.
+  const actions = task.deletedAt || task.archivedAt ? new Set<TaskAction>() : allowedTaskActions(task, viewer, settings);
   return { task, settings, form: ctx.version.form, versionNo: ctx.version.versionNo, actions, viewer };
 }
 
@@ -102,6 +105,7 @@ export interface CreateTaskInput {
   submissionKey: string | null;
   files: StagedFile[];
   holidayOk?: boolean; // D-217: keep a due date on a holiday
+  onBehalfBy?: number | null; // v1.94.0 (D-458): the Super Admin creating it as the creator (actor)
 }
 
 export async function createTask(input: CreateTaskInput, actor: TaskActor): Promise<TaskResult<{ id: number; taskNo: string }>> {
@@ -171,6 +175,12 @@ export async function createTask(input: CreateTaskInput, actor: TaskActor): Prom
       await addFollower(id, actor.id, "CREATOR", actor.id, connection);
       if (assignee!.id !== actor.id) await addFollower(id, assignee!.id, "ASSIGNEE", actor.id, connection);
       await insertRecordFiles("TASK", id, input.files, actor.id, "GENERAL", connection);
+      // v1.94.0 (D-458): "Created by Super Admin on behalf of" the creator.
+      if (input.onBehalfBy) {
+        await connection.query("UPDATE tasks SET created_on_behalf_by = ? WHERE id = ?", [input.onBehalfBy, id]);
+        await appendTaskEvent(id, { actorId: input.onBehalfBy, type: "CREATED_ON_BEHALF", body: `Created by Super Admin on behalf of ${actor.name}`, payload: { onBehalfOf: actor.id } }, connection);
+        await recordAudit({ actorUserId: input.onBehalfBy, action: "TASK_CREATED_ON_BEHALF", entityType: "TASK", entityId: id, onBehalfOfUserId: actor.id, sessionId: actor.sessionId, ipAddress: actor.ipAddress ?? null, metadata: { taskNo } }, connection);
+      }
       await recordAudit({ actorUserId: actor.id, action: "TASK_CREATED", entityType: "TASK", entityId: id, sessionId: actor.sessionId, ipAddress: actor.ipAddress ?? null, metadata: { taskNo, typeVersionId: type.versionId, assigneeId: assignee!.id, relatedRequestId, files: input.files.length } }, connection);
       const messages = assignee!.id === actor.id ? [] : [taskMessages.assigned({ id, taskNo, title, dueAt }, assignee!.id, actor.name)];
       const outbox = await insertOutbox(null, messages, connection);
@@ -304,6 +314,7 @@ export async function actOnTask(input: TaskActionInput, actor: TaskActor): Promi
     const outcome = await withTransaction(async (connection) => {
       const task = await findTask(input.taskId, connection, true);
       if (!task || task.deletedAt) return { error: "Not found." } as const;
+      if (task.archivedAt) return { error: "This task is archived, so it is read-only." } as const; // v1.94.0 (D-456)
       const ctx = await versionWithType(task.typeVersionId, connection);
       if (!ctx) return { error: "Not found." } as const;
       const settings = parseTaskSettings(ctx.version.settings);

@@ -68,6 +68,7 @@ export interface TicketFacts {
   status: TicketStatus;
   requesterId: number;
   assigneeId: number | null;
+  archivedAt?: Date | null; // v1.94.0 (D-456): archived = read-only for everyone
 }
 
 export const roleOf = (ticket: TicketFacts, viewer: TicketViewer) => ({
@@ -93,11 +94,12 @@ export function collaboratorOnly(ticket: TicketFacts, viewer: TicketViewer): boo
 // anyone (as on a request); one with the Ticketing module may leave (remove
 // themselves); a Commenter may not (D-434).
 export function mayManageTicketCollaborators(ticket: TicketFacts, viewer: TicketViewer): boolean {
+  if (ticket.archivedAt) return false;
   const role = roleOf(ticket, viewer);
   return role.requester || role.coordinator || role.assignee;
 }
 export function mayLeaveTicket(ticket: TicketFacts, viewer: TicketViewer): boolean {
-  return Boolean(viewer.isCollaborator) && !viewer.commenter;
+  return !ticket.archivedAt && Boolean(viewer.isCollaborator) && !viewer.commenter;
 }
 
 // v1.92.0 (D-439): may the person add files (with a remark)? Everyone who may
@@ -115,6 +117,7 @@ export function seesInternal(ticket: TicketFacts, viewer: TicketViewer): boolean
 export function allowedTicketActions(ticket: TicketFacts, viewer: TicketViewer): Set<TicketAction> {
   const role = roleOf(ticket, viewer);
   const actions = new Set<TicketAction>();
+  if (ticket.archivedAt) return actions;
   if (ticket.status === "CLOSED") return actions;
   // Assign a new or reopened ticket, or reassign while the work is with someone.
   if (role.coordinator && ticket.status !== "AWAITING_CONFIRMATION") actions.add("ASSIGN");

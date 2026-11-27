@@ -1,3 +1,4 @@
+import { ARCHIVED_MESSAGE, isArchived } from "@/lib/db/repositories/archive.repository";
 import "server-only";
 import { findRequest, isParticipant } from "@/lib/db/repositories/approvals.repository";
 import { answerConsultationRow, findConsultation, hasOpenConsultation, insertConsultation, insertLink, listLinkedIds, type LinkedRequest } from "@/lib/db/repositories/consult.repository";
@@ -106,6 +107,7 @@ export async function linkRequests(input: { requestId: number; otherRequestNo: s
   if (!request || !(await canSee(request.id, request.requesterId, actor))) return { ok: false, code: "NOT_FOUND", message: "Not found." };
   if (!other || !(await canSee(other.id, other.requesterId, actor))) return { ok: false, code: "NOT_FOUND", message: "No request with that number that you can see." };
   if (other.id === request.id) return { ok: false, code: "INVALID", message: "That's this request." };
+  if (await isArchived("REQUEST", request.id)) return { ok: false, code: "ARCHIVED", message: ARCHIVED_MESSAGE }; // v1.94.0 (D-456)
   const result = await insertLink({ fromId: request.id, toId: other.id, kind: "RELATED", userId: actor.id });
   if (result === "EXISTS") return { ok: false, code: "EXISTS", message: "These are already linked." };
   await recordAudit({ actorUserId: actor.id, action: "REQUEST_LINKED", entityType: "REQUEST", entityId: request.id, metadata: { other: other.id } });

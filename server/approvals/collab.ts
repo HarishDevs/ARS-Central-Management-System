@@ -1,3 +1,4 @@
+import { ARCHIVED_MESSAGE, isArchived } from "@/lib/db/repositories/archive.repository";
 import "server-only";
 import type { RowDataPacket } from "mysql2/promise";
 import { afterResponse } from "@/lib/http/after-response";
@@ -56,6 +57,7 @@ export async function addComment(requestId: number, body: string, actor: Actor):
   const request = await findRequest(requestId);
   const allowed = request && (request.requesterId === actor.id || isAdmin(actor) || (await isParticipant(requestId, actor.id)));
   if (!request || !allowed) return { ok: false, code: "NOT_FOUND", message: "Not found." };
+  if (await isArchived("REQUEST", requestId)) return { ok: false, code: "ARCHIVED", message: ARCHIVED_MESSAGE }; // v1.94.0 (D-456)
 
   const id = await insertComment(requestId, actor.id, text);
   const mentions = await resolveMentions(text, request, actor.id);

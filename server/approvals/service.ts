@@ -1,3 +1,4 @@
+import { overrideAddApprover, overrideForceStatus, overrideReopen, overrideSkipStep } from "@/server/engine";
 import "server-only";
 import { departmentOfUser, mayRaise } from "@/server/approvals/raisers";
 import { afterResponse } from "@/lib/http/after-response";
@@ -441,8 +442,9 @@ export interface AmendmentChange {
 const OPEN_STATUSES = ["IN_PROGRESS", "ON_HOLD", "CHANGES_REQUIRED"];
 
 async function checkAmendment(amendment: AmendmentInput, data: EngineFormData, form: readonly FormField[], connection: Pick<PoolConnection, "query">): Promise<AmendmentChange[]> {
-  const [original] = await connection.query<(RowDataPacket & { status: string; deleted_at: Date | null })[]>("SELECT status, deleted_at FROM approval_requests WHERE id = ? FOR UPDATE", [amendment.originalId]);
-  if (!original[0] || original[0].deleted_at || original[0].status !== "APPROVED") throw new FormError({ amendment: "Only an approved request can be amended." }, "Only an approved request can be amended.");
+  const [original] = await connection.query<(RowDataPacket & { status: string; deleted_at: Date | null; archived_at: Date | null })[]>("SELECT status, deleted_at, archived_at FROM approval_requests WHERE id = ? FOR UPDATE", [amendment.originalId]);
+  // v1.94.0 (D-456): an archived request is read-only, so it isn't amended either.
+  if (!original[0] || original[0].deleted_at || original[0].archived_at || original[0].status !== "APPROVED") throw new FormError({ amendment: "Only an approved request can be amended." }, "Only an approved request can be amended.");
   const [open] = await connection.query<(RowDataPacket & { request_no: string })[]>(
     `SELECT r.request_no FROM request_amendments a JOIN approval_requests r ON r.id = a.amendment_id
      WHERE a.original_id = ? AND r.deleted_at IS NULL AND r.status IN (?) LIMIT 1 FOR UPDATE`,
@@ -473,7 +475,9 @@ export async function submitRequest(
   // FN1: attachmentCount (files with the submit), acknowledged (warnings
   // confirmed; allowDuplicate is the older name), overrideReason (why a
   // possible duplicate isn't one).
-  input: { workflowId: number; title: string; fields: Record<string, string | undefined>; submissionKey?: string | null; allowDuplicate?: boolean; acknowledged?: boolean; overrideReason?: string; attachmentCount?: number; isCustom?: boolean; amendment?: AmendmentInput },
+  // v1.94.0 (D-458): onBehalfBy = the Super Admin raising it for `actor` (the
+  // requester, whose rules all apply: who may raise the type, no self-approval).
+  input: { workflowId: number; title: string; fields: Record<string, string | undefined>; submissionKey?: string | null; allowDuplicate?: boolean; acknowledged?: boolean; overrideReason?: string; attachmentCount?: number; isCustom?: boolean; amendment?: AmendmentInput; onBehalfBy?: number | null },
   actor: Actor,
 ): Promise<Result<{ requestId: number; requestNo: string; status: string; repeated?: boolean }>> {
   // D-QA-01: the same form sent again (retry after a timeout) → the request it already made.
@@ -542,6 +546,13 @@ export async function submitRequest(
       const id = await insertRequest({ requestNo, workflowVersionId: version.id, requesterId: actor.id, title, formData, state: result.state, submissionKey: input.submissionKey ?? null }, connection);
       await syncTasks(id, result.state, version.definition.nodes, connection, await loadWorkingCalendar(connection));
       await appendEvents(id, [{ type: "SUBMITTED", requestNo }, ...result.events], actor.id, connection);
+      // v1.94.0 (D-458): "Created by Super Admin on behalf of X" on the timeline and in the audit log.
+      const onBehalf: EngineEvent[] = input.onBehalfBy ? [{ type: "CREATED_ON_BEHALF", actorId: input.onBehalfBy, onBehalfOf: actor.id }] : [];
+      if (input.onBehalfBy) {
+        await connection.query("UPDATE approval_requests SET created_on_behalf_by = ? WHERE id = ?", [input.onBehalfBy, id]);
+        await appendEvents(id, onBehalf, input.onBehalfBy, connection);
+        await recordAudit({ actorUserId: input.onBehalfBy, action: "REQUEST_CREATED_ON_BEHALF", entityType: "REQUEST", entityId: id, onBehalfOfUserId: actor.id, metadata: { requestNo } }, connection);
+      }
       await mirrorWorkTasks(id, connection); // D-269: work steps in Task Management; D-273: after the events (background work is read from them)
       await recordAudit({ actorUserId: actor.id, action: "REQUEST_SUBMITTED", entityType: "REQUEST", entityId: id, metadata: { requestNo, workflowVersionId: version.id } }, connection); // SEC-12 (v1.10.0)
       await insertRevision(id, result.state.round, title, formData, actor.id, connection);
@@ -575,7 +586,7 @@ export async function submitRequest(
         state: result.state,
         stateVersion: 1,
       };
-      const change = { request, events: result.events, requesterName: await requesterName(actor.id, connection) };
+      const change = { request, events: [...result.events, ...onBehalf], requesterName: await requesterName(actor.id, connection) };
       return { ...change, outboxIds: await queueMessages(change, connection) };
     });
   } catch (error) {
@@ -969,7 +980,7 @@ export function checkCustomSpec(spec: BuilderSpec, requesterId: number): string[
 }
 
 export async function submitCustomRequest(
-  input: { title: string; builder: BuilderSpec; fields: Record<string, string | undefined>; submissionKey?: string | null; allowDuplicate?: boolean },
+  input: { title: string; builder: BuilderSpec; fields: Record<string, string | undefined>; submissionKey?: string | null; allowDuplicate?: boolean; onBehalfBy?: number | null },
   actor: Actor,
 ): Promise<Result<{ requestId: number; requestNo: string; status: string; repeated?: boolean }>> {
   if (input.submissionKey) {
@@ -1018,7 +1029,7 @@ export async function submitCustomRequest(
     return published;
   }
   try {
-    const submitted = await submitRequest({ workflowId: created.value.workflowId, title: input.title, fields: input.fields, submissionKey: input.submissionKey, allowDuplicate: true, isCustom: true }, actor);
+    const submitted = await submitRequest({ workflowId: created.value.workflowId, title: input.title, fields: input.fields, submissionKey: input.submissionKey, allowDuplicate: true, isCustom: true, onBehalfBy: input.onBehalfBy ?? null }, actor);
     if (!submitted.ok || submitted.value.repeated) await discard();
     return submitted;
   } catch (error) {
@@ -1124,4 +1135,112 @@ export function reopenRequest(input: { requestId: number; reason: string }, acto
     if (!actor.roles.includes("SUPER_ADMIN")) throw new ServiceError("NOT_AUTHORISED", "Only the Super Admin can reopen an approved request.");
     return reopen(definition, request.state, { actorId: actor.id, reason: input.reason }, context(request), directory);
   });
+}
+
+// ---- Super Admin logged override (v1.94.0, D-457) ---------------------------------
+// Owner (27 Nov 2026): "Super Admin can edit any field, change/skip/add
+// approvers at any level, reopen, or force a status; each change needs a
+// reason, is shown in the item's timeline as 'Changed by Super Admin', and
+// notifies the people involved. Approvals already given stay on record."
+// Every change is one locked, version-checked transaction (mutate): the
+// SUPER_ADMIN_OVERRIDE event first, then the engine's own events, all
+// append-only. Nobody overrides their own request (the engine refuses it), and
+// nobody is made an approver of their own request.
+export type RequestOverride =
+  | { action: "EDIT_FIELDS"; title?: string; fields: Record<string, string | undefined> }
+  | { action: "CHANGE_APPROVER"; taskKey: string; toUserId: number }
+  | { action: "ADD_APPROVER"; nodeId: string; userId: number }
+  | { action: "SKIP_STEP"; nodeId: string }
+  | { action: "FORCE_STATUS"; status: "APPROVED" | "REJECTED" | "CANCELLED" }
+  | { action: "REOPEN" };
+
+const pendingApproverIds = (state: { tasks: readonly { status: string; approverId: number }[] }) => [...new Set(state.tasks.filter((task) => task.status === "PENDING").map((task) => task.approverId))];
+const OWN_REQUEST = "You can't override a request you raised yourself. Ask another Super Admin.";
+
+export async function overrideRequest(requestId: number, input: RequestOverride & { reason: string; expectedStateVersion?: number | null }, actor: Actor): Promise<Result<{ status: string }>> {
+  if (!actor.roles.includes("SUPER_ADMIN")) return { ok: false, code: "NOT_FOUND", message: "Not found." };
+  const reason = input.reason.trim();
+  if (reason.length < 5) return { ok: false, code: "COMMENT_REQUIRED", message: "Give a reason of at least 5 characters.", fieldErrors: { reason: "Give a reason of at least 5 characters." } };
+  if (reason.length > 500) return { ok: false, code: "COMMENT_TOO_LONG", message: "Keep the reason under 500 characters." };
+  const lookups = input.action === "EDIT_FIELDS" ? await loadFieldLookups() : undefined;
+  // Names for the timeline sentence (read before the lock; the step itself is synchronous).
+  const seen = await findRequest(requestId);
+  const names = await userNames([...(seen?.state.tasks.map((task) => task.approverId) ?? []), ...("toUserId" in input ? [input.toUserId] : []), ...("userId" in input ? [input.userId] : [])]);
+  let newTitle: string | null = null;
+  return mutate(
+    requestId,
+    actor,
+    (request, definition, directory, { version, snapshot }) => {
+      // Stale-page protection: the request as the panel showed it.
+      if (input.expectedStateVersion != null && input.expectedStateVersion !== request.stateVersion) throw new ServiceError("CONFLICT", "Someone else just changed this request. Reload and try again.");
+      if (request.requesterId === actor.id) throw new ServiceError("NOT_AUTHORISED", OWN_REQUEST);
+      const ctx = context(request);
+      const nameOf = (id: number) => names.get(id) ?? `#${id}`;
+      const labelOf = (nodeId: string) => definition.nodes.find((node) => node.id === nodeId)?.label ?? nodeId;
+      const before = pendingApproverIds(request.state);
+      let result: EngineResult & { formData?: Record<string, unknown> };
+      let summary: string;
+      let extra: { before?: Record<string, unknown>; after?: Record<string, unknown> } = {};
+      if (input.action === "EDIT_FIELDS") {
+        const raw: Record<string, string | undefined> = {};
+        for (const field of version.form) {
+          const current = request.formData[field.key];
+          raw[field.key] = current === undefined || current === null ? "" : typeof current === "object" ? JSON.stringify(current) : String(current);
+        }
+        // Only values that really changed are parsed again (the rest stay exactly as stored).
+        const edited = Object.entries(input.fields).filter(([key, value]) => version.form.some((field) => field.key === key && field.type !== "ATTACHMENT") && raw[key] !== value);
+        for (const [key, value] of edited) raw[key] = value;
+        const parsed = edited.length ? parseFormSubmission(version.form, raw, activeIds(snapshot), lookups) : ({ ok: true, data: request.formData } as const);
+        if (!parsed.ok) throw new FormError(parsed.errors);
+        const keys = edited.length ? changedKeys(request.formData, parsed.data) : [];
+        const title = input.title === undefined ? request.title : input.title.trim();
+        if (title.length < 3 || title.length > 200) throw new FormError({ title: "Give a title of 3 to 200 characters." });
+        if (!keys.length && title === request.title) throw new ServiceError("NO_CHANGE", "Nothing was changed.");
+        newTitle = title !== request.title ? title : null;
+        const labels = keys.map((key) => version.form.find((field) => field.key === key)?.label ?? key);
+        summary = `edited ${[...(newTitle ? ["the title"] : []), ...labels].join(", ")} (the route is not re-run)`;
+        extra = {
+          before: Object.fromEntries([...(newTitle ? [["title", request.title] as const] : []), ...keys.map((key) => [key, request.formData[key] ?? null] as const)]),
+          after: Object.fromEntries([...(newTitle ? [["title", title] as const] : []), ...keys.map((key) => [key, parsed.data[key] ?? null] as const)]),
+        };
+        result = { state: request.state, events: [], formData: keys.length ? parsed.data : undefined };
+      } else if (input.action === "CHANGE_APPROVER") {
+        const task = request.state.tasks.find((candidate) => candidate.id === input.taskKey);
+        if (!task || task.status !== "PENDING") throw new EngineError("INVALID_REASSIGN", "This approval is no longer waiting. Reload the page.");
+        const node = definition.nodes.find((candidate) => candidate.id === task.nodeId);
+        const work = node?.kind === "APPROVAL" && node.mode === "WORK";
+        const target = snapshot.users.find((user) => user.id === input.toUserId);
+        if (!target || !target.active || target.isBreakGlass) throw new EngineError("INVALID_REASSIGN", "Choose an active person.");
+        if (!work && target.approver === false) throw new EngineError("INVALID_REASSIGN", "Choose someone who can approve (Manager and above).");
+        summary = `changed the approver of "${labelOf(task.nodeId)}" from ${nameOf(task.approverId)} to ${nameOf(input.toUserId)}`;
+        result = reassignTask(request.state, { taskId: task.id, toUserId: input.toUserId, actorId: actor.id, reason }, ctx, directory);
+      } else if (input.action === "ADD_APPROVER") {
+        const node = definition.nodes.find((candidate) => candidate.id === input.nodeId);
+        const work = node?.kind === "APPROVAL" && node.mode === "WORK";
+        const target = snapshot.users.find((user) => user.id === input.userId);
+        if (!target || !target.active || target.isBreakGlass) throw new EngineError("INVALID_ACTION", "Choose an active person.");
+        if (!work && target.approver === false) throw new EngineError("INVALID_ACTION", "Choose someone who can approve (Manager and above).");
+        summary = `added ${nameOf(input.userId)} as an approver of "${labelOf(input.nodeId)}"`;
+        result = overrideAddApprover(definition, request.state, { nodeId: input.nodeId, userId: input.userId, actorId: actor.id }, ctx, directory);
+      } else if (input.action === "SKIP_STEP") {
+        summary = `skipped the step "${labelOf(input.nodeId)}"`;
+        result = overrideSkipStep(definition, request.state, { nodeId: input.nodeId, actorId: actor.id }, ctx, directory);
+      } else if (input.action === "FORCE_STATUS") {
+        summary = `set the status to ${input.status === "APPROVED" ? "Approved" : input.status === "REJECTED" ? "Rejected" : "Cancelled"}`;
+        result = overrideForceStatus(definition, request.state, { status: input.status, actorId: actor.id, reason }, ctx, directory);
+      } else {
+        summary = "reopened it from the first step (a new round; earlier decisions stay on record)";
+        result = overrideReopen(definition, request.state, { actorId: actor.id, reason }, ctx, directory);
+      }
+      const notifyIds = [...new Set([...before, ...pendingApproverIds(result.state)])];
+      const override: EngineEvent = { type: "SUPER_ADMIN_OVERRIDE", actorId: actor.id, action: input.action, reason, summary, notifyIds, ...extra };
+      return { ...result, events: [override, ...result.events] };
+    },
+    {
+      afterSave: async (request, connection) => {
+        if (newTitle) await connection.query("UPDATE approval_requests SET title = ? WHERE id = ?", [newTitle, request.id]);
+        await recordAudit({ actorUserId: actor.id, action: "REQUEST_SUPER_ADMIN_OVERRIDE", entityType: "REQUEST", entityId: request.id, metadata: { requestNo: request.requestNo, override: input.action, reason } }, connection);
+      },
+    },
+  );
 }

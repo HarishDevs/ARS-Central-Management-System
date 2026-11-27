@@ -82,6 +82,8 @@ export async function purgeTaskCandidates(limit: number, db: Queryable = getDbPo
      WHERE t.deleted_at IS NOT NULL AND t.deleted_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL ${PURGE_DAYS} DAY)
        AND t.ticket_id IS NULL
        AND NOT EXISTS (SELECT 1 FROM tickets k WHERE k.task_id = t.id)
+       -- v1.94.0 (D-455): a task in the Super Admin bin is deleted for good only by Super Admin (Delete permanently).
+       AND NOT EXISTS (SELECT 1 FROM superadmin_bin sb WHERE sb.active_key = CONCAT('TASK:', t.id))
        AND NOT EXISTS (SELECT 1 FROM meeting_actions ma WHERE ma.task_id = t.id)
        AND (t.related_request_id IS NULL OR NOT EXISTS (
          SELECT 1 FROM approval_requests r JOIN legal_holds h ON h.released_at IS NULL AND (

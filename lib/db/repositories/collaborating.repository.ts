@@ -130,7 +130,7 @@ export async function collaboratesOnRequestComment(commentId: number, userId: nu
 // so the list never shows a ticket its page would refuse. One query for the
 // page, one for the count (no N+1; idx_ticket_collaborators_user).
 const TICKET_BASE = `FROM ticket_collaborators f
-     JOIN tickets k ON k.id = f.ticket_id
+     JOIN tickets k ON k.id = f.ticket_id AND k.deleted_at IS NULL
      JOIN ticket_categories c ON c.id = k.category_id
      JOIN users r ON r.id = k.requester_id
      LEFT JOIN users a ON a.id = k.assignee_id

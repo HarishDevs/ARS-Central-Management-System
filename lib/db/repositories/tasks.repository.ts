@@ -46,6 +46,11 @@ export interface TaskRecord {
   assignedAt: Date | null;
   deletedAt: Date | null;
   deletedBy: number | null;
+  // v1.94.0 (D-454, D-456, D-458): in the Super Admin bin (hidden from everyone,
+  // the creator and IT included), archived (read-only), raised on someone's behalf.
+  binned?: boolean;
+  archivedAt?: Date | null;
+  onBehalfByName?: string | null;
 }
 
 type TaskRow = RowDataPacket & {
@@ -85,6 +90,9 @@ type TaskRow = RowDataPacket & {
   assigned_at?: Date | null;
   deleted_at?: Date | null;
   deleted_by?: number | null;
+  in_bin?: number | null;
+  archived_at?: Date | null;
+  on_behalf_by_name?: string | null;
 };
 
 const dateOnly = (value: string | Date | null) => (value === null ? null : typeof value === "string" ? value.slice(0, 10) : value.toISOString().slice(0, 10));
@@ -126,11 +134,16 @@ const toTask = (row: TaskRow): TaskRecord => ({
   assignedAt: row.assigned_at ?? null,
   deletedAt: row.deleted_at ?? null,
   deletedBy: row.deleted_by ?? null,
+  binned: Boolean(row.in_bin),
+  archivedAt: row.archived_at ?? null,
+  onBehalfByName: row.on_behalf_by_name ?? null,
 });
 
 export const TASK_SELECT = `SELECT t.*, v.type_id, mt.name AS type_name, c.name AS created_by_name, a.name AS assignee_name, a.reporting_manager_id AS assignee_manager_id,
     (SELECT dd.name FROM departments dd WHERE dd.id = a.department_id) AS assignee_department, (SELECT dc.name FROM departments dc WHERE dc.id = c.department_id) AS created_by_department,
-    ab.name AS assigned_by_name, cb.name AS completed_by_name, r.request_no AS related_request_no
+    ab.name AS assigned_by_name, cb.name AS completed_by_name, r.request_no AS related_request_no,
+    EXISTS (SELECT 1 FROM superadmin_bin sb WHERE sb.active_key = CONCAT('TASK:', t.id)) AS in_bin,
+    (SELECT ob.name FROM users ob WHERE ob.id = t.created_on_behalf_by) AS on_behalf_by_name
   FROM tasks t
   JOIN module_type_versions v ON v.id = t.type_version_id
   JOIN module_types mt ON mt.id = v.type_id

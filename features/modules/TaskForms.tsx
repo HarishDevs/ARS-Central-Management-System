@@ -31,6 +31,7 @@ export function CreateTaskForm({
   allowRelated,
   relatedDefault,
   selfId,
+  onBehalfOf,
 }: {
   typeId: number;
   form: FormField[];
@@ -43,6 +44,7 @@ export function CreateTaskForm({
   allowRelated: boolean;
   relatedDefault: string;
   selfId: number;
+  onBehalfOf?: number; // v1.94.0 (D-458): Super Admin creating it as this person (checked on the server)
 }) {
   const submissionKey = useMemo(() => crypto.randomUUID(), []);
   const { result, pending, onSubmit } = useActionForm(createTaskAction);
@@ -52,6 +54,7 @@ export function CreateTaskForm({
       <UnsavedGuard />
       <input type="hidden" name="type" value={typeId} />
       <input type="hidden" name="submission_key" value={submissionKey} />
+      {onBehalfOf ? <input type="hidden" name="onBehalfOf" value={onBehalfOf} /> : null}
       <div>
         <label htmlFor="task-title" className="field-label">
           Title
