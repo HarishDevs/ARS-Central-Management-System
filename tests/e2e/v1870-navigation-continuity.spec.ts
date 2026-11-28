@@ -80,12 +80,19 @@ test("owner's scenario (Super Admin, Admin → Records): the exact screen comes 
   await page.waitForURL(/[?&]q=Continuity/);
   await settle(page);
   const sort = page.locator("main thead a").first();
+  // v1.94.1 (KF-25 root cause): the address changes before the filtered list is
+  // drawn, so read the sort link only once the table carries the filter (the CI
+  // trace of run 45980654401 read "?dir=asc" from the old table, then waited for
+  // an address that never came).
+  await expect(sort).toHaveAttribute("href", /[?&]q=Continuity/);
   // v1.89.0: wait for the sorted address itself (settle alone could finish before the click's move began).
   const sorted = await sort.getAttribute("href");
   await sort.click();
   await page.waitForURL((url) => `${url.pathname}${url.search}` === sorted);
   await settle(page);
   const list = await here(page);
+  // v1.94.1: the chips are read once the new list is drawn (the same check, no longer racing it).
+  await expect(page.getByTestId("power-chip").first()).toBeVisible();
   const chips = await page.getByTestId("power-chip").allTextContents();
   expect(chips.join()).toContain("Continuity");
   // Open the record beside the list.

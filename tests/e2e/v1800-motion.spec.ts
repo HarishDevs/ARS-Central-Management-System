@@ -11,6 +11,13 @@ import { db, dropCustomDraft, phoneLayoutCookie, sessionCookie, toWorkflowStep }
 // swiped away on a phone; reduce motion; page transitions on and off; axe in
 // light, dark and phone on the changed screens.
 test.describe.configure({ mode: "serial" });
+// v1.94.1 (KF-18 root cause): once the app's service worker (public/sw.js, which
+// has a fetch listener) controls the page, the page's requests go through it and
+// page.route() no longer sees them, so the "held" sort navigation wasn't held and
+// finished at once (CI trace of run 45994537565: no RSC request for the sort in
+// the page's network log, sw.js registered). These tests hold requests on
+// purpose, so the service worker stays out of them (it is tested in v1100-web).
+test.use({ serviceWorkers: "block" });
 const stamp = Date.now().toString(36);
 const ids: number[] = [];
 

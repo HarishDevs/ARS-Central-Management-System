@@ -1,5 +1,13 @@
 # Release notes
 
+## v1.94.1 (28 Nov 2026): two end-to-end tests made reliable (no app change)
+The automatic check (CI) on main failed after v1.94.0 on one browser test, and an earlier run on two (D-461). **Nothing changes for users: no screen, data, setting, package or migration changes.**
+
+- **The "a sort shows it was heard" test (KF-18):** the app's service worker, once it controls the page, takes the page's requests, so the test's way of holding a request back stopped working on the CI machine and the test failed. That test file now runs without the service worker (it is tested on its own elsewhere).
+- **The Admin → Records "exact screen comes back" test (KF-25):** the test read the table's sort link a moment too early, from the list as it was before the filter applied, then waited for an address that never came. It now waits until the table shows the filter before reading it.
+
+**Owner steps:** none needed for users; if v1.94.0 is not yet published, publishing v1.94.1 includes it (GoDaddy → Update Preview → Publish to Live).
+
 ## v1.94.0 (27 Nov 2026): Super Admin full control
 The owner's request (27 Nov 2026): "From Super admin should be able to create, Modify, Delete, archive anything like approval, task, Ticket at any level", with the owner's answers: Delete = bin, then purge; Modify = logged override; Create = on behalf of; scope = all modules (D-451..D-460). **This release: approval requests, tasks (repeating ones too) and tickets. Projects, portfolios, meetings and forms follow in v1.94.1+ (TD-025). One migration (added automatically on start). New data: who archived, binned, restored or deleted an item and why, and who raised an item on someone's behalf (see the privacy policy).**
 
