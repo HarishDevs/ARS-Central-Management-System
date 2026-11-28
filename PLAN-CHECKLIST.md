@@ -23,7 +23,7 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 - [x] V1950-3 (28 Nov 2026) Column layout kept: into the view when the person may save it, else personal `work.layout.<key>`; search, project tabs, Task Summary (D-475, D-476; TD-018 closed)
 - [x] V1950-4 (28 Nov 2026) Tests: unit v195-dates-layout, integration v195-grid-layout, e2e v1950 (Chromium; layout in Firefox) + affected PM specs; visual PM baselines; axe pass on task screens
 - [x] V1950-5 (28 Nov 2026) Docs and general pages: Guide, Help, release notes, FLOWS, DATA_MODEL, TECH-DEBT TD-041..TD-043, DEVELOPMENT-MEMORY, build status
-- [>] V1950-6 (28 Nov 2026) Release: lint, typecheck, build, full regression; commit, tag v1.95.0, chained push; follow-up docs commit; CI
+- [x] V1950-6 (28 Nov 2026) Release: lint, typecheck, build, full regression; rebased onto v1.94.1; commit **d973aa76** tagged v1.95.0, chained push confirmed (ls-remote); **CI green: run 46092183737** (covers v1.94.1 too; 46092006571 superseded on purpose); hash recorded in this follow-up docs commit
 - **Now (28 Nov 2026): v1.94.1** (CI races KF-18 and KF-25 fixed in the tests, D-461; no app change). **Next:** v1.94.1+ scope items: projects, portfolios, meetings, forms in the panel and bin (TD-025).
 - [x] V1941-1 (28 Nov 2026) Read the failed CI job logs and traces (runs 45994537565, 45980654401); root causes: service worker vs page.route (KF-18), stale href read (KF-25)
 - [x] V1941-2 (28 Nov 2026) Fix the two specs (serviceWorkers block; wait for the filtered table); version 1.94.1; release notes, KNOWN-FAILURES, DEVELOPMENT-MEMORY D-461
