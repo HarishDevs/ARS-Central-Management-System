@@ -17,6 +17,7 @@ import * as templates from "@/server/work/templates";
 import { DUPLICATE_PARTS, readDuplicateChoice } from "@/server/work/template-rules";
 import * as fieldsService from "@/server/work/fields-service";
 import { parseGridConfig } from "@/server/work/grid";
+import { gridLayoutSchema, isLayoutKey, LAYOUT_SETTING_PREFIX } from "@/server/work/grid-layout";
 import { projectAbilities } from "@/server/work/access";
 import { hasModule } from "@/server/modules/modules";
 import { getDbPool } from "@/lib/db/client";
@@ -984,5 +985,29 @@ export async function sidebarSortAction(list: string, sort: string): Promise<Act
   } catch (error) {
     logError("sidebarSortAction failed", error);
     return { ok: false, message: "Couldn't do that. Please try again." };
+  }
+}
+
+// v1.95.0 (D-476): a task table's personal layout (hidden columns and their order)
+// where the person has no view of their own to save it in (task search, a tab they
+// may only view, someone else's Task Summary). Only their own setting is written;
+// null puts the screen's own layout back.
+export async function gridLayoutAction(key: string, layout: unknown): Promise<ActionResult> {
+  const me = await actor();
+  if (!me) return NOT_FOUND;
+  if (!isLayoutKey(key)) return NOT_FOUND;
+  try {
+    const setting = `${LAYOUT_SETTING_PREFIX}${key}`;
+    if (layout === null) {
+      await getDbPool().query("DELETE FROM user_settings WHERE user_id = ? AND setting_key = ?", [me.id, setting]);
+      return { ok: true };
+    }
+    const parsed = gridLayoutSchema.strict().safeParse(layout);
+    if (!parsed.success) return { ok: false, message: "Those columns can't be kept." };
+    await setUserSetting(me.id, setting, JSON.stringify(parsed.data));
+    return { ok: true };
+  } catch (error) {
+    logError("gridLayoutAction failed", error);
+    return { ok: false, message: "Couldn't keep the columns. Please try again." };
   }
 }

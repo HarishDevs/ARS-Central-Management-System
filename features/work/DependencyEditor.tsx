@@ -90,7 +90,7 @@ export function DependencyEditor({ taskId, title, blockedBy, blocking, canChange
         <Link href={paneLink(item.id)} className="link font-mono text-caption">
           {item.taskNo}
         </Link>
-        <span className={`min-w-0 flex-1 truncate ${OPEN.includes(item.status) ? "" : "text-ink-muted line-through"}`}>{item.title}</span>
+        <span className={`min-w-0 flex-1 truncate ${OPEN.includes(item.status) ? "" : "task-done"}`}>{item.title}</span>
         {item.dueAt && <span className="text-caption text-ink-muted">due {dueText(item.dueAt)}</span>}
         {canChange ? (
           <select

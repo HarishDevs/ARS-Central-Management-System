@@ -15,6 +15,8 @@ import { WEEKDAYS } from "@/server/workflows/calendar";
 import { taskHref } from "@/features/work/TaskPane";
 import { toGridTask } from "@/server/work/grid-rows";
 import { DEFAULT_GRID, parseGridConfig, type GridConfig } from "@/server/work/grid";
+import { layoutKey } from "@/server/work/grid-layout";
+import { personalLayout } from "@/server/work/grid-layout-store";
 import { featureOn } from "@/server/settings/features";
 import { buildStrip, parseTabConfig, pickTab, type BoardConfig } from "@/server/work/view-tabs";
 import { childrenByParent } from "@/server/work/tree";
@@ -370,7 +372,12 @@ async function ProjectView({ found, user, viewer, searchParams }: { found: NonNu
                 ? {
                     rows: tasks.map((task) => toGridTask(task, user.id, can.edit)),
                     subtasks: pmOn ? childrenByParent(subtaskRows.map((task) => ({ parentId: task.parentTaskId, row: toGridTask(task, user.id, can.edit) }))) : undefined,
-                    initial: activeTab ? (parseTabConfig("LIST", activeRow?.config) as GridConfig) : currentTab ? parseGridConfig(currentTab.config) : { ...DEFAULT_GRID, group: "section" },
+                    // v1.95.0 (D-476): someone who may only view the tab gets their own column layout laid over it.
+                    initial: await (async () => {
+                      const base: GridConfig = activeTab ? (parseTabConfig("LIST", activeRow?.config) as GridConfig) : currentTab ? parseGridConfig(currentTab.config) : { ...DEFAULT_GRID, group: "section" };
+                      return can.edit ? base : personalLayout(user.id, layoutKey("PROJECT", project.id, activeTab?.key ?? (currentTab ? `t${currentTab.id}` : null)), base);
+                    })(),
+                    layoutKey: can.edit ? undefined : layoutKey("PROJECT", project.id, activeTab?.key ?? (currentTab ? `t${currentTab.id}` : null)),
                     view: activeTab
                       ? { scope: "PROJECT", scopeId: project.id, canSave: can.edit, current: activeTab.id ? { id: activeTab.id, name: activeTab.name } : null, tabKey: activeTab.key, tabName: activeTab.name, phaseA: true }
                       : { scope: "PROJECT", scopeId: project.id, canSave: can.edit, current: currentTab ? { id: currentTab.id, name: currentTab.name } : null },

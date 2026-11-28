@@ -172,7 +172,7 @@ export async function MobileHome({
           {myTasks && myTasks.items.length > 0 ? (
             <ul className="mob-card divide-y divide-line overflow-hidden" data-testid="m-today-tasks">
               {myTasks.items.map((task) => {
-                const due = dueLabel(task.dueAt, now, true);
+                const due = dueLabel(task.dueAt, now, true, { weekdays: true });
                 return (
                   <li key={task.id}>
                     <Link href={`/users/tasks/${task.id}`} className="flex min-h-[56px] items-center gap-3 px-4 py-2">

@@ -201,9 +201,10 @@ export function rangeText(draft: RangeDraft, today: Day, labels: { start?: strin
  * a range = "30 Nov – 4 Dec", "7 – 11 Dec" (same month), "28 Dec 2026 –
  * 5 Jan 2027" (years differ or not this year). Start = due is one day.
  */
-export function formatDayRange(start: Day | "" | null | undefined, due: Day | "" | null | undefined, today: Day, relative = true): string {
+export function formatDayRange(start: Day | "" | null | undefined, due: Day | "" | null | undefined, today: Day, relative = true, weekdays = true): string {
   // v1.89.0 (D-425): the rules live in the app's one formatter.
-  return formatDayRangeText(start && isRealDay(start) ? start : "", due && isRealDay(due) ? due : "", today, relative);
+  // v1.95.0 (D-471): `weekdays` false in PM screens (the date instead of a weekday name).
+  return formatDayRangeText(start && isRealDay(start) ? start : "", due && isRealDay(due) ? due : "", today, relative, { weekdays });
 }
 
 /** Today in India (the app's day). */

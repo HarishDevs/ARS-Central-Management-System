@@ -296,11 +296,11 @@ function TaskLines({
     <ul className="divide-y divide-line">
       {items.map((task) => {
         const open = ["OPEN", "IN_PROGRESS", "BLOCKED"].includes(task.status);
-        const due = dueLabel(task.dueAt, now, open);
+        const due = dueLabel(task.dueAt, now, open, { weekdays: true }); // v1.95.0: Home keeps weekday names (D-471 is PM-only, TD-041)
         return (
           <li key={task.id} className={`work-row flex items-center gap-2 py-1.5 ${approvalRowClass(task.approval)}`} tabIndex={-1}>
             <TaskCheck taskId={task.id} done={task.status === "COMPLETED"} disabled={task.assigneeId !== meId || task.status === "CANCELLED"} label={task.title} />
-            <Link href={hrefFor(task.id)} scroll={false} className={`min-w-0 flex-1 truncate text-label hover:underline ${task.status === "COMPLETED" ? "text-ink-muted line-through" : ""}`}>
+            <Link href={hrefFor(task.id)} scroll={false} className={`min-w-0 flex-1 truncate text-label hover:underline ${task.status === "COMPLETED" ? "task-done" : ""}`}>
               {task.isPeriodic && (
                 <span title="Periodic" className="text-info-600">
                   ↻{" "}

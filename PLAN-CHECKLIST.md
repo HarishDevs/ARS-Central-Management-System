@@ -17,6 +17,13 @@ Legend: `[ ]` to do · `[>]` in progress · `[x]` done · `[~]` not applicable (
 **Multi-level approvals in any custom manner.** The engine must support any number of levels in any combination: sequential, parallel, any-one, any-N-of-M, conditional and hybrid. Approvers can come from any source, and levels can be added or skipped by rules. Build the engine for this from the first engine phase (P2). The drag-and-drop designer (P3) is only the screen for building it. Check every task against this.
 
 ## Now / Next
+- **Now (28 Nov 2026): v1.95.0** (owner's three requests: PM dates without weekday names, faded completed tasks, column layout that stays; D-471..D-477). Branch `v195` → main, tag v1.95.0, after v1.94.1 if it lands first; owner publishes (no migration). **Next:** TD-041 (app-wide dates) when the owner asks; the work queue as before.
+- [x] V1950-1 (28 Nov 2026) PM dates: `weekdays: false` option at the formatter, work helpers, picker (DateWordsProvider in the work layout), pane and List cells; Home and other modules unchanged (D-471, D-472; owner's scope change)
+- [x] V1950-2 (28 Nov 2026) Completed tasks faded, no strikethrough, in every task list; contrast kept (D-473, D-474)
+- [x] V1950-3 (28 Nov 2026) Column layout kept: into the view when the person may save it, else personal `work.layout.<key>`; search, project tabs, Task Summary (D-475, D-476; TD-018 closed)
+- [x] V1950-4 (28 Nov 2026) Tests: unit v195-dates-layout, integration v195-grid-layout, e2e v1950 (Chromium; layout in Firefox) + affected PM specs; visual PM baselines; axe pass on task screens
+- [x] V1950-5 (28 Nov 2026) Docs and general pages: Guide, Help, release notes, FLOWS, DATA_MODEL, TECH-DEBT TD-041..TD-043, DEVELOPMENT-MEMORY, build status
+- [>] V1950-6 (28 Nov 2026) Release: lint, typecheck, build, full regression; commit, tag v1.95.0, chained push; follow-up docs commit; CI
 - **Now (28 Nov 2026): v1.94.1** (CI races KF-18 and KF-25 fixed in the tests, D-461; no app change). **Next:** v1.94.1+ scope items: projects, portfolios, meetings, forms in the panel and bin (TD-025).
 - [x] V1941-1 (28 Nov 2026) Read the failed CI job logs and traces (runs 45994537565, 45980654401); root causes: service worker vs page.route (KF-18), stale href read (KF-25)
 - [x] V1941-2 (28 Nov 2026) Fix the two specs (serviceWorkers block; wait for the filtered table); version 1.94.1; release notes, KNOWN-FAILURES, DEVELOPMENT-MEMORY D-461

@@ -207,7 +207,7 @@ export function TaskCalendar({
       className={`flex min-h-7 items-center gap-1 rounded px-1 py-0.5 text-caption focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-600 ${due ? "bg-surface-muted" : "border border-dashed border-line text-ink-muted"} ${lifted?.id === task.id ? "ring-2 ring-warning-600" : ""}`}
     >
       {due ? <TaskCheck taskId={task.id} done={task.status === "COMPLETED"} disabled={!may(task)} label={task.title} size="sm" /> : <span aria-hidden="true">→</span>}
-      <Link href={paneLink(task.id)} scroll={false} tabIndex={planning && due ? -1 : undefined} className={`min-w-0 truncate hover:underline ${task.status === "COMPLETED" ? "text-ink-muted line-through" : ""}`}>
+      <Link href={paneLink(task.id)} scroll={false} tabIndex={planning && due ? -1 : undefined} className={`min-w-0 truncate hover:underline ${task.status === "COMPLETED" ? "task-done" : ""}`}>
         {task.isMilestone ? "◆ " : ""}
         {task.title}
       </Link>

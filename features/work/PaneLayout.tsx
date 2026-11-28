@@ -65,9 +65,10 @@ export function TaskDatesPicker({ data, compact = false }: { data: PanelData; co
   const dueTime = data.dueAt ? indiaClock(data.dueAt) : "23:59";
   const may = data.canProgress && data.open && !data.deleted;
   const today = todayInIndia();
-  const text = formatDayRange(data.isMilestone ? "" : data.startsOn, dueDay, today);
+  const text = formatDayRange(data.isMilestone ? "" : data.startsOn, dueDay, today, true, false); // D-471: the pane is a PM screen wherever it opens
   return (
     <DateRangePicker
+      weekdays={false}
       label="Task dates"
       mode={data.isMilestone ? "single" : "range"}
       dueRequired

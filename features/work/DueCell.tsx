@@ -14,11 +14,12 @@ const indiaDayOf = (iso: string) => new Date(new Date(iso).getTime() + 330 * 60_
 export function DueCell({ task, toneClass = "", disabled = false, boxed = false }: { task: { id: number; title: string; dueAt: string | null; startsOn?: string | null; isMilestone?: boolean }; toneClass?: string; disabled?: boolean; boxed?: boolean }) {
   const { call } = useWorkCall();
   const due = task.dueAt ? indiaDayOf(task.dueAt) : "";
-  const text = formatDayRange(task.isMilestone ? "" : (task.startsOn ?? ""), due, todayInIndia());
+  const text = formatDayRange(task.isMilestone ? "" : (task.startsOn ?? ""), due, todayInIndia(), true, false); // D-471: dates, not weekday names
   return (
     <span className="block min-w-0" data-due={due || undefined}>
       <DateRangePicker
         mode="single"
+        weekdays={false}
         label={`Due date of ${task.title}`}
         dueLabel="Due date"
         dueRequired
@@ -42,11 +43,12 @@ export function DueCell({ task, toneClass = "", disabled = false, boxed = false 
 export function StartCell({ task, disabled = false }: { task: { id: number; title: string; startsOn?: string | null }; disabled?: boolean }) {
   const { call } = useWorkCall();
   const start = task.startsOn ?? "";
-  const text = formatDayRange("", start, todayInIndia());
+  const text = formatDayRange("", start, todayInIndia(), true, false);
   return (
     <span className="block min-w-0" data-start={start || undefined} data-testid="start-cell">
       <DateRangePicker
         mode="single"
+        weekdays={false}
         label={`Start date of ${task.title}`}
         dueLabel="Start date"
         compact

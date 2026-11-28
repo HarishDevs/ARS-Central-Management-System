@@ -195,7 +195,7 @@ export function TaskWorkPanel({ data }: { data: PanelData }) {
             return (
               <li key={task.id} className="work-row flex items-center gap-2 py-1.5" tabIndex={-1}>
                 <TaskCheck taskId={task.id} done={task.status === "COMPLETED"} disabled={task.status === "CANCELLED"} label={task.title} />
-                <Link href={paneLink(task.id)} className={`min-w-0 flex-1 truncate text-label hover:underline ${task.status === "COMPLETED" ? "text-ink-muted line-through" : ""}`}>
+                <Link href={paneLink(task.id)} className={`min-w-0 flex-1 truncate text-label hover:underline ${task.status === "COMPLETED" ? "task-done" : ""}`}>
                   {task.title}
                   {task.subtasks > 0 && <span className="ml-1 text-caption text-ink-muted">({task.subtasks} subtasks)</span>}
                 </Link>
@@ -342,7 +342,7 @@ function DependencyList({ items, taskId, canChange }: { items: PanelData["blocke
           <Link href={paneLink(item.id)} className="link font-mono text-caption">
             {item.taskNo}
           </Link>
-          <span className={`min-w-0 flex-1 truncate ${OPEN.includes(item.status) ? "" : "text-ink-muted line-through"}`}>{item.title}</span>
+          <span className={`min-w-0 flex-1 truncate ${OPEN.includes(item.status) ? "" : "task-done"}`}>{item.title}</span>
           {canChange && (
             <button
               type="button"

@@ -4,17 +4,19 @@ import { formatRelativeDay, indiaDay } from "@/lib/format/date";
 
 export const indiaDayOf = (value: Date) => indiaDay(value);
 
-// Today / Tomorrow / Yesterday, a weekday name within the coming week (D-219), else "21 Nov" (this year) or "21 Nov 2027".
-export function dayText(day: string, today: string): string {
-  return formatRelativeDay(day, today);
+// Today / Tomorrow / Yesterday, else "21 Nov" (this year) or "21 Nov 2027".
+// v1.95.0 (D-471, owner, PM screens): never a weekday name (was: "Friday" within the
+// coming week, D-219). `weekdays: true` keeps the old words for non-PM callers.
+export function dayText(day: string, today: string, options: { weekdays?: boolean } = {}): string {
+  return formatRelativeDay(day, today, { weekdays: options.weekdays ?? false });
 }
 
-export function dueLabel(dueAt: Date | string | null, now: Date, open: boolean): { text: string; tone: "danger" | "success" | "neutral" } | null {
+export function dueLabel(dueAt: Date | string | null, now: Date, open: boolean, options: { weekdays?: boolean } = {}): { text: string; tone: "danger" | "success" | "neutral" } | null {
   if (!dueAt) return null;
   const due = typeof dueAt === "string" ? new Date(dueAt) : dueAt;
   const day = indiaDayOf(due);
   const today = indiaDayOf(now);
-  const text = dayText(day, today);
+  const text = dayText(day, today, options);
   if (!open) return { text, tone: "neutral" };
   // Overdue in red; today in green (screen catalog §1.4).
   return { text, tone: day < today ? "danger" : day === today ? "success" : "neutral" };

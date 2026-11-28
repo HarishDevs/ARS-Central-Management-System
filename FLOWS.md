@@ -3066,9 +3066,8 @@ flowchart TD
   H -- v 2 --> AS[As saved]
   M[Move: drag a title onto another, Alt+← or Alt+→ on a focused title, Options › Columns arrows, a field column's menu] --> N[columnOrder updated; live region: X moved to column n of m]
   N --> SV{Which table?}
-  SV -- project tab --> U[Unsaved changes, then Save view by owners and editors]
-  SV -- Task Summary tab --> AUTO[Saves itself after a second]
-  SV -- task search --> PAGE[Kept while the page is open]
+  SV -- a view the person may save --> V195A[v1.95.0 D-476: columns saved into the view a second later; filters and sort keep Unsaved changes]
+  SV -- task search, a tab they may only view, someone else's Task Summary, no tab --> V195B[v1.95.0 D-476: kept for the person, user_settings work.layout, laid over the view on every visit]
   RS[Options › Columns › Reset column order] --> D
   LC[List query: decorate] --> Q[One batched query: newest non-deleted comment per task, replies count] --> CELL[Last comment cell: text cut to fit, author · relative time; full text on hover]
 ## F-SA-CONTROL: Super Admin control panel: find, modify, archive, bin, create on behalf (v1.94.0, D-451..D-460)
@@ -3120,4 +3119,17 @@ flowchart TD
   S -- yes --> TX[One transaction: the item's rows and everything hanging on it, the items binned with it, its notifications; triggers allow it only for 30+ days in the bin]
   TX --> AU[Bin row kept: number, title, who / when / why, purged_at · audit SUPERADMIN_PURGED · the audit log is never erased]
   AU --> FS[Files removed from disk after the commit]
+```
+
+## F-PM-DATES-DONE: Day words and completed tasks in Project Management (v1.95.0, D-471..D-474)
+```mermaid
+flowchart TD
+  D[A day shown in a PM screen] --> R{How far from today, India time}
+  R -- minus 1 --> Y[Yesterday]
+  R -- 0 --> T[Today]
+  R -- plus 1 --> M[Tomorrow]
+  R -- anything else --> N[The date: 27 Nov, or 27 Nov 2027 in another year; never a weekday name]
+  O[Other modules] --> OLD[Unchanged for now: weekday names within the coming week, TD-041]
+  C[A task is completed] --> K[Tick checked, Reopen offered]
+  K --> F[Name in the secondary text colour, photos dimmed; no strikethrough, no blur filter; contrast AA]
 ```

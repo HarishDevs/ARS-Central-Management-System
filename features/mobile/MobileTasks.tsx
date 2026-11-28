@@ -206,7 +206,7 @@ function TaskRow({ task, now, compact, showAssignee }: { task: WorkTaskItem; now
       <TaskCheck taskId={task.id} done={!open} disabled={task.status === "CANCELLED"} label={task.title} />
       <Link href={`/users/tasks/${task.id}`} className={`flex min-w-0 flex-1 items-center gap-3 border-b border-line pr-4 ${compact ? "min-h-[52px] py-2" : "min-h-[72px] py-3"}`}>
         <span className="min-w-0 flex-1">
-          <span className={`block truncate text-[length:calc(16px*var(--text-scale,1))] ${open ? "" : "text-ink-muted line-through"}`}>
+          <span className={`block truncate text-[length:calc(16px*var(--text-scale,1))] ${open ? "" : "task-done"}`}>
             <SafeText text={task.title} />
           </span>
           {!compact && (

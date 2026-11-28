@@ -107,7 +107,7 @@ export function ProjectWorkspace({
   nowIso: string;
   fields?: FieldView[]; // D-218: the project's own columns
   values?: CellMap;
-  grid?: { rows: GridTask[]; initial: GridConfig; view: GridView; subtasks?: Record<number, GridTask[]> }; // D-220: the List as the shared table
+  grid?: { rows: GridTask[]; initial: GridConfig; view: GridView; subtasks?: Record<number, GridTask[]>; layoutKey?: string }; // D-220: the List as the shared table
   // v1.61.0 (D-367): the person's row density, and the Board tab's saved view (Save view / Reset).
   density?: "COMFORTABLE" | "COMPACT";
   board?: { initial: BoardConfig; tabKey: string; tabName: string; canSave: boolean };
@@ -634,7 +634,7 @@ export function ProjectWorkspace({
                           <TaskCheck taskId={task.id} done={task.status === "COMPLETED"} disabled={!(canEdit || task.assigneeId === meId) || task.status === "CANCELLED"} label={task.title} size="sm" />
                           <Link href={paneLink(task.id)} scroll={false} tabIndex={-1} className="line-clamp-2 min-w-0 flex-1 text-label font-medium text-ink hover:underline">
                             {task.isMilestone && <Diamond aria-label="Milestone" className="mr-1 inline h-3.5 w-3.5 text-primary-600" />}
-                            <span className={task.status === "COMPLETED" ? "text-ink-muted line-through" : ""}>{task.title}</span>
+                            <span className={task.status === "COMPLETED" ? "task-done" : ""}>{task.title}</span>
                           </Link>
                         </div>
                         {/* v1.47.0: the same priority pill as every task table (Low too). */}
@@ -683,6 +683,7 @@ export function ProjectWorkspace({
           meId={meId}
           nowIso={nowIso}
           view={grid.view}
+          layoutKey={grid.layoutKey}
           widthKey={`project:${projectId}`}
           bulk={canEdit}
           editAssignee={canEdit}
@@ -801,7 +802,7 @@ export function ProjectWorkspace({
                           aria-keyshortcuts={canDrag ? "Alt+ArrowUp Alt+ArrowDown" : undefined}
                         >
                           {task.isMilestone && <Diamond aria-label="Milestone" className="mr-1 inline h-3.5 w-3.5 text-primary-600" />}
-                          <span className={task.status === "COMPLETED" ? "text-ink-muted line-through" : ""}>{task.title}</span>
+                          <span className={task.status === "COMPLETED" ? "task-done" : ""}>{task.title}</span>
                         </Link>
                         <RowBadges task={task} />
                       </div>

@@ -13,7 +13,8 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { foldKey as foldStoreKey, readFold, writeFold } from "@/features/ui/fold-memory";
 import { FoldAllButtons } from "@/features/ui/GroupFold";
-import { deleteViewAction, densityAction, myTasksTabAction, projectTabAction, saveViewAction, taskFieldsAction, updateViewAction } from "@/app/users/work/actions";
+import { deleteViewAction, densityAction, gridLayoutAction, myTasksTabAction, projectTabAction, saveViewAction, taskFieldsAction, updateViewAction } from "@/app/users/work/actions";
+import { layoutOf, sameLayout } from "@/server/work/grid-layout";
 import { UnsavedView } from "@/features/work/UnsavedView";
 import { chipText, visibilityLabel, VISIBILITY_TIP } from "@/server/work/my-sections";
 import { useWindowedLines, WINDOW_FROM } from "@/features/work/useWindowedLines";
@@ -122,6 +123,7 @@ export function TaskGrid({
   groupLabels,
   resetTo,
   readOnly = false,
+  layoutKey,
 }: {
   // v1.77.0 (D-404): someone else's Task Summary: no Add task, nothing saved.
   readOnly?: boolean;
@@ -171,6 +173,8 @@ export function TaskGrid({
   onAddSection?: () => void;
   groupLabels?: Partial<Record<GridGroup, string>>;
   resetTo?: GridConfig;
+  // v1.95.0 (D-476): where this person's own column layout is kept when the table has no view they may save (gridLayoutAction).
+  layoutKey?: string;
 }) {
   const projectsOn = useProjectsOn();
   const { call } = useWorkCall();
@@ -333,6 +337,40 @@ export function TaskGrid({
     }, 1000);
     return () => window.clearTimeout(timer);
   }, [autoSave, autoKey, view, router]);
+  // v1.95.0 (D-475, D-476, owner: "a changed column order view can be saved so that
+  // everytime a person opens the screen it stays the same"): a change to the columns
+  // (shown, hidden, order) is kept a second later, never lost silently. Into the view
+  // when the person may save it (only the columns: filters, sort and groups keep their
+  // own Unsaved changes); else as their own layout for this screen (layoutKey).
+  const layoutNow = JSON.stringify(layoutOf(config));
+  const savedLayout = JSON.stringify(layoutOf(JSON.parse(saved) as GridConfig));
+  const viewSaves = !readOnly && Boolean(view?.canSave) && Boolean((view?.phaseA && view.tabKey) || (!view?.phaseA && view?.current));
+  const [layoutState, setLayoutState] = useState<"" | "saving" | "saved">("");
+  useEffect(() => {
+    if (autoSave || layoutNow === savedLayout || sameLayout(JSON.parse(layoutNow), JSON.parse(savedLayout))) return;
+    if (!viewSaves && !layoutKey) return;
+    const timer = window.setTimeout(() => {
+      const layout = JSON.parse(layoutNow) as ReturnType<typeof layoutOf>;
+      const merged: GridConfig = { ...(JSON.parse(saved) as GridConfig), ...layout };
+      setLayoutState("saving");
+      const save = viewSaves
+        ? view!.phaseA
+          ? view!.scope === "MY_TASKS"
+            ? myTasksTabAction({ op: "save", key: view!.tabKey!, config: merged, auto: true })
+            : projectTabAction(view!.scopeId, { op: "save", key: view!.tabKey!, config: merged })
+          : updateViewAction(view!.current!.id, merged)
+        : gridLayoutAction(layoutKey!, layout);
+      void save.then((result) => {
+        if (result?.ok) {
+          setSaved(JSON.stringify(merged));
+          setLayoutState("saved");
+          window.setTimeout(() => setLayoutState(""), 3000);
+          if (viewSaves && view!.phaseA && view!.tabKey!.startsWith("v")) router.refresh();
+        } else setLayoutState("");
+      });
+    }, 1000);
+    return () => window.clearTimeout(timer);
+  }, [autoSave, layoutNow, savedLayout, viewSaves, layoutKey, saved, view, router]);
   // Moving tasks by hand needs the person's order: no sort, filter or search.
   const dragBlocked = Boolean(onMove) && config.group === moveGroup && !canDrag;
   const count = filterCount(config);
@@ -776,6 +814,11 @@ export function TaskGrid({
             />
           </Drop>
           <ViewSearch value={config.search} onChange={(search) => set({ search })} />
+          {!autoSave && layoutState && (
+            <span role="status" aria-live="polite" className="text-caption text-ink-muted" data-testid="columns-kept">
+              {layoutState === "saving" ? "Keeping columns…" : viewSaves ? "Columns saved to this view" : "Columns kept for you"}
+            </span>
+          )}
           {autoSave && (
             <span className="inline-flex items-center gap-1.5" data-testid="auto-save">
               <span role="status" aria-live="polite" className="text-caption text-ink-muted">
@@ -938,7 +981,7 @@ export function TaskGrid({
                         event.stopPropagation();
                         pick(task.id, event.shiftKey);
                       }}
-                      className={`work-row group grid min-h-row select-none items-center border-b border-line text-label hover:bg-surface-muted focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus ${approvalRowClass(task.approval)} ${isOpen ? "bg-row-active outline outline-1 -outline-offset-1 outline-primary-600" : ""} ${selected.includes(task.id) && !sub ? "bg-row-active shadow-[inset_3px_0_0_var(--color-primary-600)]" : ""} ${dragging === task.id ? "opacity-50" : ""}`}
+                      className={`work-row group grid min-h-row select-none items-center border-b border-line text-label hover:bg-surface-muted ${task.status === "COMPLETED" ? "task-done-row" : ""} focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus ${approvalRowClass(task.approval)} ${isOpen ? "bg-row-active outline outline-1 -outline-offset-1 outline-primary-600" : ""} ${selected.includes(task.id) && !sub ? "bg-row-active shadow-[inset_3px_0_0_var(--color-primary-600)]" : ""} ${dragging === task.id ? "opacity-50" : ""}`}
                     >
                       <span role="gridcell" className="px-2 text-caption tabular-nums text-ink-faint">
                         {line.number ?? ""}
@@ -959,7 +1002,7 @@ export function TaskGrid({
                           <span aria-hidden="true" className="-ml-1 inline-block w-6" />
                         ) : null}
                         <TaskCheck taskId={task.id} done={task.status === "COMPLETED"} disabled={!task.canComplete} label={task.title} />
-                        <Link href={paneLink(task.id)} scroll={false} title={task.title} className={`line-clamp-2 min-w-0 break-words hover:underline ${task.status === "COMPLETED" ? "text-ink-muted line-through" : "text-ink"}`}>
+                        <Link href={paneLink(task.id)} scroll={false} title={task.title} className={`line-clamp-2 min-w-0 break-words hover:underline ${task.status === "COMPLETED" ? "task-done" : "text-ink"}`}>
                           {task.title}
                         </Link>
                         <span className="flex shrink-0 items-center gap-2 text-caption text-ink-muted">

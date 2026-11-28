@@ -1,5 +1,13 @@
 # Release notes
 
+## v1.95.0 (28 Nov 2026): dates, completed tasks and columns that stay
+The owner's three requests (28 Nov 2026; D-471..D-476). **No migration, no new setting; a person's own column layout is kept on their account.**
+
+- **Project Management dates show the date itself.** A task due in the coming week reads "27 Nov" instead of "Friday"; only **Yesterday**, **Today** and **Tomorrow** stay as words. This applies to the project screens, Task Summary, task search, the task pane, portfolios and PM dashboards (the owner asked for Project Management only for now; other modules are unchanged). Calendar headers, repeat rules ("every Monday") and weekly offs keep their weekday names.
+- **Completed tasks are faded, not struck through.** The tick stays; the task's name turns grey (still easy to read) everywhere tasks are listed: lists, boards, Task Summary, calendar, timeline, subtasks, dependencies and the phone.
+- **Your column layout stays.** Move, hide or show a column in a task table and it is kept a second later: on a project tab you own or edit, and on your own Task Summary tabs, it is saved to the tab ("Columns saved to this view"); in task search, on a tab you may only view, or on someone else's Task Summary, it is kept for you only ("Columns kept for you") and comes back every time you open that screen.
+
+**Owner steps:** GoDaddy → **Update Preview**, check the preview (a project's List: a task due later this week shows its date; complete a task: it fades; move a column, reload: it stays), then **Publish to Live**. No migration; no setting; no manual SQL.
 ## v1.94.1 (28 Nov 2026): two end-to-end tests made reliable (no app change)
 The automatic check (CI) on main failed after v1.94.0 on one browser test, and an earlier run on two (D-461). **Nothing changes for users: no screen, data, setting, package or migration changes.**
 

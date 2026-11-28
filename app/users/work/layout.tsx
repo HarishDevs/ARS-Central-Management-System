@@ -1,4 +1,5 @@
 import { WorkKeys } from "@/features/work/WorkKeys";
+import { DateWordsProvider } from "@/features/ui/date-words";
 import { workPage } from "@/server/work/page-context";
 
 // D-215 / D-219: the Tasks area looks like Asana, with the area's keyboard.
@@ -9,7 +10,8 @@ export default async function WorkLayout({ children }: { children: React.ReactNo
   return (
     <>
       <WorkKeys />
-      {children}
+      {/* v1.95.0 (D-471): PM screens write dates, not weekday names. */}
+      <DateWordsProvider weekdays={false}>{children}</DateWordsProvider>
     </>
   );
 }

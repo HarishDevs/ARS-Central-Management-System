@@ -9,6 +9,8 @@ import { fieldDefsOfProjects } from "@/lib/db/repositories/fields.repository";
 import { cellsFor, fieldViews } from "@/server/work/fields-service";
 import type { CellMap, FieldView } from "@/server/work/custom-fields";
 import { DEFAULT_GRID, parseGridConfig } from "@/server/work/grid";
+import { layoutKey } from "@/server/work/grid-layout";
+import { personalLayout } from "@/server/work/grid-layout-store";
 import { peopleOptions } from "@/server/work/page-context";
 import { Avatar } from "@/features/ui/Display";
 import { CreateTaskButton } from "@/features/work/client";
@@ -238,6 +240,8 @@ export default async function MyTasksPage({
   ]);
   // v1.70.0 (D-383, "pm_extras"): the person's My Tasks calendar feed.
   const feed = !readOnly && (await extrasOn(user)) ? await currentFeed("MY_TASKS", null, { id: user.id, name: user.name, roles: user.roles, modules: user.modules, sessionId: "", ipAddress: null }) : undefined;
+  // v1.95.0 (D-476): where this list's columns go when there is no view the person may save.
+  const listLayoutKey = readOnly ? layoutKey("MY_TASKS", ownerId, activeTab?.key ?? null) : !activeTab && !currentTab ? layoutKey("MY_TASKS", user.id, null) : undefined;
   return (
     <>
       <header className="mb-4 flex flex-wrap items-center gap-3" data-testid="my-tasks-header">
@@ -369,7 +373,12 @@ export default async function MyTasksPage({
             rows={gridRows}
             sections={SUMMARY}
             fixed
-            initial={listConfig && listConfig.group === "mySection" && !mySections ? { ...listConfig, group: "section" } : listConfig ?? (currentTab ? parseGridConfig(currentTab.config) : { ...DEFAULT_GRID, group: "section" })}
+            // v1.95.0 (D-476): someone else's Task Summary (read-only) or a list without a tab keeps the viewer's own column layout.
+            initial={await (async () => {
+              const base: GridConfig = listConfig && listConfig.group === "mySection" && !mySections ? { ...listConfig, group: "section" } : listConfig ?? (currentTab ? parseGridConfig(currentTab.config) : { ...DEFAULT_GRID, group: "section" });
+              return listLayoutKey ? personalLayout(user.id, listLayoutKey, base) : base;
+            })()}
+            layoutKey={listLayoutKey}
             mySections={mySections}
             resetTo={activeTab && !readOnly ? listStart : undefined}
             readOnly={readOnly}

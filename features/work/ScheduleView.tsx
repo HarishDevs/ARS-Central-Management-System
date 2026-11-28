@@ -788,7 +788,7 @@ function TaskLine({
         <span className="flex min-w-0 flex-1 items-center gap-1.5 px-2">
           <TaskCheck taskId={task.id} done={done} disabled={!editable && !done} label={task.title} size="sm" />
           {blocked && <Lock aria-label="Waiting for other tasks" className="h-3.5 w-3.5 shrink-0 text-warning-600" />}
-          <Link href={paneHref} scroll={false} className={`truncate hover:underline ${done ? "text-ink-muted line-through" : ""}`}>
+          <Link href={paneHref} scroll={false} className={`truncate hover:underline ${done ? "task-done" : ""}`}>
             {task.title}
           </Link>
         </span>

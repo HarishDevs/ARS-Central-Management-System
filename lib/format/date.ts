@@ -14,6 +14,9 @@
 //   date and time   24 Nov 2026, 3:05 pm formatDateTime(at)
 //   time range      Tue, 24 Nov 2026, 11:00 am to 12:30 pm      formatTimeRange(start, end)
 //   day range       30 Nov – 4 Dec, 7 – 11 Dec                   formatDayRange(start, due, today)
+//   PM screens (v1.95.0, D-471): `{ weekdays: false }` on formatRelativeDay / formatDayRange:
+//                   a day near today is the date itself ("27 Nov"), only Today / Tomorrow /
+//                   Yesterday stay as words (other modules keep weekday names, TD-041).
 //   month           Nov 2026 / November 2026                     formatMonth(at)
 //   relative        just now, 5 min ago, 2 h ago, Yesterday, 3 days ago, in 2 h, Tomorrow
 //                   formatRelative(at, now) — "now" differs between server and browser, so
@@ -254,12 +257,12 @@ export function formatDayTime(at: DateInput, now: DateInput = new Date(), option
  * else "1 Dec" (this year) or "1 Dec 2027"; a range = "30 Nov – 4 Dec", "7 – 11 Dec"
  * (same month), "28 Dec 2026 – 5 Jan 2027" (years differ or not this year).
  */
-export function formatDayRange(start: string | null | undefined, due: string | null | undefined, today: DateInput = new Date(), relative = true): string {
+export function formatDayRange(start: string | null | undefined, due: string | null | undefined, today: DateInput = new Date(), relative = true, options: { weekdays?: boolean } = {}): string {
   const t = indiaDay(today);
   const s = start && DAY_RE.test(start) && parts(start) ? start : "";
   const d = due && DAY_RE.test(due) && parts(due) ? due : "";
   if (!s && !d) return "";
-  const one = (day: string) => (relative ? formatRelativeDay(day, t) : formatDate(day, { year: "auto", now: t }));
+  const one = (day: string) => (relative ? formatRelativeDay(day, t, { weekdays: options.weekdays }) : formatDate(day, { year: "auto", now: t }));
   if (!s || !d || s === d) return one(d || s);
   const month = (day: string) => MONTHS_SHORT[Number(day.slice(5, 7)) - 1];
   const num = (day: string) => Number(day.slice(8, 10));

@@ -694,7 +694,7 @@ function ProjectChip({ task, on }: { task: WorkTaskItem; on: boolean }) {
 
 function Due({ task, now }: { task: WorkTaskItem; now: Date }) {
   const open = ["OPEN", "IN_PROGRESS", "BLOCKED"].includes(task.status);
-  const due = dueLabel(task.dueAt, now, open);
+  const due = dueLabel(task.dueAt, now, open, { weekdays: true });
   if (!due) return <span className="text-caption text-ink-faint">No due date</span>;
   return (
     <span className={`inline-flex items-center gap-1 text-caption ${TONE_TEXT[due.tone]}`}>

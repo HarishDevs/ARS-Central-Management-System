@@ -830,6 +830,12 @@ html,
 .rules-editor p { @apply mb-2; }
 .rules-editor ul { @apply mb-2 list-disc pl-6; }
 .rules-editor ol { @apply mb-2 list-decimal pl-6; }
+/* v1.95.0 (D-473, owner: "once completed do not strike the task, just mark complete and blur
+   the task"): a completed task is faded, never struck through. "Blur" is read as faded: the
+   secondary text colour (it keeps WCAG AA contrast, checked by axe) and dimmed pictures and
+   icons beside it; no CSS blur filter (text would be unreadable). The tick stays as it is. */
+.task-done { color: var(--color-text-secondary); text-decoration: none; }
+.task-done-row img, .task-done-row [data-avatar] { opacity: 0.6; }
 .rules-editor blockquote { @apply mb-2 border-l-2 border-primary-100 pl-3 text-ink-muted; }
 .rules-editor a { @apply text-primary-600 underline; }
 .rules-editor table { @apply mb-2 w-full border-collapse text-label; }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useDateWords } from "@/features/ui/date-words";
 import { CalendarDays, ChevronLeft, ChevronRight, Clock, Plus, Repeat, X } from "lucide-react";
 import { useCallback, useEffect, useId, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type Ref } from "react";
 import { useOverlay } from "@/features/ui/overlay-stack";
@@ -118,7 +119,10 @@ export function DateRangePicker({
   triggerDescribedBy,
   triggerInvalid,
   handle,
+  weekdays,
 }: {
+  // v1.95.0 (D-471): weekday names in the trigger text; default from DateWordsProvider (off in PM screens).
+  weekdays?: boolean;
   value?: DateRangeValue;
   defaultValue?: DateRangeValue;
   onChange?: (value: DateRangeValue) => void;
@@ -163,6 +167,8 @@ export function DateRangePicker({
   const [said, setSaid] = useState("");
   const [hover, setHover] = useState<Day | null>(null);
   const today = todayInIndia();
+  const words = useDateWords();
+  const useWeekdays = weekdays ?? words.weekdays;
   const [focusDay, setFocusDay] = useState<Day>(current.due || current.start || today);
   const calendar = usePickerCalendar(givenCalendar, open);
   const phone = usePhone();
@@ -394,9 +400,9 @@ export function DateRangePicker({
 
   // Spec DATE_RANGES §3: "30 Nov – 4 Dec", "7 – 11 Dec", "Tomorrow" …
   const triggerText = (() => {
-    if (single) return current.due ? formatDayRange("", current.due, today) : placeholder;
-    if (current.start && !current.due) return `${formatDayRange(current.start, "", today)} –`;
-    return formatDayRange(current.start, current.due, today) || placeholder;
+    if (single) return current.due ? formatDayRange("", current.due, today, true, useWeekdays) : placeholder;
+    if (current.start && !current.due) return `${formatDayRange(current.start, "", today, true, useWeekdays)} –`;
+    return formatDayRange(current.start, current.due, today, true, useWeekdays) || placeholder;
   })();
   const triggerName = triggerLabel ?? `${label}: ${single ? (current.due ? longDay(current.due) : "none") : rangeText(draft, today, { start: startLabel.replace(/ date$/, ""), due: dueLabel.replace(/ date$/, "") })}. Change`;
 

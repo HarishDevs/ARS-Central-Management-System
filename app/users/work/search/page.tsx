@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { TaskGrid } from "@/features/work/TaskGrid";
 import { toGridTask } from "@/server/work/grid-rows";
 import { DEFAULT_GRID, gridFromUrl, gridUrlState } from "@/server/work/grid";
+import { personalLayout } from "@/server/work/grid-layout-store";
 import { ListViews } from "@/features/lists/ListViews";
 import { applyDefaultListView } from "@/server/lists/views";
 import Link from "next/link";
@@ -30,7 +31,8 @@ export default async function WorkSearchPage({ searchParams }: { searchParams: P
   // the person's own; the default one opens when the address is empty.
   await applyDefaultListView(user.id, "list_tasks_search", "/users/work/search", raw);
   const search = parseWorkSearch(raw);
-  const gridInitial = gridFromUrl(raw, { ...DEFAULT_GRID, completed: "all" });
+  // v1.95.0 (D-475, TD-018 closed): the person's own columns and their order are kept for this screen.
+  const gridInitial = await personalLayout(user.id, "search", gridFromUrl(raw, { ...DEFAULT_GRID, completed: "all" }));
   const gridKeep = gridUrlState(gridInitial); // the table's sort and group, kept on paging and chips
   const now = new Date();
   const sql = workSearchSql(viewer, search, now);
@@ -120,6 +122,7 @@ export default async function WorkSearchPage({ searchParams }: { searchParams: P
               meId={user.id}
               nowIso={now.toISOString()}
               testId="work-search-results"
+              layoutKey="search"
             />
           )}
           <ListViews userId={user.id} target="list_tasks_search" path="/users/work/search" query={Object.fromEntries(Object.entries(raw).filter(([key]) => key !== "task"))} />

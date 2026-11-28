@@ -150,7 +150,7 @@ export function MyTasks({
             />
           )}
           <TaskCheck taskId={task.id} done={task.status === "COMPLETED"} disabled={readOnly || task.status === "CANCELLED"} label={task.title} />
-          <Link href={paneLink(task.id)} scroll={false} className={`min-w-0 flex-1 truncate text-label hover:underline ${task.status === "COMPLETED" ? "text-ink-muted line-through" : ""}`}>
+          <Link href={paneLink(task.id)} scroll={false} className={`min-w-0 flex-1 truncate text-label hover:underline ${task.status === "COMPLETED" ? "task-done" : ""}`}>
             {task.isPeriodic && <Repeat aria-label="Periodic" className="mr-1 inline h-3.5 w-3.5 text-info-600" />}
             {task.title}
           </Link>
@@ -377,7 +377,9 @@ export function MyTasksGrid({
   mySections,
   resetTo,
   readOnly = false,
+  layoutKey,
 }: {
+  layoutKey?: string; // v1.95.0 (D-476)
   rows: GridTask[];
   sections: MySectionRow[];
   // v1.77.0 (D-404): someone else's Task Summary: no moves, adds, renames, saves or selection.
@@ -433,6 +435,7 @@ export function MyTasksGrid({
       readOnly={readOnly}
       bulk={!readOnly}
       resetTo={resetTo}
+      layoutKey={layoutKey}
       people={people}
       projects={projects}
       meId={meId}
